@@ -140,3 +140,12 @@ def create_tables():
 if __name__ == "__main__":
     create_tables()
     print("Database initialized successfully.")
+def update_signal_status(session, signal_id, new_status):
+    signal = session.query(Signal).filter(Signal.id == signal_id).first()
+
+    if not signal:
+        return False
+
+    signal.status = new_status
+    session.commit()
+    return True
