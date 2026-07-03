@@ -1,5 +1,5 @@
 import time
-
+from database import update_signal_status
 from database import get_session, Signal
 from config import CHECK_INTERVAL
 from filters.btc_filter import BTCHealthFilter
