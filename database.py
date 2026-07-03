@@ -130,11 +130,7 @@ class Trade(Base):
 # -----------------------------------------------------------------------------
 
 def get_session():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    return SessionLocal()
 
 
 def create_tables():
