@@ -1,9 +1,18 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text
-from sqlalchemy.sql import func
 from dotenv import load_dotenv
 import os
+
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    String,
+    Float,
+    DateTime,
+    Boolean,
+    Text,
+)
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.sql import func
 
 # -----------------------------------------------------------------------------
 # LOAD ENV
@@ -48,11 +57,13 @@ Base = declarative_base()
 class Signal(Base):
     __tablename__ = "signals"
 
-    id = Column(Integer, primary_key=True)
-    symbol = Column(String(20), index=True)
+    id = Column(Integer, primary_key=True, index=True)
+
+    symbol = Column(String(20), nullable=False, index=True)
     side = Column(String(10))
     timeframe = Column(String(10))
     divergence = Column(String(50))
+
     price = Column(Float)
 
     score = Column(Float, default=0)
@@ -69,10 +80,16 @@ class Signal(Base):
     risk_score = Column(Float, default=0)
 
     approved = Column(Boolean, default=False)
+
     status = Column(String(30), default="OPEN")
+
     reason = Column(Text)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
 
 # -----------------------------------------------------------------------------
 # TRADE TABLE
@@ -81,7 +98,8 @@ class Signal(Base):
 class Trade(Base):
     __tablename__ = "trades"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
+
     signal_id = Column(Integer)
 
     symbol = Column(String(20))
@@ -94,20 +112,29 @@ class Trade(Base):
     tp2 = Column(Float)
 
     rr = Column(Float)
+
     pnl = Column(Float, default=0)
 
     status = Column(String(30), default="OPEN")
 
     exchange_order_id = Column(String(120))
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
 
 # -----------------------------------------------------------------------------
 # HELPERS
 # -----------------------------------------------------------------------------
 
 def get_session():
-    return SessionLocal()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 def create_tables():
