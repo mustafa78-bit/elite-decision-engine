@@ -14,15 +14,15 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
-# -----------------------------------------------------------------------------
-# LOAD ENV
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
+# ENV LOAD
+# ------------------------------------------------------------------
 
 load_dotenv()
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
 # DATABASE CONFIG
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
 
 DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
@@ -50,9 +50,9 @@ SessionLocal = sessionmaker(
 
 Base = declarative_base()
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
 # SIGNAL TABLE
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
 
 class Signal(Base):
     __tablename__ = "signals"
@@ -90,10 +90,9 @@ class Signal(Base):
         server_default=func.now(),
     )
 
-
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
 # TRADE TABLE
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
 
 class Trade(Base):
     __tablename__ = "trades"
@@ -124,10 +123,9 @@ class Trade(Base):
         server_default=func.now(),
     )
 
-
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
 # HELPERS
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------
 
 def get_session():
     return SessionLocal()
@@ -137,18 +135,6 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
 
 
-if __name__ == "__main__":
-    create_tables()
-    print("Database initialized successfully.")
-def update_signal_status(session, signal_id, new_status):
-    signal = session.query(Signal).filter(Signal.id == signal_id).first()
-
-    if not signal:
-        return False
-
-    signal.status = new_status
-    session.commit()
-    return True
 def update_signal_status(signal_id, new_status):
     session = get_session()
 
@@ -169,3 +155,12 @@ def update_signal_status(signal_id, new_status):
 
     finally:
         session.close()
+
+
+# ------------------------------------------------------------------
+# INIT
+# ------------------------------------------------------------------
+
+if __name__ == "__main__":
+    create_tables()
+    print("Database initialized successfully.")
