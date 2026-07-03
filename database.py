@@ -149,3 +149,23 @@ def update_signal_status(session, signal_id, new_status):
     signal.status = new_status
     session.commit()
     return True
+def update_signal_status(signal_id, new_status):
+    session = get_session()
+
+    try:
+        signal = session.query(Signal).filter(Signal.id == signal_id).first()
+
+        if not signal:
+            return False
+
+        signal.status = new_status
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        print("DB ERROR:", e)
+        return False
+
+    finally:
+        session.close()
