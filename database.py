@@ -164,3 +164,24 @@ def update_signal_status(signal_id, new_status):
 if __name__ == "__main__":
     create_tables()
     print("Database initialized successfully.")
+
+def update_signal_status(signal_id, new_status):
+    session = SessionLocal()
+
+    try:
+        signal = session.query(Signal).filter(Signal.id == signal_id).first()
+
+        if not signal:
+            return False
+
+        signal.status = new_status
+        session.commit()
+        return True
+
+    except Exception as e:
+        session.rollback()
+        print("DB ERROR:", e)
+        return False
+
+    finally:
+        session.close()
