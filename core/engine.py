@@ -1,5 +1,5 @@
 import time
-
+from execution.trade_engine import TradeEngine
 from database import get_session, Signal, update_signal_status
 from config import CHECK_INTERVAL
 from filters.btc_filter import BTCHealthFilter
@@ -12,6 +12,7 @@ class DecisionEngine:
         print("Decision Engine initialized")
         self.btc = BTCHealthFilter()
         self.scorer = ScoringEngine()
+        self.trade_engine = TradeEngine()
 
     def get_open_signals(self):
         session = get_session()
@@ -27,7 +28,6 @@ class DecisionEngine:
             print(f"Coin      : {signal.symbol}")
             print(f"Side      : {signal.side}")
             print(f"Timeframe : {signal.timeframe}")
-
             update_signal_status(signal.id, "PROCESSING")
 
             scores = self.scorer.score(signal)
@@ -48,11 +48,23 @@ class DecisionEngine:
             if score < 0.80:
                 update_signal_status(signal.id, "APPROVED")
                 print("APPROVED")
+
+                self.trade_engine.create_trade(
+                    signal,
+                    scores["entry"],
+                    scores["atr"]
+                )
+
                 return
 
             update_signal_status(signal.id, "STRONG_APPROVE")
             print("STRONG APPROVE")
 
+            self.trade_engine.create_trade(
+                signal,
+                scores["entry"],
+                scores["atr"]
+            )
         except Exception as e:
             print("ERROR:", e)
             update_signal_status(signal.id, "REJECTED")
