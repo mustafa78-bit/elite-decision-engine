@@ -51,6 +51,8 @@ class ScoringEngine:
         rsi = values["rsi"]
         atr = values["atr"]
 
+        entry = float(df["close"].iloc[-1])
+
         trend_score = 0.0
 
         if signal.side.upper() == "LONG":
@@ -76,6 +78,7 @@ class ScoringEngine:
         )
 
         return {
+            "entry": entry,
             "ema20": ema20,
             "ema50": ema50,
             "ema200": ema200,
