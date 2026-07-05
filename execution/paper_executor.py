@@ -1,4 +1,5 @@
 from database import get_session, Trade
+from market_data.collector import HyperliquidCollector
 
 
 class PaperExecutor:
@@ -16,6 +17,21 @@ class PaperExecutor:
         finally:
             session.close()
 
+    def get_current_price(self, symbol):
+
+        collector = HyperliquidCollector()
+
+        df = collector.get_ohlcv(
+            symbol=symbol,
+            timeframe="1h",
+            limit=1,
+        )
+
+        if df.empty:
+            return None
+
+        return float(df.iloc[-1]["close"])
+
     def run(self):
 
         trades = self.get_open_trades()
@@ -24,6 +40,11 @@ class PaperExecutor:
         print(f"OPEN TRADES : {len(trades)}")
 
         for trade in trades:
+
+            price = self.get_current_price(trade.symbol)
+
+            print(f"CURRENT={price}")
+
             print(
                 f"{trade.symbol} | "
                 f"{trade.side} | "
