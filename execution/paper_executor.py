@@ -34,21 +34,34 @@ class PaperExecutor:
 
     def run(self):
 
-        trades = self.get_open_trades()
+        session = get_session()
 
-        print("=" * 50)
-        print(f"OPEN TRADES : {len(trades)}")
+        try:
 
-        for trade in trades:
-
-            price = self.get_current_price(trade.symbol)
-
-            print(f"CURRENT={price}")
-
-            print(
-                f"{trade.symbol} | "
-                f"{trade.side} | "
-                f"ENTRY={trade.entry} | "
-                f"STOP={trade.stop} | "
-                f"TP1={trade.tp1}"
+            trades = (
+                session.query(Trade)
+                .filter(Trade.status == "OPEN")
+                .all()
             )
+
+            print("=" * 50)
+            print(f"OPEN TRADES : {len(trades)}")
+
+            for trade in trades:
+
+                price = self.get_current_price(trade.symbol)
+
+                if price is None:
+                    continue
+
+                print(
+                    f"{trade.symbol} | "
+                    f"PRICE={price} | "
+                    f"ENTRY={trade.entry} | "
+                    f"STOP={trade.stop} | "
+                    f"TP1={trade.tp1} | "
+                    f"TP2={trade.tp2}"
+                )
+
+        finally:
+            session.close()

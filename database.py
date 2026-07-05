@@ -116,13 +116,18 @@ class Trade(Base):
 
     status = Column(String(30), default="OPEN")
 
+    exit_price = Column(Float)
+
+    closed_at = Column(DateTime(timezone=True))
+
+    close_reason = Column(String(30))
+
     exchange_order_id = Column(String(120))
 
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
     )
-
 # ------------------------------------------------------------------
 # HELPERS
 # ------------------------------------------------------------------
