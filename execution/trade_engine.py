@@ -21,6 +21,18 @@ class TradeEngine:
         )
 
         session = get_session()
+        existing = (
+            session.query(Trade)
+            .filter(
+                Trade.signal_id == signal.id,
+                Trade.status == "OPEN",
+            )
+            .first()
+        )
+
+        if existing:
+            print(f"Trade already exists: {signal.symbol}")
+            return existing
 
         try:
 
