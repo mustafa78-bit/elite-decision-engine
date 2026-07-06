@@ -1,8 +1,10 @@
 import time
-from execution.trade_engine import TradeEngine
-from database import get_session, Signal, update_signal_status
+
 from config import CHECK_INTERVAL
-from filters.btc_filter import BTCHealthFilter
+from database import Signal, get_session, update_signal_status
+from execution.execution_loop import ExecutionLoop
+from execution.pipeline import TradeCandidate
+from execution.trade_engine import TradeEngine
 from scoring.scoring_engine import ScoringEngine
 
 
@@ -10,9 +12,9 @@ class DecisionEngine:
 
     def __init__(self):
         print("Decision Engine initialized")
-        self.btc = BTCHealthFilter()
         self.scorer = ScoringEngine()
         self.trade_engine = TradeEngine()
+        self.execution_loop = ExecutionLoop(trade_engine=self.trade_engine)
 
     def get_open_signals(self):
         session = get_session()
@@ -49,10 +51,12 @@ class DecisionEngine:
                 update_signal_status(signal.id, "APPROVED")
                 print("APPROVED")
 
-                self.trade_engine.create_trade(
-                    signal,
-                    scores["entry"],
-                    scores["atr"]
+                self.execution_loop.run_once(
+                    self._build_trade_candidate(
+                        signal=signal,
+                        scores=scores,
+                        decision="APPROVED",
+                    )
                 )
 
                 return
@@ -60,14 +64,33 @@ class DecisionEngine:
             update_signal_status(signal.id, "STRONG_APPROVE")
             print("STRONG APPROVE")
 
-            self.trade_engine.create_trade(
-                signal,
-                scores["entry"],
-                scores["atr"]
+            self.execution_loop.run_once(
+                self._build_trade_candidate(
+                    signal=signal,
+                    scores=scores,
+                    decision="STRONG_APPROVE",
+                )
             )
         except Exception as e:
             print("ERROR:", e)
             update_signal_status(signal.id, "REJECTED")
+
+    @staticmethod
+    def _build_trade_candidate(
+        signal: Signal,
+        scores,
+        decision: str,
+    ) -> TradeCandidate:
+        return TradeCandidate(
+            symbol=signal.symbol,
+            side=signal.side,
+            timeframe=signal.timeframe,
+            entry=scores["entry"],
+            scores=scores,
+            confidence=0.0,
+            decision=decision,
+            signal=signal,
+        )
 
     def run(self):
 

@@ -12,6 +12,7 @@ from execution.pipeline import DecisionPipeline
 class ExampleSignal:
     """Minimal signal object accepted by the pipeline."""
 
+    id: int = 1
     symbol: str = "BTCUSDT"
     side: str = "LONG"
     timeframe: str = "1h"

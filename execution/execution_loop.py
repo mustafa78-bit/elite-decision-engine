@@ -1,8 +1,8 @@
-"""Execution loop for approved paper-trading decisions.
+"""Execution loop for already-approved paper-trading decisions.
 
 The loop coordinates existing components only:
-DecisionPipeline approves or rejects a signal, TradeEngine creates an
-execution-ready trade, and PaperExecutor monitors open paper trades.
+DecisionEngine decides, TradeEngine creates an execution-ready trade,
+and PaperExecutor monitors open paper trades.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Mapping, Optional, Protocol
 
 from execution.paper_executor import PaperExecutor
-from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
+from execution.pipeline import TradeCandidate, TradingSignal
 from execution.trade_engine import TradeEngine
 
 
@@ -35,11 +35,11 @@ class ExecutionLoopResult:
 
 
 class ExecutionLoop:
-    """Coordinate signal approval, trade creation, and paper monitoring."""
+    """Coordinate approved trade creation and paper monitoring."""
 
     def __init__(
         self,
-        pipeline: Optional[DecisionPipeline] = None,
+        pipeline: Optional[Any] = None,
         trade_engine: Optional[TradeEngine] = None,
         paper_executor: Optional[PaperExecutor] = None,
         signal_source: Optional[SignalSource] = None,
@@ -47,30 +47,20 @@ class ExecutionLoop:
     ) -> None:
         """Create an execution loop with injectable dependencies."""
 
-        self.pipeline = pipeline or DecisionPipeline()
+        self.pipeline = pipeline
         self.trade_engine = trade_engine or TradeEngine()
         self.paper_executor = paper_executor or PaperExecutor()
         self.signal_source = signal_source
         self.logger = logger or logging.getLogger(__name__)
 
-    def run_once(self, signal: Optional[TradingSignal] = None) -> ExecutionLoopResult:
-        """Run one signal decision and paper monitoring cycle."""
+    def run_once(self, signal: Optional[Any] = None) -> ExecutionLoopResult:
+        """Run one approved trade execution and paper monitoring cycle."""
 
-        active_signal = signal or self._load_signal()
-        if active_signal is None:
-            self.logger.debug("Execution loop idle: no signal available")
+        candidate = self._coerce_candidate(signal or self._load_signal())
+        if candidate is None:
+            self.logger.debug("Execution loop idle: no approved trade candidate available")
             return ExecutionLoopResult(
                 signal=None,
-                approved=False,
-                trade=None,
-                monitored_count=0,
-            )
-
-        candidate = self.pipeline.evaluate(active_signal)
-        if candidate is None:
-            self.logger.info("Signal rejected by decision pipeline")
-            return ExecutionLoopResult(
-                signal=active_signal,
                 approved=False,
                 trade=None,
                 monitored_count=0,
@@ -80,7 +70,7 @@ class ExecutionLoop:
         monitored = self._monitor_open_trades() if trade is not None else []
 
         return ExecutionLoopResult(
-            signal=active_signal,
+            signal=candidate.signal,
             approved=True,
             trade=trade,
             monitored_count=len(monitored),
@@ -114,6 +104,17 @@ class ExecutionLoop:
         if self.signal_source is None:
             return None
         return self.signal_source()
+
+    @staticmethod
+    def _coerce_candidate(signal_or_candidate: Optional[Any]) -> Optional[TradeCandidate]:
+        if signal_or_candidate is None:
+            return None
+
+        required_attrs = ("signal", "entry", "scores", "decision")
+        if all(hasattr(signal_or_candidate, attr) for attr in required_attrs):
+            return signal_or_candidate
+
+        return None
 
     def _create_trade(self, candidate: TradeCandidate) -> Optional[Any]:
         if not self._trade_signal_is_valid(candidate.signal):
