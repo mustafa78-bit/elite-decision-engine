@@ -24,6 +24,7 @@ APPROVED_DECISIONS = frozenset({"APPROVE", "STRONG_APPROVE"})
 class TradingSignal(Protocol):
     """Minimum signal interface required by the pipeline."""
 
+    id: int
     symbol: str
     side: str
     timeframe: str
@@ -219,7 +220,7 @@ class DecisionPipeline:
     def _validate_signal(signal: TradingSignal) -> None:
         missing = [
             field
-            for field in ("symbol", "side", "timeframe")
+            for field in ("id", "symbol", "side", "timeframe")
             if not getattr(signal, field, None)
         ]
         if missing:
