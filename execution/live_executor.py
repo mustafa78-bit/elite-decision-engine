@@ -19,6 +19,9 @@ from typing import Any, Callable, Optional, Protocol
 from database import Trade
 from execution.hyperliquid_adapter import HyperliquidReadOnlyAdapter, Position
 from execution.live_order import LiveOrderStatus
+from execution.order_builder import OrderBuilder
+from execution.payload_validator import PayloadValidator, ValidationResult
+from execution.signature_engine import SignatureEngine, SignedPayload
 from execution.tp_sl import TPSLEngine
 
 
@@ -115,6 +118,9 @@ class LiveExecutor:
         address: str = "",
         session_factory: Optional[Callable[[], Any]] = None,
         tp_sl_engine: Optional[TPSLEngine] = None,
+        order_builder: Optional[OrderBuilder] = None,
+        payload_validator: Optional[PayloadValidator] = None,
+        signature_engine: Optional[SignatureEngine] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.exchange_adapter = exchange_adapter or SimulatedExchangeAdapter()
@@ -122,6 +128,9 @@ class LiveExecutor:
         self.address = address
         self.session_factory = session_factory
         self._tp_sl = tp_sl_engine or TPSLEngine()
+        self._order_builder = order_builder or OrderBuilder()
+        self._payload_validator = payload_validator or PayloadValidator()
+        self._signature_engine = signature_engine or SignatureEngine()
         self.logger = logger or logging.getLogger(__name__)
 
     def execute(self, candidate: Any, size: Any) -> LiveOrderResult:
@@ -161,6 +170,43 @@ class LiveExecutor:
             self._persist_trade(candidate, size, result)
 
         return result
+
+    def prepare_order(self, candidate: Any, size: Any) -> dict:
+        self.logger.info(
+            "DRY RUN: preparing order for %s %s",
+            getattr(candidate, "symbol", "?"),
+            getattr(candidate, "side", "?"),
+        )
+
+        prepared = self._order_builder.build(candidate, size)
+        self.logger.info("DRY RUN: order built — %s %s qty=%s", prepared.symbol, prepared.side, prepared.quantity)
+
+        validation = self._payload_validator.validate(prepared)
+        if not validation.is_valid:
+            self.logger.error("DRY RUN: validation failed — %s", validation.errors)
+            return {
+                "ready": False,
+                "validated": False,
+                "signed": False,
+                "submitted": False,
+                "errors": validation.errors,
+            }
+
+        self.logger.info("DRY RUN: payload validated successfully")
+
+        signed = self._signature_engine.sign(prepared)
+        self.logger.debug("DRY RUN: payload signed — %s", signed.signature[:20])
+
+        self.logger.info(
+            "DRY RUN complete — ready=%s validated=%s signed=%s submitted=False",
+            True, True, True,
+        )
+        return {
+            "ready": True,
+            "validated": True,
+            "signed": True,
+            "submitted": False,
+        }
 
     def _persist_trade(self, candidate: Any, size: Any, result: LiveOrderResult) -> None:
         """Create a Trade record from a simulated live order result."""

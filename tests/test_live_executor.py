@@ -408,6 +408,78 @@ class TestLiveExecutor:
         result = executor.execute(_MockCandidate(), _SIZE_1)
         assert result.accepted is True
 
+    def test_prepare_order_returns_ready_dict(self):
+        executor = LiveExecutor()
+        result = executor.prepare_order(_MockCandidate(), _SIZE_1)
+        assert result == {
+            "ready": True,
+            "validated": True,
+            "signed": True,
+            "submitted": False,
+        }
+
+    def test_prepare_order_reports_failure_on_bad_side(self):
+        executor = LiveExecutor()
+        result = executor.prepare_order(_MockCandidate(side="INVALID"), _SIZE_1)
+        assert result["ready"] is False
+        assert result["validated"] is False
+        assert result["signed"] is False
+        assert result["submitted"] is False
+        assert "errors" in result
+        assert len(result["errors"]) > 0
+
+    def test_prepare_order_reports_failure_on_zero_quantity(self):
+        executor = LiveExecutor()
+        result = executor.prepare_order(_MockCandidate(), _SIZE_0)
+        assert result["ready"] is False
+        assert result["validated"] is False
+
+    def test_prepare_order_uses_custom_order_builder(self):
+        from execution.order_builder import OrderBuilder, PreparedOrder
+
+        class _MockBuilder(OrderBuilder):
+            def build(self, candidate, size, **kwargs):
+                from datetime import datetime, timezone
+                return PreparedOrder(
+                    symbol="MOCKED", side="LONG", order_type="LIMIT",
+                    quantity=1.0, price=100.0, reduce_only=False,
+                    time_in_force="GTC", client_order_id="mock-oid",
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                )
+
+        executor = LiveExecutor(order_builder=_MockBuilder())
+        result = executor.prepare_order(_MockCandidate(), _SIZE_1)
+        assert result["ready"] is True
+        assert result["validated"] is True
+
+    def test_prepare_order_uses_custom_signature_engine(self):
+        from execution.signature_engine import SignatureEngine
+
+        class _MockSigner(SignatureEngine):
+            def sign(self, payload):
+                from execution.signature_engine import SignedPayload
+                return SignedPayload(
+                    order=payload, signature="MOCKED_SIG",
+                    signing_timestamp="now", signer="test",
+                )
+
+        executor = LiveExecutor(signature_engine=_MockSigner())
+        result = executor.prepare_order(_MockCandidate(), _SIZE_1)
+        assert result["ready"] is True
+
+    def test_prepare_order_does_not_call_exchange(self):
+        adapter = _MockExchangeAdapter()
+        executor = LiveExecutor(exchange_adapter=adapter)
+        executor.prepare_order(_MockCandidate(), _SIZE_1)
+        assert len(adapter.place_order_calls) == 0
+
+    def test_prepare_order_with_short_candidate(self):
+        executor = LiveExecutor()
+        candidate = _MockCandidate(symbol="ETHUSDT", side="SHORT", entry=3000.0)
+        size = PositionSize(quantity=2.0, notional_value=6000.0, risk_amount=90.0)
+        result = executor.prepare_order(candidate, size)
+        assert result["ready"] is True
+
 
 class TestExecutionRouter:
 
