@@ -3,18 +3,13 @@ import time
 from config import CHECK_INTERVAL
 from database import Signal, get_session, update_signal_status
 from execution.execution_loop import ExecutionLoop
-from execution.pipeline import TradeCandidate
-from execution.trade_engine import TradeEngine
-from scoring.scoring_engine import ScoringEngine
 
 
 class DecisionEngine:
 
     def __init__(self):
         print("Decision Engine initialized")
-        self.scorer = ScoringEngine()
-        self.trade_engine = TradeEngine()
-        self.execution_loop = ExecutionLoop(trade_engine=self.trade_engine)
+        self.execution_loop = ExecutionLoop()
 
     def get_open_signals(self):
         session = get_session()
@@ -32,66 +27,10 @@ class DecisionEngine:
             print(f"Timeframe : {signal.timeframe}")
             update_signal_status(signal.id, "PROCESSING")
 
-            scores = self.scorer.score(signal)
-            score = scores["final_score"]
-
-            print("SCORE:", score)
-
-            if score < 0.55:
-                update_signal_status(signal.id, "REJECTED")
-                print("REJECTED")
-                return
-
-            if score < 0.65:
-                update_signal_status(signal.id, "WATCH")
-                print("WATCH")
-                return
-
-            if score < 0.80:
-                update_signal_status(signal.id, "APPROVED")
-                print("APPROVED")
-
-                self.execution_loop.run_once(
-                    self._build_trade_candidate(
-                        signal=signal,
-                        scores=scores,
-                        decision="APPROVED",
-                    )
-                )
-
-                return
-
-            update_signal_status(signal.id, "STRONG_APPROVE")
-            print("STRONG APPROVE")
-
-            self.execution_loop.run_once(
-                self._build_trade_candidate(
-                    signal=signal,
-                    scores=scores,
-                    decision="STRONG_APPROVE",
-                )
-            )
+            self.execution_loop.run_once([signal])
         except Exception as e:
             print("ERROR:", e)
             update_signal_status(signal.id, "REJECTED")
-
-    @staticmethod
-    def _build_trade_candidate(
-        signal: Signal,
-        scores,
-        decision: str,
-    ) -> TradeCandidate:
-        return TradeCandidate(
-            id=signal.id,
-            symbol=signal.symbol,
-            side=signal.side,
-            timeframe=signal.timeframe,
-            entry=scores["entry"],
-            scores=scores,
-            confidence=0.0,
-            decision=decision,
-            signal=signal,
-        )
 
     def run(self):
 
