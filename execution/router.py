@@ -50,6 +50,25 @@ class ExecutionRouter:
             return self.live_executor.execute(candidate, size)
         return self._paper_execute(candidate, size)
 
+    def prepare_order(self, candidate: Any, size: Any) -> dict:
+        """Prepare a live order without submitting — dry-run only.
+
+        Routes to LiveExecutor.prepare_order(). Raises if LIVE mode
+        but no LiveExecutor configured.
+        """
+        if self.mode != TradingMode.LIVE:
+            self.logger.warning("prepare_order called in PAPER mode — returning mock result")
+            return {
+                "ready": False,
+                "validated": False,
+                "signed": False,
+                "submitted": False,
+                "errors": ["prepare_order is only supported in LIVE mode"],
+            }
+        if self.live_executor is None:
+            raise RuntimeError("LiveExecutor not configured but mode is LIVE")
+        return self.live_executor.prepare_order(candidate, size)
+
     def monitor_open_trades(self) -> list:
         """Monitor open trades — routes to PAPER or LIVE executor."""
         if self.mode == TradingMode.LIVE:

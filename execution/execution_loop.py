@@ -8,10 +8,12 @@ LiveExecutor via ExecutionRouter).
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
+from config import DRY_RUN
 from database import update_signal_status
 from execution.paper_executor import PaperExecutor, TradeMonitorResult
 from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
@@ -51,6 +53,7 @@ class ExecutionLoop:
         risk_manager: Optional[RiskManager] = None,
         position_sizer: Optional[PositionSizingEngine] = None,
         execution_router: Optional[ExecutionRouter] = None,
+        dry_run: Optional[bool] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
@@ -59,6 +62,7 @@ class ExecutionLoop:
         self.risk_manager = risk_manager or RiskManager()
         self.position_sizer = position_sizer or PositionSizingEngine()
         self.execution_router = execution_router
+        self.dry_run = DRY_RUN if dry_run is None else dry_run
         self.logger = logger or logging.getLogger(__name__)
 
     def run_once(self, signals: Iterable[TradingSignal]) -> ExecutionLoopResult:
@@ -143,6 +147,8 @@ class ExecutionLoop:
 
     def _execute(self, candidate: TradeCandidate, size: Any) -> Optional[Any]:
         if self.execution_router is not None:
+            if self.execution_router.mode == TradingMode.LIVE and self.dry_run:
+                return self._dry_run(candidate, size)
             result = self.execution_router.execute(candidate, size)
             accepted = _is_success(result)
             if accepted:
@@ -161,6 +167,28 @@ class ExecutionLoop:
             return result if accepted else None
 
         return self._create_trade(candidate)
+
+    def _dry_run(self, candidate: TradeCandidate, size: Any) -> None:
+        self.logger.info(
+            "DRY RUN: preparing order for %s %s (submitted=False)",
+            candidate.symbol, candidate.side,
+        )
+
+        result = self.execution_router.prepare_order(candidate, size)
+
+        log_entry = {
+            "event": "dry_run",
+            "symbol": candidate.symbol,
+            "side": candidate.side,
+            "quantity": getattr(size, "quantity", 0.0),
+            "price": candidate.entry,
+            "client_order_id": "",
+            "validation_result": result.get("validated", False),
+            "signature_present": result.get("signed", False),
+            "submitted": False,
+        }
+        self.logger.info("DRY RUN result: %s", json.dumps(log_entry))
+        return None
 
     def _create_trade(self, candidate: TradeCandidate) -> Optional[Any]:
         entry = candidate.entry
