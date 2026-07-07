@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from core.health_check import HealthCheck, HealthReport, HealthStatus
+from core.settings import ConfigurationError, Settings
 from execution.router import TradingMode
 
 
@@ -406,3 +407,92 @@ class TestHealthCheckIntegrationExecutionLoop:
         result = loop.run_once([])
         assert result.processed == 0
         assert result.created == 0
+
+
+class TestHealthCheckSettingsIntegration:
+
+    def test_settings_healthy(self):
+        mock_ks = MagicMock()
+        mock_ks.is_running.return_value = True
+        mock_ks.state.return_value = MagicMock(value="RUNNING")
+        mock_router = MagicMock()
+        mock_router.mode = TradingMode.PAPER
+
+        settings = Settings(env={
+            "HL_API_KEY": "key",
+            "HL_SECRET": "secret",
+            "HL_WALLET_ADDRESS": "0xaddr",
+        })
+
+        with (
+            patch("core.health_check.PaperExecutor"),
+            patch("core.health_check.LiveExecutor"),
+            patch("core.health_check.os.makedirs"),
+            patch("core.health_check.open"),
+            patch("core.health_check.os.remove"),
+        ):
+            hc = HealthCheck(
+                session_factory=MagicMock(return_value=MagicMock()),
+                kill_switch=mock_ks,
+                execution_router=mock_router,
+                settings=settings,
+                log_dir="/tmp",
+            )
+            report = hc.run()
+
+        assert report.overall_status == HealthStatus.HEALTHY
+        assert report.checks["settings"] == HealthStatus.HEALTHY
+
+    def test_settings_failure(self):
+        mock_ks = MagicMock()
+        mock_ks.is_running.return_value = True
+        mock_ks.state.return_value = MagicMock(value="RUNNING")
+        mock_router = MagicMock()
+        mock_router.mode = TradingMode.PAPER
+
+        settings = Settings(env={})
+
+        with (
+            patch("core.health_check.PaperExecutor"),
+            patch("core.health_check.LiveExecutor"),
+            patch("core.health_check.os.makedirs"),
+            patch("core.health_check.open"),
+            patch("core.health_check.os.remove"),
+        ):
+            hc = HealthCheck(
+                session_factory=MagicMock(return_value=MagicMock()),
+                kill_switch=mock_ks,
+                execution_router=mock_router,
+                settings=settings,
+                log_dir="/tmp",
+            )
+            report = hc.run()
+
+        assert report.overall_status == HealthStatus.FAILED
+        assert report.checks["settings"] == HealthStatus.FAILED
+        assert any("HL_API_KEY" in e for e in report.errors)
+
+    def test_settings_not_configured_skips_check(self):
+        mock_ks = MagicMock()
+        mock_ks.is_running.return_value = True
+        mock_ks.state.return_value = MagicMock(value="RUNNING")
+        mock_router = MagicMock()
+        mock_router.mode = TradingMode.PAPER
+
+        with (
+            patch("core.health_check.PaperExecutor"),
+            patch("core.health_check.LiveExecutor"),
+            patch("core.health_check.os.makedirs"),
+            patch("core.health_check.open"),
+            patch("core.health_check.os.remove"),
+        ):
+            hc = HealthCheck(
+                session_factory=MagicMock(return_value=MagicMock()),
+                kill_switch=mock_ks,
+                execution_router=mock_router,
+                settings=None,
+                log_dir="/tmp",
+            )
+            report = hc.run()
+
+        assert report.checks["settings"] == HealthStatus.HEALTHY

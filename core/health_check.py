@@ -9,6 +9,7 @@ from typing import Any, Callable, Optional
 
 import config as config_module
 from core.kill_switch import KillSwitch
+from core.settings import ConfigurationError, Settings
 from execution.live_executor import LiveExecutor
 from execution.paper_executor import PaperExecutor
 from execution.router import ExecutionRouter, TradingMode
@@ -39,12 +40,14 @@ class HealthCheck:
         session_factory: Optional[Callable[[], Any]] = None,
         kill_switch: Optional[KillSwitch] = None,
         execution_router: Optional[ExecutionRouter] = None,
+        settings: Optional[Settings] = None,
         log_dir: str = "logs",
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self._session_factory = session_factory
         self._kill_switch = kill_switch
         self._execution_router = execution_router
+        self._settings = settings
         self._log_dir = log_dir
         self.logger = logger or logging.getLogger(__name__)
 
@@ -88,6 +91,11 @@ class HealthCheck:
         checks["live_executor"] = live_status
         warnings.extend(live_w)
         errors.extend(live_e)
+
+        settings_status, settings_w, settings_e = self._check_settings()
+        checks["settings"] = settings_status
+        warnings.extend(settings_w)
+        errors.extend(settings_e)
 
         duration = (time.perf_counter() - start) * 1000
 
@@ -194,3 +202,14 @@ class HealthCheck:
             return HealthStatus.HEALTHY, [], []
         except Exception as e:
             return HealthStatus.FAILED, [], [f"LiveExecutor instantiation failed: {e}"]
+
+    def _check_settings(self) -> tuple[HealthStatus, list[str], list[str]]:
+        if self._settings is None:
+            return HealthStatus.HEALTHY, [], []
+        try:
+            self._settings.load()
+            return HealthStatus.HEALTHY, [], []
+        except ConfigurationError as e:
+            return HealthStatus.FAILED, [], [f"Settings validation failed: {e}"]
+        except Exception as e:
+            return HealthStatus.FAILED, [], [f"Settings check failed unexpectedly: {e}"]
