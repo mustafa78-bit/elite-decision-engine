@@ -4,13 +4,12 @@ import sys
 from core.engine import DecisionEngine
 from core.validator import StartupValidator
 from database import create_tables
-
-LOG_FORMAT = "%(asctime)s [%(name)s] %(levelname)-8s %(message)s"
+from logging_config import setup_logging
 
 
 def main():
 
-    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+    setup_logging()
     logger = logging.getLogger("app")
 
     validator = StartupValidator()

@@ -7,15 +7,15 @@ Usage:
         # Production database is never touched.
 """
 
-import logging
 import os
 import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from database import Base
+from logging_config import setup_logging
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(name)s] %(levelname)-8s %(message)s")
+setup_logging()
 
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "sqlite:///test_elite.db")
