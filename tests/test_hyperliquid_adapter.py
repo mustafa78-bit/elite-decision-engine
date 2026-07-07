@@ -8,8 +8,11 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 from requests import Response
 
+from core.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError, CircuitState
+from core.retry import RetryPolicy
 from execution.hyperliquid_adapter import (
     AccountState,
     Balance,
@@ -306,3 +309,86 @@ class TestHyperliquidReadOnlyAdapter:
         adapter.get_exchange_status()
         adapter.get_metadata()
         assert session.post.call_count == 2
+
+
+class TestHyperliquidAdapterRetry:
+
+    def test_retry_succeeds_after_temporary_failures(self):
+        session = MagicMock()
+        responses = [
+            _mock_response({}, status_code=503),
+            _mock_response({}, status_code=503),
+            _mock_response({"status": "ok", "contractsOpen": 5}),
+        ]
+        session.post.side_effect = responses
+        retry = RetryPolicy(
+            max_attempts=4,
+            base_delay=0.01,
+            max_delay=1.0,
+            backoff_multiplier=2.0,
+            retry_exceptions=(requests.exceptions.HTTPError,),
+        )
+        adapter = HyperliquidReadOnlyAdapter(
+            session=session,
+            retry_policy=retry,
+        )
+        status = adapter.get_exchange_status()
+        assert status.status == "ok"
+
+    def test_retry_exhausted_raises(self):
+        session = MagicMock()
+        session.post.return_value = _mock_response({}, status_code=503)
+        retry = RetryPolicy(
+            max_attempts=2,
+            base_delay=0.01,
+            max_delay=1.0,
+            backoff_multiplier=2.0,
+            retry_exceptions=(requests.exceptions.HTTPError,),
+        )
+        adapter = HyperliquidReadOnlyAdapter(
+            session=session,
+            retry_policy=retry,
+        )
+        with pytest.raises(Exception):
+            adapter.get_exchange_status()
+
+
+class TestHyperliquidAdapterCircuitBreaker:
+
+    def test_circuit_blocks_after_repeated_failures(self):
+        session = MagicMock()
+        session.post.return_value = _mock_response({}, status_code=503)
+        cb = CircuitBreaker(failure_threshold=2, recovery_timeout=60.0)
+        retry = RetryPolicy(
+            max_attempts=1,
+            base_delay=0.01,
+            retry_exceptions=(requests.exceptions.HTTPError,),
+        )
+        adapter = HyperliquidReadOnlyAdapter(
+            session=session,
+            retry_policy=retry,
+            circuit_breaker=cb,
+        )
+
+        with pytest.raises(Exception):
+            adapter.get_exchange_status()
+        assert cb.state == CircuitState.CLOSED
+
+        with pytest.raises(Exception):
+            adapter.get_exchange_status()
+        assert cb.state == CircuitState.OPEN
+
+        with pytest.raises(CircuitBreakerOpenError):
+            adapter.get_exchange_status()
+
+    def test_circuit_allows_successful_calls(self):
+        session = MagicMock()
+        session.post.return_value = _mock_response({"status": "ok", "contractsOpen": 5})
+        cb = CircuitBreaker(failure_threshold=3)
+        adapter = HyperliquidReadOnlyAdapter(
+            session=session,
+            circuit_breaker=cb,
+        )
+        status = adapter.get_exchange_status()
+        assert status.status == "ok"
+        assert cb.state == CircuitState.CLOSED

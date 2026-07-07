@@ -12,6 +12,9 @@ from typing import Any, Optional
 
 import requests
 
+from core.circuit_breaker import CircuitBreaker
+from core.retry import RetryPolicy
+
 INFO_URL = "https://api.hyperliquid.xyz/info"
 
 
@@ -75,9 +78,18 @@ class HyperliquidReadOnlyAdapter:
     def __init__(
         self,
         session: Optional[requests.Session] = None,
+        retry_policy: Optional[RetryPolicy] = None,
+        circuit_breaker: Optional[CircuitBreaker] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.session = session or requests.Session()
+        self._retry = retry_policy or RetryPolicy(
+            retry_exceptions=(
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+            ),
+        )
+        self._circuit_breaker = circuit_breaker or CircuitBreaker()
         self.logger = logger or logging.getLogger(__name__)
 
     def get_account_state(self, address: str) -> AccountState:
@@ -200,8 +212,14 @@ class HyperliquidReadOnlyAdapter:
         return dict(data)
 
     def _post(self, payload: dict) -> Any:
-        """Send a POST request to the Hyperliquid /info endpoint."""
+        """Send a POST request via circuit breaker + retry."""
         self.logger.debug("POST %s payload=%s", INFO_URL, payload)
+        return self._circuit_breaker.call(
+            lambda: self._retry.execute(self._do_http_post, payload),
+        )
+
+    def _do_http_post(self, payload: dict) -> Any:
+        """Raw HTTP POST — may raise ConnectionError, Timeout, HTTPError."""
         response = self.session.post(INFO_URL, json=payload, timeout=20)
         response.raise_for_status()
         return response.json()
