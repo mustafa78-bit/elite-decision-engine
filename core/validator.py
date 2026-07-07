@@ -6,6 +6,8 @@ Usage:
         sys.exit(1)
 """
 
+import logging
+
 from sqlalchemy import text
 
 from config import (
@@ -18,14 +20,14 @@ from config import (
 )
 from database import engine
 
+logger = logging.getLogger(__name__)
+
 
 class StartupValidator:
     """Validate all runtime dependencies before the engine enters the main loop."""
 
     def run(self, fail_fast=True):
-        print("=" * 50)
-        print("STARTUP VALIDATION")
-        print("=" * 50)
+        logger.info("Starting startup validation")
 
         checks = [
             ("Environment variables", self._check_env_vars),
@@ -37,16 +39,15 @@ class StartupValidator:
         for label, check in checks:
             try:
                 check()
-                print(f"  [{'V'}] {label}")
+                logger.info("PASS  %s", label)
             except Exception as e:
-                print(f"  [X] {label}: {e}")
+                logger.error("FAIL  %s: %s", label, e)
                 all_pass = False
                 if fail_fast:
                     return False
 
         if all_pass:
-            print()
-            print("All checks passed.")
+            logger.info("All startup checks passed.")
         return all_pass
 
     def _check_env_vars(self):

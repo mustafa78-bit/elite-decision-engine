@@ -1,3 +1,5 @@
+import logging
+
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volume import VolumeEngine
@@ -5,6 +7,9 @@ from market_data.btc_health import BTCHealth
 from market_data.volatility import VolatilityEngine
 from market_data.mtf import MTFEngine
 from scoring.risk_engine import RiskEngine
+
+
+logger = logging.getLogger(__name__)
 
 
 class ScoringEngine:
@@ -35,7 +40,7 @@ class ScoringEngine:
             mtf_score = self.mtf.score(signal.symbol, signal.side)
 
         except Exception as e:
-            print("MARKET DATA ERROR:", e)
+            logger.error("MARKET DATA ERROR: %s", e)
             return {
                 "volume_score": 0,
                 "trend_score": 0,

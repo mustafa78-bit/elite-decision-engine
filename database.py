@@ -1,3 +1,4 @@
+import logging
 from dotenv import load_dotenv
 import os
 
@@ -13,6 +14,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
+
+logger = logging.getLogger(__name__)
+
 
 # ------------------------------------------------------------------
 # ENV LOAD
@@ -146,7 +150,7 @@ def create_tables():
 
 if __name__ == "__main__":
     create_tables()
-    print("Database initialized successfully.")
+    logger.info("Database initialized successfully.")
 
 def update_signal_status(signal_id, new_status):
     session = get_session()
@@ -163,7 +167,7 @@ def update_signal_status(signal_id, new_status):
 
     except Exception as e:
         session.rollback()
-        print("DB ERROR:", e)
+        logger.error("DB ERROR: %s", e)
         return False
 
     finally:

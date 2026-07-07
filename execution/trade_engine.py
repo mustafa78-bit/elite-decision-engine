@@ -1,5 +1,10 @@
+import logging
+
 from database import get_session, Trade
 from execution.tp_sl import TPSLEngine
+
+
+logger = logging.getLogger(__name__)
 
 
 class TradeEngine:
@@ -31,7 +36,7 @@ class TradeEngine:
         )
 
         if existing:
-            print(f"Trade already exists: {signal.symbol}")
+            logger.warning("Trade already exists: %s", signal.symbol)
             return existing
 
         try:
@@ -56,7 +61,7 @@ class TradeEngine:
         except Exception as e:
 
             session.rollback()
-            print("TRADE CREATE ERROR:", e)
+            logger.error("TRADE CREATE ERROR: %s", e)
             return None
 
         finally:
