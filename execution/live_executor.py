@@ -3,6 +3,9 @@
 This executor NEVER sends real exchange orders. It implements the full
 order lifecycle (validation, payload building, signing, sending, response
 parsing) with simulated responses only.
+
+Monitor uses the read-only HyperliquidReadOnlyAdapter to fetch real
+positions and orders without ever writing to the exchange.
 """
 
 from __future__ import annotations
@@ -12,6 +15,8 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Protocol
+
+from execution.hyperliquid_adapter import HyperliquidReadOnlyAdapter, Position
 
 
 @dataclass(frozen=True)
@@ -37,6 +42,25 @@ class LiveOrderResult:
     payload: dict = field(default_factory=dict)
     response: dict = field(default_factory=dict)
     error: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class LiveMonitorResult:
+    symbol: str = ""
+    side: str = ""
+    size: float = 0.0
+    entry_price: float = 0.0
+    mark_price: float = 0.0
+    unrealized_pnl: float = 0.0
+    liquidation_price: float = 0.0
+    order_status: str = ""
+    exchange_order_id: str = ""
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+LONG_SIDE = "LONG"
+SHORT_SIDE = "SHORT"
+ORDER_SIDE_MAP = {"B": LONG_SIDE, "A": SHORT_SIDE}
 
 
 class ExchangeAdapter(Protocol):
@@ -74,18 +98,23 @@ class SimulatedExchangeAdapter:
 
 
 class LiveExecutor:
-    """Simulated live order executor.
+    """Live order executor with read-only monitoring.
 
-    Validates, builds, and logs order requests but never sends real orders.
+    Executes simulated orders via ExchangeAdapter.
+    Monitors open trades via HyperliquidReadOnlyAdapter (read-only API).
     """
 
     def __init__(
         self,
         exchange_adapter: Optional[ExchangeAdapter] = None,
+        hyperliquid_adapter: Optional[HyperliquidReadOnlyAdapter] = None,
+        address: str = "",
         session_factory: Optional[Callable[[], Any]] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.exchange_adapter = exchange_adapter or SimulatedExchangeAdapter()
+        self.hyperliquid_adapter = hyperliquid_adapter
+        self.address = address
         self.session_factory = session_factory
         self.logger = logger or logging.getLogger(__name__)
 
@@ -123,10 +152,79 @@ class LiveExecutor:
         )
         return result
 
-    def monitor_open_trades(self) -> list[LiveOrderResult]:
-        """Simulate monitoring open live trades."""
-        self.logger.info("LIVE monitoring: no open trades (simulated)")
-        return []
+    def monitor_open_trades(self) -> list[LiveMonitorResult]:
+        """Monitor open live trades using read-only API calls.
+
+        Fetches positions, open orders, and current prices via the
+        injected HyperliquidReadOnlyAdapter. Correlates positions
+        with pending orders by coin symbol.
+        """
+        if self.hyperliquid_adapter is None or not self.address:
+            self.logger.info("LIVE monitoring: no adapter or address configured (simulated)")
+            return []
+
+        self.logger.info("LIVE monitoring: fetching positions and orders for %s", self.address)
+
+        try:
+            positions = self.hyperliquid_adapter.get_positions(self.address)
+            orders = self.hyperliquid_adapter.get_open_orders(self.address)
+            prices = self.hyperliquid_adapter.get_current_prices()
+        except Exception:
+            self.logger.exception("LIVE monitoring failed for %s", self.address)
+            return []
+
+        results: list[LiveMonitorResult] = []
+
+        orders_by_coin: dict[str, list] = {}
+        for o in orders:
+            coin = str(getattr(o, "coin", ""))
+            orders_by_coin.setdefault(coin, []).append(o)
+
+        for pos in positions:
+            result = self._position_to_monitor_result(pos, orders_by_coin, prices)
+            if result is not None:
+                results.append(result)
+
+        self.logger.info("LIVE monitoring: %s open positions", len(results))
+        return results
+
+    def _position_to_monitor_result(
+        self,
+        pos: Position,
+        orders_by_coin: dict[str, list],
+        prices: dict[str, float],
+    ) -> Optional[LiveMonitorResult]:
+        coin = str(getattr(pos, "coin", ""))
+        size = abs(float(getattr(pos, "size", 0.0)))
+        if size <= 0:
+            return None
+
+        side = LONG_SIDE if float(getattr(pos, "size", 0.0)) > 0 else SHORT_SIDE
+        entry_price = float(getattr(pos, "entry_px", 0.0))
+        mark_price = prices.get(coin, entry_price)
+        unrealized_pnl = float(getattr(pos, "unrealized_pnl", 0.0))
+        liquidation_price = float(getattr(pos, "liquidation_px", 0.0))
+
+        coin_orders = orders_by_coin.get(coin, [])
+        order_status = "POSITION"
+        exchange_order_id = ""
+        if coin_orders:
+            latest = coin_orders[0]
+            order_status = str(getattr(latest, "status", "open"))
+            exchange_order_id = str(getattr(latest, "order_id", ""))
+
+        return LiveMonitorResult(
+            symbol=f"{coin}USDT" if not coin.endswith("USDT") else coin,
+            side=side,
+            size=size,
+            entry_price=entry_price,
+            mark_price=mark_price,
+            unrealized_pnl=unrealized_pnl,
+            liquidation_price=liquidation_price,
+            order_status=order_status,
+            exchange_order_id=exchange_order_id,
+            timestamp=datetime.now(timezone.utc),
+        )
 
     def _validate(self, candidate: Any, size: Any) -> Optional[str]:
         if candidate is None or size is None:
@@ -137,7 +235,7 @@ class LiveExecutor:
         quantity = getattr(size, "quantity", None)
         if not symbol:
             return "symbol is required"
-        if side not in ("LONG", "SHORT"):
+        if side not in (LONG_SIDE, SHORT_SIDE):
             return "side must be LONG or SHORT"
         if not entry or entry <= 0:
             return "entry must be greater than zero"

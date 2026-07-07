@@ -9,8 +9,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from unittest.mock import MagicMock
+
+from execution.hyperliquid_adapter import HyperliquidReadOnlyAdapter, Position
 from execution.live_executor import (
     LiveExecutor,
+    LiveMonitorResult,
     LiveOrderResult,
     SimulatedExchangeAdapter,
 )
@@ -52,6 +56,64 @@ class _MockCandidate:
     def __post_init__(self):
         if self.scores is None:
             object.__setattr__(self, "scores", {"atr": 500.0})
+
+
+class _MockHyperliquidAdapter:
+    """Mock read-only adapter that returns canned data."""
+
+    def __init__(self):
+        self.get_positions_calls = 0
+        self.get_open_orders_calls = 0
+        self.get_current_prices_calls = 0
+
+    def get_positions(self, address: str) -> list:
+        self.get_positions_calls += 1
+        return [
+            Position(
+                coin="BTC",
+                size=0.5,
+                entry_px=50000.0,
+                unrealized_pnl=250.0,
+                liquidation_px=45000.0,
+            ),
+        ]
+
+    def get_open_orders(self, address: str) -> list:
+        self.get_open_orders_calls += 1
+        from execution.hyperliquid_adapter import OpenOrder
+        return [
+            OpenOrder(coin="BTC", side="B", limit_px=49000.0, sz=0.1, order_id=12345, status="open"),
+        ]
+
+    def get_current_prices(self) -> dict[str, float]:
+        self.get_current_prices_calls += 1
+        return {"BTC": 50250.0, "ETH": 3000.0}
+
+
+class _MockHyperliquidAdapterEmpty:
+    """Mock adapter that returns no positions."""
+
+    def get_positions(self, address: str) -> list:
+        return []
+
+    def get_open_orders(self, address: str) -> list:
+        return []
+
+    def get_current_prices(self) -> dict[str, float]:
+        return {}
+
+
+class _MockHyperliquidAdapterError:
+    """Mock adapter that raises on any call."""
+
+    def get_positions(self, address: str) -> list:
+        raise RuntimeError("API error")
+
+    def get_open_orders(self, address: str) -> list:
+        raise RuntimeError("API error")
+
+    def get_current_prices(self) -> dict[str, float]:
+        raise RuntimeError("API error")
 
 
 class _MockExchangeAdapter:
@@ -194,6 +256,115 @@ class TestLiveExecutor:
         assert result.accepted is False
         assert result.error == "test error"
 
+    def test_monitor_with_adapter_returns_live_monitor_results(self):
+        adapter = _MockHyperliquidAdapter()
+        executor = LiveExecutor(
+            hyperliquid_adapter=adapter,
+            address="0xABC",
+        )
+        results = executor.monitor_open_trades()
+        assert len(results) == 1
+        r = results[0]
+        assert isinstance(r, LiveMonitorResult)
+        assert r.symbol == "BTCUSDT"
+        assert r.side == "LONG"
+        assert r.size == 0.5
+        assert r.entry_price == 50000.0
+        assert r.mark_price == 50250.0
+        assert r.unrealized_pnl == 250.0
+        assert r.liquidation_price == 45000.0
+        assert r.order_status == "open"
+        assert r.exchange_order_id == "12345"
+
+    def test_monitor_calls_adapter_methods(self):
+        adapter = _MockHyperliquidAdapter()
+        executor = LiveExecutor(hyperliquid_adapter=adapter, address="0xABC")
+        executor.monitor_open_trades()
+        assert adapter.get_positions_calls == 1
+        assert adapter.get_open_orders_calls == 1
+        assert adapter.get_current_prices_calls == 1
+
+    def test_monitor_empty_positions_returns_empty_list(self):
+        adapter = _MockHyperliquidAdapterEmpty()
+        executor = LiveExecutor(hyperliquid_adapter=adapter, address="0xABC")
+        results = executor.monitor_open_trades()
+        assert results == []
+
+    def test_monitor_no_address_returns_empty_list(self):
+        executor = LiveExecutor(hyperliquid_adapter=_MockHyperliquidAdapter())
+        results = executor.monitor_open_trades()
+        assert results == []
+
+    def test_monitor_no_adapter_returns_empty_list(self):
+        executor = LiveExecutor()
+        results = executor.monitor_open_trades()
+        assert results == []
+
+    def test_monitor_adapter_error_returns_empty_list(self):
+        adapter = _MockHyperliquidAdapterError()
+        executor = LiveExecutor(hyperliquid_adapter=adapter, address="0xABC")
+        results = executor.monitor_open_trades()
+        assert results == []
+
+    def test_monitor_short_position_side(self):
+        adapter = _MockHyperliquidAdapter()
+        adapter.get_positions = lambda addr: [
+            Position(coin="ETH", size=-2.0, entry_px=3000.0, unrealized_pnl=-100.0, liquidation_px=3200.0),
+        ]
+        executor = LiveExecutor(hyperliquid_adapter=adapter, address="0xABC")
+        results = executor.monitor_open_trades()
+        assert len(results) == 1
+        assert results[0].side == "SHORT"
+
+    def test_monitor_uses_mark_price_from_prices(self):
+        adapter = _MockHyperliquidAdapter()
+        adapter.get_current_prices = lambda: {"BTC": 51000.0}
+        executor = LiveExecutor(hyperliquid_adapter=adapter, address="0xABC")
+        results = executor.monitor_open_trades()
+        assert results[0].mark_price == 51000.0
+
+    def test_monitor_order_status_position_when_no_orders(self):
+        adapter = _MockHyperliquidAdapter()
+        adapter.get_open_orders = lambda addr: []
+        executor = LiveExecutor(hyperliquid_adapter=adapter, address="0xABC")
+        results = executor.monitor_open_trades()
+        assert results[0].order_status == "POSITION"
+        assert results[0].exchange_order_id == ""
+
+    def test_live_monitor_result_dataclass(self):
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        r = LiveMonitorResult(
+            symbol="BTCUSDT",
+            side="LONG",
+            size=1.0,
+            entry_price=50000.0,
+            mark_price=50500.0,
+            unrealized_pnl=500.0,
+            liquidation_price=45000.0,
+            order_status="open",
+            exchange_order_id="oid-1",
+            timestamp=now,
+        )
+        assert r.symbol == "BTCUSDT"
+        assert r.side == "LONG"
+        assert r.size == 1.0
+        assert r.entry_price == 50000.0
+        assert r.mark_price == 50500.0
+        assert r.unrealized_pnl == 500.0
+        assert r.liquidation_price == 45000.0
+        assert r.order_status == "open"
+        assert r.exchange_order_id == "oid-1"
+
+    def test_monitor_zero_size_position_skipped(self):
+        adapter = _MockHyperliquidAdapter()
+        adapter.get_positions = lambda addr: [
+            Position(coin="BTC", size=0.0, entry_px=50000.0, unrealized_pnl=0.0, liquidation_px=0.0),
+        ]
+        executor = LiveExecutor(hyperliquid_adapter=adapter, address="0xABC")
+        results = executor.monitor_open_trades()
+        assert results == []
+
 
 class TestExecutionRouter:
 
@@ -209,6 +380,7 @@ class TestExecutionRouter:
         assert hasattr(result, "accepted")
         assert result.accepted is True
         assert result.mode == "LIVE"
+
     def test_paper_mode_executes_via_paper_executor(self):
         mock_paper = _MockPaperExecutor()
         router = ExecutionRouter(
@@ -223,7 +395,7 @@ class TestExecutionRouter:
         assert call["symbol"] == "BTCUSDT"
         assert call["side"] == "LONG"
 
-    def test_live_mode_routes_to_live_executor(self):
+    def test_live_mode_returns_live_order_result(self):
         adapter = _MockExchangeAdapter()
         live_executor = LiveExecutor(exchange_adapter=adapter)
         router = ExecutionRouter(live_executor=live_executor, mode=TradingMode.LIVE)

@@ -177,6 +177,17 @@ class HyperliquidReadOnlyAdapter:
         self.logger.info("Exchange metadata: %s assets", len(universe))
         return dict(data)
 
+    def get_current_prices(self) -> dict[str, float]:
+        """Fetch all current mid prices (read-only)."""
+        self.logger.info("Fetching current mid prices")
+        data = self._post({"type": "allMids"})
+        prices = {
+            coin: self._safe_float(mid)
+            for coin, mid in data.items()
+        }
+        self.logger.info("Current prices: %s assets", len(prices))
+        return prices
+
     def get_order_status(self, address: str, order_id: int) -> dict:
         """Fetch status of a specific order (read-only)."""
         self.logger.info("Fetching order status for %s order %s", address, order_id)
