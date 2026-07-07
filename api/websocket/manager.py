@@ -45,6 +45,10 @@ class ConnectionManager:
             self.disconnect(client_id)
             return False
 
+    def disconnect_all(self) -> None:
+        for client_id in list(self._connections.keys()):
+            self.disconnect(client_id)
+
     @property
     def active_count(self) -> int:
         return len(self._connections)

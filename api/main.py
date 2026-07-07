@@ -19,6 +19,7 @@ from api.routes.health import router as health_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
+from api.routes.release import router as release_router
 from api.routes.trades import router as trades_router
 from api.routes.ws import router as ws_router
 from api.websocket.manager import ConnectionManager
@@ -26,6 +27,10 @@ from auth.service import AuthService
 from dashboard.metrics import MetricsCollector
 from dashboard.service import DashboardService
 from monitoring.service import MonitoringService
+from release.readiness import ReadinessService
+from release.shutdown import GracefulShutdown
+from release.startup import StartupValidator
+from release.version import VersionService
 from risk_manager import RiskManager
 
 
@@ -58,7 +63,24 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator:
         ws_manager=_app.state.ws_manager,
         session_factory=get_session,
     )
+    _app.state.startup_validator = StartupValidator(
+        session_factory=get_session,
+        ws_manager=_app.state.ws_manager,
+        monitoring_service=_app.state.monitoring_service,
+    )
+    _app.state.readiness_service = ReadinessService(
+        startup_validator=_app.state.startup_validator,
+    )
+    _app.state.version_service = VersionService()
+    _app.state.shutdown_service = GracefulShutdown(
+        ws_manager=_app.state.ws_manager,
+    )
+
+    _app.state.startup_validator.validate()
+
     yield
+
+    _app.state.shutdown_service.shutdown()
 
 
 app = FastAPI(
@@ -74,4 +96,5 @@ app.include_router(auth_router)
 app.include_router(control_router)
 app.include_router(dashboard_router)
 app.include_router(monitoring_router)
+app.include_router(release_router)
 app.include_router(ws_router)
