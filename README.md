@@ -1,5 +1,7 @@
 # Elite Decision Engine
 
+![CI](https://github.com/mustafa78-bit/elite-decision-engine/actions/workflows/ci.yml/badge.svg)
+
 Automated paper trading engine for cryptocurrency markets (Hyperliquid).
 
 ## Architecture
