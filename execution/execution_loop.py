@@ -15,6 +15,7 @@ from database import update_signal_status
 from execution.paper_executor import PaperExecutor, TradeMonitorResult
 from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
 from execution.trade_engine import TradeEngine
+from position_sizing import PositionSizingEngine
 from risk_manager import RiskManager
 
 
@@ -37,12 +38,14 @@ class ExecutionLoop:
         trade_engine: Optional[TradeEngine] = None,
         paper_executor: Optional[PaperExecutor] = None,
         risk_manager: Optional[RiskManager] = None,
+        position_sizer: Optional[PositionSizingEngine] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
         self.trade_engine = trade_engine or TradeEngine()
         self.paper_executor = paper_executor or PaperExecutor()
         self.risk_manager = risk_manager or RiskManager()
+        self.position_sizer = position_sizer or PositionSizingEngine()
         self.logger = logger or logging.getLogger(__name__)
 
     def run_once(self, signals: Iterable[TradingSignal]) -> ExecutionLoopResult:
@@ -95,6 +98,16 @@ class ExecutionLoop:
             )
             update_signal_status(candidate.signal.id, "REJECTED")
             return None
+
+        position_size = self.position_sizer.calculate(candidate)
+        self.logger.info(
+            "Position sized for %s %s: qty=%s notional=%s risk=%s",
+            candidate.symbol,
+            candidate.side,
+            position_size.quantity,
+            position_size.notional_value,
+            position_size.risk_amount,
+        )
 
         trade = self._create_trade(candidate)
         if trade is not None:
