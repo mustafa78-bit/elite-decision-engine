@@ -84,6 +84,8 @@ class ExecutionLoop:
         trade = self._create_trade(candidate)
         if trade is not None:
             update_signal_status(signal.id, "EXECUTED")
+        else:
+            update_signal_status(signal.id, "OPEN")
         return trade
 
     def monitor(self) -> list[TradeMonitorResult]:
