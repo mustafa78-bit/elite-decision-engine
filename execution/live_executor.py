@@ -17,12 +17,19 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Protocol
 
 from core.kill_switch import KillSwitch
+from core.settings import Settings
 from database import Trade
 from execution.hyperliquid_adapter import HyperliquidReadOnlyAdapter, Position
 from execution.live_order import LiveOrderStatus
 from execution.order_builder import OrderBuilder
 from execution.payload_validator import PayloadValidator, ValidationResult
 from execution.signature_engine import SignatureEngine, SignedPayload
+from execution.monitor_result_builder import (
+    LONG_SIDE,
+    MonitorResultBuilder,
+    LiveMonitorResult,
+    SHORT_SIDE,
+)
 from execution.tp_sl import TPSLEngine
 
 
@@ -49,25 +56,6 @@ class LiveOrderResult:
     payload: dict = field(default_factory=dict)
     response: dict = field(default_factory=dict)
     error: Optional[str] = None
-
-
-@dataclass(frozen=True)
-class LiveMonitorResult:
-    symbol: str = ""
-    side: str = ""
-    size: float = 0.0
-    entry_price: float = 0.0
-    mark_price: float = 0.0
-    unrealized_pnl: float = 0.0
-    liquidation_price: float = 0.0
-    order_status: str = ""
-    exchange_order_id: str = ""
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-
-
-LONG_SIDE = "LONG"
-SHORT_SIDE = "SHORT"
-ORDER_SIDE_MAP = {"B": LONG_SIDE, "A": SHORT_SIDE}
 
 
 class ExchangeAdapter(Protocol):
@@ -123,10 +111,14 @@ class LiveExecutor:
         payload_validator: Optional[PayloadValidator] = None,
         signature_engine: Optional[SignatureEngine] = None,
         kill_switch: Optional[KillSwitch] = None,
+        settings: Optional[Settings] = None,
+        monitor_result_builder: Optional[MonitorResultBuilder] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.exchange_adapter = exchange_adapter or SimulatedExchangeAdapter()
         self.hyperliquid_adapter = hyperliquid_adapter
+        if not address and settings is not None:
+            address = settings.hl_wallet_address
         self.address = address
         self.session_factory = session_factory
         self._tp_sl = tp_sl_engine or TPSLEngine()
@@ -134,6 +126,7 @@ class LiveExecutor:
         self._payload_validator = payload_validator or PayloadValidator()
         self._signature_engine = signature_engine or SignatureEngine()
         self._kill_switch = kill_switch or KillSwitch()
+        self._monitor_builder = monitor_result_builder or MonitorResultBuilder()
         self.logger = logger or logging.getLogger(__name__)
 
     def execute(self, candidate: Any, size: Any) -> LiveOrderResult:
@@ -299,50 +292,12 @@ class LiveExecutor:
             orders_by_coin.setdefault(coin, []).append(o)
 
         for pos in positions:
-            result = self._position_to_monitor_result(pos, orders_by_coin, prices)
+            result = self._monitor_builder.build(pos, orders_by_coin, prices)
             if result is not None:
                 results.append(result)
 
         self.logger.info("LIVE monitoring: %s open positions", len(results))
         return results
-
-    def _position_to_monitor_result(
-        self,
-        pos: Position,
-        orders_by_coin: dict[str, list],
-        prices: dict[str, float],
-    ) -> Optional[LiveMonitorResult]:
-        coin = str(getattr(pos, "coin", ""))
-        size = abs(float(getattr(pos, "size", 0.0)))
-        if size <= 0:
-            return None
-
-        side = LONG_SIDE if float(getattr(pos, "size", 0.0)) > 0 else SHORT_SIDE
-        entry_price = float(getattr(pos, "entry_px", 0.0))
-        mark_price = prices.get(coin, entry_price)
-        unrealized_pnl = float(getattr(pos, "unrealized_pnl", 0.0))
-        liquidation_price = float(getattr(pos, "liquidation_px", 0.0))
-
-        coin_orders = orders_by_coin.get(coin, [])
-        order_status = "POSITION"
-        exchange_order_id = ""
-        if coin_orders:
-            latest = coin_orders[0]
-            order_status = str(getattr(latest, "status", "open"))
-            exchange_order_id = str(getattr(latest, "order_id", ""))
-
-        return LiveMonitorResult(
-            symbol=f"{coin}USDT" if not coin.endswith("USDT") else coin,
-            side=side,
-            size=size,
-            entry_price=entry_price,
-            mark_price=mark_price,
-            unrealized_pnl=unrealized_pnl,
-            liquidation_price=liquidation_price,
-            order_status=order_status,
-            exchange_order_id=exchange_order_id,
-            timestamp=datetime.now(timezone.utc),
-        )
 
     @staticmethod
     def _signed_to_dict(prepared: Any, signed: Any) -> dict:

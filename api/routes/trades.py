@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from api.dependencies import require_read
 from api.schemas import TradeItem, TradesResponse
 
 _CLOSED_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
 
-router = APIRouter(tags=["trades"])
+router = APIRouter(tags=["trades"], dependencies=[Depends(require_read)])
 
 
 @router.get("/trades", response_model=TradesResponse)

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from api.dependencies import require_read
 from api.schemas import PortfolioResponse
 
-router = APIRouter(tags=["portfolio"])
+router = APIRouter(tags=["portfolio"], dependencies=[Depends(require_read)])
 
 
 @router.get("/portfolio", response_model=PortfolioResponse)

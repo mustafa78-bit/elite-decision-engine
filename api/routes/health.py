@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from api.dependencies import require_read
 from api.schemas import HealthCheckResponse
 
-router = APIRouter(tags=["health"])
+router = APIRouter(tags=["health"], dependencies=[Depends(require_read)])
 
 
 @router.get("/health", response_model=HealthCheckResponse)

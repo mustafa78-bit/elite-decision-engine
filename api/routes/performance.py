@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from api.dependencies import require_read
 from api.schemas import PerformanceResponse
 
-router = APIRouter(tags=["performance"])
+router = APIRouter(tags=["performance"], dependencies=[Depends(require_read)])
 
 
 @router.get("/performance", response_model=PerformanceResponse)

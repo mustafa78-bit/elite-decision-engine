@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
 
+from api.dependencies import get_current_user, require_admin, require_read
 from api.routes.control import router as control_router
 from api.routes.health import router as health_router
 from api.routes.performance import router as performance_router
@@ -30,6 +32,13 @@ def app() -> FastAPI:
     _app.include_router(trades_router)
     _app.include_router(performance_router)
     _app.include_router(control_router)
+
+    async def _mock_user() -> dict[str, Any]:
+        return {"sub": "admin", "role": "ADMIN"}
+
+    _app.dependency_overrides[get_current_user] = _mock_user
+    _app.dependency_overrides[require_admin] = _mock_user
+    _app.dependency_overrides[require_read] = _mock_user
     return _app
 
 
