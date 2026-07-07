@@ -16,7 +16,7 @@ class ConfidenceEngine:
             score["risk_score"] * 10
         )
 
-        confidence = max(0, min(100, confidence * 100))
+        confidence = max(0, min(100, confidence))
 
         if confidence >= 90:
             decision = "STRONG_APPROVE"

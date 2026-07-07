@@ -62,6 +62,7 @@ class ConfidenceCalculator(Protocol):
 class TradeCandidate:
     """Approved trade candidate produced by the orchestration pipeline."""
 
+    id: int
     symbol: str
     side: str
     timeframe: str
@@ -124,6 +125,7 @@ class DecisionPipeline:
                 return None
 
             return TradeCandidate(
+                id=signal.id,
                 symbol=signal.symbol,
                 side=signal.side,
                 timeframe=signal.timeframe,

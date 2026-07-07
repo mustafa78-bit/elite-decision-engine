@@ -82,6 +82,7 @@ class DecisionEngine:
         decision: str,
     ) -> TradeCandidate:
         return TradeCandidate(
+            id=signal.id,
             symbol=signal.symbol,
             side=signal.side,
             timeframe=signal.timeframe,

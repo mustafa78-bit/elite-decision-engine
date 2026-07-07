@@ -11,6 +11,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
+from database import update_signal_status
 from execution.paper_executor import PaperExecutor, TradeMonitorResult
 from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
 from execution.trade_engine import TradeEngine
@@ -71,6 +72,7 @@ class ExecutionLoop:
                 getattr(signal, "symbol", None),
                 getattr(signal, "side", None),
             )
+            update_signal_status(signal.id, "REJECTED")
             return None
 
         self.logger.info(
@@ -79,7 +81,10 @@ class ExecutionLoop:
             candidate.side,
             candidate.decision,
         )
-        return self._create_trade(candidate)
+        trade = self._create_trade(candidate)
+        if trade is not None:
+            update_signal_status(signal.id, "EXECUTED")
+        return trade
 
     def monitor(self) -> list[TradeMonitorResult]:
         """Monitor all open paper trades."""
