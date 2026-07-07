@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
 from config import DRY_RUN
+from core.health_check import HealthCheck, HealthStatus
 from core.kill_switch import KillSwitch
 from database import update_signal_status
 from execution.paper_executor import PaperExecutor, TradeMonitorResult
@@ -56,6 +57,7 @@ class ExecutionLoop:
         execution_router: Optional[ExecutionRouter] = None,
         dry_run: Optional[bool] = None,
         kill_switch: Optional[KillSwitch] = None,
+        health_check: Optional[HealthCheck] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
@@ -66,10 +68,26 @@ class ExecutionLoop:
         self.execution_router = execution_router
         self.dry_run = DRY_RUN if dry_run is None else dry_run
         self.kill_switch = kill_switch or KillSwitch()
+        self.health_check = health_check
         self.logger = logger or logging.getLogger(__name__)
 
     def run_once(self, signals: Iterable[TradingSignal]) -> ExecutionLoopResult:
         """Process a batch of signals and monitor open trades once."""
+
+        if self.health_check is not None:
+            report = self.health_check.run()
+            if report.is_failed():
+                self.logger.critical("Health check FAILED — aborting run_once")
+                for err in report.errors:
+                    self.logger.critical("  %s", err)
+                return ExecutionLoopResult(
+                    processed=0, created=0, trades=[], monitor_results=[],
+                )
+            self.logger.info(
+                "Health check passed: overall=%s duration=%sms",
+                report.overall_status.value,
+                report.duration_ms,
+            )
 
         processed = 0
         trades: list[Any] = []
