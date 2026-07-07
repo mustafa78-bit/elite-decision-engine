@@ -7,9 +7,9 @@ from execution.execution_loop import ExecutionLoop
 
 class DecisionEngine:
 
-    def __init__(self):
+    def __init__(self, execution_loop=None):
         print("Decision Engine initialized")
-        self.execution_loop = ExecutionLoop()
+        self.execution_loop = execution_loop or ExecutionLoop()
 
     def get_open_signals(self):
         session = get_session()
