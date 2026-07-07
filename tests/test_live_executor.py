@@ -186,20 +186,20 @@ class TestLiveExecutor:
         executor = LiveExecutor()
         result = executor.execute(candidate, _SIZE_1)
         assert result.accepted is False
-        assert "side must be LONG or SHORT" in result.error
+        assert "side" in result.error.lower()
 
     def test_execute_rejected_for_zero_entry(self):
         candidate = _MockCandidate(entry=0.0)
         executor = LiveExecutor()
         result = executor.execute(candidate, _SIZE_1)
         assert result.accepted is False
-        assert "entry must be greater than zero" in result.error
+        assert "price" in result.error.lower()
 
     def test_execute_rejected_for_zero_quantity(self):
         executor = LiveExecutor()
         result = executor.execute(_MockCandidate(), _SIZE_0)
         assert result.accepted is False
-        assert "quantity must be greater than zero" in result.error
+        assert "quantity" in result.error.lower()
 
     def test_execute_payload_contains_correct_fields(self):
         adapter = _MockExchangeAdapter()
@@ -218,7 +218,7 @@ class TestLiveExecutor:
         executor = LiveExecutor(exchange_adapter=adapter)
         executor.execute(_MockCandidate(), _SIZE_1)
         payload = adapter.place_order_calls[0]
-        assert "SIMULATED_SIGNATURE_PLACEHOLDER" in str(payload.get("signature", ""))
+        assert "SIMULATED_SIG:" in str(payload.get("signature", ""))
 
     def test_payload_contains_timestamp(self):
         adapter = _MockExchangeAdapter()
@@ -479,6 +479,89 @@ class TestLiveExecutor:
         size = PositionSize(quantity=2.0, notional_value=6000.0, risk_amount=90.0)
         result = executor.prepare_order(candidate, size)
         assert result["ready"] is True
+
+    def test_execute_and_prepare_use_same_builder(self):
+        from execution.order_builder import OrderBuilder, PreparedOrder
+
+        class _RecordingBuilder(OrderBuilder):
+            def __init__(self):
+                self.calls = []
+
+            def build(self, candidate, size, **kwargs):
+                self.calls.append((candidate, size))
+                return super().build(candidate, size, **kwargs)
+
+        builder = _RecordingBuilder()
+        executor = LiveExecutor(
+            exchange_adapter=_MockExchangeAdapter(),
+            order_builder=builder,
+        )
+        candidate = _MockCandidate()
+        executor.prepare_order(candidate, _SIZE_1)
+        executor.execute(candidate, _SIZE_1)
+        assert len(builder.calls) == 2
+        assert builder.calls[0][0] is candidate
+        assert builder.calls[1][0] is candidate
+
+    def test_execute_and_prepare_use_same_validator(self):
+        from execution.payload_validator import PayloadValidator
+
+        class _RecordingValidator(PayloadValidator):
+            def __init__(self):
+                self.calls = []
+
+            def validate(self, order):
+                self.calls.append(order)
+                return super().validate(order)
+
+        validator = _RecordingValidator()
+        executor = LiveExecutor(
+            exchange_adapter=_MockExchangeAdapter(),
+            payload_validator=validator,
+        )
+        candidate = _MockCandidate()
+        executor.prepare_order(candidate, _SIZE_1)
+        executor.execute(candidate, _SIZE_1)
+        assert len(validator.calls) == 2
+
+    def test_execute_and_prepare_use_same_signer(self):
+        from execution.signature_engine import SignatureEngine, SignedPayload
+
+        class _RecordingSigner(SignatureEngine):
+            def __init__(self):
+                super().__init__()
+                self.calls = []
+
+            def sign(self, payload):
+                self.calls.append(payload)
+                return super().sign(payload)
+
+        signer = _RecordingSigner()
+        executor = LiveExecutor(
+            exchange_adapter=_MockExchangeAdapter(),
+            signature_engine=signer,
+        )
+        candidate = _MockCandidate()
+        executor.prepare_order(candidate, _SIZE_1)
+        executor.execute(candidate, _SIZE_1)
+        assert len(signer.calls) == 2
+
+    def test_execute_payload_contains_all_order_fields(self):
+        adapter = _MockExchangeAdapter()
+        executor = LiveExecutor(exchange_adapter=adapter)
+        executor.execute(_MockCandidate(), _SIZE_1)
+        payload = adapter.place_order_calls[0]
+        assert "symbol" in payload
+        assert "side" in payload
+        assert "order_type" in payload
+        assert "price" in payload
+        assert "quantity" in payload
+        assert "notional" in payload
+        assert "time_in_force" in payload
+        assert "timestamp" in payload
+        assert "signature" in payload
+        assert "signing_timestamp" in payload
+        assert "client_order_id" in payload
 
 
 class TestExecutionRouter:

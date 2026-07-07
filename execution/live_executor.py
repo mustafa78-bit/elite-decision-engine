@@ -141,25 +141,28 @@ class LiveExecutor:
             getattr(candidate, "side", "?"),
         )
 
-        validation_error = self._validate(candidate, size)
-        if validation_error:
-            self.logger.error("LIVE order validation failed: %s", validation_error)
-            return LiveOrderResult(accepted=False, error=validation_error)
+        prepared = self._order_builder.build(candidate, size)
+        self.logger.info("LIVE order payload built: symbol=%s qty=%s", prepared.symbol, prepared.quantity)
 
-        payload = self._build_payload(candidate, size)
-        self.logger.info("LIVE order payload built: symbol=%s qty=%s", payload.get("symbol"), payload.get("quantity"))
+        validation = self._payload_validator.validate(prepared)
+        if not validation.is_valid:
+            error_msg = "; ".join(validation.errors)
+            self.logger.error("LIVE order validation failed: %s", error_msg)
+            return LiveOrderResult(accepted=False, error=error_msg)
 
-        signed_payload = self._sign_payload(payload)
+        signed = self._signature_engine.sign(prepared)
         self.logger.debug("LIVE order payload signed")
 
-        exchange_response = self.exchange_adapter.place_order(signed_payload)
+        payload_dict = self._signed_to_dict(prepared, signed)
+
+        exchange_response = self.exchange_adapter.place_order(payload_dict)
         self.logger.info(
             "LIVE exchange response: status=%s order_id=%s",
             exchange_response.get("status"),
             exchange_response.get("order_id"),
         )
 
-        result = self._parse_response(exchange_response, payload)
+        result = self._parse_response(exchange_response, payload_dict)
         self.logger.info(
             "LIVE order result: accepted=%s id=%s",
             result.accepted,
@@ -328,40 +331,21 @@ class LiveExecutor:
             timestamp=datetime.now(timezone.utc),
         )
 
-    def _validate(self, candidate: Any, size: Any) -> Optional[str]:
-        if candidate is None or size is None:
-            return "candidate and size are required"
-        symbol = getattr(candidate, "symbol", None)
-        side = getattr(candidate, "side", None)
-        entry = getattr(candidate, "entry", None)
-        quantity = getattr(size, "quantity", None)
-        if not symbol:
-            return "symbol is required"
-        if side not in (LONG_SIDE, SHORT_SIDE):
-            return "side must be LONG or SHORT"
-        if not entry or entry <= 0:
-            return "entry must be greater than zero"
-        if not quantity or quantity <= 0:
-            return "quantity must be greater than zero"
-        return None
-
-    def _build_payload(self, candidate: Any, size: Any) -> dict:
+    @staticmethod
+    def _signed_to_dict(prepared: Any, signed: Any) -> dict:
         return {
-            "symbol": str(getattr(candidate, "symbol", "")),
-            "side": str(getattr(candidate, "side", "")),
-            "order_type": "LIMIT",
-            "price": float(getattr(candidate, "entry", 0.0)),
-            "quantity": float(getattr(size, "quantity", 0.0)),
-            "notional": float(getattr(size, "notional_value", 0.0)),
-            "time_in_force": "GTC",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "symbol": str(getattr(prepared, "symbol", "")),
+            "side": str(getattr(prepared, "side", "")),
+            "order_type": str(getattr(prepared, "order_type", "LIMIT")),
+            "price": float(getattr(prepared, "price", 0.0)),
+            "quantity": float(getattr(prepared, "quantity", 0.0)),
+            "notional": float(getattr(prepared, "notional", 0.0)),
+            "time_in_force": str(getattr(prepared, "time_in_force", "GTC")),
+            "timestamp": str(getattr(prepared, "timestamp", "")),
+            "signature": str(getattr(signed, "signature", "")),
+            "signing_timestamp": str(getattr(signed, "signing_timestamp", "")),
+            "client_order_id": str(getattr(prepared, "client_order_id", "")),
         }
-
-    def _sign_payload(self, payload: dict) -> dict:
-        signed = dict(payload)
-        signed["signature"] = "SIMULATED_SIGNATURE_PLACEHOLDER"
-        signed["signing_timestamp"] = datetime.now(timezone.utc).isoformat()
-        return signed
 
     def _parse_response(self, response: dict, payload: dict) -> LiveOrderResult:
         order_id = str(response.get("order_id", uuid.uuid4()))
