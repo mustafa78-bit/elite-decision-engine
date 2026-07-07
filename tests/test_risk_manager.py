@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from database import Trade
 from execution.pipeline import TradeCandidate
 from risk_manager import RiskManager

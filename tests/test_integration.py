@@ -9,7 +9,6 @@ The production database is never touched.
 """
 
 import pandas as pd
-import pytest
 from database import Signal, Trade
 from execution.execution_loop import ExecutionLoop
 from execution.pipeline import DecisionPipeline
