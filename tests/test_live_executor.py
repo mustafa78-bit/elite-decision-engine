@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 from unittest.mock import MagicMock
 
+from database import Trade
 from execution.hyperliquid_adapter import HyperliquidReadOnlyAdapter, Position
 from execution.live_executor import (
     LiveExecutor,
@@ -364,6 +365,48 @@ class TestLiveExecutor:
         executor = LiveExecutor(hyperliquid_adapter=adapter, address="0xABC")
         results = executor.monitor_open_trades()
         assert results == []
+
+    def test_execute_persists_trade_with_all_fields(self, db_session, session_factory):
+        executor = LiveExecutor(
+            exchange_adapter=_MockExchangeAdapter(),
+            session_factory=session_factory,
+        )
+        candidate = _MockCandidate(symbol="BTCUSDT", side="LONG", entry=50000.0, id=42)
+        result = executor.execute(candidate, _SIZE_1)
+        assert result.accepted is True
+
+        trade = db_session.query(Trade).order_by(Trade.id.desc()).first()
+        assert trade is not None
+        assert trade.symbol == "BTCUSDT"
+        assert trade.side == "LONG"
+        assert trade.entry == 50000.0
+        assert trade.exchange_order_id == result.client_order_id
+        assert trade.client_order_id == result.client_order_id
+        assert len(trade.exchange_order_id) > 0
+        assert trade.exchange_status == "NEW"
+        assert trade.submitted_at is not None
+        assert trade.updated_at is not None
+        assert trade.pnl == 0.0
+        assert trade.status == "OPEN"
+        assert trade.stop is not None
+        assert trade.tp1 is not None
+        assert trade.rr is not None
+        assert trade.signal_id == 42
+
+    def test_execute_does_not_persist_when_rejected(self, db_session, session_factory):
+        pre_count = db_session.query(Trade).count()
+        executor = LiveExecutor(
+            exchange_adapter=_MockExchangeAdapter(),
+            session_factory=session_factory,
+        )
+        result = executor.execute(_MockCandidate(side="INVALID"), _SIZE_1)
+        assert result.accepted is False
+        assert db_session.query(Trade).count() == pre_count
+
+    def test_execute_no_session_factory_does_not_crash(self):
+        executor = LiveExecutor(exchange_adapter=_MockExchangeAdapter())
+        result = executor.execute(_MockCandidate(), _SIZE_1)
+        assert result.accepted is True
 
 
 class TestExecutionRouter:

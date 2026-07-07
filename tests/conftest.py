@@ -68,18 +68,19 @@ def db_connection(test_engine):
 def session_factory(db_connection):
     """Return a callable that creates a new session on the test connection.
 
-    Each session starts a nested transaction (savepoint) inside the
-    outer transaction managed by ``db_connection``.  When production
-    code calls ``commit()`` the savepoint is released, making changes
-    visible to other sessions on the same connection.  The outer
-    transaction rollback at teardown undoes everything.
+    The session participates in the outer transaction managed by
+    ``db_connection``.  When production code calls ``commit()`` the
+    data is flushed to the connection's transaction (no actual SQL
+    COMMIT) and the outer transaction rollback at teardown undoes
+    everything.
+
+    SQLite + SQLAlchemy does not support rolling back savepoint-released
+    changes, so we avoid ``begin(nested=True)`` here.
     """
     maker = sessionmaker(bind=db_connection)
 
     def _make():
-        session = maker()
-        session.begin(nested=True)
-        return session
+        return maker()
 
     return _make
 

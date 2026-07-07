@@ -127,6 +127,12 @@ class Trade(Base):
     close_reason = Column(String(30))
 
     exchange_order_id = Column(String(120))
+    client_order_id = Column(String(120))
+    exchange_status = Column(String(30), default="NEW")
+    submitted_at = Column(DateTime(timezone=True))
+    updated_at = Column(DateTime(timezone=True))
+    filled_at = Column(DateTime(timezone=True))
+    average_fill_price = Column(Float)
 
     created_at = Column(
         DateTime(timezone=True),

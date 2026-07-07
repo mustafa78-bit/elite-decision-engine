@@ -16,7 +16,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Protocol
 
+from database import Trade
 from execution.hyperliquid_adapter import HyperliquidReadOnlyAdapter, Position
+from execution.live_order import LiveOrderStatus
+from execution.tp_sl import TPSLEngine
 
 
 @dataclass(frozen=True)
@@ -100,8 +103,9 @@ class SimulatedExchangeAdapter:
 class LiveExecutor:
     """Live order executor with read-only monitoring.
 
-    Executes simulated orders via ExchangeAdapter.
-    Monitors open trades via HyperliquidReadOnlyAdapter (read-only API).
+    Executes simulated orders via ExchangeAdapter and persists a
+    Trade record on simulated acceptance.  Monitors open trades via
+    HyperliquidReadOnlyAdapter (read-only API, no DB writes).
     """
 
     def __init__(
@@ -110,16 +114,18 @@ class LiveExecutor:
         hyperliquid_adapter: Optional[HyperliquidReadOnlyAdapter] = None,
         address: str = "",
         session_factory: Optional[Callable[[], Any]] = None,
+        tp_sl_engine: Optional[TPSLEngine] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.exchange_adapter = exchange_adapter or SimulatedExchangeAdapter()
         self.hyperliquid_adapter = hyperliquid_adapter
         self.address = address
         self.session_factory = session_factory
+        self._tp_sl = tp_sl_engine or TPSLEngine()
         self.logger = logger or logging.getLogger(__name__)
 
     def execute(self, candidate: Any, size: Any) -> LiveOrderResult:
-        """Validate, build payload, sign, send, and parse a live order."""
+        """Validate, build payload, sign, send, parse, and persist a live order."""
         self.logger.info(
             "LIVE order execution started for %s %s",
             getattr(candidate, "symbol", "?"),
@@ -150,7 +156,57 @@ class LiveExecutor:
             result.accepted,
             result.client_order_id,
         )
+
+        if result.accepted:
+            self._persist_trade(candidate, size, result)
+
         return result
+
+    def _persist_trade(self, candidate: Any, size: Any, result: LiveOrderResult) -> None:
+        """Create a Trade record from a simulated live order result."""
+        if self.session_factory is None:
+            self.logger.debug("No session_factory configured; Trade record not persisted")
+            return
+
+        symbol = str(getattr(candidate, "symbol", ""))
+        side = str(getattr(candidate, "side", ""))
+        entry = float(getattr(candidate, "entry", 0.0))
+        atr = float(getattr(candidate, "scores", {}).get("atr", 0.0)) if hasattr(candidate, "scores") else 0.0
+        signal_id = int(getattr(candidate, "id", 0))
+        now = datetime.now(timezone.utc)
+
+        levels = self._tp_sl.calculate(entry=entry, atr=atr, side=side)
+
+        session = self.session_factory()
+        try:
+            trade = Trade(
+                signal_id=signal_id,
+                symbol=symbol,
+                side=side,
+                entry=levels["entry"],
+                stop=levels["stop"],
+                tp1=levels["tp1"],
+                tp2=levels["tp2"],
+                rr=levels["rr"],
+                status="OPEN",
+                exchange_order_id=result.client_order_id,
+                client_order_id=result.client_order_id,
+                exchange_status=LiveOrderStatus.NEW.value,
+                submitted_at=now,
+                updated_at=now,
+                pnl=0.0,
+            )
+            session.add(trade)
+            session.commit()
+            self.logger.info(
+                "Persisted live Trade %s: %s %s entry=%s",
+                trade.id, symbol, side, levels["entry"],
+            )
+        except Exception:
+            session.rollback()
+            self.logger.exception("Failed to persist live Trade: %s %s", symbol, side)
+        finally:
+            session.close()
 
     def monitor_open_trades(self) -> list[LiveMonitorResult]:
         """Monitor open live trades using read-only API calls.
