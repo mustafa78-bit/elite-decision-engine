@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
 from config import DRY_RUN
+from core.kill_switch import KillSwitch
 from database import update_signal_status
 from execution.paper_executor import PaperExecutor, TradeMonitorResult
 from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
@@ -54,6 +55,7 @@ class ExecutionLoop:
         position_sizer: Optional[PositionSizingEngine] = None,
         execution_router: Optional[ExecutionRouter] = None,
         dry_run: Optional[bool] = None,
+        kill_switch: Optional[KillSwitch] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
@@ -63,6 +65,7 @@ class ExecutionLoop:
         self.position_sizer = position_sizer or PositionSizingEngine()
         self.execution_router = execution_router
         self.dry_run = DRY_RUN if dry_run is None else dry_run
+        self.kill_switch = kill_switch or KillSwitch()
         self.logger = logger or logging.getLogger(__name__)
 
     def run_once(self, signals: Iterable[TradingSignal]) -> ExecutionLoopResult:
@@ -87,6 +90,15 @@ class ExecutionLoop:
 
     def process_signal(self, signal: TradingSignal) -> Optional[Any]:
         """Evaluate one signal and create a trade only when approved."""
+
+        if not self.kill_switch.is_running():
+            self.logger.warning(
+                "KillSwitch active (%s): signal skipped %s %s",
+                self.kill_switch.state().value,
+                getattr(signal, "symbol", "?"),
+                getattr(signal, "side", "?"),
+            )
+            return None
 
         candidate = self.pipeline.evaluate(signal)
         if candidate is None:

@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Protocol
 
+from core.kill_switch import KillSwitch
 from database import Trade
 from execution.hyperliquid_adapter import HyperliquidReadOnlyAdapter, Position
 from execution.live_order import LiveOrderStatus
@@ -121,6 +122,7 @@ class LiveExecutor:
         order_builder: Optional[OrderBuilder] = None,
         payload_validator: Optional[PayloadValidator] = None,
         signature_engine: Optional[SignatureEngine] = None,
+        kill_switch: Optional[KillSwitch] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.exchange_adapter = exchange_adapter or SimulatedExchangeAdapter()
@@ -131,10 +133,21 @@ class LiveExecutor:
         self._order_builder = order_builder or OrderBuilder()
         self._payload_validator = payload_validator or PayloadValidator()
         self._signature_engine = signature_engine or SignatureEngine()
+        self._kill_switch = kill_switch or KillSwitch()
         self.logger = logger or logging.getLogger(__name__)
 
     def execute(self, candidate: Any, size: Any) -> LiveOrderResult:
         """Validate, build payload, sign, send, parse, and persist a live order."""
+        if not self._kill_switch.is_running():
+            state = self._kill_switch.state().value
+            self.logger.warning(
+                "LIVE order rejected by KillSwitch (%s): %s %s",
+                state,
+                getattr(candidate, "symbol", "?"),
+                getattr(candidate, "side", "?"),
+            )
+            return LiveOrderResult(accepted=False, error=f"engine is {state}")
+
         self.logger.info(
             "LIVE order execution started for %s %s",
             getattr(candidate, "symbol", "?"),

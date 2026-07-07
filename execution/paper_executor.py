@@ -16,6 +16,7 @@ from typing import Any, Callable, Iterable, Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from core.kill_switch import KillSwitch
 from database import Trade, get_session
 from market_data.collector import HyperliquidCollector
 
@@ -71,12 +72,14 @@ class PaperExecutor:
         self,
         collector: Optional[HyperliquidCollector] = None,
         session_factory: Callable[[], Any] = get_session,
+        kill_switch: Optional[KillSwitch] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         """Create a paper executor with injectable infrastructure."""
 
         self.collector = collector or HyperliquidCollector()
         self.session_factory = session_factory
+        self._kill_switch = kill_switch or KillSwitch()
         self.logger = logger or logging.getLogger(__name__)
         self._pnl_percentages: dict[int, float] = {}
         self._realized_pnl: dict[int, float] = {}
@@ -108,6 +111,15 @@ class PaperExecutor:
 
     def open_trade_from_request(self, request: PaperTradeRequest) -> Optional[Trade]:
         """Open a paper trade from a request object."""
+
+        if not self._kill_switch.is_running():
+            self.logger.warning(
+                "Paper trade rejected by KillSwitch (%s): %s %s",
+                self._kill_switch.state().value,
+                request.symbol,
+                request.side,
+            )
+            return None
 
         self._validate_trade_request(request)
         symbol = self._normalize_symbol(request.symbol)
