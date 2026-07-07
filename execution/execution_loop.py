@@ -2,7 +2,8 @@
 
 This module wires existing components together only. Decisions stay in
 ``DecisionPipeline``, trade persistence stays in ``TradeEngine``, and open
-paper trade monitoring stays in ``PaperExecutor``.
+trade monitoring stays in the configured executor (PaperExecutor or
+LiveExecutor via ExecutionRouter).
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from typing import Any, Iterable, Optional
 from database import update_signal_status
 from execution.paper_executor import PaperExecutor, TradeMonitorResult
 from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
+from execution.router import ExecutionRouter, TradingMode
 from execution.trade_engine import TradeEngine
 from position_sizing import PositionSizingEngine
 from risk_manager import RiskManager
@@ -29,8 +31,17 @@ class ExecutionLoopResult:
     monitor_results: list[TradeMonitorResult]
 
 
+def _is_success(result: Any) -> bool:
+    """Check if an execution result indicates a successful trade."""
+    if result is None:
+        return False
+    if hasattr(result, "accepted"):
+        return bool(result.accepted)
+    return True
+
+
 class ExecutionLoop:
-    """Orchestrate signal evaluation, trade creation, and paper monitoring."""
+    """Orchestrate signal evaluation, trade creation, and trade monitoring."""
 
     def __init__(
         self,
@@ -39,6 +50,7 @@ class ExecutionLoop:
         paper_executor: Optional[PaperExecutor] = None,
         risk_manager: Optional[RiskManager] = None,
         position_sizer: Optional[PositionSizingEngine] = None,
+        execution_router: Optional[ExecutionRouter] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
@@ -46,10 +58,11 @@ class ExecutionLoop:
         self.paper_executor = paper_executor or PaperExecutor()
         self.risk_manager = risk_manager or RiskManager()
         self.position_sizer = position_sizer or PositionSizingEngine()
+        self.execution_router = execution_router
         self.logger = logger or logging.getLogger(__name__)
 
     def run_once(self, signals: Iterable[TradingSignal]) -> ExecutionLoopResult:
-        """Process a batch of signals and monitor open paper trades once."""
+        """Process a batch of signals and monitor open trades once."""
 
         processed = 0
         trades: list[Any] = []
@@ -109,7 +122,7 @@ class ExecutionLoop:
             position_size.risk_amount,
         )
 
-        trade = self._create_trade(candidate)
+        trade = self._execute(candidate, position_size)
         if trade is not None:
             update_signal_status(signal.id, "EXECUTED")
         else:
@@ -117,11 +130,37 @@ class ExecutionLoop:
         return trade
 
     def monitor(self) -> list[TradeMonitorResult]:
-        """Monitor all open paper trades."""
+        """Monitor all open trades."""
+
+        if self.execution_router is not None:
+            results = self.execution_router.monitor_open_trades()
+            self.logger.info("Monitored %s open trades", len(results))
+            return results
 
         results = self.paper_executor.monitor_open_trades()
         self.logger.info("Monitored %s open paper trades", len(results))
         return results
+
+    def _execute(self, candidate: TradeCandidate, size: Any) -> Optional[Any]:
+        if self.execution_router is not None:
+            result = self.execution_router.execute(candidate, size)
+            accepted = _is_success(result)
+            if accepted:
+                self.logger.info(
+                    "Trade executed: %s %s via router (mode=%s)",
+                    candidate.symbol,
+                    candidate.side,
+                    self.execution_router.mode.value,
+                )
+            else:
+                self.logger.warning(
+                    "Trade rejected by executor: %s %s",
+                    candidate.symbol,
+                    candidate.side,
+                )
+            return result if accepted else None
+
+        return self._create_trade(candidate)
 
     def _create_trade(self, candidate: TradeCandidate) -> Optional[Any]:
         entry = candidate.entry
