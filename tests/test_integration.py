@@ -16,6 +16,7 @@ from execution.pipeline import DecisionPipeline
 from execution.paper_executor import PaperExecutor
 from core.engine import DecisionEngine
 from core.confidence_engine import ConfidenceEngine
+from risk_manager import RiskManager
 
 
 class MockCollector:
@@ -60,7 +61,7 @@ def test_end_to_end_paper_trading(db_session, session_factory):
         status="OPEN",
     )
     db_session.add(signal)
-    db_session.commit()
+    db_session.flush()
     signal_id = signal.id
 
     # ---- Phase 2: Build pipeline with mocked dependencies ----
@@ -79,6 +80,7 @@ def test_end_to_end_paper_trading(db_session, session_factory):
     loop = ExecutionLoop(
         pipeline=pipeline,
         paper_executor=paper_executor,
+        risk_manager=RiskManager(session_factory=session_factory),
     )
 
     engine = DecisionEngine(execution_loop=loop)

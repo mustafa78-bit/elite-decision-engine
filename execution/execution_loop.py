@@ -15,6 +15,7 @@ from database import update_signal_status
 from execution.paper_executor import PaperExecutor, TradeMonitorResult
 from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
 from execution.trade_engine import TradeEngine
+from risk_manager import RiskManager
 
 
 @dataclass(frozen=True)
@@ -35,11 +36,13 @@ class ExecutionLoop:
         pipeline: Optional[DecisionPipeline] = None,
         trade_engine: Optional[TradeEngine] = None,
         paper_executor: Optional[PaperExecutor] = None,
+        risk_manager: Optional[RiskManager] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
         self.trade_engine = trade_engine or TradeEngine()
         self.paper_executor = paper_executor or PaperExecutor()
+        self.risk_manager = risk_manager or RiskManager()
         self.logger = logger or logging.getLogger(__name__)
 
     def run_once(self, signals: Iterable[TradingSignal]) -> ExecutionLoopResult:
@@ -81,6 +84,18 @@ class ExecutionLoop:
             candidate.side,
             candidate.decision,
         )
+
+        allowed, reason = self.risk_manager.can_open_trade(candidate)
+        if not allowed:
+            self.logger.warning(
+                "Trade rejected by risk manager: %s %s - %s",
+                candidate.symbol,
+                candidate.side,
+                reason,
+            )
+            update_signal_status(candidate.signal.id, "REJECTED")
+            return None
+
         trade = self._create_trade(candidate)
         if trade is not None:
             update_signal_status(signal.id, "EXECUTED")

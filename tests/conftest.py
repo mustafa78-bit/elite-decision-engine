@@ -38,12 +38,11 @@ def test_engine():
 
 
 def _enable_sqlite_pragmas(engine):
-    """Enable WAL mode and foreign keys for SQLite test databases."""
+    """Enable foreign keys for SQLite test databases."""
 
     @event.listens_for(engine, "connect")
     def _set_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
