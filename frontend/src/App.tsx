@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
-import TradePanel from "./components/TradePanel";
-import type { TradeNotification } from "./types/trade";
+import ClosedTrades from "./components/ClosedTrades";
+import DashboardStats from "./components/DashboardStats";
+import OpenTrades from "./components/OpenTrades";
+import type { TradeNotification, TradePayload } from "./types/trade";
 import { connectTradesSocket } from "./websocket/client";
 import type { ConnectionStatus } from "./websocket/client";
 
-const MAX_EVENTS = 50;
+const MAX_EVENTS = 100;
 
 function App() {
   const [notifications, setNotifications] = useState<TradeNotification[]>([]);
+  const [openTrades, setOpenTrades] = useState<TradePayload[]>([]);
+  const [closedTrades, setClosedTrades] = useState<TradePayload[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>("DISCONNECTED");
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -19,6 +23,17 @@ function App() {
           const next = [...prev, data];
           return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
         });
+
+        if (data.event === "TRADE_OPENED") {
+          setOpenTrades((prev) => [...prev, data.payload]);
+        }
+
+        if (data.event === "TRADE_CLOSED") {
+          setOpenTrades((prev) =>
+            prev.filter((t) => t.trade_id !== data.payload.trade_id),
+          );
+          setClosedTrades((prev) => [...prev, data.payload]);
+        }
       },
       (s) => setStatus(s),
     );
@@ -36,7 +51,7 @@ function App() {
             Elite Decision Engine
           </h1>
           <p className="text-[10px] text-gray-500 uppercase tracking-widest">
-            Live Trade Feed
+            Trading Dashboard
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -44,9 +59,24 @@ function App() {
           <span className="text-[10px] text-gray-500 uppercase">{status}</span>
         </div>
       </header>
-      <main>
-        <TradePanel notifications={notifications} />
-      </main>
+
+      <div className="space-y-4">
+        <DashboardStats notifications={notifications} />
+
+        <section>
+          <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-2">
+            Open Trades
+          </h2>
+          <OpenTrades trades={openTrades} />
+        </section>
+
+        <section>
+          <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-2">
+            Closed Trades
+          </h2>
+          <ClosedTrades trades={closedTrades} />
+        </section>
+      </div>
     </div>
   );
 }
