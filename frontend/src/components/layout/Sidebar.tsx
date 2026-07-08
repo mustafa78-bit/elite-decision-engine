@@ -15,6 +15,7 @@ const items = [
   { label: "Notifications", path: "/notifications" },
   { label: "Execution", path: "/execution" },
   { label: "Intelligence", path: "/intelligence" },
+  { label: "Journal", path: "/journal" },
 ];
 
 export default function Sidebar() {

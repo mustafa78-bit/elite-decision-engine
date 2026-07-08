@@ -6,6 +6,7 @@ import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import Execution from "./pages/Execution";
 import Intelligence from "./pages/Intelligence";
+import Journal from "./pages/Journal";
 import Market from "./pages/Market";
 import NotificationsPage from "./pages/Notifications";
 import Overview from "./pages/Overview";
@@ -134,6 +135,7 @@ function App() {
           <Route path="/paper-trading" element={<PaperTrading />} />
           <Route path="/execution" element={<Execution />} />
           <Route path="/intelligence" element={<Intelligence />} />
+          <Route path="/journal" element={<Journal />} />
         </Route>
       </Routes>
     </BrowserRouter>

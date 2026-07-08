@@ -157,6 +157,39 @@ class Notification(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 # ------------------------------------------------------------------
+# JOURNAL ENTRY TABLE
+# ------------------------------------------------------------------
+
+class JournalEntry(Base):
+    __tablename__ = "journal_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    symbol = Column(String(20), index=True)
+    side = Column(String(10))
+    entry_price = Column(Float)
+    exit_price = Column(Float, nullable=True)
+
+    score = Column(Float, default=0)
+    confidence = Column(Float, default=0)
+
+    entry_reason = Column(Text)
+    exit_reason = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    result = Column(String(20), default="PENDING")
+    pnl = Column(Float, default=0)
+
+    signal_id = Column(Integer, nullable=True)
+    trade_id = Column(Integer, nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+
+# ------------------------------------------------------------------
 # HELPERS
 # ------------------------------------------------------------------
 
