@@ -27,3 +27,13 @@ def test_performance_route_registered():
 def test_portfolio_route_registered():
     paths = list(app.openapi()["paths"])
     assert "/portfolio" in paths
+
+
+def test_risk_route_registered():
+    paths = list(app.openapi()["paths"])
+    assert "/risk" in paths
+
+
+def test_position_sizing_route_registered():
+    paths = list(app.openapi()["paths"])
+    assert "/position-sizing" in paths
