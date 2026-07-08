@@ -1,7 +1,7 @@
 class ExchangeError(Exception):
     """Base exchange error."""
 
-class ConnectionError(ExchangeError):
+class ExchangeConnectionError(ExchangeError):
     """Failed to connect to exchange."""
 
 class AuthenticationError(ExchangeError):
@@ -31,5 +31,5 @@ class SymbolNotFound(ExchangeError):
 class MarketDataError(ExchangeError):
     """Failed to fetch market data."""
 
-class TimeoutError(ExchangeError):
+class ExchangeTimeoutError(ExchangeError):
     """Request timed out."""

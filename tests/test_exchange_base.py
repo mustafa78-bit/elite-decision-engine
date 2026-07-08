@@ -5,8 +5,9 @@ from decimal import Decimal
 from exchange.base import ExchangeAdapter
 from exchange.exceptions import (
     AuthenticationError,
-    ConnectionError,
+    ExchangeConnectionError,
     ExchangeError,
+    ExchangeTimeoutError,
     InsufficientFunds,
     InvalidOrder,
     MarketDataError,
@@ -15,7 +16,6 @@ from exchange.exceptions import (
     PositionNotFound,
     RateLimitError,
     SymbolNotFound,
-    TimeoutError,
 )
 from exchange.models import Balance, Candle, Order, Position, Ticker
 
@@ -53,7 +53,7 @@ class TestExchangeModels:
 
 class TestExchangeExceptions:
     def test_exception_hierarchy(self):
-        assert issubclass(ConnectionError, ExchangeError)
+        assert issubclass(ExchangeConnectionError, ExchangeError)
         assert issubclass(AuthenticationError, ExchangeError)
         assert issubclass(RateLimitError, ExchangeError)
         assert issubclass(OrderError, ExchangeError)
@@ -63,7 +63,7 @@ class TestExchangeExceptions:
         assert issubclass(PositionNotFound, ExchangeError)
         assert issubclass(SymbolNotFound, ExchangeError)
         assert issubclass(MarketDataError, ExchangeError)
-        assert issubclass(TimeoutError, ExchangeError)
+        assert issubclass(ExchangeTimeoutError, ExchangeError)
 
     def test_exception_messages(self):
         try:
@@ -72,7 +72,7 @@ class TestExchangeExceptions:
             assert "Not enough USDT" in str(e)
 
     def test_generic_catch(self):
-        for exc_cls in [ConnectionError, AuthenticationError, RateLimitError, OrderNotFound, PositionNotFound, SymbolNotFound, MarketDataError, TimeoutError]:
+        for exc_cls in [ExchangeConnectionError, AuthenticationError, RateLimitError, OrderNotFound, PositionNotFound, SymbolNotFound, MarketDataError, ExchangeTimeoutError]:
             try:
                 raise exc_cls("test")
             except ExchangeError:
