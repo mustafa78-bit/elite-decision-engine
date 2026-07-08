@@ -7,6 +7,7 @@ const items = [
   { label: "Market", path: "/market" },
   { label: "Signals", path: "/signals" },
   { label: "Risk", path: "/risk" },
+  { label: "Regime", path: "/regime" },
   { label: "Analytics", path: "/analytics" },
   { label: "Portfolio", path: "/portfolio" },
   { label: "Paper Trading", path: "/paper-trading" },

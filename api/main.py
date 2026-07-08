@@ -28,6 +28,7 @@ from api.routes.notifications import router as notifications_router
 from api.routes.paper_trading import router as paper_trading_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
+from api.routes.regime import router as regime_router
 from api.routes.risk import router as risk_router
 from api.routes.signals import router as signals_router
 from api.routes.users import router as users_router
@@ -73,6 +74,7 @@ app.include_router(notifications_router)
 app.include_router(paper_trading_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
+app.include_router(regime_router)
 app.include_router(risk_router)
 app.include_router(signals_router)
 app.include_router(users_router)

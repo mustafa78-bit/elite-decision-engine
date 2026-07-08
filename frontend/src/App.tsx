@@ -11,6 +11,7 @@ import NotificationsPage from "./pages/Notifications";
 import Overview from "./pages/Overview";
 import PaperTrading from "./pages/PaperTrading";
 import Portfolio from "./pages/Portfolio";
+import Regime from "./pages/Regime";
 import Risk from "./pages/Risk";
 import Signals from "./pages/Signals";
 import Trades from "./pages/Trades";
@@ -126,6 +127,7 @@ function App() {
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/signals" element={<Signals />} />
           <Route path="/risk" element={<Risk />} />
+          <Route path="/regime" element={<Regime />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/paper-trading" element={<PaperTrading />} />
           <Route path="/execution" element={<Execution />} />
