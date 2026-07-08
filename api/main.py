@@ -5,17 +5,27 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.events import (
+    CandlePayload,
+    CandleUpdateEvent,
     MarketEvent,
     MarketPayload,
+    PricePayload,
+    PriceUpdateEvent,
     RiskEvent,
     RiskPayload,
+    VolumePayload,
+    VolumeUpdateEvent,
     serialize,
 )
 from api.middleware import auth_middleware
 from api.routes.auth import router as auth_router
+from api.routes.execution import router as execution_router
+from api.routes.intelligence import router as intelligence_router
 from api.routes.market import router as market_router
+from api.routes.market_live import router as market_live_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
+from api.routes.paper_trading import router as paper_trading_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.risk import router as risk_router
@@ -54,9 +64,13 @@ app.add_middleware(
 app.middleware("http")(auth_middleware)
 
 app.include_router(auth_router)
+app.include_router(execution_router)
+app.include_router(intelligence_router)
 app.include_router(market_router)
+app.include_router(market_live_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
+app.include_router(paper_trading_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
 app.include_router(risk_router)
@@ -109,6 +123,32 @@ async def _broadcast_market() -> None:
             volatility=vol_score["volatility"],
         ))
         await manager.broadcast(serialize(event))
+
+        price_event = PriceUpdateEvent(payload=PricePayload(
+            symbol="BTC",
+            price=price,
+            volume=float(df["volume"].iloc[-1]),
+        ))
+        await manager.broadcast(serialize(price_event))
+
+        latest = df.iloc[-1]
+        candle_event = CandleUpdateEvent(payload=CandlePayload(
+            symbol="BTC",
+            open=float(latest["open"]),
+            high=float(latest["high"]),
+            low=float(latest["low"]),
+            close=float(latest["close"]),
+            volume=float(latest["volume"]),
+            timestamp=int(latest["timestamp"]) if "timestamp" in latest else 0,
+        ))
+        await manager.broadcast(serialize(candle_event))
+
+        volume_24h = float(df["volume"].tail(24).sum()) if len(df) >= 24 else float(df["volume"].sum())
+        vol_event = VolumeUpdateEvent(payload=VolumePayload(
+            symbol="BTC",
+            volume_24h=volume_24h,
+        ))
+        await manager.broadcast(serialize(vol_event))
     except Exception:
         logger.exception("Market broadcast failed")
 
