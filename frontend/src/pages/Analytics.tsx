@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
+import DrawdownChart from "../components/charts/DrawdownChart";
 import MetricCard from "../components/MetricCard";
 import PerformanceChart from "../components/charts/PerformanceChart";
+import PerformanceSummary from "../components/charts/PerformanceSummary";
+import WinRateChart from "../components/charts/WinRateChart";
 import type { PerformanceStats } from "../api/performance";
 import type { PortfolioStats } from "../api/portfolio";
 import { ApiError } from "../api/client";
@@ -129,6 +132,37 @@ export default function Analytics() {
             time: String(i),
             value: val,
           }))}
+        />
+      </section>
+
+      <section>
+        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+          Drawdown
+        </h2>
+        <DrawdownChart equityCurve={port!.equity_curve} />
+      </section>
+
+      <section>
+        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+          Win Rate
+        </h2>
+        <WinRateChart winRate={port!.win_rate} totalTrades={port!.closed_trades} />
+      </section>
+
+      <section>
+        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+          Summary
+        </h2>
+        <PerformanceSummary
+          totalTrades={port!.total_trades}
+          winningTrades={port!.winning_trades}
+          losingTrades={port!.losing_trades}
+          winRate={port!.win_rate}
+          totalPnl={port!.total_pnl}
+          averageWin={port!.average_win}
+          averageLoss={port!.average_loss}
+          profitFactor={port!.profit_factor}
+          maxDrawdown={port!.max_drawdown}
         />
       </section>
     </div>
