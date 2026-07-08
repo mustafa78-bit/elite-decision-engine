@@ -8,6 +8,8 @@ const items = [
   { label: "Signals", path: "/signals" },
   { label: "Risk", path: "/risk" },
   { label: "Analytics", path: "/analytics" },
+  { label: "Portfolio", path: "/portfolio" },
+  { label: "Notifications", path: "/notifications" },
 ];
 
 export default function Sidebar() {

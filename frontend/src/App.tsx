@@ -5,7 +5,9 @@ import Layout from "./components/layout/Layout";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import Market from "./pages/Market";
+import NotificationsPage from "./pages/Notifications";
 import Overview from "./pages/Overview";
+import Portfolio from "./pages/Portfolio";
 import Risk from "./pages/Risk";
 import Signals from "./pages/Signals";
 import Trades from "./pages/Trades";
@@ -96,6 +98,8 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/market" element={<Market />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/signals" element={<Signals />} />
           <Route path="/risk" element={<Risk />} />
           <Route path="/analytics" element={<Analytics />} />
