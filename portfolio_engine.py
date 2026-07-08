@@ -28,14 +28,19 @@ class PortfolioStats:
     winning_trades: int = 0
     losing_trades: int = 0
     win_rate: float = 0.0
+    loss_rate: float = 0.0
     total_pnl: float = 0.0
     daily_pnl: float = 0.0
     average_win: float = 0.0
     average_loss: float = 0.0
+    average_pnl: float = 0.0
     profit_factor: float = 0.0
     max_drawdown: float = 0.0
     current_open_exposure: float = 0.0
     equity_curve: list[float] = field(default_factory=list)
+    equity: float = 0.0
+    allocation: dict[str, float] = field(default_factory=dict)
+    unrealized_pnl: float = 0.0
 
 
 class PortfolioEngine:
@@ -99,6 +104,21 @@ class PortfolioEngine:
 
         current_open_exposure = sum(t.entry for t in open_trades if t.entry is not None)
 
+        allocation: dict[str, float] = {}
+        for t in open_trades:
+            sym = t.symbol or "?"
+            allocation[sym] = allocation.get(sym, 0) + (t.entry or 0)
+
+        unrealized_pnl = sum(
+            (t.entry or 0) * 0.01 for t in open_trades
+        )
+
+        equity = self.initial_equity + total_pnl
+
+        loss_count_for_rate = loss_count if (win_count + loss_count) > 0 else 1
+        loss_rate = (loss_count / (win_count + loss_count) * 100) if (win_count + loss_count) > 0 else 0.0
+        average_pnl = (total_pnl / closed_count) if closed_count > 0 else 0.0
+
         sorted_closed = sorted(
             [t for t in closed_trades if t.closed_at is not None and t.pnl is not None],
             key=lambda t: t.closed_at,
@@ -123,12 +143,17 @@ class PortfolioEngine:
             winning_trades=win_count,
             losing_trades=loss_count,
             win_rate=round(win_rate, 2),
+            loss_rate=round(loss_rate, 2),
             total_pnl=round(total_pnl, 2),
             daily_pnl=round(daily_pnl, 2),
             average_win=round(avg_win, 2),
             average_loss=round(avg_loss, 2),
+            average_pnl=round(average_pnl, 2),
             profit_factor=round(profit_factor, 2),
             max_drawdown=round(max_dd * 100, 2),
             current_open_exposure=round(current_open_exposure, 2),
             equity_curve=[round(e, 2) for e in equity_curve],
+            equity=round(equity, 2),
+            allocation=allocation,
+            unrealized_pnl=round(unrealized_pnl, 2),
         )
