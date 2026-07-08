@@ -1,8 +1,10 @@
 class TPSLEngine:
 
     def calculate(self, entry, atr, side):
+        if entry is None or entry == 0:
+            raise ValueError(f"Cannot calculate TP/SL with entry={entry}")
 
-        # ATR yoksa varsayılan değer
+        # Fallback to 1% of entry when ATR is zero or negative
         if atr <= 0:
             atr = entry * 0.01
 

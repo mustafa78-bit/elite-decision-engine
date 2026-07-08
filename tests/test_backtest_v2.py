@@ -90,8 +90,8 @@ class TestBacktestV2:
         assert result.monthly_pnl["2025-01"] == 100.0
         assert result.monthly_pnl["2025-02"] == 200.0
 
-    def test_walk_forward_empty(self):
-        engine = BacktestEngineV2()
+    def test_walk_forward_empty(self, session_factory):
+        engine = BacktestEngineV2(session_factory=session_factory)
         wf = engine.walk_forward()
         assert len(wf.windows) == 0
 
@@ -119,7 +119,7 @@ class TestBacktestV2:
         assert wf.avg_train_sharpe != 0
         assert wf.avg_test_sharpe != 0
 
-    def test_walk_forward_too_short(self):
-        engine = BacktestEngineV2()
+    def test_walk_forward_too_short(self, session_factory):
+        engine = BacktestEngineV2(session_factory=session_factory)
         wf = engine.walk_forward()
         assert wf.combined_test_pnl == 0.0

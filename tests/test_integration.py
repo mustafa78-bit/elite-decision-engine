@@ -9,6 +9,7 @@ The production database is never touched.
 """
 
 import pandas as pd
+import pytest
 from database import Signal, Trade
 from execution.execution_loop import ExecutionLoop
 from execution.pipeline import DecisionPipeline
@@ -48,46 +49,66 @@ class MockScoringEngine:
         }
 
 
+class _LowScoreEngine:
+    """Returns scores that produce confidence = 50 (REJECT, not approved)."""
+
+    def score(self, signal):
+        return {
+            "entry": 50000.0,
+            "ema20": 51000.0,
+            "ema50": 50500.0,
+            "ema200": 50200.0,
+            "rsi": 55.0,
+            "atr": 500.0,
+            "trend_score": 0.5,
+            "volume_score": 0.5,
+            "btc_score": 0.5,
+            "mtf_score": 0.5,
+            "risk_score": 0.5,
+            "final_score": 0.55,
+        }
+
+
+def _build_pipeline(collector=None, scoring_engine=None):
+    return DecisionPipeline(
+        collector=collector or MockCollector(close_price=50000.0),
+        filters=(),
+        scoring_engine=scoring_engine or MockScoringEngine(),
+        confidence_engine=ConfidenceEngine(),
+    )
+
+
+def _build_executor(collector, session_factory):
+    return PaperExecutor(
+        collector=collector,
+        session_factory=session_factory,
+    )
+
+
+def _build_loop(pipeline, executor, session_factory):
+    return ExecutionLoop(
+        pipeline=pipeline,
+        paper_executor=executor,
+        risk_manager=RiskManager(session_factory=session_factory),
+    )
+
+
 def test_end_to_end_paper_trading(db_session, session_factory):
     """Create a signal, process it through the full pipeline, verify trade creation,
     TP/SL monitoring, and trade close."""
 
-    # ---- Phase 1: Create test signal ----
-    signal = Signal(
-        symbol="BTCUSDT",
-        side="LONG",
-        timeframe="1h",
-        status="OPEN",
-    )
+    signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")
     db_session.add(signal)
     db_session.flush()
     signal_id = signal.id
 
-    # ---- Phase 2: Build pipeline with mocked dependencies ----
-    pipeline = DecisionPipeline(
-        collector=MockCollector(close_price=50000.0),
-        filters=(),
-        scoring_engine=MockScoringEngine(),
-        confidence_engine=ConfidenceEngine(),
-    )
-
-    paper_executor = PaperExecutor(
-        collector=MockCollector(close_price=50000.0),
-        session_factory=session_factory,
-    )
-
-    loop = ExecutionLoop(
-        pipeline=pipeline,
-        paper_executor=paper_executor,
-        risk_manager=RiskManager(session_factory=session_factory),
-    )
-
+    pipeline = _build_pipeline()
+    executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+    loop = _build_loop(pipeline, executor, session_factory)
     engine = DecisionEngine(execution_loop=loop)
 
-    # ---- Phase 3: Process signal ----
     engine.process_signal(signal)
 
-    # ---- Phase 4: Verify trade created ----
     db_session.refresh(signal)
     trade = db_session.query(Trade).filter(Trade.signal_id == signal_id).first()
     assert trade is not None, "Trade was not created"
@@ -102,7 +123,6 @@ def test_end_to_end_paper_trading(db_session, session_factory):
     assert abs(trade.rr - 1.33) < 0.01
     assert signal.status == "EXECUTED", f"Expected EXECUTED, got {signal.status}"
 
-    # ---- Phase 5: Monitor at price above TP (LONG: entry=50000, TP1=51000) ----
     monitor_executor = PaperExecutor(
         collector=MockCollector(close_price=52000.0),
         session_factory=session_factory,
@@ -113,9 +133,155 @@ def test_end_to_end_paper_trading(db_session, session_factory):
     assert our_result is not None, f"Trade {trade_id} not found in monitor results"
     assert our_result.status == "TP_HIT", f"Expected TP_HIT, got {our_result.status}"
 
-    # ---- Phase 6: Verify trade closed in DB ----
     db_session.expire_all()
     closed = db_session.query(Trade).filter(Trade.id == trade_id).first()
     assert closed.status == "TP_HIT", f"Expected TP_HIT, got {closed.status}"
     assert closed.exit_price == 52000.0
     assert closed.close_reason == "TP_HIT"
+
+
+def test_long_sl_hit(db_session, session_factory):
+    """LONG trade is closed when price hits the stop loss."""
+
+    signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")
+    db_session.add(signal)
+    db_session.flush()
+    signal_id = signal.id
+
+    pipeline = _build_pipeline()
+    executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+    loop = _build_loop(pipeline, executor, session_factory)
+    DecisionEngine(execution_loop=loop).process_signal(signal)
+
+    trade = db_session.query(Trade).filter(Trade.signal_id == signal_id).first()
+    assert trade is not None
+    trade_id = trade.id
+
+    monitor_executor = PaperExecutor(
+        collector=MockCollector(close_price=49000.0),
+        session_factory=session_factory,
+    )
+    results = monitor_executor.monitor_open_trades()
+
+    our_result = next((r for r in results if r.trade_id == trade_id), None)
+    assert our_result is not None
+    assert our_result.status == "SL_HIT", f"Expected SL_HIT, got {our_result.status}"
+
+    db_session.expire_all()
+    closed = db_session.query(Trade).filter(Trade.id == trade_id).first()
+    assert closed.status == "SL_HIT"
+    assert closed.close_reason == "SL_HIT"
+
+
+def test_short_tp_hit(db_session, session_factory):
+    """SHORT trade is created and closed when price hits TP."""
+
+    signal = Signal(symbol="BTCUSDT", side="SHORT", timeframe="1h", status="OPEN")
+    db_session.add(signal)
+    db_session.flush()
+    signal_id = signal.id
+
+    pipeline = _build_pipeline()
+    executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+    loop = _build_loop(pipeline, executor, session_factory)
+    DecisionEngine(execution_loop=loop).process_signal(signal)
+
+    db_session.refresh(signal)
+    assert signal.status == "EXECUTED", f"Expected EXECUTED, got {signal.status}"
+
+    trade = db_session.query(Trade).filter(Trade.signal_id == signal_id).first()
+    assert trade is not None, "SHORT trade was not created"
+    trade_id = trade.id
+
+    assert trade.side == "SHORT"
+    assert trade.stop == 50750.0
+    assert trade.tp1 == 49000.0
+
+    monitor_executor = PaperExecutor(
+        collector=MockCollector(close_price=48000.0),
+        session_factory=session_factory,
+    )
+    results = monitor_executor.monitor_open_trades()
+
+    our_result = next((r for r in results if r.trade_id == trade_id), None)
+    assert our_result is not None
+    assert our_result.status == "TP_HIT", f"Expected TP_HIT, got {our_result.status}"
+
+    db_session.expire_all()
+    closed = db_session.query(Trade).filter(Trade.id == trade_id).first()
+    assert closed.status == "TP_HIT"
+    assert closed.side == "SHORT"
+
+
+def test_short_sl_hit(db_session, session_factory):
+    """SHORT trade is closed when price hits the stop loss."""
+
+    signal = Signal(symbol="BTCUSDT", side="SHORT", timeframe="1h", status="OPEN")
+    db_session.add(signal)
+    db_session.flush()
+    signal_id = signal.id
+
+    pipeline = _build_pipeline()
+    executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+    loop = _build_loop(pipeline, executor, session_factory)
+    DecisionEngine(execution_loop=loop).process_signal(signal)
+
+    trade = db_session.query(Trade).filter(Trade.signal_id == signal_id).first()
+    assert trade is not None
+    trade_id = trade.id
+
+    monitor_executor = PaperExecutor(
+        collector=MockCollector(close_price=51000.0),
+        session_factory=session_factory,
+    )
+    results = monitor_executor.monitor_open_trades()
+
+    our_result = next((r for r in results if r.trade_id == trade_id), None)
+    assert our_result is not None
+    assert our_result.status == "SL_HIT", f"Expected SL_HIT, got {our_result.status}"
+
+    db_session.expire_all()
+    closed = db_session.query(Trade).filter(Trade.id == trade_id).first()
+    assert closed.status == "SL_HIT"
+
+
+def test_pipeline_rejects_low_scores(db_session, session_factory):
+    """Signal is REJECTED when pipeline confidence is too low."""
+
+    signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")
+    db_session.add(signal)
+    db_session.flush()
+    signal_id = signal.id
+
+    pipeline = _build_pipeline(scoring_engine=_LowScoreEngine())
+    executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+    loop = _build_loop(pipeline, executor, session_factory)
+    DecisionEngine(execution_loop=loop).process_signal(signal)
+
+    db_session.refresh(signal)
+    assert signal.status == "REJECTED", f"Expected REJECTED, got {signal.status}"
+
+    trade = db_session.query(Trade).filter(Trade.signal_id == signal_id).first()
+    assert trade is None, "Trade should not be created for rejected signal"
+
+
+def test_risk_manager_rejects(db_session, session_factory, monkeypatch):
+    """Signal is REJECTED when risk manager blocks the trade."""
+
+    monkeypatch.setattr("risk_manager.MAX_OPEN_TRADES", 0)
+
+    signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")
+    db_session.add(signal)
+    db_session.flush()
+    signal_id = signal.id
+
+    pipeline = _build_pipeline()
+    executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+    loop = _build_loop(pipeline, executor, session_factory)
+    DecisionEngine(execution_loop=loop).process_signal(signal)
+
+    db_session.refresh(signal)
+    assert signal.status == "REJECTED", f"Expected REJECTED, got {signal.status}"
+
+    trade = db_session.query(Trade).filter(Trade.signal_id == signal_id).first()
+    assert trade is None, "Trade should not be created when risk rejects"

@@ -1,35 +1,14 @@
 class RegimeEngine:
+    """Market regime detector.
+
+    Delegates actual detection to ``RegimeAI`` for a single source of truth
+    while preserving the simpler ``{"regime", "score"}`` interface.
+    """
 
     def detect(self, values):
-
-        ema20 = values.get("ema20", 0)
-        ema50 = values.get("ema50", 0)
-        ema200 = values.get("ema200", 0)
-        atr = values.get("atr", 0)
-
-        # Dead market
-        if atr < 150:
-            return {
-                "regime": "DEAD",
-                "score": 0.20
-            }
-
-        # Strong trend
-        if ema20 > ema50 > ema200:
-            return {
-                "regime": "TREND",
-                "score": 1.00
-            }
-
-        # Down trend
-        if ema20 < ema50 < ema200:
-            return {
-                "regime": "DOWNTREND",
-                "score": 0.40
-            }
-
-        # Sideways / Range
+        from scoring.regime_ai import RegimeAI
+        result = RegimeAI().detect(values)
         return {
-            "regime": "RANGE",
-            "score": 0.60
+            "regime": result.get("regime", "UNKNOWN"),
+            "score": result.get("score", 0.0),
         }

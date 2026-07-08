@@ -21,12 +21,12 @@ class RegimeAI:
                 "score": 0.0,
             }
 
-        ema20 = float(values.get("ema20", 0))
-        ema50 = float(values.get("ema50", 0))
-        ema200 = float(values.get("ema200", 0))
-        atr = float(values.get("atr", 0))
-        price = float(values.get("close", 0))
-        rsi = float(values.get("rsi", 50))
+        ema20 = float(values.get("ema20") or 0)
+        ema50 = float(values.get("ema50") or 0)
+        ema200 = float(values.get("ema200") or 0)
+        atr = float(values.get("atr") or 0)
+        price = float(values.get("close") or 0)
+        rsi = float(values.get("rsi") or 50)
 
         regime = self._classify_regime(ema20, ema50, ema200, atr)
         trend = self._classify_trend(ema20, ema50, ema200)

@@ -1,5 +1,7 @@
 import logging
+from typing import Any, Optional
 
+from config import SCORE_WEIGHTS
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volume import VolumeEngine
@@ -14,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 class ScoringEngine:
 
-    def __init__(self):
-        self.collector = HyperliquidCollector()
+    def __init__(self, collector: Optional[Any] = None):
+        self.collector = collector or HyperliquidCollector()
         self.indicators = IndicatorEngine()
         self.volume = VolumeEngine()
         self.btc = BTCHealth()
@@ -32,6 +34,17 @@ class ScoringEngine:
                 symbol=coin,
                 timeframe=signal.timeframe,
             )
+
+            if df is None or df.empty:
+                logger.warning("Empty market data for %s %s, returning fallback scores", coin, signal.timeframe)
+                return {
+                    "volume_score": 0,
+                    "trend_score": 0,
+                    "btc_score": 0,
+                    "mtf_score": 0,
+                    "risk_score": 1,
+                    "final_score": 0,
+                }
 
             values = self.indicators.calculate(df)
             volume = self.volume.score(df)
@@ -50,13 +63,13 @@ class ScoringEngine:
                 "final_score": 0,
             }
 
-        ema20 = values["ema20"]
-        ema50 = values["ema50"]
-        ema200 = values["ema200"]
-        rsi = values["rsi"]
-        atr = values["atr"]
+        ema20 = values.get("ema20", 0)
+        ema50 = values.get("ema50", 0)
+        ema200 = values.get("ema200", 0)
+        rsi = values.get("rsi", 50)
+        atr = values.get("atr", 0)
 
-        entry = float(df["close"].iloc[-1])
+        entry = float(df["close"].iloc[-1]) if "close" in df.columns and not df.empty else 0.0
 
         trend_score = 0.0
 
@@ -71,15 +84,21 @@ class ScoringEngine:
             if ema50 < ema200:
                 trend_score += 0.5
 
-        volume_score = volume["score"]
+        volume_score = volume.get("score", 0)
         risk_score = self.risk.score(values, volatility)
 
         final_score = (
-            trend_score * 0.30 +
-            volume_score * 0.20 +
-            btc_score * 0.20 +
-            mtf_score * 0.20 +
-            risk_score * 0.10
+            trend_score * SCORE_WEIGHTS["trend"] +
+            volume_score * SCORE_WEIGHTS["volume"] +
+            btc_score * SCORE_WEIGHTS["btc"] +
+            mtf_score * SCORE_WEIGHTS["mtf"] +
+            risk_score * SCORE_WEIGHTS["risk"]
+        )
+
+        logger.debug(
+            "Scores for %s %s: trend=%.2f vol=%.2f btc=%.2f mtf=%.2f risk=%.2f final=%.3f",
+            signal.symbol, signal.side,
+            trend_score, volume_score, btc_score, mtf_score, risk_score, final_score,
         )
 
         return {
@@ -95,4 +114,11 @@ class ScoringEngine:
             "mtf_score": round(mtf_score, 2),
             "risk_score": round(risk_score, 2),
             "final_score": round(final_score, 3),
+            "contributions": {
+                "trend": round(trend_score * SCORE_WEIGHTS["trend"], 4),
+                "volume": round(volume_score * SCORE_WEIGHTS["volume"], 4),
+                "btc": round(btc_score * SCORE_WEIGHTS["btc"], 4),
+                "mtf": round(mtf_score * SCORE_WEIGHTS["mtf"], 4),
+                "risk": round(risk_score * SCORE_WEIGHTS["risk"], 4),
+            },
         }

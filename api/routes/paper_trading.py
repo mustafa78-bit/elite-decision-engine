@@ -5,13 +5,11 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from database import Trade, get_session
+from database import FINAL_STATUSES, Trade, get_session
 from execution.paper_executor import PaperExecutor as PaperExec
 from portfolio_engine import PortfolioEngine
 
 router = APIRouter()
-
-FINAL_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
 
 
 @dataclass

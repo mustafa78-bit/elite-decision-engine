@@ -1,11 +1,9 @@
 from fastapi import APIRouter
 
-from database import Signal, Trade, get_session
+from database import FINAL_STATUSES, Signal, Trade, get_session
 from notifications.dispatcher import NotificationDispatcher
 
 router = APIRouter()
-
-FINAL_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
 
 
 @router.get("/execution/status")

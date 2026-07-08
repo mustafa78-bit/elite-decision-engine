@@ -11,22 +11,18 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from database import Trade, get_session
+from database import OPEN, TP_HIT, SL_HIT, CLOSED, FINAL_STATUSES, Trade, get_session
 from market_data.collector import HyperliquidCollector
 from notifications.dispatcher import NotificationDispatcher
 from notifications.events import TradeEvent
 
 
-OPEN = "OPEN"
-TP_HIT = "TP_HIT"
-SL_HIT = "SL_HIT"
-CLOSED = "CLOSED"
-FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED})
+STALE_TRADE_DAYS = 7
 
 
 @dataclass(frozen=True)
@@ -195,7 +191,13 @@ class PaperExecutor:
             session.commit()
 
             for data in closed:
-                self.notifications.emit(TradeEvent.TRADE_CLOSED, data)
+                try:
+                    self.notifications.emit(TradeEvent.TRADE_CLOSED, data)
+                except Exception:
+                    self.logger.warning(
+                        "Failed to emit TRADE_CLOSED notification for trade %s",
+                        data.get("trade_id"),
+                    )
 
             return results
         except Exception:
@@ -223,13 +225,22 @@ class PaperExecutor:
     ) -> Optional[TradeMonitorResult]:
         """Manually close an open paper trade."""
 
+        if exit_price is None or float(exit_price) <= 0:
+            raise ValueError(f"Invalid exit_price for trade {trade_id}: {exit_price}")
+
         normalized_status = self._normalize_close_status(status)
         session = self.session_factory()
         try:
             trade = session.query(Trade).filter(Trade.id == trade_id).first()
             if trade is None:
                 self.logger.warning("Paper trade not found for close: %s", trade_id)
+                session.close()
                 return None
+            if str(trade.status) in FINAL_STATUSES:
+                session.close()
+                raise ValueError(
+                    f"Trade {trade_id} already in terminal status: {trade.status}"
+                )
 
             realized_pnl = self.calculate_realized_pnl(trade, float(exit_price))
             self._close_trade_record(
@@ -241,21 +252,28 @@ class PaperExecutor:
             )
             session.commit()
 
-            self.notifications.emit(
-                TradeEvent.TRADE_CLOSED,
-                {
-                    "trade_id": trade.id,
-                    "symbol": trade.symbol,
-                    "side": trade.side,
-                    "status": normalized_status,
-                    "exit_price": float(exit_price),
-                    "pnl": realized_pnl.unrealized_pnl,
-                    "close_reason": close_reason or normalized_status,
-                },
-            )
+            try:
+                self.notifications.emit(
+                    TradeEvent.TRADE_CLOSED,
+                    {
+                        "trade_id": trade.id,
+                        "symbol": trade.symbol,
+                        "side": trade.side,
+                        "status": normalized_status,
+                        "exit_price": float(exit_price),
+                        "pnl": realized_pnl.unrealized_pnl,
+                        "close_reason": close_reason or normalized_status,
+                    },
+                )
+            except Exception:
+                self.logger.warning(
+                    "Failed to emit TRADE_CLOSED notification for trade %s", trade_id,
+                )
 
             self.logger.info("Closed paper trade %s with status %s", trade_id, normalized_status)
             return self._build_monitor_result(trade, float(exit_price), realized_pnl)
+        except ValueError:
+            raise
         except Exception:
             session.rollback()
             self.logger.exception("Failed to close paper trade: %s", trade_id)
@@ -304,7 +322,29 @@ class PaperExecutor:
                 self.logger.exception("Failed to monitor paper trade: %s", getattr(trade, "id", None))
         return results
 
+    def _stale_trade(self, trade: Trade) -> bool:
+        if trade.created_at is None:
+            return False
+        created = trade.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        age = datetime.now(timezone.utc) - created
+        return age > timedelta(days=STALE_TRADE_DAYS)
+
     def _monitor_trade(self, session: Any, trade: Trade) -> TradeMonitorResult:
+        if self._stale_trade(trade):
+            self.logger.warning("Stale trade %s auto-closed after %d days", trade.id, STALE_TRADE_DAYS)
+            current_price = self.get_current_price(str(trade.symbol))
+            realized_pnl = self.calculate_realized_pnl(trade, current_price)
+            self._close_trade_record(
+                trade=trade,
+                exit_price=current_price,
+                status=CLOSED,
+                close_reason="STALE",
+                pnl=realized_pnl,
+            )
+            return self._build_monitor_result(trade, current_price, realized_pnl)
+
         current_price = self.get_current_price(str(trade.symbol))
         pnl = self.calculate_pnl(trade, current_price)
         trade.pnl = pnl.unrealized_pnl
@@ -365,6 +405,13 @@ class PaperExecutor:
         take_profit = float(trade.tp1)
         stop_loss = float(trade.stop)
 
+        if trade.tp2 is not None:
+            tp2 = float(trade.tp2)
+            if side == "LONG" and current_price >= tp2:
+                return TP_HIT
+            if side == "SHORT" and current_price <= tp2:
+                return TP_HIT
+
         if side == "LONG":
             if current_price >= take_profit:
                 return TP_HIT
@@ -420,6 +467,13 @@ class PaperExecutor:
             raise ValueError("LONG trades require stop_loss < entry < take_profit")
         if side == "SHORT" and not take_profit < entry < stop_loss:
             raise ValueError("SHORT trades require take_profit < entry < stop_loss")
+
+        if request.take_profit_2 is not None:
+            tp2 = float(request.take_profit_2)
+            if side == "LONG" and not (tp2 > take_profit > entry > stop_loss):
+                raise ValueError("LONG trades require stop < entry < tp1 < tp2")
+            if side == "SHORT" and not (tp2 < take_profit < entry < stop_loss):
+                raise ValueError("SHORT trades require tp2 < tp1 < entry < stop")
 
     @staticmethod
     def _calculate_risk_reward(request: PaperTradeRequest) -> float:

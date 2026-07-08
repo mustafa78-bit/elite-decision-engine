@@ -1,8 +1,11 @@
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from api.events import (
     CandlePayload,
@@ -18,6 +21,7 @@ from api.events import (
     serialize,
 )
 from api.middleware import auth_middleware
+from monitoring.health import HealthService
 from api.routes.auth import router as auth_router
 from api.routes.backtest import router as backtest_router
 from api.routes.execution import router as execution_router
@@ -38,7 +42,7 @@ from api.routes.trading_control import router as trading_control_router
 from api.routes.users import router as users_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
-from database import Trade, get_session
+from database import FINAL_STATUSES, Trade, get_session
 from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
@@ -51,12 +55,58 @@ logger = logging.getLogger(__name__)
 
 origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
 
-FINAL_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
+_background_tasks: set[asyncio.Task] = set()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Application starting up")
+    task = asyncio.create_task(_periodic_broadcast())
+    _background_tasks.add(task)
+    yield
+    logger.info("Application shutting down")
+    task.cancel()
+    for t in _background_tasks:
+        if not t.done():
+            t.cancel()
+    await asyncio.gather(*_background_tasks, return_exceptions=True)
+    try:
+        from startup import shutdown
+        shutdown()
+    except Exception as e:
+        logger.warning("Shutdown handler error: %s", e)
+
 
 app = FastAPI(
     title="Elite Decision Engine",
     debug=DEBUG,
+    lifespan=lifespan,
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    rid = getattr(request.state, "request_id", "N/A")
+    logger.exception("[%s] Unhandled exception on %s %s", rid, request.method, request.url.path)
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "request_id": rid},
+    )
+    response.headers["X-Request-ID"] = rid
+    return response
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    rid = getattr(request.state, "request_id", "N/A")
+    logger.warning(
+        "[%s] Validation error on %s %s: %s", rid, request.method, request.url.path, exc.errors(),
+    )
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body, "request_id": rid},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -92,7 +142,12 @@ manager = WebSocketManager()
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "elite-decision-engine", "env": API_ENV}
+    return {
+        "status": "ok",
+        "service": "elite-decision-engine",
+        "env": API_ENV,
+        "uptime_seconds": round(HealthService.uptime(), 2),
+    }
 
 
 @app.websocket("/ws/trades")
@@ -191,11 +246,15 @@ async def _broadcast_risk() -> None:
 
 async def _periodic_broadcast() -> None:
     while True:
-        await asyncio.sleep(30)
-        await _broadcast_market()
-        await _broadcast_risk()
+        try:
+            await asyncio.sleep(30)
+            await _broadcast_market()
+            await _broadcast_risk()
+        except asyncio.CancelledError:
+            logger.info("Periodic broadcast cancelled")
+            raise
+        except Exception:
+            logger.exception("Periodic broadcast iteration failed")
 
 
-@app.on_event("startup")
-async def start_broadcaster() -> None:
-    asyncio.create_task(_periodic_broadcast())
+

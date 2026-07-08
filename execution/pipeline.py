@@ -15,6 +15,8 @@ from typing import Any, Mapping, Optional, Protocol, Sequence
 from core.confidence_engine import ConfidenceEngine
 from filters.btc_filter import BTCHealthFilter
 from market_data.collector import HyperliquidCollector
+from memory.trade_memory import TradeMemory
+from scoring.regime_ai import RegimeAI
 from scoring.scoring_engine import ScoringEngine
 
 
@@ -71,6 +73,8 @@ class TradeCandidate:
     confidence: float
     decision: str
     signal: TradingSignal
+    regime_context: Optional[dict[str, Any]] = None
+    memory_context: Optional[dict[str, Any]] = None
 
 
 class DecisionPipeline:
@@ -84,6 +88,8 @@ class DecisionPipeline:
         confidence_engine: Optional[ConfidenceCalculator] = None,
         logger: Optional[logging.Logger] = None,
         market_data_limit: int = 500,
+        regime_ai: Optional[RegimeAI] = None,
+        trade_memory: Optional[TradeMemory] = None,
     ) -> None:
         """Initialize the pipeline with injectable dependencies."""
 
@@ -93,6 +99,8 @@ class DecisionPipeline:
         self.confidence_engine = confidence_engine or ConfidenceEngine()
         self.logger = logger or logging.getLogger(__name__)
         self.market_data_limit = market_data_limit
+        self.regime_ai = regime_ai
+        self.trade_memory = trade_memory
 
     def evaluate(self, signal: TradingSignal) -> Optional[TradeCandidate]:
         """Return an approved trade candidate for a signal, or ``None``."""
@@ -122,7 +130,55 @@ class DecisionPipeline:
             )
 
             if decision not in APPROVED_DECISIONS:
+                self.logger.info(
+                    "Rejected %s %s: decision=%s confidence=%s final_score=%s",
+                    signal.symbol, signal.side,
+                    decision,
+                    decision_data.get("confidence"),
+                    scores.get("final_score"),
+                )
                 return None
+
+            regime_context: Optional[dict[str, Any]] = None
+            if self.regime_ai is not None:
+                regime_values = {
+                    "ema20": scores.get("ema20"),
+                    "ema50": scores.get("ema50"),
+                    "ema200": scores.get("ema200"),
+                    "atr": scores.get("atr"),
+                    "close": scores.get("entry"),
+                    "rsi": scores.get("rsi"),
+                }
+                regime_context = self.regime_ai.detect(regime_values)
+                self.logger.info(
+                    "Regime context for %s: %s",
+                    signal.symbol,
+                    regime_context.get("regime", "UNKNOWN"),
+                )
+
+            memory_context: Optional[dict[str, Any]] = None
+            if self.trade_memory is not None:
+                recent = self.trade_memory.list(limit=20)
+                same_symbol = [
+                    e for e in recent
+                    if e.symbol == signal.symbol.upper()
+                    and e.side == signal.side.upper()
+                ]
+                if same_symbol:
+                    memory_context = {
+                        "past_trades": len(same_symbol),
+                        "wins": sum(1 for e in same_symbol if e.result == "WIN"),
+                        "losses": sum(1 for e in same_symbol if e.result == "LOSS"),
+                        "avg_pnl": round(
+                            sum(e.pnl for e in same_symbol) / len(same_symbol), 2
+                        ),
+                    }
+                    self.logger.info(
+                        "Memory context for %s %s: %s past trades",
+                        signal.symbol,
+                        signal.side,
+                        memory_context["past_trades"],
+                    )
 
             return TradeCandidate(
                 id=signal.id,
@@ -134,10 +190,12 @@ class DecisionPipeline:
                 confidence=float(decision_data.get("confidence", 0.0)),
                 decision=decision,
                 signal=signal,
+                regime_context=regime_context,
+                memory_context=memory_context,
             )
 
-        except Exception:
-            self.logger.exception("Decision pipeline failed for signal: %r", signal)
+        except Exception as exc:
+            self.logger.exception("Decision pipeline failed for signal %r: %s", signal, exc)
             return None
 
     def run(self, signal: TradingSignal) -> Optional[TradeCandidate]:

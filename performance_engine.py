@@ -42,11 +42,11 @@ class PerformanceEngine:
 
     def __init__(
         self,
-        session_factory: Callable[[], Any] = get_session,
+        session_factory: Optional[Callable[[], Any]] = None,
         initial_equity: Optional[float] = None,
         risk_free_rate: float = _RFR,
     ) -> None:
-        self.session_factory = session_factory
+        self.session_factory = session_factory or get_session
         self.initial_equity = initial_equity if initial_equity is not None else ACCOUNT_EQUITY
         self.risk_free_rate = risk_free_rate
 

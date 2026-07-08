@@ -93,3 +93,18 @@ def setup_logging(log_dir="logs"):
     root.handlers.clear()
     for h in handlers:
         root.addHandler(h)
+
+
+def log_state(logger_name: str, component: str, state: str, **extra) -> None:
+    """Emit a structured state-change log entry.
+
+    Args:
+        logger_name: Logger name (e.g. ``"execution.lifecycle"``).
+        component: Component name (e.g. ``"pipeline"``).
+        state: State label (e.g. ``"started"``, ``"completed"``, ``"failed"``).
+        extra: Additional key=value pairs to include.
+    """
+    logger = logging.getLogger(logger_name)
+    parts = [f"component={component}", f"state={state}"]
+    parts.extend(f"{k}={v}" for k, v in extra.items())
+    logger.info(" | ".join(parts))

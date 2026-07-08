@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 
-from database import create_tables, get_session
+from database import Base, create_tables, get_session
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,11 @@ def validate_env() -> list[str]:
     env = os.getenv("API_ENV", "development")
     if env not in VALID_ENVS:
         errors.append(f"API_ENV must be one of {VALID_ENVS}, got: {env}")
+    if env == "production":
+        if not os.getenv("JWT_SECRET"):
+            errors.append("JWT_SECRET is required when API_ENV=production")
+        if os.getenv("CORS_ORIGINS", "").strip() in ("", "*"):
+            errors.append("CORS_ORIGINS must be explicitly set (not '*') when API_ENV=production")
     return errors
 
 
@@ -42,6 +47,22 @@ def check_database() -> list[str]:
         logger.info("Database connection OK")
     except Exception as e:
         errors.append(f"Database connection failed: {e}")
+        return errors
+
+    try:
+        session = get_session()
+        for table_name in ("signals", "trades", "users", "notifications", "journal_entries", "user_settings"):
+            try:
+                session.execute(
+                    __import__("sqlalchemy").text(f"SELECT 1 FROM {table_name} LIMIT 0")
+                )
+                logger.debug("Table %s accessible", table_name)
+            except Exception as e:
+                errors.append(f"Table {table_name} not accessible: {e}")
+        session.close()
+    except Exception as e:
+        errors.append(f"Table verification failed: {e}")
+
     return errors
 
 
@@ -70,3 +91,14 @@ def startup():
         sys.exit(1)
     create_tables()
     logger.info("Tables verified")
+
+
+def shutdown():
+    logger.info("Shutting down Elite Decision Engine")
+    try:
+        from database import engine
+        engine.dispose()
+        logger.info("Database engine disposed")
+    except Exception as e:
+        logger.warning("Error during engine dispose: %s", e)
+    logger.info("Shutdown complete")

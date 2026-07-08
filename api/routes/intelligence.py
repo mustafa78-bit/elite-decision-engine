@@ -1,19 +1,22 @@
+import logging
+
 from fastapi import APIRouter
 
-from database import Signal, Trade, get_session
+from database import FINAL_STATUSES, Signal, Trade, get_session
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
 from scoring.regime_engine import RegimeEngine
 from market_data.btc_health import BTCHealth
 
-router = APIRouter()
 
-FINAL_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
+logger = logging.getLogger(__name__)
+router = APIRouter()
 
 
 @router.get("/intelligence")
 def get_intelligence():
+    logger.info("GET /intelligence")
     market_data = {}
     try:
         collector = HyperliquidCollector()
@@ -36,6 +39,7 @@ def get_intelligence():
                 "rsi": round(values["rsi"], 2),
             }
     except Exception:
+        logger.warning("Market data fetch failed for /intelligence", exc_info=True)
         market_data = {"error": "Market data unavailable"}
 
     session = get_session()
@@ -52,6 +56,11 @@ def get_intelligence():
     open_trades = [t for t in all_trades if str(t.status) == "OPEN"]
     closed_trades = [t for t in all_trades if str(t.status) in FINAL_STATUSES]
     total_pnl = sum(t.pnl for t in closed_trades if t.pnl is not None)
+
+    logger.info(
+        "/intelligence: signals=%d trades=%d closed_pnl=%.2f",
+        len(all_signals), len(all_trades), total_pnl,
+    )
 
     return {
         "market": market_data,

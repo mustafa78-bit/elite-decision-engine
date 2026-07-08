@@ -1,15 +1,19 @@
+import logging
 import sys
 import os
+from typing import Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from database import get_session, Trade
 from market_data.collector import HyperliquidCollector
 
+logger = logging.getLogger(__name__)
+
 
 class LiveSignalEngine:
-    def __init__(self):
-        self.collector = HyperliquidCollector()
+    def __init__(self, collector: Optional[Any] = None):
+        self.collector = collector or HyperliquidCollector()
 
     def generate_signal(self):
         session = get_session()
@@ -18,7 +22,7 @@ class LiveSignalEngine:
             df = self.collector.get_ohlcv("BTC", "1h", 50)
 
             if df.empty:
-                print("NO DATA")
+                logger.warning("No market data received")
                 return
 
             last = df.iloc[-1]
@@ -53,7 +57,7 @@ class LiveSignalEngine:
             session.add(trade)
             session.commit()
 
-            print(f"LIVE SIGNAL ✔ | {side} @ {price}")
+            logger.info("Live signal generated: %s @ %.2f", side, price)
 
         finally:
             session.close()

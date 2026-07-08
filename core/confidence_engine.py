@@ -1,3 +1,10 @@
+import logging
+
+from config import SCORE_WEIGHTS_PCT
+
+logger = logging.getLogger(__name__)
+
+
 class ConfidenceEngine:
     """
     Final decision engine.
@@ -8,14 +15,13 @@ class ConfidenceEngine:
 
     def calculate(self, score):
 
-        confidence = (
-            score["trend_score"] * 30 +
-            score["volume_score"] * 20 +
-            score["btc_score"] * 20 +
-            score["mtf_score"] * 20 +
-            score["risk_score"] * 10
-        )
+        trend = (score.get("trend_score") or 0) * SCORE_WEIGHTS_PCT["trend"]
+        volume = (score.get("volume_score") or 0) * SCORE_WEIGHTS_PCT["volume"]
+        btc = (score.get("btc_score") or 0) * SCORE_WEIGHTS_PCT["btc"]
+        mtf = (score.get("mtf_score") or 0) * SCORE_WEIGHTS_PCT["mtf"]
+        risk = (score.get("risk_score") or 0) * SCORE_WEIGHTS_PCT["risk"]
 
+        confidence = trend + volume + btc + mtf + risk
         confidence = max(0, min(100, confidence))
 
         if confidence >= 90:
@@ -26,6 +32,11 @@ class ConfidenceEngine:
             decision = "WATCH"
         else:
             decision = "REJECT"
+
+        logger.debug(
+            "Confidence: trend=%.1f vol=%.1f btc=%.1f mtf=%.1f risk=%.1f total=%.1f decision=%s",
+            trend, volume, btc, mtf, risk, confidence, decision,
+        )
 
         return {
             "confidence": round(confidence, 2),

@@ -14,11 +14,9 @@ from config import (
     ACCOUNT_EQUITY,
     RISK_PER_TRADE_PERCENT,
 )
-from database import Trade, get_session
+from database import FINAL_STATUSES, Trade, get_session
 from position_sizing import PositionSizingEngine
 from scoring.risk_engine import RiskEngine
-
-FINAL_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
 
 router = APIRouter()
 

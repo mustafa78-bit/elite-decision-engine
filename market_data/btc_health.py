@@ -4,8 +4,8 @@ from market_data.indicators import IndicatorEngine
 
 class BTCHealth:
 
-    def __init__(self):
-        self.collector = HyperliquidCollector()
+    def __init__(self, collector=None):
+        self.collector = collector or HyperliquidCollector()
         self.indicators = IndicatorEngine()
 
     def score(self):

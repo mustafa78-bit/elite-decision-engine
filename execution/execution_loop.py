@@ -17,6 +17,7 @@ from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
 from execution.trade_engine import TradeEngine
 from position_sizing import PositionSizingEngine
 from risk_manager import RiskManager
+from scoring.signal_ranking_ai import SignalRankingAI
 
 
 @dataclass(frozen=True)
@@ -40,6 +41,7 @@ class ExecutionLoop:
         risk_manager: Optional[RiskManager] = None,
         position_sizer: Optional[PositionSizingEngine] = None,
         logger: Optional[logging.Logger] = None,
+        signal_ranker: Optional[SignalRankingAI] = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
         self.trade_engine = trade_engine or TradeEngine()
@@ -47,14 +49,51 @@ class ExecutionLoop:
         self.risk_manager = risk_manager or RiskManager()
         self.position_sizer = position_sizer or PositionSizingEngine()
         self.logger = logger or logging.getLogger(__name__)
+        self.signal_ranker = signal_ranker
 
     def run_once(self, signals: Iterable[TradingSignal]) -> ExecutionLoopResult:
         """Process a batch of signals and monitor open paper trades once."""
 
+        signal_list = list(signals)
+
+        self.logger.info(
+            "ExecutionLoop run_once: %s signals received",
+            len(signal_list),
+        )
+        if signal_list:
+            self.logger.debug(
+                "Signal IDs: %s",
+                [getattr(s, "id", None) for s in signal_list],
+            )
+
+        if self.signal_ranker is not None:
+            try:
+                signal_dicts = [
+                    {
+                        "id": getattr(s, "id", None),
+                        "symbol": getattr(s, "symbol", ""),
+                        "side": getattr(s, "side", ""),
+                        "timeframe": getattr(s, "timeframe", ""),
+                    }
+                    for s in signal_list
+                ]
+                ranked = self.signal_ranker.rank_signals(signal_dicts)
+                rank_map = {r.identifier: r for r in ranked}
+                signal_list.sort(
+                    key=lambda s: rank_map.get(str(getattr(s, "id", None)), type("", (), {"composite_score": 0})()).composite_score,
+                    reverse=True,
+                )
+                self.logger.info(
+                    "Signals ranked by SignalRankingAI: %s",
+                    [(r.identifier, r.composite_score, r.recommendation) for r in ranked],
+                )
+            except Exception as exc:
+                self.logger.exception("SignalRankingAI failed (%s); processing without ranking", exc)
+
         processed = 0
         trades: list[Any] = []
 
-        for signal in signals:
+        for signal in signal_list:
             processed += 1
             trade = self.process_signal(signal)
             if trade is not None:
@@ -70,6 +109,10 @@ class ExecutionLoop:
 
     def process_signal(self, signal: TradingSignal) -> Optional[Any]:
         """Evaluate one signal and create a trade only when approved."""
+
+        if signal is None:
+            self.logger.warning("Received None signal in process_signal")
+            return None
 
         candidate = self.pipeline.evaluate(signal)
         if candidate is None:
@@ -140,6 +183,12 @@ class ExecutionLoop:
             "decision": candidate.decision,
             **candidate.scores,
         }
+
+        if candidate.regime_context is not None:
+            intelligence["regime_context"] = candidate.regime_context
+
+        if candidate.memory_context is not None:
+            intelligence["memory_context"] = candidate.memory_context
 
         trade = self.trade_engine.create_trade(
             signal=candidate.signal,

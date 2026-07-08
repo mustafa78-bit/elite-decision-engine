@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -12,6 +13,8 @@ from market_data.indicators import IndicatorEngine
 
 
 logger = logging.getLogger(__name__)
+
+_CACHE_TTL = 60.0
 
 
 @dataclass
@@ -43,15 +46,39 @@ class LiveMarketEngine:
         self,
         collector: Optional[HyperliquidCollector] = None,
         indicators: Optional[IndicatorEngine] = None,
+        cache_ttl: float = _CACHE_TTL,
     ) -> None:
         self.collector = collector or HyperliquidCollector()
         self.indicators = indicators or IndicatorEngine()
+        self.cache_ttl = cache_ttl
+        self._cache: dict[str, tuple[float, MarketSnapshot]] = {}
+
+    def _cache_key(self, symbol: str, timeframe: str, limit: int) -> str:
+        return f"{symbol}:{timeframe}:{limit}"
+
+    def _get_cached(self, key: str) -> Optional[MarketSnapshot]:
+        entry = self._cache.get(key)
+        if entry is None:
+            return None
+        ts, snapshot = entry
+        if time.monotonic() - ts < self.cache_ttl:
+            return snapshot
+        logger.debug("Cache expired for %s (age=%.1fs)", key, time.monotonic() - ts)
+        del self._cache[key]
+        return None
 
     def snapshot(self, symbol: str = "BTC", timeframe: str = "1h", limit: int = 100) -> MarketSnapshot:
+        key = self._cache_key(symbol, timeframe, limit)
+        cached = self._get_cached(key)
+        if cached is not None:
+            logger.debug("Cache hit for %s", key)
+            return cached
+        logger.debug("Cache miss for %s — fetching", key)
         df = self.collector.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
 
         if df.empty:
-            return MarketSnapshot(
+            logger.warning("Empty market data for %s %s", symbol, timeframe)
+            result = MarketSnapshot(
                 symbol=symbol,
                 price=0.0,
                 volume_24h=0.0,
@@ -61,6 +88,8 @@ class LiveMarketEngine:
                 timestamp=datetime.now(timezone.utc).isoformat(),
                 candles=[],
             )
+            self._cache[key] = (time.monotonic(), result)
+            return result
 
         latest = df.iloc[-1]
         price = float(latest["close"])
@@ -81,7 +110,7 @@ class LiveMarketEngine:
             for _, row in df.iterrows()
         ]
 
-        return MarketSnapshot(
+        result = MarketSnapshot(
             symbol=symbol,
             price=round(price, 2),
             volume_24h=round(volume, 2),
@@ -91,3 +120,5 @@ class LiveMarketEngine:
             timestamp=datetime.now(timezone.utc).isoformat(),
             candles=candles[-50:],
         )
+        self._cache[key] = (time.monotonic(), result)
+        return result

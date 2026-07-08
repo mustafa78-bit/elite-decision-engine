@@ -1,4 +1,5 @@
 import logging
+from contextlib import contextmanager
 
 from sqlalchemy import (
     create_engine,
@@ -190,11 +191,34 @@ class JournalEntry(Base):
 
 
 # ------------------------------------------------------------------
+# TRADE STATUS CONSTANTS
+# ------------------------------------------------------------------
+
+OPEN = "OPEN"
+TP_HIT = "TP_HIT"
+SL_HIT = "SL_HIT"
+CLOSED = "CLOSED"
+FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED})
+
+# ------------------------------------------------------------------
 # HELPERS
 # ------------------------------------------------------------------
 
 def get_session():
     return SessionLocal()
+
+
+@contextmanager
+def session_scope():
+    session = get_session()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def create_tables():
@@ -210,21 +234,27 @@ if __name__ == "__main__":
     logger.info("Database initialized successfully.")
 
 def update_signal_status(signal_id, new_status):
+    if signal_id is None:
+        logger.warning("update_signal_status called with None signal_id")
+        return False
+
     session = get_session()
 
     try:
         signal = session.query(Signal).filter(Signal.id == signal_id).first()
 
         if not signal:
+            logger.warning("Signal %s not found for status update", signal_id)
             return False
 
         signal.status = new_status
         session.commit()
+        logger.debug("Signal %s status updated to %s", signal_id, new_status)
         return True
 
     except Exception as e:
         session.rollback()
-        logger.error("DB ERROR: %s", e)
+        logger.error("Failed to update signal %s status: %s", signal_id, e)
         return False
 
     finally:

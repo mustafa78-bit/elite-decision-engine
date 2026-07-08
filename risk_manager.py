@@ -17,11 +17,9 @@ from config import (
     MAX_POSITION_SIZE_USD,
     MAX_PORTFOLIO_EXPOSURE,
 )
-from database import Trade, get_session
+from database import FINAL_STATUSES, Trade, get_session
 
 logger = logging.getLogger(__name__)
-
-FINAL_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
 
 
 class RiskManager:

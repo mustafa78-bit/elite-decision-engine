@@ -7,7 +7,7 @@ class RiskEngine:
         risk_score = 1.0
 
         # Volatility penalty
-        risk_score -= volatility["score"] * 0.60
+        risk_score -= volatility.get("score", 0) * 0.60
 
         # ATR penalty
         if atr > 0:

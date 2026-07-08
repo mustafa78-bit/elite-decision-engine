@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter
 
 from market_data.collector import HyperliquidCollector
@@ -6,11 +8,14 @@ from market_data.btc_health import BTCHealth
 from market_data.volatility import VolatilityEngine
 from scoring.regime_engine import RegimeEngine
 
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 @router.get("/market")
 def get_market():
+    logger.info("GET /market")
     collector = HyperliquidCollector()
     indicators = IndicatorEngine()
     btc_health = BTCHealth()
@@ -20,6 +25,7 @@ def get_market():
     try:
         df = collector.get_ohlcv(symbol="BTC", timeframe="1h")
         if df.empty:
+            logger.warning("No market data available")
             return {"error": "No market data available"}
 
         values = indicators.calculate(df)
@@ -44,4 +50,5 @@ def get_market():
             "atr": round(values["atr"], 2),
         }
     except Exception as e:
+        logger.error("GET /market failed: %s", e)
         return {"error": str(e)}

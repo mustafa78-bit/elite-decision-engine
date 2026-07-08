@@ -47,10 +47,10 @@ class PortfolioEngine:
 
     def __init__(
         self,
-        session_factory: Callable[[], Any] = get_session,
+        session_factory: Optional[Callable[[], Any]] = None,
         initial_equity: Optional[float] = None,
     ) -> None:
-        self.session_factory = session_factory
+        self.session_factory = session_factory or get_session
         self.initial_equity = initial_equity if initial_equity is not None else ACCOUNT_EQUITY
 
     def stats(self) -> PortfolioStats:
