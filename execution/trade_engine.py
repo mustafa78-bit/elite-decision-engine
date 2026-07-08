@@ -20,6 +20,7 @@ class TradeEngine:
         signal,
         entry,
         atr,
+        intelligence=None,
     ):
 
         levels = self.tp_sl.calculate(
@@ -67,6 +68,7 @@ class TradeEngine:
                     "side": trade.side,
                     "entry": trade.entry,
                     "status": trade.status,
+                    "intelligence": intelligence or {},
                 },
             )
 

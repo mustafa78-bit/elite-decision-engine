@@ -135,10 +135,17 @@ class ExecutionLoop:
             )
             return None
 
+        intelligence = {
+            "confidence": candidate.confidence,
+            "decision": candidate.decision,
+            **candidate.scores,
+        }
+
         trade = self.trade_engine.create_trade(
             signal=candidate.signal,
             entry=float(entry),
             atr=float(atr),
+            intelligence=intelligence,
         )
 
         if trade is None:
