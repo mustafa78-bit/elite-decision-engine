@@ -3,59 +3,41 @@ import { useCallback, useEffect, useState } from "react";
 import ExposureCard from "../components/risk/ExposureCard";
 import PositionSizeCard from "../components/risk/PositionSizeCard";
 import RiskCard from "../components/risk/RiskCard";
-
-interface RiskData {
-  risk_score: number;
-  open_trades: number;
-  max_open_trades: number;
-  symbol_exposure: Record<string, number>;
-  max_symbol_exposure: number;
-  portfolio_exposure: number;
-  max_portfolio_exposure: number;
-  daily_loss: number;
-  max_daily_loss: number;
-  max_position_size_usd: number;
-  account_equity: number;
-  risk_per_trade_percent: number;
-}
-
-interface PositionSizing {
-  quantity: number;
-  notional_value: number;
-  risk_amount: number;
-}
-
-const API = "http://localhost:8000";
+import type { RiskData, PositionSizing } from "../api/risk";
+import { ApiError } from "../api/client";
+import { fetchRisk, fetchPositionSizing } from "../api/risk";
 
 export default function Risk() {
   const [risk, setRisk] = useState<RiskData | null>(null);
   const [sizing, setSizing] = useState<PositionSizing | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [entry, setEntry] = useState(50000);
   const [atr, setAtr] = useState(800);
 
-  const fetchRisk = useCallback(async () => {
+  const fetchRiskData = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch(`${API}/risk`);
-      if (!res.ok) throw new Error(`Risk API error: ${res.status}`);
-      setRisk(await res.json());
+      setLoading(true);
+      const data = await fetchRisk();
+      setRisk(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load risk data");
+      setError(e instanceof ApiError ? e.message : "Failed to load risk data");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   const fetchSizing = useCallback(async (e: number, a: number) => {
     try {
-      const res = await fetch(`${API}/position-sizing?entry=${e}&atr=${a}`);
-      if (!res.ok) return;
-      setSizing(await res.json());
+      const data = await fetchPositionSizing(e, a);
+      setSizing(data);
     } catch {
       // silently fail for interactive widget
     }
   }, []);
 
-  useEffect(() => { fetchRisk(); }, [fetchRisk]);
+  useEffect(() => { fetchRiskData(); }, [fetchRiskData]);
 
   useEffect(() => {
     if (entry > 0) {
@@ -64,12 +46,20 @@ export default function Risk() {
     }
   }, [entry, atr, fetchSizing]);
 
+  if (loading) {
+    return (
+      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+        Loading risk data...
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="space-y-4">
         <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
           {error}
-          <button onClick={fetchRisk} className="ml-2 underline text-gray-400 hover:text-gray-200">
+          <button onClick={fetchRiskData} className="ml-2 underline text-gray-400 hover:text-gray-200">
             Retry
           </button>
         </div>
@@ -80,7 +70,7 @@ export default function Risk() {
   if (!risk) {
     return (
       <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
-        Loading risk data...
+        No risk data available
       </div>
     );
   }

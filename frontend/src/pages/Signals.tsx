@@ -1,46 +1,29 @@
 import { useCallback, useEffect, useState } from "react";
 
 import SignalTable from "../components/signals/SignalTable";
-
-interface SignalRow {
-  id: number;
-  symbol: string;
-  side: string;
-  timeframe: string;
-  price: number | null;
-  confidence: number;
-  decision: string;
-  final_score: number;
-  trend_score: number;
-  volume_score: number;
-  btc_score: number;
-  risk_score: number;
-  status: string;
-  created_at: string | null;
-}
-
-const API = "http://localhost:8000";
+import type { SignalRow } from "../api/signals";
+import { ApiError } from "../api/client";
+import { fetchSignals } from "../api/signals";
 
 export default function Signals() {
   const [signals, setSignals] = useState<SignalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSignals = useCallback(async () => {
+  const loadSignals = useCallback(async () => {
     try {
       setError(null);
       setLoading(true);
-      const res = await fetch(`${API}/signals`);
-      if (!res.ok) throw new Error(`Signals API error: ${res.status}`);
-      setSignals(await res.json());
+      const data = await fetchSignals();
+      setSignals(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load signals");
+      setError(e instanceof ApiError ? e.message : "Failed to load signals");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchSignals(); }, [fetchSignals]);
+  useEffect(() => { loadSignals(); }, [loadSignals]);
 
   if (loading) {
     return (
@@ -55,7 +38,7 @@ export default function Signals() {
       <div className="space-y-4">
         <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
           {error}
-          <button onClick={fetchSignals} className="ml-2 underline text-gray-400 hover:text-gray-200">
+          <button onClick={loadSignals} className="ml-2 underline text-gray-400 hover:text-gray-200">
             Retry
           </button>
         </div>

@@ -1,40 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import MetricCard from "../components/MetricCard";
-
-interface PerformanceStats {
-  sharpe_ratio: number;
-  sortino_ratio: number;
-  profit_factor: number;
-  expectancy: number;
-  recovery_factor: number;
-  calmar_ratio: number;
-  average_r_multiple: number;
-  average_holding_hours: number;
-  consecutive_wins: number;
-  consecutive_losses: number;
-  best_trade: number;
-  worst_trade: number;
-}
-
-interface PortfolioStats {
-  total_trades: number;
-  open_trades: number;
-  closed_trades: number;
-  winning_trades: number;
-  losing_trades: number;
-  win_rate: number;
-  total_pnl: number;
-  daily_pnl: number;
-  average_win: number;
-  average_loss: number;
-  profit_factor: number;
-  max_drawdown: number;
-  current_open_exposure: number;
-  equity_curve: number[];
-}
-
-const API = "http://localhost:8000";
+import type { PerformanceStats } from "../api/performance";
+import type { PortfolioStats } from "../api/portfolio";
+import { ApiError } from "../api/client";
+import { fetchPerformance } from "../api/performance";
+import { fetchPortfolio } from "../api/portfolio";
 
 function fmt(n: number, d = 2) {
   return Number(n).toFixed(d);
@@ -54,16 +25,14 @@ export default function Analytics() {
     try {
       setError(null);
       setLoading(true);
-      const [pr, po] = await Promise.all([
-        fetch(`${API}/performance`),
-        fetch(`${API}/portfolio`),
+      const [perfData, portData] = await Promise.all([
+        fetchPerformance(),
+        fetchPortfolio(),
       ]);
-      if (!pr.ok) throw new Error(`Performance API error: ${pr.status}`);
-      if (!po.ok) throw new Error(`Portfolio API error: ${po.status}`);
-      setPerf(await pr.json());
-      setPort(await po.json());
+      setPerf(perfData);
+      setPort(portData);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load analytics");
+      setError(e instanceof ApiError ? e.message : "Failed to load analytics");
     } finally {
       setLoading(false);
     }
