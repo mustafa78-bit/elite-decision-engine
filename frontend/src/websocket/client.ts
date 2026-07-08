@@ -1,11 +1,19 @@
 import type { TradeNotification } from "../types/trade.ts";
 
+export type ConnectionStatus = "CONNECTED" | "DISCONNECTED";
+
 type MessageHandler = (data: TradeNotification) => void;
+type StatusHandler = (status: ConnectionStatus) => void;
 
 export function connectTradesSocket(
   onMessage: MessageHandler,
+  onStatus?: StatusHandler,
 ): WebSocket {
   const ws = new WebSocket("ws://localhost:8000/ws/trades");
+
+  ws.onopen = () => {
+    onStatus?.("CONNECTED");
+  };
 
   ws.onmessage = (event: MessageEvent) => {
     try {
@@ -17,11 +25,11 @@ export function connectTradesSocket(
   };
 
   ws.onclose = () => {
-    console.log("WebSocket disconnected");
+    onStatus?.("DISCONNECTED");
   };
 
-  ws.onerror = (err) => {
-    console.error("WebSocket error", err);
+  ws.onerror = () => {
+    onStatus?.("DISCONNECTED");
   };
 
   return ws;
