@@ -6,6 +6,7 @@ const items = [
   { label: "Trades", path: "/trades" },
   { label: "Market", path: "/market" },
   { label: "Signals", path: "/signals" },
+  { label: "Signals Ranking", path: "/signals/ranking" },
   { label: "Risk", path: "/risk" },
   { label: "Regime", path: "/regime" },
   { label: "Analytics", path: "/analytics" },

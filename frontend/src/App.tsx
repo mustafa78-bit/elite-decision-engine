@@ -14,6 +14,7 @@ import Portfolio from "./pages/Portfolio";
 import Regime from "./pages/Regime";
 import Risk from "./pages/Risk";
 import Signals from "./pages/Signals";
+import SignalsRanking from "./pages/SignalsRanking";
 import Trades from "./pages/Trades";
 import type {
   CandleWsPayload,
@@ -126,6 +127,7 @@ function App() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/signals" element={<Signals />} />
+          <Route path="/signals/ranking" element={<SignalsRanking />} />
           <Route path="/risk" element={<Risk />} />
           <Route path="/regime" element={<Regime />} />
           <Route path="/analytics" element={<Analytics />} />
