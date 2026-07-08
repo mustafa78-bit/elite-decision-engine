@@ -37,3 +37,8 @@ def test_risk_route_registered():
 def test_position_sizing_route_registered():
     paths = list(app.openapi()["paths"])
     assert "/position-sizing" in paths
+
+
+def test_signals_route_registered():
+    paths = list(app.openapi()["paths"])
+    assert "/signals" in paths

@@ -5,6 +5,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.risk import router as risk_router
+from api.routes.signals import router as signals_router
 from api.websocket.manager import WebSocketManager
 
 
@@ -14,6 +15,7 @@ app = FastAPI(title="Elite Decision Engine")
 app.include_router(performance_router)
 app.include_router(portfolio_router)
 app.include_router(risk_router)
+app.include_router(signals_router)
 
 manager = WebSocketManager()
 
