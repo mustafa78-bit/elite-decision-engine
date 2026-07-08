@@ -1,0 +1,3 @@
+class TradeEvent:
+    TRADE_OPENED = "TRADE_OPENED"
+    TRADE_CLOSED = "TRADE_CLOSED"
