@@ -11,11 +11,16 @@ from api.events import (
     RiskPayload,
     serialize,
 )
+from api.middleware import auth_middleware
+from api.routes.auth import router as auth_router
+from api.routes.market import router as market_router
+from api.routes.monitoring import router as monitoring_router
+from api.routes.notifications import router as notifications_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.risk import router as risk_router
-from api.routes.market import router as market_router
 from api.routes.signals import router as signals_router
+from api.routes.users import router as users_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import Trade, get_session
@@ -46,11 +51,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.middleware("http")(auth_middleware)
+
+app.include_router(auth_router)
+app.include_router(market_router)
+app.include_router(monitoring_router)
+app.include_router(notifications_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
 app.include_router(risk_router)
-app.include_router(market_router)
 app.include_router(signals_router)
+app.include_router(users_router)
 
 manager = WebSocketManager()
 

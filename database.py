@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     Text,
+    JSON,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -110,6 +111,51 @@ class Trade(Base):
         DateTime(timezone=True),
         server_default=func.now(),
     )
+
+
+# ------------------------------------------------------------------
+# USER TABLE
+# ------------------------------------------------------------------
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(120), unique=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# ------------------------------------------------------------------
+# USER SETTINGS TABLE
+# ------------------------------------------------------------------
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    timezone = Column(String(50), default="UTC")
+    dashboard_config = Column(JSON, default=dict)
+    risk_preferences = Column(JSON, default=dict)
+
+
+# ------------------------------------------------------------------
+# NOTIFICATION TABLE
+# ------------------------------------------------------------------
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=True, index=True)
+    event_type = Column(String(30), nullable=False, index=True)
+    payload = Column(JSON, default=dict)
+    read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 # ------------------------------------------------------------------
 # HELPERS
 # ------------------------------------------------------------------
