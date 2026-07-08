@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import MetricCard from "../components/MetricCard";
+
 interface PerformanceStats {
   sharpe_ratio: number;
   sortino_ratio: number;
@@ -86,10 +88,17 @@ export default function Analytics() {
               <MetricCard label="Open" value={String(port.open_trades)} />
               <MetricCard label="Closed" value={String(port.closed_trades)} />
               <MetricCard label="Win Rate" value={pct(port.win_rate)} />
+              <MetricCard label="Loss Rate" value={pct(100 - port.win_rate)} negative />
               <MetricCard label="Total PnL" value={`$${fmt(port.total_pnl)}`} positive={port.total_pnl > 0} negative={port.total_pnl < 0} />
               <MetricCard label="Daily PnL" value={`$${fmt(port.daily_pnl)}`} positive={port.daily_pnl > 0} negative={port.daily_pnl < 0} />
               <MetricCard label="Avg Win" value={`$${fmt(port.average_win)}`} positive />
               <MetricCard label="Avg Loss" value={`$${fmt(port.average_loss)}`} negative />
+              <MetricCard
+                label="Avg Return"
+                value={`$${fmt(port.closed_trades > 0 ? port.total_pnl / port.closed_trades : 0)}`}
+                positive={port.total_pnl > 0}
+                negative={port.total_pnl < 0}
+              />
               <MetricCard label="Max Drawdown" value={pct(port.max_drawdown)} negative />
               <MetricCard label="Open Exposure" value={`$${fmt(port.current_open_exposure)}`} />
             </div>
@@ -109,32 +118,6 @@ export default function Analytics() {
           Loading analytics...
         </div>
       )}
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  positive,
-  negative,
-}: {
-  label: string;
-  value: string;
-  positive?: boolean;
-  negative?: boolean;
-}) {
-  const color = positive
-    ? "text-green-400"
-    : negative
-      ? "text-red-400"
-      : "text-gray-100";
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded p-3">
-      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-        {label}
-      </div>
-      <div className={`text-sm font-semibold ${color}`}>{value}</div>
     </div>
   );
 }
