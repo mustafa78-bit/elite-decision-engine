@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import ClosedTrades from "./components/ClosedTrades";
 import DashboardStats from "./components/DashboardStats";
 import IntelligencePanel from "./components/IntelligencePanel";
+import Layout from "./components/layout/Layout";
 import OpenTrades from "./components/OpenTrades";
 import type { TradeNotification, TradePayload } from "./types/trade";
 import { connectTradesSocket } from "./websocket/client";
@@ -46,26 +47,8 @@ function App() {
     .find((n) => n.payload.intelligence)
     ?.payload.intelligence;
 
-  const statusColor =
-    status === "CONNECTED" ? "bg-green-500" : "bg-red-500";
-
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-4 font-mono text-sm">
-      <header className="mb-4 flex items-center justify-between border-b border-gray-800 pb-3">
-        <div>
-          <h1 className="text-lg font-semibold tracking-wide">
-            Elite Decision Engine
-          </h1>
-          <p className="text-[10px] text-gray-500 uppercase tracking-widest">
-            Trading Dashboard
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`inline-block w-2 h-2 rounded-full ${statusColor}`} />
-          <span className="text-[10px] text-gray-500 uppercase">{status}</span>
-        </div>
-      </header>
-
+    <Layout status={status}>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="lg:col-span-3 space-y-4">
           <DashboardStats notifications={notifications} />
@@ -91,7 +74,7 @@ function App() {
           </div>
         )}
       </div>
-    </div>
+    </Layout>
   );
 }
 
