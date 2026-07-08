@@ -18,6 +18,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from database import Trade, get_session
 from market_data.collector import HyperliquidCollector
+from notifications.dispatcher import NotificationDispatcher
+from notifications.events import TradeEvent
 
 
 OPEN = "OPEN"
@@ -80,6 +82,7 @@ class PaperExecutor:
         self.logger = logger or logging.getLogger(__name__)
         self._pnl_percentages: dict[int, float] = {}
         self._realized_pnl: dict[int, float] = {}
+        self.notifications = NotificationDispatcher()
 
     def open_trade(
         self,
@@ -175,7 +178,25 @@ class PaperExecutor:
         try:
             trades = session.query(Trade).filter(Trade.status == OPEN).all()
             results = self._monitor_trades(session, trades)
+
+            closed = []
+            for t in trades:
+                if str(t.status) in FINAL_STATUSES:
+                    closed.append({
+                        "trade_id": t.id,
+                        "symbol": t.symbol,
+                        "side": t.side,
+                        "status": t.status,
+                        "exit_price": t.exit_price,
+                        "pnl": t.pnl,
+                        "close_reason": t.close_reason,
+                    })
+
             session.commit()
+
+            for data in closed:
+                self.notifications.emit(TradeEvent.TRADE_CLOSED, data)
+
             return results
         except Exception:
             session.rollback()
@@ -219,6 +240,20 @@ class PaperExecutor:
                 pnl=realized_pnl,
             )
             session.commit()
+
+            self.notifications.emit(
+                TradeEvent.TRADE_CLOSED,
+                {
+                    "trade_id": trade.id,
+                    "symbol": trade.symbol,
+                    "side": trade.side,
+                    "status": normalized_status,
+                    "exit_price": float(exit_price),
+                    "pnl": realized_pnl.unrealized_pnl,
+                    "close_reason": close_reason or normalized_status,
+                },
+            )
+
             self.logger.info("Closed paper trade %s with status %s", trade_id, normalized_status)
             return self._build_monitor_result(trade, float(exit_price), realized_pnl)
         except Exception:
