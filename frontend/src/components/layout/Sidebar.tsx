@@ -9,7 +9,10 @@ const items = [
   { label: "Risk", path: "/risk" },
   { label: "Analytics", path: "/analytics" },
   { label: "Portfolio", path: "/portfolio" },
+  { label: "Paper Trading", path: "/paper-trading" },
   { label: "Notifications", path: "/notifications" },
+  { label: "Execution", path: "/execution" },
+  { label: "Intelligence", path: "/intelligence" },
 ];
 
 export default function Sidebar() {
