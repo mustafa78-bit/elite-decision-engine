@@ -16,6 +16,8 @@ from config import (
 )
 from database import FINAL_STATUSES, Trade, get_session
 from position_sizing import PositionSizingEngine
+from risk.models import RejectionCode
+from risk_manager import RiskManager
 from scoring.risk_engine import RiskEngine
 
 router = APIRouter()
@@ -52,10 +54,11 @@ def get_risk():
     )
 
     risk_engine = RiskEngine()
-    risk_score = risk_engine.score({"atr": 0}, {"score": 0})
+    risk_assessment = risk_engine.evaluate({"atr": 0}, {"score": 0})
 
     return {
-        "risk_score": risk_score,
+        "risk_score": risk_assessment["risk_score"],
+        "risk_penalties": risk_assessment["penalties"],
         "open_trades": open_count,
         "max_open_trades": MAX_OPEN_TRADES,
         "symbol_exposure": symbol_exposure,
@@ -63,6 +66,19 @@ def get_risk():
         "portfolio_exposure": round(portfolio_exposure, 2),
         "max_portfolio_exposure": MAX_PORTFOLIO_EXPOSURE,
         "daily_loss": round(daily_loss, 2),
+        "max_daily_loss": MAX_DAILY_LOSS,
+        "max_position_size_usd": MAX_POSITION_SIZE_USD,
+        "account_equity": ACCOUNT_EQUITY,
+        "risk_per_trade_percent": RISK_PER_TRADE_PERCENT,
+    }
+
+
+@router.get("/risk/limits")
+def get_risk_limits():
+    return {
+        "max_open_trades": MAX_OPEN_TRADES,
+        "max_exposure_per_symbol": MAX_EXPOSURE_PER_SYMBOL,
+        "max_portfolio_exposure": MAX_PORTFOLIO_EXPOSURE,
         "max_daily_loss": MAX_DAILY_LOSS,
         "max_position_size_usd": MAX_POSITION_SIZE_USD,
         "account_equity": ACCOUNT_EQUITY,

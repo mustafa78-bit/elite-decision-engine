@@ -265,6 +265,46 @@ def test_pipeline_rejects_low_scores(db_session, session_factory):
     assert trade is None, "Trade should not be created for rejected signal"
 
 
+def test_signal_risk_execution_flow(db_session, session_factory, monkeypatch):
+    """Integration: Signal → RiskManager.evaluate_trade → structured decision."""
+    from risk_manager import RiskManager
+    from risk.models import RiskDecision, RejectionCode
+
+    monkeypatch.setattr("risk_manager.MAX_OPEN_TRADES", 0)
+
+    signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")
+    db_session.add(signal)
+    db_session.flush()
+    signal_id = signal.id
+
+    pipeline = _build_pipeline()
+    executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+    loop = _build_loop(pipeline, executor, session_factory)
+    engine = DecisionEngine(execution_loop=loop)
+    engine.process_signal(signal)
+
+    db_session.refresh(signal)
+    assert signal.status == "REJECTED"
+    trade = db_session.query(Trade).filter(Trade.signal_id == signal_id).first()
+    assert trade is None
+
+    class _Candidate:
+        def __init__(self):
+            self.symbol = "BTCUSDT"
+            self.entry = 50000.0
+
+    rm = RiskManager(session_factory=session_factory)
+    decision = rm.evaluate_trade(_Candidate())
+    assert isinstance(decision, RiskDecision)
+    assert decision.allowed is False
+    assert decision.rejection_code == RejectionCode.MAX_OPEN_TRADES
+    assert len(decision.checks) > 0
+    for c in decision.checks:
+        assert isinstance(c.passed, bool)
+        if not c.passed:
+            assert c.detail != ""
+
+
 def test_risk_manager_rejects(db_session, session_factory, monkeypatch):
     """Signal is REJECTED when risk manager blocks the trade."""
 

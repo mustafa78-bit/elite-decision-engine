@@ -1,8 +1,11 @@
 import logging
 import time
+from typing import Any, Optional
 
 import requests
 import pandas as pd
+
+from market_data.models import OHLCVResult
 
 logger = logging.getLogger(__name__)
 
@@ -112,3 +115,7 @@ class HyperliquidCollector:
             return pd.DataFrame()
 
         return df.tail(limit).reset_index(drop=True)
+
+    def get_ohlcv_result(self, symbol: str = "BTC", timeframe: str = "1h", limit: int = 500) -> OHLCVResult:
+        df = self.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
+        return OHLCVResult.from_dataframe(df, symbol=symbol, timeframe=timeframe)

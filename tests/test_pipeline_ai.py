@@ -23,6 +23,12 @@ class MockRiskManager:
     def can_open_trade(self, candidate):
         return True, ""
 
+    def evaluate_trade(self, candidate):
+        from risk.models import RiskDecision, RiskCheckDetail, risk_decision_from_checks
+        return risk_decision_from_checks([
+            RiskCheckDetail(name="MOCK", passed=True, detail=""),
+        ])
+
 
 class MockTradeEngine:
     """Returns a sentinel trade. Avoids database dependency."""
@@ -288,6 +294,12 @@ class TestExecutionLoopProcessSignal:
 
         def can_open_trade(self, candidate):
             return False, "mock rejection"
+
+        def evaluate_trade(self, candidate):
+            from risk.models import RiskDecision, RiskCheckDetail, risk_decision_from_checks
+            return risk_decision_from_checks([
+                RiskCheckDetail(name="MOCK", passed=False, detail="mock rejection"),
+            ])
 
     class _MissingEntryScorer:
         """Scoring engine that produces None entry."""

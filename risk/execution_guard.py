@@ -8,6 +8,13 @@ from config import ACCOUNT_EQUITY, RISK_PER_TRADE_PERCENT
 from database import get_session
 from exchange.base import ExchangeAdapter
 from exchange.exceptions import ExchangeError
+from risk.models import (
+    RejectionCode,
+    RiskCheckDetail,
+    RiskDecision,
+    risk_decision_from_checks,
+    summarize_decision,
+)
 from risk_manager import RiskManager
 from scoring.regime_engine import RegimeEngine
 
@@ -15,16 +22,16 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class _Candidate:
-    symbol: str
-    entry: float
-
-
-@dataclass(frozen=True)
 class GuardResult:
     allowed: bool
     reason: str
     checks: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class _Candidate:
+    symbol: str
+    entry: float
 
 
 class ExecutionGuard:
@@ -54,23 +61,68 @@ class ExecutionGuard:
         entry_price: float,
         quantity: float,
     ) -> GuardResult:
-        """Run all pre-execution checks in order.
+        """Run all pre-execution checks in order (legacy interface).
 
-        Delegates portfolio-level risk checks to ``RiskManager``.
+        Returns a ``GuardResult`` for backward compatibility.
+        For structured results, use ``evaluate_execution``.
         """
+        decision = self.evaluate_execution(symbol, side, entry_price, quantity)
         checks: dict[str, Any] = {}
-        failures: list[str] = []
+        for c in decision.checks:
+            checks[c.name] = c.passed
+            if c.value is not None:
+                checks[f"{c.name}_value"] = c.value
+            if c.limit is not None:
+                checks[f"{c.name}_limit"] = c.limit
+        return GuardResult(
+            allowed=decision.allowed,
+            reason=decision.reason,
+            checks=checks,
+        )
+
+    def evaluate_execution(
+        self,
+        symbol: str,
+        side: str,
+        entry_price: float,
+        quantity: float,
+    ) -> RiskDecision:
+        """Run all pre-execution checks and return a structured ``RiskDecision``."""
+        checks: list[RiskCheckDetail] = []
+        metadata: dict[str, Any] = {}
 
         # 1. Exchange connectivity
         if self.exchange is None:
-            return GuardResult(False, "No exchange configured", {"exchange": False})
+            decision = risk_decision_from_checks([
+                RiskCheckDetail(
+                    name=RejectionCode.EXCHANGE_NOT_CONFIGURED,
+                    passed=False,
+                    detail="No exchange configured",
+                ),
+            ])
+            summarize_decision(decision, "ExecutionGuard")
+            return decision
         try:
-            checks["exchange_online"] = self.exchange.trading_enabled()
-            if not checks["exchange_online"]:
-                failures.append("Exchange trading is disabled")
-        except ExchangeError as e:
-            checks["exchange_online"] = False
-            failures.append(f"Exchange offline: {e}")
+            online = self.exchange.trading_enabled()
+            checks.append(RiskCheckDetail(
+                name=RejectionCode.EXCHANGE_OFFLINE,
+                passed=online,
+                detail="Exchange trading is disabled" if not online else "",
+            ))
+            if not online:
+                decision = risk_decision_from_checks(checks)
+                summarize_decision(decision, "ExecutionGuard")
+                return decision
+        except Exception as e:
+            decision = risk_decision_from_checks([
+                RiskCheckDetail(
+                    name=RejectionCode.EXCHANGE_OFFLINE,
+                    passed=False,
+                    detail=f"Exchange offline: {e}",
+                ),
+            ])
+            summarize_decision(decision, "ExecutionGuard")
+            return decision
 
         # 2. Market volatility condition
         try:
@@ -84,48 +136,79 @@ class ExecutionGuard:
                 atr = float(values.get("atr", 0))
                 price = float(df["close"].iloc[-1])
                 atr_pct = (atr / price) * 100 if price > 0 else 0
-                checks["volatility_pct"] = round(atr_pct, 2)
+                metadata["volatility_pct"] = round(atr_pct, 2)
+                checks.append(RiskCheckDetail(
+                    name=RejectionCode.VOLATILITY_TOO_HIGH,
+                    passed=atr_pct <= 5,
+                    detail=(
+                        f"Volatility too high: {atr_pct:.1f}% ATR/price"
+                        if atr_pct > 5 else ""
+                    ),
+                    value=round(atr_pct, 2),
+                    limit=5.0,
+                ))
                 if atr_pct > 5:
-                    failures.append(f"Volatility too high: {atr_pct:.1f}% ATR/price")
+                    decision = risk_decision_from_checks(checks, metadata)
+                    summarize_decision(decision, "ExecutionGuard")
+                    return decision
             else:
-                checks["volatility_pct"] = None
+                metadata["volatility_pct"] = None
         except Exception as e:
             logger.warning("Volatility check failed: %s", e)
-            checks["volatility_pct"] = None
+            metadata["volatility_pct"] = None
 
         # 3. Market regime
         try:
             reg = self.regime_engine.detect(None)
             regime_name = reg.get("regime", "UNKNOWN")
-            checks["regime"] = regime_name
+            metadata["regime"] = regime_name
+            checks.append(RiskCheckDetail(
+                name=RejectionCode.REGIME_DEAD,
+                passed=regime_name != "DEAD",
+                detail="Market regime is DEAD" if regime_name == "DEAD" else "",
+            ))
             if regime_name == "DEAD":
-                failures.append("Market regime is DEAD")
+                decision = risk_decision_from_checks(checks, metadata)
+                summarize_decision(decision, "ExecutionGuard")
+                return decision
         except Exception as e:
             logger.warning("Regime check failed: %s", e)
-            checks["regime"] = "UNKNOWN"
+            metadata["regime"] = "UNKNOWN"
 
         # 4. Delegate portfolio-level checks to RiskManager
         candidate = _Candidate(symbol=symbol, entry=entry_price * quantity)
         risk_mgr = RiskManager(session_factory=self.session_factory)
-        allowed, reason = risk_mgr.can_open_trade(candidate)
-        checks["portfolio_risk"] = reason if not allowed else "pass"
-        if not allowed:
-            failures.append(reason)
+        portfolio_decision = risk_mgr.evaluate_trade(candidate)
+        metadata["portfolio_decision"] = portfolio_decision
+        checks.extend(portfolio_decision.checks)
+        if not portfolio_decision.allowed:
+            decision = risk_decision_from_checks(checks, metadata)
+            summarize_decision(decision, "ExecutionGuard")
+            return decision
 
         # 5. Position size vs account equity
         notional = entry_price * quantity
         max_notional = ACCOUNT_EQUITY * (RISK_PER_TRADE_PERCENT / 100.0)
-        checks["notional"] = round(notional, 2)
-        checks["max_notional"] = round(max_notional, 2)
+        metadata["notional"] = round(notional, 2)
+        metadata["max_notional"] = round(max_notional, 2)
+        checks.append(RiskCheckDetail(
+            name=RejectionCode.RISK_BUDGET_EXCEEDED,
+            passed=notional <= max_notional,
+            detail=(
+                f"Position size {notional:.2f} exceeds risk budget {max_notional:.2f}"
+                if notional > max_notional else ""
+            ),
+            value=round(notional, 2),
+            limit=round(max_notional, 2),
+        ))
         if notional > max_notional:
-            failures.append(f"Position size {notional:.2f} exceeds risk budget {max_notional:.2f}")
+            decision = risk_decision_from_checks(checks, metadata)
+            summarize_decision(decision, "ExecutionGuard")
+            return decision
 
-        allowed = len(failures) == 0
-        return GuardResult(
-            allowed=allowed,
-            reason="; ".join(failures) if failures else "",
-            checks=checks,
-        )
+        decision = risk_decision_from_checks(checks, metadata)
+        summarize_decision(decision, "ExecutionGuard")
+        return decision
 
     def estimate_position_size(
         self,

@@ -192,6 +192,27 @@ class HealthService:
         }
 
     @staticmethod
+    def risk() -> dict:
+        try:
+            from risk_manager import RiskManager
+            from config import (
+                MAX_OPEN_TRADES, MAX_EXPOSURE_PER_SYMBOL,
+                MAX_PORTFOLIO_EXPOSURE, MAX_DAILY_LOSS,
+                MAX_POSITION_SIZE_USD, ACCOUNT_EQUITY,
+            )
+            return {
+                "status": "ok",
+                "max_open_trades": MAX_OPEN_TRADES,
+                "max_exposure_per_symbol": MAX_EXPOSURE_PER_SYMBOL,
+                "max_portfolio_exposure": MAX_PORTFOLIO_EXPOSURE,
+                "max_daily_loss": MAX_DAILY_LOSS,
+                "max_position_size_usd": MAX_POSITION_SIZE_USD,
+                "account_equity": ACCOUNT_EQUITY,
+            }
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @staticmethod
     def metrics() -> dict:
         from database import Signal, Trade
         try:
@@ -253,6 +274,7 @@ class HealthService:
             "dependencies": deps,
             "errors": errs,
             "metrics": met,
+            "risk_config": HealthService.risk(),
             "config": HealthService.config(),
         }
 

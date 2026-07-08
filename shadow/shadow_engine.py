@@ -74,7 +74,7 @@ class ShadowEngine:
         self.logger.info("Signal %s approved by pipeline", signal.id)
 
         # 2. Execution guard
-        guard_result = self.guard.can_execute(
+        guard_result = self.guard.evaluate_execution(
             symbol=candidate.symbol,
             side=candidate.side,
             entry_price=float(candidate.entry or 0),

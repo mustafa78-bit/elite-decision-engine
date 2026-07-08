@@ -131,13 +131,14 @@ class ExecutionLoop:
             candidate.decision,
         )
 
-        allowed, reason = self.risk_manager.can_open_trade(candidate)
-        if not allowed:
+        decision = self.risk_manager.evaluate_trade(candidate)
+        if not decision.allowed:
             self.logger.warning(
-                "Trade rejected by risk manager: %s %s - %s",
+                "Trade rejected by risk manager: %s %s - code=%s reason=%s",
                 candidate.symbol,
                 candidate.side,
-                reason,
+                decision.rejection_code,
+                decision.reason,
             )
             update_signal_status(candidate.signal.id, "REJECTED")
             return None

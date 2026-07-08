@@ -121,3 +121,62 @@ class TestRiskManager:
         allowed, reason = mgr.can_open_trade(_make_candidate(entry=150000.0))
         assert allowed is False
         assert "Position size limit" in reason
+
+
+class TestRiskManagerEvaluateTrade:
+
+    def test_returns_risk_decision(self, db_session, session_factory):
+        mgr = RiskManager(session_factory=session_factory)
+        decision = mgr.evaluate_trade(_make_candidate(entry=50000.0))
+        assert decision.allowed is True
+        assert decision.reason == ""
+        assert len(decision.checks) > 0
+
+    def test_per_check_details_present(self, db_session, session_factory):
+        mgr = RiskManager(session_factory=session_factory)
+        decision = mgr.evaluate_trade(_make_candidate(entry=50000.0))
+        check_names = {c.name for c in decision.checks}
+        assert "MAX_OPEN_TRADES" in check_names
+        assert "SYMBOL_EXPOSURE" in check_names
+        assert "PORTFOLIO_EXPOSURE" in check_names
+        assert "DAILY_LOSS_LIMIT" in check_names
+        assert "POSITION_SIZE_LIMIT" in check_names
+
+    def test_check_values_populated(self, db_session, session_factory):
+        mgr = RiskManager(session_factory=session_factory)
+        decision = mgr.evaluate_trade(_make_candidate(entry=50000.0))
+        for c in decision.checks:
+            assert c.passed is True
+            assert c.detail == ""
+            assert c.value is not None
+            assert c.limit is not None
+
+    def test_rejected_has_rejection_code(self, db_session, session_factory):
+        for _ in range(3):
+            _seed_trade(db_session)
+        mgr = RiskManager(session_factory=session_factory)
+        decision = mgr.evaluate_trade(_make_candidate(entry=50000.0))
+        assert decision.allowed is False
+        assert decision.rejection_code == "MAX_OPEN_TRADES"
+        assert decision.reason != ""
+
+    def test_all_checks_included_even_on_failure(self, db_session, session_factory):
+        for _ in range(3):
+            _seed_trade(db_session)
+        mgr = RiskManager(session_factory=session_factory)
+        decision = mgr.evaluate_trade(_make_candidate(entry=50000.0))
+        assert len(decision.checks) == 1
+
+    def test_backward_compat_can_open_trade_still_works(self, db_session, session_factory):
+        mgr = RiskManager(session_factory=session_factory)
+        allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
+        assert allowed is True
+        assert reason == ""
+
+    def test_backward_compat_rejected(self, db_session, session_factory):
+        for _ in range(3):
+            _seed_trade(db_session)
+        mgr = RiskManager(session_factory=session_factory)
+        allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
+        assert allowed is False
+        assert "Maximum open trades" in reason

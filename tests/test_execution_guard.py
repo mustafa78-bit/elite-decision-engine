@@ -4,6 +4,7 @@ import pytest
 
 from exchange.hyperliquid.connector import HyperliquidExchange
 from risk.execution_guard import ExecutionGuard, GuardResult
+from risk.models import RiskDecision
 
 
 class TestExecutionGuard:
@@ -34,3 +35,43 @@ class TestExecutionGuard:
         result = GuardResult(allowed=False, reason="Test failure", checks={"test": False})
         assert result.allowed is False
         assert "Test failure" in result.reason
+
+
+class TestExecutionGuardEvaluate:
+
+    def test_evaluate_execution_no_exchange(self):
+        guard = ExecutionGuard(exchange=None)
+        decision = guard.evaluate_execution(
+            symbol="BTC", side="LONG", entry_price=50000.0, quantity=1.0,
+        )
+        assert isinstance(decision, RiskDecision)
+        assert decision.allowed is False
+        assert decision.rejection_code == "EXCHANGE_NOT_CONFIGURED"
+
+    def test_evaluate_execution_returns_all_checks_on_success(self, session_factory):
+        guard = ExecutionGuard(exchange=HyperliquidExchange(), session_factory=session_factory)
+        decision = guard.evaluate_execution(
+            symbol="BTC", side="LONG", entry_price=50000.0, quantity=0.001,
+        )
+        check_names = {c.name for c in decision.checks}
+        assert "EXCHANGE_OFFLINE" in check_names
+        assert "MAX_OPEN_TRADES" in check_names
+
+    def test_evaluate_execution_includes_metadata(self, session_factory):
+        guard = ExecutionGuard(exchange=HyperliquidExchange(), session_factory=session_factory)
+        decision = guard.evaluate_execution(
+            symbol="BTC", side="LONG", entry_price=50000.0, quantity=0.001,
+        )
+        assert "volatility_pct" in decision.metadata or "regime" in decision.metadata
+
+    def test_backward_compat_can_execute_still_works(self):
+        guard = ExecutionGuard(exchange=None)
+        result = guard.can_execute(symbol="BTC", side="LONG", entry_price=50000.0, quantity=1.0)
+        assert isinstance(result, GuardResult)
+        assert result.allowed is False
+        assert "No exchange configured" in result.reason
+
+    def test_backward_compat_guard_result_fields(self, session_factory):
+        guard = ExecutionGuard(exchange=HyperliquidExchange(), session_factory=session_factory)
+        result = guard.can_execute(symbol="BTC", side="LONG", entry_price=50000.0, quantity=0.001)
+        assert "EXCHANGE_OFFLINE" in result.checks or "exchange_online" in result.checks
