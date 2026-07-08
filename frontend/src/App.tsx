@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/layout/Layout";
 import Analytics from "./pages/Analytics";
+import Backtest from "./pages/Backtest";
 import Dashboard from "./pages/Dashboard";
 import Execution from "./pages/Execution";
 import Intelligence from "./pages/Intelligence";
@@ -136,6 +137,7 @@ function App() {
           <Route path="/execution" element={<Execution />} />
           <Route path="/intelligence" element={<Intelligence />} />
           <Route path="/journal" element={<Journal />} />
+          <Route path="/backtest" element={<Backtest />} />
         </Route>
       </Routes>
     </BrowserRouter>

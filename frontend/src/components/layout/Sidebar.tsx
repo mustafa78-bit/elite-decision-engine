@@ -16,6 +16,7 @@ const items = [
   { label: "Execution", path: "/execution" },
   { label: "Intelligence", path: "/intelligence" },
   { label: "Journal", path: "/journal" },
+  { label: "Backtest", path: "/backtest" },
 ];
 
 export default function Sidebar() {

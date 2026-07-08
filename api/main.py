@@ -19,6 +19,7 @@ from api.events import (
 )
 from api.middleware import auth_middleware
 from api.routes.auth import router as auth_router
+from api.routes.backtest import router as backtest_router
 from api.routes.execution import router as execution_router
 from api.routes.intelligence import router as intelligence_router
 from api.routes.journal import router as journal_router
@@ -67,6 +68,7 @@ app.add_middleware(
 app.middleware("http")(auth_middleware)
 
 app.include_router(auth_router)
+app.include_router(backtest_router)
 app.include_router(execution_router)
 app.include_router(intelligence_router)
 app.include_router(journal_router)
