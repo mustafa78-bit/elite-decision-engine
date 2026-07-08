@@ -10,10 +10,11 @@ This configures three rotating file handlers and one console handler:
     trade.log      ← execution.*, scoring.*
     error.log      ← ERROR+ from all loggers
 
-Call once at process start (e.g. in ``app.py:main()``).  Idempotent —
-each call replaces all handlers on the root logger.
+In production (API_ENV=production), console output uses JSON format
+for structured log ingestion.
 """
 
+import json
 import logging
 import os
 from logging.handlers import RotatingFileHandler
@@ -35,6 +36,16 @@ class _ModuleFilter(logging.Filter):
         return any(record.name.startswith(p) for p in self.prefixes)
 
 
+class _JsonFormatter(logging.Formatter):
+    def format(self, record):
+        return json.dumps({
+            "timestamp": self.formatTime(record, self.datefmt),
+            "name": record.name,
+            "level": record.levelname,
+            "message": record.getMessage(),
+        })
+
+
 def _file_handler(path, level, formatter, filter_=None):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     handler = RotatingFileHandler(path, maxBytes=_MAX_BYTES, backupCount=_BACKUP_COUNT)
@@ -46,30 +57,34 @@ def _file_handler(path, level, formatter, filter_=None):
 
 
 def setup_logging(log_dir="logs"):
-    formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+    api_env = os.getenv("API_ENV", "development")
+    is_prod = api_env == "production"
+
+    file_formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
+    console_formatter = _JsonFormatter() if is_prod else logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
 
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
-    console.setFormatter(formatter)
+    console.setFormatter(console_formatter)
 
     handlers = [
         console,
         _file_handler(
             os.path.join(log_dir, "engine.log"),
             logging.INFO,
-            formatter,
+            file_formatter,
             _ModuleFilter(("core", "database", "app")),
         ),
         _file_handler(
             os.path.join(log_dir, "trade.log"),
             logging.INFO,
-            formatter,
+            file_formatter,
             _ModuleFilter(("execution", "scoring")),
         ),
         _file_handler(
             os.path.join(log_dir, "error.log"),
             logging.ERROR,
-            formatter,
+            file_formatter,
         ),
     ]
 
