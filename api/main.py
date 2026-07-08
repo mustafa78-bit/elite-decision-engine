@@ -2,12 +2,14 @@ import logging
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
+from api.routes.performance import router as performance_router
 from api.websocket.manager import WebSocketManager
 
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Elite Decision Engine")
+app.include_router(performance_router)
 
 manager = WebSocketManager()
 
