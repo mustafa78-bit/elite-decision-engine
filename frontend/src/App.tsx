@@ -18,6 +18,7 @@ import Risk from "./pages/Risk";
 import Signals from "./pages/Signals";
 import SignalsRanking from "./pages/SignalsRanking";
 import Trades from "./pages/Trades";
+import LiveMarket from "./pages/LiveMarket";
 import type {
   CandleWsPayload,
   MarketPayload,
@@ -136,6 +137,7 @@ function App() {
           <Route path="/paper-trading" element={<PaperTrading />} />
           <Route path="/execution" element={<Execution />} />
           <Route path="/intelligence" element={<Intelligence />} />
+          <Route path="/live-market" element={<LiveMarket />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/backtest" element={<Backtest />} />
         </Route>

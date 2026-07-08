@@ -15,6 +15,7 @@ const items = [
   { label: "Notifications", path: "/notifications" },
   { label: "Execution", path: "/execution" },
   { label: "Intelligence", path: "/intelligence" },
+  { label: "Live Market", path: "/live-market" },
   { label: "Journal", path: "/journal" },
   { label: "Backtest", path: "/backtest" },
 ];
