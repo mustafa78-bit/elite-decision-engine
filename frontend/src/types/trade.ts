@@ -1,6 +1,6 @@
 export type TradeEventType = "TRADE_OPENED" | "TRADE_CLOSED";
 
-export type WsEventType = TradeEventType | "MARKET_UPDATE" | "SIGNAL_UPDATE" | "RISK_UPDATE";
+export type WsEventType = TradeEventType | "MARKET_UPDATE" | "SIGNAL_UPDATE" | "RISK_UPDATE" | "PRICE_UPDATE" | "CANDLE_UPDATE" | "VOLUME_UPDATE";
 
 export interface MarketPayload {
   price: number;
@@ -57,6 +57,29 @@ export interface TradePayload {
   pnl?: number;
   close_reason?: string;
   intelligence?: TradeIntelligence;
+}
+
+export interface PriceWsPayload {
+  symbol: string;
+  price: number;
+  change_24h: number;
+  volume: number;
+}
+
+export interface CandleWsPayload {
+  symbol: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  timestamp: number;
+}
+
+export interface VolumeWsPayload {
+  symbol: string;
+  volume_24h: number;
+  volume_change: number;
 }
 
 export interface TradeNotification {

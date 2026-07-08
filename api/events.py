@@ -96,6 +96,65 @@ class TradeEvent:
 
 
 # ------------------------------------------------------------------
+# Price Update (Sprint 35)
+# ------------------------------------------------------------------
+
+@dataclass
+class PricePayload:
+    symbol: str = ""
+    price: float = 0.0
+    change_24h: float = 0.0
+    volume: float = 0.0
+
+
+@dataclass
+class PriceUpdateEvent:
+    event: str = "PRICE_UPDATE"
+    timestamp: str = field(default_factory=_now)
+    payload: PricePayload = field(default_factory=PricePayload)
+
+
+# ------------------------------------------------------------------
+# Candle Update (Sprint 35)
+# ------------------------------------------------------------------
+
+@dataclass
+class CandlePayload:
+    symbol: str = ""
+    open: float = 0.0
+    high: float = 0.0
+    low: float = 0.0
+    close: float = 0.0
+    volume: float = 0.0
+    timestamp: int = 0
+
+
+@dataclass
+class CandleUpdateEvent:
+    event: str = "CANDLE_UPDATE"
+    timestamp: str = field(default_factory=_now)
+    payload: CandlePayload = field(default_factory=CandlePayload)
+
+
+# ------------------------------------------------------------------
+# Volume Update (Sprint 35)
+# ------------------------------------------------------------------
+
+@dataclass
+class VolumePayload:
+    symbol: str = ""
+    volume_24h: float = 0.0
+    volume_change: float = 0.0
+
+
+@dataclass
+class VolumeUpdateEvent:
+    event: str = "VOLUME_UPDATE"
+    timestamp: str = field(default_factory=_now)
+    payload: VolumePayload = field(default_factory=VolumePayload)
+
+
+# ------------------------------------------------------------------
 # Serializer
 # ------------------------------------------------------------------
 

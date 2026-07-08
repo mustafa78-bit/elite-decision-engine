@@ -4,19 +4,25 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
+import Execution from "./pages/Execution";
+import Intelligence from "./pages/Intelligence";
 import Market from "./pages/Market";
 import NotificationsPage from "./pages/Notifications";
 import Overview from "./pages/Overview";
+import PaperTrading from "./pages/PaperTrading";
 import Portfolio from "./pages/Portfolio";
 import Risk from "./pages/Risk";
 import Signals from "./pages/Signals";
 import Trades from "./pages/Trades";
 import type {
+  CandleWsPayload,
   MarketPayload,
+  PriceWsPayload,
   RiskWsPayload,
   SignalPayload,
   TradeNotification,
   TradePayload,
+  VolumeWsPayload,
   WsEvent,
 } from "./types/trade";
 import { connectTradesSocket } from "./websocket/client";
@@ -32,6 +38,9 @@ function App() {
   const [latestMarket, setLatestMarket] = useState<MarketPayload | null>(null);
   const [latestSignal, setLatestSignal] = useState<SignalPayload | null>(null);
   const [latestRiskWs, setLatestRiskWs] = useState<RiskWsPayload | null>(null);
+  const [latestPrice, setLatestPrice] = useState<PriceWsPayload | null>(null);
+  const [latestCandle, setLatestCandle] = useState<CandleWsPayload | null>(null);
+  const [latestVolume, setLatestVolume] = useState<VolumeWsPayload | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -68,6 +77,18 @@ function App() {
         if (data.event === "RISK_UPDATE") {
           setLatestRiskWs(data.payload as RiskWsPayload);
         }
+
+        if (data.event === "PRICE_UPDATE") {
+          setLatestPrice(data.payload as PriceWsPayload);
+        }
+
+        if (data.event === "CANDLE_UPDATE") {
+          setLatestCandle(data.payload as CandleWsPayload);
+        }
+
+        if (data.event === "VOLUME_UPDATE") {
+          setLatestVolume(data.payload as VolumeWsPayload);
+        }
       },
       (s) => setStatus(s),
     );
@@ -87,6 +108,9 @@ function App() {
     latestMarket,
     latestSignal,
     latestRiskWs,
+    latestPrice,
+    latestCandle,
+    latestVolume,
   };
 
   return (
@@ -103,6 +127,9 @@ function App() {
           <Route path="/signals" element={<Signals />} />
           <Route path="/risk" element={<Risk />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/paper-trading" element={<PaperTrading />} />
+          <Route path="/execution" element={<Execution />} />
+          <Route path="/intelligence" element={<Intelligence />} />
         </Route>
       </Routes>
     </BrowserRouter>
