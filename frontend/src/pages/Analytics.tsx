@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import MetricCard from "../components/MetricCard";
 
@@ -47,77 +47,115 @@ function pct(n: number) {
 export default function Analytics() {
   const [perf, setPerf] = useState<PerformanceStats | null>(null);
   const [port, setPort] = useState<PortfolioStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch(`${API}/performance`).then((r) => r.json()).then(setPerf);
-    fetch(`${API}/portfolio`).then((r) => r.json()).then(setPort);
+  const fetchAll = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const [pr, po] = await Promise.all([
+        fetch(`${API}/performance`),
+        fetch(`${API}/portfolio`),
+      ]);
+      if (!pr.ok) throw new Error(`Performance API error: ${pr.status}`);
+      if (!po.ok) throw new Error(`Portfolio API error: ${po.status}`);
+      setPerf(await pr.json());
+      setPort(await po.json());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load analytics");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const hasTrades = port && port.total_trades > 0;
+  const hasData = perf && hasTrades;
+
+  if (loading) {
+    return (
+      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+        Loading analytics...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
+          {error}
+          <button onClick={fetchAll} className="ml-2 underline text-gray-400 hover:text-gray-200">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+        No trade data yet — start trading to generate analytics
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {perf && (
-        <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
-            Performance Metrics
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            <MetricCard label="Sharpe Ratio" value={fmt(perf.sharpe_ratio, 4)} />
-            <MetricCard label="Sortino Ratio" value={fmt(perf.sortino_ratio, 4)} />
-            <MetricCard label="Profit Factor" value={fmt(perf.profit_factor, 2)} />
-            <MetricCard label="Expectancy" value={fmt(perf.expectancy, 2)} />
-            <MetricCard label="Recovery Factor" value={fmt(perf.recovery_factor, 2)} />
-            <MetricCard label="Calmar Ratio" value={fmt(perf.calmar_ratio, 4)} />
-            <MetricCard label="Avg R Multiple" value={fmt(perf.average_r_multiple, 2)} />
-            <MetricCard label="Avg Hold (hrs)" value={fmt(perf.average_holding_hours, 2)} />
-            <MetricCard label="Best Trade $" value={fmt(perf.best_trade, 2)} positive={perf.best_trade > 0} />
-            <MetricCard label="Worst Trade $" value={fmt(perf.worst_trade, 2)} positive={perf.worst_trade > 0} />
-            <MetricCard label="Consecutive Wins" value={String(perf.consecutive_wins)} />
-            <MetricCard label="Consecutive Losses" value={String(perf.consecutive_losses)} negative />
-          </div>
-        </section>
-      )}
-
-      {port && (
-        <>
-          <section>
-            <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
-              Portfolio Summary
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              <MetricCard label="Total Trades" value={String(port.total_trades)} />
-              <MetricCard label="Open" value={String(port.open_trades)} />
-              <MetricCard label="Closed" value={String(port.closed_trades)} />
-              <MetricCard label="Win Rate" value={pct(port.win_rate)} />
-              <MetricCard label="Loss Rate" value={pct(100 - port.win_rate)} negative />
-              <MetricCard label="Total PnL" value={`$${fmt(port.total_pnl)}`} positive={port.total_pnl > 0} negative={port.total_pnl < 0} />
-              <MetricCard label="Daily PnL" value={`$${fmt(port.daily_pnl)}`} positive={port.daily_pnl > 0} negative={port.daily_pnl < 0} />
-              <MetricCard label="Avg Win" value={`$${fmt(port.average_win)}`} positive />
-              <MetricCard label="Avg Loss" value={`$${fmt(port.average_loss)}`} negative />
-              <MetricCard
-                label="Avg Return"
-                value={`$${fmt(port.closed_trades > 0 ? port.total_pnl / port.closed_trades : 0)}`}
-                positive={port.total_pnl > 0}
-                negative={port.total_pnl < 0}
-              />
-              <MetricCard label="Max Drawdown" value={pct(port.max_drawdown)} negative />
-              <MetricCard label="Open Exposure" value={`$${fmt(port.current_open_exposure)}`} />
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
-              Equity Curve
-            </h2>
-            <EquityCurve curve={port.equity_curve} />
-          </section>
-        </>
-      )}
-
-      {!perf && !port && (
-        <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
-          Loading analytics...
+      <section>
+        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+          Performance Metrics
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <MetricCard label="Sharpe Ratio" value={fmt(perf!.sharpe_ratio, 4)} />
+          <MetricCard label="Sortino Ratio" value={fmt(perf!.sortino_ratio, 4)} />
+          <MetricCard label="Profit Factor" value={fmt(perf!.profit_factor, 2)} />
+          <MetricCard label="Expectancy" value={fmt(perf!.expectancy, 2)} />
+          <MetricCard label="Recovery Factor" value={fmt(perf!.recovery_factor, 2)} />
+          <MetricCard label="Calmar Ratio" value={fmt(perf!.calmar_ratio, 4)} />
+          <MetricCard label="Avg R Multiple" value={fmt(perf!.average_r_multiple, 2)} />
+          <MetricCard label="Avg Hold (hrs)" value={fmt(perf!.average_holding_hours, 2)} />
+          <MetricCard label="Best Trade $" value={fmt(perf!.best_trade, 2)} positive={perf!.best_trade > 0} />
+          <MetricCard label="Worst Trade $" value={fmt(perf!.worst_trade, 2)} positive={perf!.worst_trade > 0} />
+          <MetricCard label="Consecutive Wins" value={String(perf!.consecutive_wins)} />
+          <MetricCard label="Consecutive Losses" value={String(perf!.consecutive_losses)} negative />
         </div>
-      )}
+      </section>
+
+      <section>
+        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+          Portfolio Summary
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <MetricCard label="Total Trades" value={String(port!.total_trades)} />
+          <MetricCard label="Open" value={String(port!.open_trades)} />
+          <MetricCard label="Closed" value={String(port!.closed_trades)} />
+          <MetricCard label="Win Rate" value={pct(port!.win_rate)} />
+          <MetricCard label="Loss Rate" value={pct(100 - port!.win_rate)} negative />
+          <MetricCard label="Total PnL" value={`$${fmt(port!.total_pnl)}`} positive={port!.total_pnl > 0} negative={port!.total_pnl < 0} />
+          <MetricCard label="Daily PnL" value={`$${fmt(port!.daily_pnl)}`} positive={port!.daily_pnl > 0} negative={port!.daily_pnl < 0} />
+          <MetricCard label="Avg Win" value={`$${fmt(port!.average_win)}`} positive />
+          <MetricCard label="Avg Loss" value={`$${fmt(port!.average_loss)}`} negative />
+          <MetricCard
+            label="Avg Return"
+            value={`$${fmt(port!.closed_trades > 0 ? port!.total_pnl / port!.closed_trades : 0)}`}
+            positive={port!.total_pnl > 0}
+            negative={port!.total_pnl < 0}
+          />
+          <MetricCard label="Max Drawdown" value={pct(port!.max_drawdown)} negative />
+          <MetricCard label="Open Exposure" value={`$${fmt(port!.current_open_exposure)}`} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+          Equity Curve
+        </h2>
+        <EquityCurve curve={port!.equity_curve} />
+      </section>
     </div>
   );
 }
