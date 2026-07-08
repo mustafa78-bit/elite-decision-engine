@@ -1,9 +1,9 @@
 import asyncio
-import json
 import logging
 from typing import Optional
 
 from api.websocket.manager import WebSocketManager
+from notifications.serializer import serialize_event
 
 
 logger = logging.getLogger(__name__)
@@ -21,10 +21,7 @@ class NotificationDispatcher:
             payload,
         )
 
-        message = json.dumps({
-            "event": event,
-            "payload": payload,
-        })
+        message = serialize_event(event, payload)
 
         if self.websocket_manager is not None:
             self._broadcast(message)
