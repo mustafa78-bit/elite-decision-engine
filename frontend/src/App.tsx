@@ -5,6 +5,7 @@ import Layout from "./components/layout/Layout";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import Market from "./pages/Market";
+import Overview from "./pages/Overview";
 import Risk from "./pages/Risk";
 import Signals from "./pages/Signals";
 import Trades from "./pages/Trades";
@@ -91,6 +92,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route element={<Layout status={status} context={outletContext} />}>
+          <Route path="/overview" element={<Overview />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/market" element={<Market />} />

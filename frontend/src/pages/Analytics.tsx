@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import MetricCard from "../components/MetricCard";
+import PerformanceChart from "../components/charts/PerformanceChart";
 import type { PerformanceStats } from "../api/performance";
 import type { PortfolioStats } from "../api/portfolio";
 import { ApiError } from "../api/client";
@@ -123,45 +124,15 @@ export default function Analytics() {
         <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
           Equity Curve
         </h2>
-        <EquityCurve curve={port!.equity_curve} />
+        <PerformanceChart
+          equityCurve={port!.equity_curve.map((val, i) => ({
+            time: String(i),
+            value: val,
+          }))}
+        />
       </section>
     </div>
   );
 }
 
-function EquityCurve({ curve }: { curve: number[] }) {
-  if (curve.length < 2) {
-    return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
-        Not enough data
-      </div>
-    );
-  }
 
-  const min = Math.min(...curve);
-  const max = Math.max(...curve);
-  const range = max - min || 1;
-
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <div className="flex items-end gap-[2px] h-32">
-        {curve.map((val, i) => {
-          const h = ((val - min) / range) * 100;
-          const color = val >= curve[i > 0 ? i - 1 : i] ? "bg-green-600" : "bg-red-600";
-          return (
-            <div
-              key={i}
-              className={`flex-1 ${color} rounded-t`}
-              style={{ height: `${Math.max(h, 1)}%` }}
-              title={`$${fmt(val, 2)}`}
-            />
-          );
-        })}
-      </div>
-      <div className="flex justify-between text-[10px] text-gray-500 mt-1">
-        <span>${fmt(min, 0)}</span>
-        <span>$${fmt(max, 0)}</span>
-      </div>
-    </div>
-  );
-}
