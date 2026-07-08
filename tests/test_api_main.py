@@ -60,6 +60,6 @@ def test_health_returns_ok():
 
 def test_all_api_routes_registered():
     paths = list(app.openapi()["paths"])
-    expected = {"/performance", "/portfolio", "/risk", "/position-sizing", "/signals", "/health"}
+    expected = {"/performance", "/portfolio", "/risk", "/position-sizing", "/signals", "/health", "/market"}
     for p in expected:
         assert p in paths, f"Missing route: {p}"
