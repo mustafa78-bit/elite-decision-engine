@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-import ClosedTrades from "./components/ClosedTrades";
-import DashboardStats from "./components/DashboardStats";
-import IntelligencePanel from "./components/IntelligencePanel";
 import Layout from "./components/layout/Layout";
-import OpenTrades from "./components/OpenTrades";
+import Analytics from "./pages/Analytics";
+import Dashboard from "./pages/Dashboard";
+import Risk from "./pages/Risk";
+import Signals from "./pages/Signals";
+import Trades from "./pages/Trades";
 import type { TradeNotification, TradePayload } from "./types/trade";
 import { connectTradesSocket } from "./websocket/client";
 import type { ConnectionStatus } from "./websocket/client";
@@ -47,34 +49,26 @@ function App() {
     .find((n) => n.payload.intelligence)
     ?.payload.intelligence;
 
+  const outletContext = {
+    notifications,
+    openTrades,
+    closedTrades,
+    latestIntelligence,
+  };
+
   return (
-    <Layout status={status}>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="lg:col-span-3 space-y-4">
-          <DashboardStats notifications={notifications} />
-
-          <section>
-            <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-2">
-              Open Trades
-            </h2>
-            <OpenTrades trades={openTrades} />
-          </section>
-
-          <section>
-            <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-2">
-              Closed Trades
-            </h2>
-            <ClosedTrades trades={closedTrades} />
-          </section>
-        </div>
-
-        {latestIntelligence && (
-          <div className="lg:col-span-1">
-            <IntelligencePanel intelligence={latestIntelligence} />
-          </div>
-        )}
-      </div>
-    </Layout>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route element={<Layout status={status} context={outletContext} />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/trades" element={<Trades />} />
+          <Route path="/signals" element={<Signals />} />
+          <Route path="/risk" element={<Risk />} />
+          <Route path="/analytics" element={<Analytics />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
