@@ -1,6 +1,4 @@
 import logging
-from dotenv import load_dotenv
-import os
 
 from sqlalchemy import (
     create_engine,
@@ -15,29 +13,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
+from config import DATABASE_URL
+
 logger = logging.getLogger(__name__)
-
-
-# ------------------------------------------------------------------
-# ENV LOAD
-# ------------------------------------------------------------------
-
-load_dotenv()
-
-# ------------------------------------------------------------------
-# DATABASE CONFIG
-# ------------------------------------------------------------------
-
-DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
-DB_PORT = os.getenv("POSTGRES_PORT", "5432")
-DB_NAME = os.getenv("POSTGRES_DB", "decision_engine")
-DB_USER = os.getenv("POSTGRES_USER", "postgres")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
-
-DATABASE_URL = (
-    f"postgresql://{DB_USER}:{DB_PASSWORD}"
-    f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
 
 engine = create_engine(
     DATABASE_URL,

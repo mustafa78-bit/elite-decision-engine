@@ -7,6 +7,22 @@ POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_USER = os.getenv("POSTGRES_USER")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+if not DATABASE_URL:
+    DB_HOST = POSTGRES_HOST or "localhost"
+    DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+    DB_NAME = os.getenv("POSTGRES_DB", "decision_engine")
+    DB_USER = POSTGRES_USER or "postgres"
+    DB_PASSWORD = POSTGRES_PASSWORD or "postgres"
+    DATABASE_URL = (
+        f"postgresql://{DB_USER}:{DB_PASSWORD}"
+        f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    )
+
+API_ENV = os.getenv("API_ENV", "development")
+DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+
 CHECK_INTERVAL = 10
 MIN_SCORE = 85
 MAX_OPEN_TRADES = 3

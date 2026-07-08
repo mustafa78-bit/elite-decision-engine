@@ -42,3 +42,19 @@ def test_position_sizing_route_registered():
 def test_signals_route_registered():
     paths = list(app.openapi()["paths"])
     assert "/signals" in paths
+
+
+def test_health_returns_ok():
+    client = TestClient(app)
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert body["service"] == "elite-decision-engine"
+
+
+def test_all_api_routes_registered():
+    paths = list(app.openapi()["paths"])
+    expected = {"/performance", "/portfolio", "/risk", "/position-sizing", "/signals", "/health"}
+    for p in expected:
+        assert p in paths, f"Missing route: {p}"
