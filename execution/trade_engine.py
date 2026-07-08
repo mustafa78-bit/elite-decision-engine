@@ -2,6 +2,8 @@ import logging
 
 from database import get_session, Trade
 from execution.tp_sl import TPSLEngine
+from notifications.dispatcher import NotificationDispatcher
+from notifications.events import TradeEvent
 
 
 logger = logging.getLogger(__name__)
@@ -11,6 +13,7 @@ class TradeEngine:
 
     def __init__(self):
         self.tp_sl = TPSLEngine()
+        self.notifications = NotificationDispatcher()
 
     def create_trade(
         self,
@@ -55,6 +58,17 @@ class TradeEngine:
 
             session.add(trade)
             session.commit()
+
+            self.notifications.emit(
+                TradeEvent.TRADE_OPENED,
+                {
+                    "trade_id": trade.id,
+                    "symbol": trade.symbol,
+                    "side": trade.side,
+                    "entry": trade.entry,
+                    "status": trade.status,
+                },
+            )
 
             return trade
 
