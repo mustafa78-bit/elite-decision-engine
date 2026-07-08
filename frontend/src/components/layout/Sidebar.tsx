@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 const items = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Trades", path: "/trades" },
+  { label: "Market", path: "/market" },
   { label: "Signals", path: "/signals" },
   { label: "Risk", path: "/risk" },
   { label: "Analytics", path: "/analytics" },

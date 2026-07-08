@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
+import Market from "./pages/Market";
 import Risk from "./pages/Risk";
 import Signals from "./pages/Signals";
 import Trades from "./pages/Trades";
@@ -63,6 +64,7 @@ function App() {
         <Route element={<Layout status={status} context={outletContext} />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/trades" element={<Trades />} />
+          <Route path="/market" element={<Market />} />
           <Route path="/signals" element={<Signals />} />
           <Route path="/risk" element={<Risk />} />
           <Route path="/analytics" element={<Analytics />} />

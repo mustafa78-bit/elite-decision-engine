@@ -44,6 +44,11 @@ def test_signals_route_registered():
     assert "/signals" in paths
 
 
+def test_market_route_registered():
+    paths = list(app.openapi()["paths"])
+    assert "/market" in paths
+
+
 def test_health_returns_ok():
     client = TestClient(app)
     resp = client.get("/health")

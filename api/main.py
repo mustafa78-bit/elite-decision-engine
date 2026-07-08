@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.risk import router as risk_router
+from api.routes.market import router as market_router
 from api.routes.signals import router as signals_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
@@ -31,6 +32,7 @@ app.add_middleware(
 app.include_router(performance_router)
 app.include_router(portfolio_router)
 app.include_router(risk_router)
+app.include_router(market_router)
 app.include_router(signals_router)
 
 manager = WebSocketManager()
