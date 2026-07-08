@@ -13,7 +13,7 @@ PROTECTED_PATHS = {
     "/users/settings",
 }
 
-PUBLIC_PATHS = {"/health", "/auth/register", "/auth/login", "/market", "/market/live", "/monitoring", "/notifications", "/paper-trading", "/execution/status", "/intelligence", "/regime", "/signals/ranking", "/journal", "/backtest"}
+PUBLIC_PATHS = {"/health", "/auth/register", "/auth/login", "/market", "/market/live", "/monitoring", "/notifications", "/paper-trading", "/execution/status", "/intelligence", "/regime", "/signals/ranking", "/journal", "/backtest", "/trading-control"}
 
 
 async def auth_middleware(request: Request, call_next):

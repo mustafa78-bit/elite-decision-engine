@@ -34,6 +34,7 @@ from api.routes.regime import router as regime_router
 from api.routes.risk import router as risk_router
 from api.routes.signals import router as signals_router
 from api.routes.signals_ranking import router as signals_ranking_router
+from api.routes.trading_control import router as trading_control_router
 from api.routes.users import router as users_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
@@ -83,6 +84,7 @@ app.include_router(regime_router)
 app.include_router(risk_router)
 app.include_router(signals_router)
 app.include_router(signals_ranking_router)
+app.include_router(trading_control_router)
 app.include_router(users_router)
 
 manager = WebSocketManager()
