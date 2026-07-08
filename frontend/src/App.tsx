@@ -8,9 +8,16 @@ import Market from "./pages/Market";
 import Risk from "./pages/Risk";
 import Signals from "./pages/Signals";
 import Trades from "./pages/Trades";
-import type { TradeNotification, TradePayload } from "./types/trade";
+import type {
+  MarketPayload,
+  RiskWsPayload,
+  SignalPayload,
+  TradeNotification,
+  TradePayload,
+  WsEvent,
+} from "./types/trade";
 import { connectTradesSocket } from "./websocket/client";
-import type { ConnectionStatus } from "./websocket/client";
+import type { ConnectionStatus } from "./types/connection";
 
 const MAX_EVENTS = 100;
 
@@ -19,25 +26,44 @@ function App() {
   const [openTrades, setOpenTrades] = useState<TradePayload[]>([]);
   const [closedTrades, setClosedTrades] = useState<TradePayload[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>("DISCONNECTED");
+  const [latestMarket, setLatestMarket] = useState<MarketPayload | null>(null);
+  const [latestSignal, setLatestSignal] = useState<SignalPayload | null>(null);
+  const [latestRiskWs, setLatestRiskWs] = useState<RiskWsPayload | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     wsRef.current = connectTradesSocket(
-      (data) => {
-        setNotifications((prev) => {
-          const next = [...prev, data];
-          return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
-        });
+      (data: WsEvent) => {
+        if (data.event === "TRADE_OPENED" || data.event === "TRADE_CLOSED") {
+          const p = data.payload as unknown as TradePayload;
+          const ts = data.timestamp;
+          setNotifications((prev) => {
+            const next = [...prev, { event: data.event, timestamp: ts, payload: p } as TradeNotification];
+            return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
+          });
 
-        if (data.event === "TRADE_OPENED") {
-          setOpenTrades((prev) => [...prev, data.payload]);
+          if (data.event === "TRADE_OPENED") {
+            setOpenTrades((prev) => [...prev, p]);
+          }
+
+          if (data.event === "TRADE_CLOSED") {
+            setOpenTrades((prev) =>
+              prev.filter((t) => t.trade_id !== p.trade_id),
+            );
+            setClosedTrades((prev) => [...prev, p]);
+          }
         }
 
-        if (data.event === "TRADE_CLOSED") {
-          setOpenTrades((prev) =>
-            prev.filter((t) => t.trade_id !== data.payload.trade_id),
-          );
-          setClosedTrades((prev) => [...prev, data.payload]);
+        if (data.event === "MARKET_UPDATE") {
+          setLatestMarket(data.payload as MarketPayload);
+        }
+
+        if (data.event === "SIGNAL_UPDATE") {
+          setLatestSignal(data.payload as SignalPayload);
+        }
+
+        if (data.event === "RISK_UPDATE") {
+          setLatestRiskWs(data.payload as RiskWsPayload);
         }
       },
       (s) => setStatus(s),
@@ -55,6 +81,9 @@ function App() {
     openTrades,
     closedTrades,
     latestIntelligence,
+    latestMarket,
+    latestSignal,
+    latestRiskWs,
   };
 
   return (

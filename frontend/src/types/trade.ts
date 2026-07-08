@@ -1,5 +1,37 @@
 export type TradeEventType = "TRADE_OPENED" | "TRADE_CLOSED";
 
+export type WsEventType = TradeEventType | "MARKET_UPDATE" | "SIGNAL_UPDATE" | "RISK_UPDATE";
+
+export interface MarketPayload {
+  price: number;
+  regime: string;
+  btc_health_score: number;
+  volatility: number;
+}
+
+export interface SignalPayload {
+  id: number;
+  symbol: string;
+  side: string;
+  confidence: number;
+  decision: string;
+  final_score: number;
+}
+
+export interface RiskWsPayload {
+  risk_score: number;
+  open_trades: number;
+  max_open_trades: number;
+  daily_loss: number;
+  max_daily_loss: number;
+}
+
+export interface WsEvent<T = unknown> {
+  event: WsEventType;
+  timestamp: string;
+  payload: T;
+}
+
 export interface TradeIntelligence {
   confidence: number;
   decision: string;

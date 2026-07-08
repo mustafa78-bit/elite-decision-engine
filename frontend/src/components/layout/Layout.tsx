@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 
-import type { TradeIntelligence, TradeNotification, TradePayload } from "../../types/trade";
-import type { ConnectionStatus } from "../../websocket/client.ts";
+import type { ConnectionStatus } from "../../types/connection";
+import type { MarketPayload, RiskWsPayload, SignalPayload, TradeIntelligence, TradeNotification, TradePayload } from "../../types/trade";
 import Header from "./Header.tsx";
 import Sidebar from "./Sidebar.tsx";
 
@@ -10,6 +10,9 @@ export interface LayoutContext {
   openTrades: TradePayload[];
   closedTrades: TradePayload[];
   latestIntelligence?: TradeIntelligence;
+  latestMarket: MarketPayload | null;
+  latestSignal: SignalPayload | null;
+  latestRiskWs: RiskWsPayload | null;
 }
 
 interface Props {

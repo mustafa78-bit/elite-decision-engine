@@ -1,9 +1,10 @@
-import type { TradeNotification } from "../types/trade.ts";
+import type { ConnectionStatus } from "../types/connection";
+import type { WsEvent } from "../types/trade";
 
-export type ConnectionStatus = "CONNECTED" | "DISCONNECTED";
+export type { ConnectionStatus };
 
-type MessageHandler = (data: TradeNotification) => void;
-type StatusHandler = (status: ConnectionStatus) => void;
+export type MessageHandler = (data: WsEvent) => void;
+export type StatusHandler = (status: ConnectionStatus) => void;
 
 export function connectTradesSocket(
   onMessage: MessageHandler,
@@ -17,7 +18,7 @@ export function connectTradesSocket(
 
   ws.onmessage = (event: MessageEvent) => {
     try {
-      const data: TradeNotification = JSON.parse(event.data);
+      const data: WsEvent = JSON.parse(event.data);
       onMessage(data);
     } catch {
       console.warn("Failed to parse WebSocket message", event.data);
