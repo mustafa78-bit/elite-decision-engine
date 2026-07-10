@@ -752,7 +752,7 @@ class TestJWTSecurity:
         import os
         if os.getenv("API_ENV", "development") != "production":
             from auth.jwt import _get_secret
-            assert _get_secret() == "dev-secret-change-in-production"
+            assert _get_secret() == os.environ.get("JWT_SECRET", "")
 
     def test_create_and_decode_token(self):
         from auth.jwt import create_access_token, decode_access_token

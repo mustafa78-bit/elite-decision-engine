@@ -63,8 +63,11 @@ export function useLiveUpdates<T = unknown>(config: LiveUpdateConfig<T>) {
   return { data, connected };
 }
 
+const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000";
+
 export function useNotificationUpdates() {
   const prevNotifRef = useRef(0);
+  const token = localStorage.getItem("auth_token") ?? "";
 
   const onMessage = useCallback((_data: unknown) => {
     prevNotifRef.current++;
@@ -72,7 +75,7 @@ export function useNotificationUpdates() {
   }, []);
 
   return useLiveUpdates({
-    url: "ws://localhost:8000/ws/notifications",
+    url: `${WS_BASE}/ws/notifications?token=${encodeURIComponent(token)}`,
     onMessage,
     reconnectInterval: 5000,
   });

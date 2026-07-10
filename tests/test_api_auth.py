@@ -16,12 +16,12 @@ def test_register_success(api_client):
 
 
 def test_register_duplicate_username(api_client, db_session):
-    db_session.add(User(username="dupuser", email="first@example.com", hashed_password="x"))
+    db_session.add(User(username="dupuser", email="first@example.com", hashed_password="longenoughpassword"))
     db_session.flush()
     resp = api_client.post("/auth/register", json={
         "username": "dupuser",
         "email": "second@example.com",
-        "password": "x",
+        "password": "longenoughpassword",
     })
     assert resp.status_code == 200
     assert resp.json()["success"] is False
@@ -29,12 +29,12 @@ def test_register_duplicate_username(api_client, db_session):
 
 
 def test_register_duplicate_email(api_client, db_session):
-    db_session.add(User(username="user1", email="dup@example.com", hashed_password="x"))
+    db_session.add(User(username="user1", email="dup@example.com", hashed_password="longenoughpassword"))
     db_session.flush()
     resp = api_client.post("/auth/register", json={
         "username": "user2",
         "email": "dup@example.com",
-        "password": "x",
+        "password": "longenoughpassword",
     })
     assert resp.status_code == 200
     assert resp.json()["success"] is False
@@ -57,7 +57,7 @@ def test_login_success(api_client, db_session):
 
 def test_login_invalid_password(api_client, db_session):
     from auth.service import hash_password
-    db_session.add(User(username="logintest2", email="login2@example.com", hashed_password=hash_password("correct")))
+    db_session.add(User(username="logintest2", email="login2@example.com", hashed_password=hash_password("correctpassword")))
     db_session.flush()
     resp = api_client.post("/auth/login", json={
         "username": "logintest2",

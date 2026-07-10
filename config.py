@@ -6,22 +6,29 @@ load_dotenv()
 
 logger = logging.getLogger("config")
 
+API_ENV = os.getenv("API_ENV", "development")
+
 CRITICAL_VARS = {
-    "DATABASE_URL": "Falling back to POSTGRES_* env vars",
+    "JWT_SECRET": "Authentication will not work",
 }
 RECOMMENDED_VARS = {
-    "JWT_SECRET": "Using insecure default 'dev-secret-change-in-production'",
+    "DATABASE_URL": "Falling back to POSTGRES_* env vars",
     "TELEGRAM_TOKEN": "Telegram notifications will be disabled",
     "HL_API_KEY": "Hyperliquid exchange connector will be unavailable",
 }
 
-missing_critical = [var for var in CRITICAL_VARS if not os.getenv(var)]
-if missing_critical:
-    logger.warning("Critical env vars not set: %s", missing_critical)
+for var in CRITICAL_VARS:
+    if not os.getenv(var):
+        msg = "%s not set. %s" % (var, CRITICAL_VARS[var])
+        if API_ENV == "production":
+            raise RuntimeError("FATAL: " + msg)
+        logger.warning(msg)
 
 for var, msg in RECOMMENDED_VARS.items():
     if not os.getenv(var):
         logger.warning("%s not set. %s", var, msg)
+
+JWT_SECRET = os.getenv("JWT_SECRET", "")
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_USER = os.getenv("POSTGRES_USER")
@@ -29,19 +36,21 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 if not DATABASE_URL:
-    DB_HOST = POSTGRES_HOST or "localhost"
+    if not POSTGRES_HOST:
+        if API_ENV == "production":
+            raise RuntimeError("FATAL: DATABASE_URL or POSTGRES_HOST must be set in production")
+        POSTGRES_HOST = "localhost"
     DB_PORT = os.getenv("POSTGRES_PORT", "5432")
     DB_NAME = os.getenv("POSTGRES_DB", "decision_engine")
     DB_USER = POSTGRES_USER or "postgres"
     DB_PASSWORD = POSTGRES_PASSWORD or "postgres"
     DATABASE_URL = (
         f"postgresql://{DB_USER}:{DB_PASSWORD}"
-        f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        f"@{POSTGRES_HOST}:{DB_PORT}/{DB_NAME}"
     )
 
-API_ENV = os.getenv("API_ENV", "development")
 DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173")
 
 # Scoring weights for the composite pipeline score (must sum to 1.0)
 SCORE_WEIGHTS = {

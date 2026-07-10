@@ -6,11 +6,19 @@ export type { ConnectionStatus };
 export type MessageHandler = (data: WsEvent) => void;
 export type StatusHandler = (status: ConnectionStatus) => void;
 
+const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000";
+
+function getToken(): string {
+  return localStorage.getItem("auth_token") ?? "";
+}
+
 function createSocket(
-  url: string,
+  path: string,
   onMessage: MessageHandler,
   onStatus?: StatusHandler,
 ): WebSocket {
+  const token = getToken();
+  const url = `${WS_BASE}${path}?token=${encodeURIComponent(token)}`;
   const ws = new WebSocket(url);
 
   ws.onopen = () => onStatus?.("CONNECTED");
@@ -32,33 +40,33 @@ export function connectTradesSocket(
   onMessage: MessageHandler,
   onStatus?: StatusHandler,
 ): WebSocket {
-  return createSocket("ws://localhost:8000/ws/trades", onMessage, onStatus);
+  return createSocket("/ws/trades", onMessage, onStatus);
 }
 
 export function connectAnalyticsSocket(
   onMessage: MessageHandler,
   onStatus?: StatusHandler,
 ): WebSocket {
-  return createSocket("ws://localhost:8000/ws/analytics", onMessage, onStatus);
+  return createSocket("/ws/analytics", onMessage, onStatus);
 }
 
 export function connectPortfolioSocket(
   onMessage: MessageHandler,
   onStatus?: StatusHandler,
 ): WebSocket {
-  return createSocket("ws://localhost:8000/ws/portfolio", onMessage, onStatus);
+  return createSocket("/ws/portfolio", onMessage, onStatus);
 }
 
 export function connectNotificationsSocket(
   onMessage: MessageHandler,
   onStatus?: StatusHandler,
 ): WebSocket {
-  return createSocket("ws://localhost:8000/ws/notifications", onMessage, onStatus);
+  return createSocket("/ws/notifications", onMessage, onStatus);
 }
 
 export function connectPreferencesSocket(
   onMessage: MessageHandler,
   onStatus?: StatusHandler,
 ): WebSocket {
-  return createSocket("ws://localhost:8000/ws/preferences", onMessage, onStatus);
+  return createSocket("/ws/preferences", onMessage, onStatus);
 }

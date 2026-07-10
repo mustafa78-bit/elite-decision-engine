@@ -16,9 +16,16 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
 
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v
+
 
 @router.post("/auth/register")
 def register(body: RegisterRequest):
+    RegisterRequest.validate_password(body.password)
     return register_user(body.username, body.email, body.password)
 
 

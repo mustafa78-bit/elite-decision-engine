@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 from fastapi import WebSocket
+
+from auth.jwt import decode_access_token
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,14 @@ class WebSocketManager:
         self._rooms: dict[str, set[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, room: Optional[str] = None) -> None:
+        token = websocket.query_params.get("token", "")
+        if not token:
+            await websocket.close(code=4001, reason="Authentication required")
+            return
+        payload = decode_access_token(token)
+        if payload is None:
+            await websocket.close(code=4001, reason="Invalid or expired token")
+            return
         await websocket.accept()
         self._clients.add(websocket)
         if room:

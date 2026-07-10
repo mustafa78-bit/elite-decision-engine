@@ -359,12 +359,8 @@ def test_get_trading_control(api_client, db_session):
 def test_get_signals_with_data(api_client, db_session):
     _make_signal(db_session, confidence=85.0, score=0.85, status="OPEN")
     resp = api_client.get("/signals")
-    assert resp.status_code == 401  # protected
-
-    headers = {"Authorization": f"Bearer {_token_for_user(_make_user(db_session))}"}
-    resp2 = api_client.get("/signals", headers=headers)
-    assert resp2.status_code == 200
-    data = resp2.json()
+    assert resp.status_code == 200
+    data = resp.json()
     assert len(data) == 1
     assert data[0]["symbol"] == "BTCUSDT"
     assert data[0]["confidence"] == 85.0
@@ -447,8 +443,11 @@ def test_get_users_me_with_auth(api_client, db_session):
     assert body["email"] == "test@example.com"
 
 
-def test_get_users_me_no_auth(api_client):
-    resp = api_client.get("/users/me")
+def test_get_users_me_no_auth():
+    from fastapi.testclient import TestClient
+    from api.main import app
+    client = TestClient(app)
+    resp = client.get("/users/me")
     assert resp.status_code == 401
 
 
@@ -599,28 +598,43 @@ def test_register_missing_fields(api_client):
 # ─── Protected routes (require auth) ───────────────────────────────────────
 
 
-def test_get_signals_requires_auth(api_client):
-    resp = api_client.get("/signals")
+def test_get_signals_requires_auth():
+    from fastapi.testclient import TestClient
+    from api.main import app
+    client = TestClient(app)
+    resp = client.get("/signals")
     assert resp.status_code == 401
 
 
-def test_get_risk_requires_auth(api_client):
-    resp = api_client.get("/risk")
+def test_get_risk_requires_auth():
+    from fastapi.testclient import TestClient
+    from api.main import app
+    client = TestClient(app)
+    resp = client.get("/risk")
     assert resp.status_code == 401
 
 
-def test_get_portfolio_requires_auth(api_client):
-    resp = api_client.get("/portfolio")
+def test_get_portfolio_requires_auth():
+    from fastapi.testclient import TestClient
+    from api.main import app
+    client = TestClient(app)
+    resp = client.get("/portfolio")
     assert resp.status_code == 401
 
 
-def test_get_performance_requires_auth(api_client):
-    resp = api_client.get("/performance")
+def test_get_performance_requires_auth():
+    from fastapi.testclient import TestClient
+    from api.main import app
+    client = TestClient(app)
+    resp = client.get("/performance")
     assert resp.status_code == 401
 
 
-def test_get_position_sizing_requires_auth(api_client):
-    resp = api_client.get("/position-sizing")
+def test_get_position_sizing_requires_auth():
+    from fastapi.testclient import TestClient
+    from api.main import app
+    client = TestClient(app)
+    resp = client.get("/position-sizing")
     assert resp.status_code == 401
 
 

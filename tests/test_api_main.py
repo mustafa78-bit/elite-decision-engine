@@ -13,8 +13,10 @@ def test_manager_is_websocket_manager():
 
 
 def test_websocket_connect_and_disconnect():
+    from auth.jwt import create_access_token
+    token = create_access_token({"sub": "1", "username": "test"})
     client = TestClient(app)
-    with client.websocket_connect("/ws/trades") as ws:
+    with client.websocket_connect(f"/ws/trades?token={token}") as ws:
         ws.send_text("ping")
     assert len(manager._clients) == 0
 

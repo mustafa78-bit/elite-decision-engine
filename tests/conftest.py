@@ -13,6 +13,9 @@ Usage:
 """
 
 import os
+
+os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production")
+os.environ.setdefault("API_ENV", "test")
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -169,7 +172,10 @@ def api_client(session_factory, monkeypatch):
             mod.get_session = session_factory
 
     from api.main import app
+    from auth.jwt import create_access_token
 
+    token = create_access_token({"sub": "1", "username": "test"})
     client = TestClient(app)
+    client.headers.setdefault("Authorization", f"Bearer {token}")
     yield client
     client.close()

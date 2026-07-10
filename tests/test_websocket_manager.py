@@ -9,13 +9,9 @@ def manager():
     return WebSocketManager()
 
 
-@pytest.fixture
-def mock_ws():
-    ws = MagicMock()
-    ws.accept = AsyncMock()
-    ws.send_text = AsyncMock()
-    ws.send_text.__name__ = "send_text"
-    return ws
+from auth.jwt import create_access_token
+
+_TEST_TOKEN = create_access_token({"sub": "1", "username": "test"})
 
 
 def _make_ws():
@@ -23,7 +19,14 @@ def _make_ws():
     ws.accept = AsyncMock()
     ws.send_text = AsyncMock()
     ws.send_text.__name__ = "send_text"
+    ws.close = AsyncMock()
+    ws.query_params = {"token": _TEST_TOKEN}
     return ws
+
+
+@pytest.fixture
+def mock_ws():
+    return _make_ws()
 
 
 @pytest.mark.asyncio
