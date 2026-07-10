@@ -90,17 +90,19 @@ class DecisionPipeline:
         market_data_limit: int = 500,
         regime_ai: Optional[RegimeAI] = None,
         trade_memory: Optional[TradeMemory] = None,
+        market_service: Optional[Any] = None,
     ) -> None:
         """Initialize the pipeline with injectable dependencies."""
 
         self.collector = collector or HyperliquidCollector()
         self.filters = tuple(filters) if filters is not None else (BTCHealthFilter(),)
-        self.scoring_engine = scoring_engine or ScoringEngine()
+        self.scoring_engine = scoring_engine or ScoringEngine(market_service=market_service)
         self.confidence_engine = confidence_engine or ConfidenceEngine()
         self.logger = logger or logging.getLogger(__name__)
         self.market_data_limit = market_data_limit
         self.regime_ai = regime_ai
         self.trade_memory = trade_memory
+        self.market_service = market_service
 
     def evaluate(self, signal: TradingSignal) -> Optional[TradeCandidate]:
         """Return an approved trade candidate for a signal, or ``None``."""
@@ -198,11 +200,6 @@ class DecisionPipeline:
             self.logger.exception("Decision pipeline failed for signal %r: %s", signal, exc)
             return None
 
-    def run(self, signal: TradingSignal) -> Optional[TradeCandidate]:
-        """Backward-friendly alias for ``evaluate``."""
-
-        return self.evaluate(signal)
-
     def _fetch_market_data(self, signal: TradingSignal) -> Any:
         symbol = signal.symbol.replace("USDT", "")
         self.logger.debug(
@@ -211,6 +208,12 @@ class DecisionPipeline:
             signal.timeframe,
             self.market_data_limit,
         )
+        if self.market_service is not None:
+            return self.market_service.get_ohlcv(
+                symbol=signal.symbol,
+                timeframe=signal.timeframe,
+                limit=self.market_data_limit,
+            )
         return self.collector.get_ohlcv(
             symbol=symbol,
             timeframe=signal.timeframe,

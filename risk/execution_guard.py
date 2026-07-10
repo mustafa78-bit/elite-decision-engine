@@ -16,7 +16,7 @@ from risk.models import (
     summarize_decision,
 )
 from risk_manager import RiskManager
-from scoring.regime_engine import RegimeEngine
+from scoring.regime_ai import RegimeAI
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +44,14 @@ class ExecutionGuard:
     def __init__(
         self,
         exchange: Optional[ExchangeAdapter] = None,
-        regime_engine: Optional[RegimeEngine] = None,
+        regime_engine: Optional[RegimeAI] = None,
         session_factory: Callable[[], Any] = get_session,
+        market_service: Optional[Any] = None,
     ) -> None:
         self.exchange = exchange
-        self.regime_engine = regime_engine or RegimeEngine()
+        self.regime_engine = regime_engine or RegimeAI()
         self.session_factory = session_factory
+        self.market_service = market_service
 
     def set_exchange(self, exchange: ExchangeAdapter) -> None:
         self.exchange = exchange
@@ -126,33 +128,39 @@ class ExecutionGuard:
 
         # 2. Market volatility condition
         try:
-            from market_data.indicators import IndicatorEngine
-            from market_data.collector import HyperliquidCollector
-            collector = HyperliquidCollector()
-            df = collector.get_ohlcv(symbol=symbol, timeframe="1h", limit=100)
-            if not df.empty:
-                indicators = IndicatorEngine()
-                values = indicators.calculate(df)
-                atr = float(values.get("atr", 0))
-                price = float(df["close"].iloc[-1])
+            if self.market_service is not None:
+                indicators = self.market_service.get_indicators(symbol)
+                price = self.market_service.get_price(symbol)
+                atr = float(indicators.get("atr", 0))
                 atr_pct = (atr / price) * 100 if price > 0 else 0
-                metadata["volatility_pct"] = round(atr_pct, 2)
-                checks.append(RiskCheckDetail(
-                    name=RejectionCode.VOLATILITY_TOO_HIGH,
-                    passed=atr_pct <= 5,
-                    detail=(
-                        f"Volatility too high: {atr_pct:.1f}% ATR/price"
-                        if atr_pct > 5 else ""
-                    ),
-                    value=round(atr_pct, 2),
-                    limit=5.0,
-                ))
-                if atr_pct > 5:
-                    decision = risk_decision_from_checks(checks, metadata)
-                    summarize_decision(decision, "ExecutionGuard")
-                    return decision
             else:
-                metadata["volatility_pct"] = None
+                from market_data.indicators import IndicatorEngine
+                from market_data.collector import HyperliquidCollector
+                collector = HyperliquidCollector()
+                df = collector.get_ohlcv(symbol=symbol, timeframe="1h", limit=100)
+                if not df.empty:
+                    indicators = IndicatorEngine()
+                    values = indicators.calculate(df)
+                    atr = float(values.get("atr", 0))
+                    price = float(df["close"].iloc[-1])
+                    atr_pct = (atr / price) * 100 if price > 0 else 0
+                else:
+                    atr_pct = 0
+            metadata["volatility_pct"] = round(atr_pct, 2)
+            checks.append(RiskCheckDetail(
+                name=RejectionCode.VOLATILITY_TOO_HIGH,
+                passed=atr_pct <= 5,
+                detail=(
+                    f"Volatility too high: {atr_pct:.1f}% ATR/price"
+                    if atr_pct > 5 else ""
+                ),
+                value=round(atr_pct, 2),
+                limit=5.0,
+            ))
+            if atr_pct > 5:
+                decision = risk_decision_from_checks(checks, metadata)
+                summarize_decision(decision, "ExecutionGuard")
+                return decision
         except Exception as e:
             logger.warning("Volatility check failed: %s", e)
             metadata["volatility_pct"] = None

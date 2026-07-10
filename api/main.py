@@ -40,6 +40,16 @@ from api.routes.signals import router as signals_router
 from api.routes.signals_ranking import router as signals_ranking_router
 from api.routes.trading_control import router as trading_control_router
 from api.routes.users import router as users_router
+from api.routes.explanation import router as explanation_router
+from api.routes.analytics import router as analytics_router
+from api.routes.kpi import router as kpi_router
+from api.routes.coordination import router as coordination_router
+from api.routes.dashboard import router as dashboard_router
+from api.routes.widgets import router as widgets_router
+from api.routes.preferences import router as preferences_router
+from api.routes.watchlists import router as watchlists_router
+from api.routes.timeline import router as timeline_router
+from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -47,7 +57,8 @@ from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
-from scoring.regime_engine import RegimeEngine
+from market.services import MarketDataService
+from scoring.regime_ai import RegimeAI
 from scoring.risk_engine import RiskEngine
 
 
@@ -136,6 +147,16 @@ app.include_router(signals_router)
 app.include_router(signals_ranking_router)
 app.include_router(trading_control_router)
 app.include_router(users_router)
+app.include_router(explanation_router)
+app.include_router(analytics_router)
+app.include_router(kpi_router)
+app.include_router(coordination_router)
+app.include_router(dashboard_router)
+app.include_router(widgets_router)
+app.include_router(preferences_router)
+app.include_router(watchlists_router)
+app.include_router(timeline_router)
+app.include_router(portfolio_detail_router)
 
 manager = WebSocketManager()
 
@@ -152,7 +173,7 @@ def health():
 
 @app.websocket("/ws/trades")
 async def ws_trades(websocket: WebSocket) -> None:
-    await manager.connect(websocket)
+    await manager.connect(websocket, room="trades")
     try:
         while True:
             await websocket.receive_text()
@@ -163,29 +184,110 @@ async def ws_trades(websocket: WebSocket) -> None:
         raise
 
 
+@app.websocket("/ws/analytics")
+async def ws_analytics(websocket: WebSocket) -> None:
+    await manager.connect(websocket, room="analytics")
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)
+    except Exception:
+        await manager.disconnect(websocket)
+        raise
+
+
+@app.websocket("/ws/dashboard")
+async def ws_dashboard(websocket: WebSocket) -> None:
+    await manager.connect(websocket, room="dashboard")
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)
+    except Exception:
+        await manager.disconnect(websocket)
+        raise
+
+
+@app.websocket("/ws/portfolio")
+async def ws_portfolio(websocket: WebSocket) -> None:
+    await manager.connect(websocket, room="portfolio")
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)
+    except Exception:
+        await manager.disconnect(websocket)
+        raise
+
+
+@app.websocket("/ws/notifications")
+async def ws_notifications(websocket: WebSocket) -> None:
+    await manager.connect(websocket, room="notifications")
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)
+    except Exception:
+        await manager.disconnect(websocket)
+        raise
+
+
+@app.websocket("/ws/preferences")
+async def ws_preferences(websocket: WebSocket) -> None:
+    await manager.connect(websocket, room="preferences")
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)
+    except Exception:
+        await manager.disconnect(websocket)
+        raise
+
+
+_mip_service: Optional[MarketDataService] = None
+
+
+def get_mip() -> MarketDataService:
+    global _mip_service
+    if _mip_service is None:
+        _mip_service = MarketDataService()
+    return _mip_service
+
+
 async def _broadcast_market() -> None:
     try:
-        collector = HyperliquidCollector()
-        indicators = IndicatorEngine()
-        btc = BTCHealth()
-        vol = VolatilityEngine()
-        regime = RegimeEngine()
-
-        df = collector.get_ohlcv(symbol="BTC", timeframe="1h")
-        if df.empty:
+        asset = get_mip().get_asset("BTC")
+        if asset.is_empty:
             return
 
-        values = indicators.calculate(df)
-        btc_score = btc.score()
-        vol_score = vol.score(values)
-        reg = regime.detect(values)
-        price = float(df["close"].iloc[-1])
+        price = asset.price
+        df = asset.ohlcv
+        btc_ctx = asset.context.get("btc", {})
+        btc_trend = btc_ctx.get("btc_trend", "NEUTRAL")
+        btc_score = 1.0 if btc_trend == "BULLISH" else (0.0 if btc_trend == "BEARISH" else 0.5)
+        vol_val = asset.indicators.get("volatility", 0)
+
+        from scoring.regime_ai import RegimeAI
+        regime = RegimeAI()
+        reg = regime.detect({
+            "ema20": asset.indicators.get("ema20", 0),
+            "ema50": asset.indicators.get("ema50", 0),
+            "ema200": asset.indicators.get("ema200", 0),
+            "atr": asset.indicators.get("atr", 0),
+            "close": price,
+            "rsi": asset.indicators.get("rsi", 50),
+        })
 
         event = MarketEvent(payload=MarketPayload(
             price=price,
-            regime=reg["regime"],
+            regime=reg.get("regime", "UNKNOWN"),
             btc_health_score=btc_score,
-            volatility=vol_score["volatility"],
+            volatility=vol_val,
         ))
         await manager.broadcast(serialize(event))
 

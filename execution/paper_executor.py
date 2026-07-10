@@ -8,13 +8,9 @@ SQLAlchemy models from ``database.py``.
 from __future__ import annotations
 
 import logging
-import os
-import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable, Optional
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from database import OPEN, TP_HIT, SL_HIT, CLOSED, FINAL_STATUSES, Trade, get_session
 from market_data.collector import HyperliquidCollector
@@ -70,6 +66,8 @@ class PaperExecutor:
         collector: Optional[HyperliquidCollector] = None,
         session_factory: Callable[[], Any] = get_session,
         logger: Optional[logging.Logger] = None,
+        notifications: Optional[NotificationDispatcher] = None,
+        market_service: Optional[Any] = None,
     ) -> None:
         """Create a paper executor with injectable infrastructure."""
 
@@ -78,7 +76,8 @@ class PaperExecutor:
         self.logger = logger or logging.getLogger(__name__)
         self._pnl_percentages: dict[int, float] = {}
         self._realized_pnl: dict[int, float] = {}
-        self.notifications = NotificationDispatcher()
+        self.notifications = notifications or NotificationDispatcher()
+        self.market_service = market_service
 
     def open_trade(
         self,
@@ -307,6 +306,8 @@ class PaperExecutor:
     def get_current_price(self, symbol: str) -> float:
         """Fetch the latest close price for a symbol from the configured collector."""
 
+        if self.market_service is not None:
+            return self.market_service.get_price(symbol)
         coin = self._collector_symbol(symbol)
         data = self.collector.get_ohlcv(symbol=coin, timeframe="1h", limit=2)
         if self._is_empty_market_data(data):

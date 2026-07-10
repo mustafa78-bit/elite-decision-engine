@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 
 class ScoringEngine:
 
-    def __init__(self, collector: Optional[Any] = None):
+    def __init__(self, collector: Optional[Any] = None, market_service: Optional[Any] = None):
         self.collector = collector or HyperliquidCollector()
+        self.market_service = market_service
         self.indicators = IndicatorEngine()
         self.volume = VolumeEngine()
         self.btc = BTCHealth()
@@ -30,38 +31,37 @@ class ScoringEngine:
         coin = signal.symbol.replace("USDT", "")
 
         try:
-            df = self.collector.get_ohlcv(
-                symbol=coin,
-                timeframe=signal.timeframe,
-            )
+            if self.market_service is not None:
+                indicators = self.market_service.get_indicators(signal.symbol, signal.timeframe)
+                if not indicators:
+                    logger.warning("No cached indicators for %s %s, falling back", coin, signal.timeframe)
+                    return self._score_fallback()
 
-            if df is None or df.empty:
-                logger.warning("Empty market data for %s %s, returning fallback scores", coin, signal.timeframe)
-                return {
-                    "volume_score": 0,
-                    "trend_score": 0,
-                    "btc_score": 0,
-                    "mtf_score": 0,
-                    "risk_score": 1,
-                    "final_score": 0,
-                }
+                df = self.market_service.get_ohlcv(signal.symbol, signal.timeframe)
+                values = indicators
+                volume = {"score": indicators.get("volume_score", 0)}
+                btc_score = self.btc.score()
+                volatility = {"score": indicators.get("volatility_score", 0), "volatility": indicators.get("volatility", 0)}
+                mtf_score = self.mtf.score(signal.symbol, signal.side)
+            else:
+                df = self.collector.get_ohlcv(
+                    symbol=coin,
+                    timeframe=signal.timeframe,
+                )
 
-            values = self.indicators.calculate(df)
-            volume = self.volume.score(df)
-            btc_score = self.btc.score()
-            volatility = self.volatility.score(values)
-            mtf_score = self.mtf.score(signal.symbol, signal.side)
+                if df is None or df.empty:
+                    logger.warning("Empty market data for %s %s, returning fallback scores", coin, signal.timeframe)
+                    return self._score_fallback()
+
+                values = self.indicators.calculate(df)
+                volume = self.volume.score(df)
+                btc_score = self.btc.score()
+                volatility = self.volatility.score(values)
+                mtf_score = self.mtf.score(signal.symbol, signal.side)
 
         except Exception as e:
             logger.error("MARKET DATA ERROR: %s", e)
-            return {
-                "volume_score": 0,
-                "trend_score": 0,
-                "btc_score": 0,
-                "mtf_score": 0,
-                "risk_score": 1,
-                "final_score": 0,
-            }
+            return self._score_fallback()
 
         ema20 = values.get("ema20", 0)
         ema50 = values.get("ema50", 0)
@@ -69,7 +69,7 @@ class ScoringEngine:
         rsi = values.get("rsi", 50)
         atr = values.get("atr", 0)
 
-        entry = float(df["close"].iloc[-1]) if "close" in df.columns and not df.empty else 0.0
+        entry = float(df["close"].iloc[-1]) if not df.empty and "close" in df.columns else 0.0
 
         trend_score = 0.0
 
@@ -121,4 +121,15 @@ class ScoringEngine:
                 "mtf": round(mtf_score * SCORE_WEIGHTS["mtf"], 4),
                 "risk": round(risk_score * SCORE_WEIGHTS["risk"], 4),
             },
+        }
+
+    @staticmethod
+    def _score_fallback() -> dict[str, Any]:
+        return {
+            "volume_score": 0,
+            "trend_score": 0,
+            "btc_score": 0,
+            "mtf_score": 0,
+            "risk_score": 1,
+            "final_score": 0,
         }
