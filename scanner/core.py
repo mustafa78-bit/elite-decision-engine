@@ -87,6 +87,47 @@ class OpportunityScanner:
 
         return opportunities
 
+    def get_opportunities_by_category(
+        self,
+        category: str,
+        n: int = 5,
+        timeframe: str = "1h",
+        watchlist: str | None = None,
+    ) -> list[Opportunity]:
+        """Return top N opportunities for a given category.
+
+        Categories:
+            - "top-movers"         -> momentum strategy
+            - "top-reversals"      -> reversal strategy
+            - "top-breakouts"      -> breakout strategy
+            - "top-trends"         -> trend strategy
+            - "top-mean-reversions" -> reversal strategy (mean reversion)
+        """
+        strategy_map: dict[str, str] = {
+            "top-movers": "momentum",
+            "top-reversals": "reversal",
+            "top-breakouts": "breakout",
+            "top-trends": "trend",
+            "top-mean-reversions": "reversal",
+        }
+        target_strategy = strategy_map.get(category)
+        if target_strategy is None:
+            return []
+
+        opportunities = self.scan(timeframe=timeframe, watchlist=watchlist)
+        filtered = [o for o in opportunities if o.strategy == target_strategy]
+        return filtered[:n]
+
+    @staticmethod
+    def list_categories() -> list[dict[str, str]]:
+        return [
+            {"id": "top-movers", "label": "Top Movers", "description": "Strong momentum opportunities"},
+            {"id": "top-reversals", "label": "Top Reversals", "description": "Reversal opportunities at extremes"},
+            {"id": "top-breakouts", "label": "Top Breakouts", "description": "Price breakout with volume confirmation"},
+            {"id": "top-trends", "label": "Top Trends", "description": "Trend-following opportunities"},
+            {"id": "top-mean-reversions", "label": "Top Mean Reversions", "description": "Mean reversion opportunities"},
+        ]
+
     def _scan_symbol(self, symbol: str, timeframe: str) -> Optional[ScanResult]:
         try:
             asset = self.market_service.get_asset(symbol, timeframe)

@@ -56,3 +56,33 @@ def get_scanner_dashboard(
         "intelligence_summary": dashboard.intelligence_summary,
         "timestamp": dashboard.timestamp,
     }
+
+
+@router.get("/scanner/categories")
+def list_categories():
+    return {"categories": OpportunityScanner.list_categories()}
+
+
+@router.get("/scanner/category/{category}")
+def get_category_opportunities(
+    category: str,
+    n: int = Query(5, ge=1, le=50),
+    timeframe: str = Query("1h", pattern="^(1h|4h|1d)$"),
+):
+    scanner = get_scanner()
+    ops = scanner.get_opportunities_by_category(category, n=n, timeframe=timeframe)
+    return [
+        {
+            "rank": o.rank,
+            "symbol": o.symbol,
+            "side": o.side,
+            "strategy": o.strategy,
+            "score": o.score,
+            "probability": o.probability_score,
+            "risk_score": o.risk_score,
+            "confidence": o.confidence,
+            "price": o.price,
+            "signals": o.signals,
+        }
+        for o in ops
+    ]
