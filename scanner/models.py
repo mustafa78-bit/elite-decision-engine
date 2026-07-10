@@ -21,6 +21,12 @@ class Opportunity:
 
     rank: int = 0
 
+    probability_score: float = 0.0
+    risk_score: float = 0.0
+    confidence_signals: list[str] = field(default_factory=list)
+    probability_signals: list[str] = field(default_factory=list)
+    risk_signals: list[str] = field(default_factory=list)
+
 
 @dataclass
 class ScanResult:
@@ -33,3 +39,9 @@ class ScanResult:
     composite_score: float = 0.0
     features: dict[str, Any] = field(default_factory=dict)
     signals: list[str] = field(default_factory=list)
+
+    intelligence: dict[str, Any] = field(default_factory=dict)
+    market_session: str = ""
+    btc_trend: str = ""
+    fear_greed_label: str = ""
+    funding_level: str = ""

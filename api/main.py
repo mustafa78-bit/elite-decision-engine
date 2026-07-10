@@ -49,6 +49,7 @@ from api.routes.widgets import router as widgets_router
 from api.routes.preferences import router as preferences_router
 from api.routes.watchlists import router as watchlists_router
 from api.routes.timeline import router as timeline_router
+from api.routes.scanner import router as scanner_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
@@ -156,6 +157,7 @@ app.include_router(widgets_router)
 app.include_router(preferences_router)
 app.include_router(watchlists_router)
 app.include_router(timeline_router)
+app.include_router(scanner_router)
 app.include_router(portfolio_detail_router)
 
 manager = WebSocketManager()
