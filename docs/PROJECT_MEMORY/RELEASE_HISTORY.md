@@ -1,15 +1,17 @@
-# RELEASE HISTORY — Elite Decision Engine
+# RELEASE HISTORY — Elite Platform
 
-> Complete release history with features, architecture changes, and quality improvements.
+> Complete release history with features, architecture, testing, security, and quality.
 
 ---
 
 ## Release 1.0.0 — Release Candidate
 
-**Date**: 2026-07-10
-**Branch**: `execution-layer`
-**Commit**: `818c4ee`
-**Status**: Ready for Closed Beta
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-10 |
+| **Branch** | `execution-layer` |
+| **Commit** | `818c4ee` |
+| **Status** | Ready for Closed Beta |
 
 ### Major Features
 - Full paper trading pipeline: Signal → Decision → Execution → TP/SL → Close
@@ -24,7 +26,7 @@
 - JWT authentication, security headers, CSP, WebSocket auth
 - Docker deployment (dev + production with Traefik, PostgreSQL, Redis, Prometheus, Grafana)
 
-### Architecture Changes
+### Architecture
 - ExecutionLoop v1 orchestration — batch signal processing
 - DecisionPipeline with Protocol-based interfaces (collector, filter, scorer, confidence calculator)
 - NotificationDispatcher with event-driven WebSocket and Telegram integration
@@ -34,13 +36,25 @@
 - TradeMemory for past trade context
 - PerformanceIntelligence and BacktestV2 for analytics
 
-### Quality Improvements
+### Testing
 - 953 backend tests passing (784/785 in final suite)
 - 60 frontend tests passing
 - TypeScript strict mode enabled
+- Vite build clean (530KB JS, 55KB CSS, 336ms)
+
+### Security
 - Security hardening sprint: 10 critical/high fixes
+- Default-deny auth middleware
+- JWT token on WebSocket connections
+- Security headers on all responses
+- CORS restricted to configured origins
+- CSP in index.html
+- Password validation (8-char minimum)
+
+### Quality
 - UX audit and polish pass
 - Beta certification documentation
+- Project Memory System v1.0 and v2.0
 
 ---
 

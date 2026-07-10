@@ -1,6 +1,6 @@
-# BACKLOG — Elite Decision Engine
+# BACKLOG — Elite Platform
 
-> Future ideas only. NOT currently implemented. Prioritized for future development.
+> Future ideas only. NOT currently implemented. Do NOT implement these items. Only record them.
 
 ---
 
@@ -65,7 +65,7 @@
 | L-12 | Add Git hooks (pre-commit lint, type check) | Code quality | ROADMAP.md EPIC 11 |
 | L-13 | Add automated schema validation in CI | API contract testing | ROADMAP.md EPIC 11 |
 
-## Long Term Vision
+## Future Vision
 
 | ID | Item | Description | Source |
 |----|------|-------------|--------|
