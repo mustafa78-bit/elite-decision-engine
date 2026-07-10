@@ -16,6 +16,9 @@
 | 2026-07-10 | **Founder uses the platform first** | Real feedback from real usage. | Founder Alpha phase before closed beta | Active |
 | 2026-07-10 | **Architecture before features** | Maintainable codebase over speed. | No feature work without architecture review | Active |
 | 2026-07-10 | **Quality before speed** | Ship it right, not just ship it. | No shortcuts on testing or security | Active |
+| 2026-07-10 | **Paper-first execution** | Validate logic before live risk. | All execution is paper-only | Active |
+| 2026-07-10 | **Explainable decisions** | Never generate black-box signals. | Every signal comes with reasoning chain | Active |
+| 2026-07-10 | **Human stays in control** | AI recommends, human decides. | No autonomous trading without consent | Active |
 
 ## Architecture Decisions
 

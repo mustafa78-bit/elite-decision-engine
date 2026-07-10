@@ -9,39 +9,24 @@ This is the official brain of Elite Platform. It is the Single Source of Truth.
 ## Table of Contents
 
 1. [Project Identity](#1-project-identity)
-2. [Vision](#2-vision)
-3. [Mission](#3-mission)
-4. [Current Verified Status](#4-current-verified-status)
+2. [Project Vision](#2-project-vision)
+3. [Current Verified Status](#3-current-verified-status)
+4. [Verified Metrics](#4-verified-metrics)
 5. [Architecture](#5-architecture)
-6. [Backend](#6-backend)
-7. [Frontend](#7-frontend)
-8. [Database](#8-database)
-9. [API](#9-api)
-10. [WebSocket](#10-websocket)
-11. [Security](#11-security)
-12. [Market Intelligence Platform](#12-market-intelligence-platform)
-13. [Decision Engine](#13-decision-engine)
-14. [Execution Layer](#14-execution-layer)
-15. [Scanner](#15-scanner)
-16. [Terminal](#16-terminal)
-17. [Paper Trading](#17-paper-trading)
-18. [Notifications](#18-notifications)
-19. [Testing](#19-testing)
-20. [AI Architecture](#20-ai-architecture)
-21. [Completed Epics](#21-completed-epics)
-22. [Release History](#22-release-history)
-23. [Current Phase](#23-current-phase)
-24. [Current Priorities](#24-current-priorities)
-25. [Known Limitations](#25-known-limitations)
-26. [Roadmap](#26-roadmap)
-27. [Strategic Decisions](#27-strategic-decisions)
-28. [Development Workflow](#28-development-workflow)
-29. [Quality Gates](#29-quality-gates)
-30. [Founder Principles](#30-founder-principles)
-31. [Chief Architect Principles](#31-chief-architect-principles)
-32. [Product Philosophy](#32-product-philosophy)
-33. [Future Vision](#33-future-vision)
-34. [AI Continuity Protocol](#34-ai-continuity-protocol)
+6. [AI Architecture](#6-ai-architecture)
+7. [Completed Epics](#7-completed-epics)
+8. [Release History](#8-release-history)
+9. [Strategic Decisions](#9-strategic-decisions)
+10. [Development Workflow](#10-development-workflow)
+11. [CTO Principles](#11-cto-principles)
+12. [Founder Principles](#12-founder-principles)
+13. [Product Philosophy](#13-product-philosophy)
+14. [Known Limitations](#14-known-limitations)
+15. [Current Priorities](#15-current-priorities)
+16. [Future Vision](#16-future-vision)
+17. [Elite Platform Manifesto](#17-elite-platform-manifesto)
+18. [AI Continuity Protocol](#18-ai-continuity-protocol)
+19. [Project Team](#19-project-team)
 
 ---
 
@@ -53,15 +38,17 @@ This is the official brain of Elite Platform. It is the Single Source of Truth.
 | **Repository** | `mustafa78-bit/elite-decision-engine` |
 | **Branch** | `execution-layer` |
 | **Founder** | Mustafa |
-| **Chief Architect** | ChatGPT (OpenAI) |
+| **Chief Architect (AI)** | ChatGPT (OpenAI) |
 | **Development Assistant** | Codex / OpenCode |
-| **Current Version** | 0.96 RC |
+| **Version** | 0.96 RC |
 | **Current Phase** | Founder Alpha |
-| **Release Decision** | READY FOR CLOSED BETA |
+| **Release Status** | READY FOR CLOSED BETA |
 
 ---
 
-## 2. Vision
+## 2. Project Vision
+
+### Why Elite Platform Exists
 
 Elite Platform exists to give algorithmic traders and crypto portfolio managers an **AI-powered decision intelligence platform** that is transparent, explainable, and human-controlled.
 
@@ -69,9 +56,7 @@ Elite Platform exists to give algorithmic traders and crypto portfolio managers 
 
 **Target users**: Algorithmic traders, quant analysts, crypto portfolio managers, and institutional teams.
 
----
-
-## 3. Mission
+### Mission
 
 Build an explainable AI trading platform where:
 - Every signal comes with a human-readable explanation
@@ -80,9 +65,21 @@ Build an explainable AI trading platform where:
 - The founder uses the product daily (Founder Alpha)
 - Architecture is protected, not rewritten
 
+### Core Philosophy
+
+**Product First** — Build something we would proudly use every day.
+
+**Quality First** — Ship it right, not just ship it.
+
+**Users First** — Real feedback from real usage. No hypothetical scenarios.
+
+**Architecture First** — Design before implementation. Maintainable codebase over speed.
+
+**Explainability First** — Never generate black-box signals. Every decision must be explainable.
+
 ---
 
-## 4. Current Verified Status
+## 3. Current Verified Status
 
 | Field | Value |
 |-------|-------|
@@ -92,15 +89,67 @@ Build an explainable AI trading platform where:
 | **Backend** | Mature |
 | **Frontend** | Beta Ready |
 | **Security Hardening** | Completed |
-| **Product Experience Sprint** | Completed |
-| **Product Completion Sprint** | Completed |
 | **Backend Tests** | 952 Passing |
 | **Frontend Tests** | 60 Passing |
 | **Regression** | None Reported |
 
 ---
 
+## 4. Verified Metrics
+
+| Metric | Count | Status |
+|--------|-------|--------|
+| **Backend Tests** | 952 | All passing |
+| **Frontend Tests** | 60 | All passing |
+| **TypeScript Errors** | 0 | Strict mode enabled |
+| **Vite Build** | 530KB JS, 55KB CSS | Clean (336ms) |
+| **Regression** | None reported | PASS |
+
+---
+
 ## 5. Architecture
+
+### Backend
+
+| Component | Technology |
+|-----------|------------|
+| **Language** | Python 3.11+ |
+| **Framework** | FastAPI (async) |
+| **ORM** | SQLAlchemy (PostgreSQL production / SQLite fallback) |
+| **Auth** | JWT (HS256), default-deny middleware |
+| **Logging** | Rotating file handlers (engine.log, trade.log, error.log) — 10MB, 5 backups |
+| **Config** | Environment-based (`config.py` + `.env`), validated at import time |
+| **Exchange Adapters** | Hyperliquid (primary), Binance (secondary) |
+
+### Frontend
+
+| Component | Technology |
+|-----------|------------|
+| **Framework** | React 19 + Vite 8 |
+| **Language** | TypeScript (strict mode) |
+| **State** | React Query (server), Zustand (client), React Context (auth/theme) |
+| **UI** | Custom design system, dark theme, 40+ widgets, 200+ components |
+| **Charts** | TradingView widget integration |
+| **Routes** | 33 pages, all lazy-loaded via Suspense |
+
+### Database
+
+| Component | Detail |
+|-----------|--------|
+| **Engine** | PostgreSQL 16 (production), SQLite (dev/testing) |
+| **ORM** | SQLAlchemy declarative models |
+| **Models** | Signal, Trade, User, UserSettings, Notification, Watchlist, JournalEntry |
+| **Migrations** | Not yet implemented (Alembic planned) |
+
+### API
+
+| Component | Detail |
+|-----------|--------|
+| **REST** | 31 route modules, ~100 endpoints |
+| **WebSocket** | 6 rooms (trade updates, market data, notifications, scanner, portfolio, dashboard) |
+| **Auth** | JWT middleware, default-deny (only `/health`, `/auth/register`, `/auth/login` are public) |
+
+### Core Data Flow
 
 ```
 TradingSignal (DB: OPEN)
@@ -124,82 +173,82 @@ Trade (SQLAlchemy → PostgreSQL)
 PaperExecutor.monitor_open_trades()   (TP/SL check → Auto-close stale)
 ```
 
-**Supporting Modules**: MarketData, Scoring, Risk, Exchange Adapters, Notifications, Monitoring.
+### Market Intelligence Platform
 
----
+| Component | Status |
+|-----------|--------|
+| **Funding Rates** | Collected from Hyperliquid |
+| **Open Interest** | OI data with delta change detection |
+| **Fear & Greed Index** | Market sentiment scoring |
+| **News Intelligence** | Stub wiring (placeholder for NLP) |
+| **Whale Intelligence** | Stub wiring (placeholder for on-chain) |
+| **Exchange Flow** | Inflow/outflow data collection |
+| **Liquidity Analysis** | Order book depth measurement |
 
-## 6. Backend
+### Decision Engine
 
-| Component | Technology |
-|-----------|------------|
-| **Language** | Python 3.11+ |
-| **Framework** | FastAPI (async) |
-| **ORM** | SQLAlchemy (PostgreSQL production / SQLite fallback) |
-| **Auth** | JWT (HS256), default-deny middleware |
-| **Logging** | Rotating file handlers (engine.log, trade.log, error.log) — 10MB, 5 backups |
-| **Config** | Environment-based (`config.py` + `.env`), validated at import time |
-| **Testing** | pytest — 952 tests passing |
-| **Exchange Adapters** | Hyperliquid (primary), Binance (secondary) |
-| **Risk Engine** | 5-rule evaluation (exposure, daily loss, position size, open trades, correlation) |
-| **Position Sizing** | ATR-based sizing engine |
-| **Portfolio Analytics** | 14 metrics (PnL, win rate, drawdown, etc.) |
-| **Performance Analytics** | 12 metrics (Sharpe, Sortino, profit factor, etc.) |
+The Decision Engine is the core of Elite Platform. It processes trading signals through a multi-stage pipeline:
 
----
+1. **Signal Ingestion**: Trading signals enter via database (status: OPEN)
+2. **ExecutionLoop**: Batch processes signals on configurable interval (default: 10s)
+3. **DecisionPipeline**: Evaluates each signal through market data, filters, scoring, and confidence
+4. **RiskManager**: 5-rule risk evaluation before trade creation
+5. **PositionSizingEngine**: ATR-based position sizing
+6. **TradeEngine**: TP/SL calculation, DB persistence, notification dispatch
+7. **PaperExecutor**: Monitors open trades, checks TP/SL, auto-closes stale trades (7d)
 
-## 7. Frontend
+### Execution Layer
 
-| Component | Technology |
-|-----------|------------|
-| **Framework** | React 19 + Vite 8 |
-| **Language** | TypeScript (strict mode) |
-| **State** | React Query (server), Zustand (client), React Context (auth/theme) |
-| **UI** | Custom design system, dark theme, 40+ widgets, 200+ components |
-| **Charts** | TradingView widget integration |
-| **WebSocket** | Client with exponential backoff reconnection |
-| **Build** | 530KB JS, 55KB CSS, 336ms build time |
-| **Routes** | 33 pages, all lazy-loaded via Suspense |
-| **Testing** | Vitest — 60 tests passing |
+| Component | Function |
+|-----------|----------|
+| **ExecutionLoop** | Batch signal processing, trade monitoring |
+| **DecisionPipeline** | Protocol-based interfaces (collector, filter, scorer, confidence calculator) |
+| **TradeEngine** | TP/SL calculation, duplicate check, DB persist, notification emit |
+| **PaperExecutor** | Open/close trades, PnL calculation, stale trade cleanup (7d) |
+| **TPSLEngine** | Entry/Stop/TP1/TP2/RR from ATR |
 
----
-
-## 8. Database
+### Scanner
 
 | Component | Detail |
 |-----------|--------|
-| **Engine** | PostgreSQL 16 (production), SQLite (dev/testing) |
-| **ORM** | SQLAlchemy declarative models |
-| **Models** | Signal, Trade, User, UserSettings, Notification, Watchlist, JournalEntry |
-| **Migrations** | Not yet implemented (Alembic planned) |
-| **Sessions** | `session_scope()` context manager, `get_session()` factory |
-| **Tables** | 7 core tables |
+| **Timeframes** | 1m, 5m, 15m, 1h, 4h, 1d |
+| **Strategies** | Trend, momentum, breakout, reversal, liquidity (5 total) |
+| **Output** | Opportunity categories with ranking |
+| **Real-time** | Scanner websocket for live results |
 
----
-
-## 9. API
+### Terminal
 
 | Component | Detail |
 |-----------|--------|
-| **REST** | 31 route modules, ~100 endpoints |
-| **WebSocket** | 6 rooms (trade updates, market data, notifications, scanner, portfolio, dashboard) |
-| **Auth** | JWT middleware, default-deny (only `/health`, `/auth/register`, `/auth/login` are public) |
-| **Security Headers** | X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, HSTS |
+| **Elite Terminal** | Enterprise Decision Intelligence Platform |
+| **Trading Workspace** | Multi-panel layout with chart + order panel |
+| **Professional Workspace** | Resizable 3-panel layout |
+| **AI Experience** | Chat + signals + analysis layout |
+| **Hero Dashboard** | Overview with 18 widgets |
+| **TradingView** | Theme sync, crosshair sync, indicators, timeframes, comparison, layouts |
 
----
+### Paper Trading
 
-## 10. WebSocket
+All execution is paper-only. No real money is at risk.
+
+| Component | Function |
+|-----------|----------|
+| **PaperExecutor** | Validates → Persists → Monitors → Closes |
+| **TP/SL Monitoring** | Checks all open trades against current price |
+| **Auto-close** | Stale trades closed after 7 days |
+| **PnL Calculation** | Unrealized and realized PnL |
+| **Duplicate Prevention** | Prevents duplicate open trades per signal |
+
+### Notifications
 
 | Component | Detail |
 |-----------|--------|
-| **Architecture** | Room-based pub/sub system (6 rooms) |
-| **Auth** | Token-validated connections (`?token=<jwt>`) |
-| **Broadcast** | Periodic broadcast every 30 seconds |
-| **Frontend** | Exponential backoff reconnection |
-| **Rooms** | trade_updates, market_data, notifications, scanner, portfolio, dashboard |
+| **Event Foundation** | Typed events for trade lifecycle |
+| **Dispatcher** | Routes events to WebSocket and Telegram |
+| **WebSocket Integration** | Real-time notification center in frontend |
+| **Trade Events** | Open, close, TP/SL hit |
 
----
-
-## 11. Security
+### Security
 
 | Control | Status |
 |---------|--------|
@@ -212,129 +261,17 @@ PaperExecutor.monitor_open_trades()   (TP/SL check → Auto-close stale)
 | **TypeScript Strict** | Enabled |
 | **Remaining** | Token in localStorage, no rate limiting, no CSRF |
 
----
-
-## 12. Market Intelligence Platform
-
-| Component | Status |
-|-----------|--------|
-| **Funding Rates** | Collected from Hyperliquid |
-| **Open Interest** | OI data with delta change detection |
-| **Fear & Greed Index** | Market sentiment scoring |
-| **News Intelligence** | Stub wiring (placeholder for NLP) |
-| **Whale Intelligence** | Stub wiring (placeholder for on-chain) |
-| **Exchange Flow** | Inflow/outflow data collection |
-| **Liquidity Analysis** | Order book depth measurement |
-
----
-
-## 13. Decision Engine
-
-The Decision Engine is the core of Elite Platform. It processes trading signals through a multi-stage pipeline:
-
-1. **Signal Ingestion**: Trading signals enter via database (status: OPEN)
-2. **ExecutionLoop**: Batch processes signals on configurable interval (default: 10s)
-3. **DecisionPipeline**: Evaluates each signal through market data, filters, scoring, and confidence
-4. **RiskManager**: 5-rule risk evaluation before trade creation
-5. **PositionSizingEngine**: ATR-based position sizing
-6. **TradeEngine**: TP/SL calculation, DB persistence, notification dispatch
-7. **PaperExecutor**: Monitors open trades, checks TP/SL, auto-closes stale trades (7d)
-
-**Key Components**:
-- `DecisionEngine` — Main loop, signal polling
-- `DecisionPipeline` — Protocol-based evaluation (collector, filter, scorer, confidence)
-- `ConfidenceEngine` — Decision logic from component scores
-- `ScoringEngine` — 5-component weighted scoring
-- `TradeEngine` — Trade creation with TP/SL
-- `PaperExecutor` — Paper trade monitoring and execution
-
----
-
-## 14. Execution Layer
-
-| Component | Function |
-|-----------|----------|
-| **ExecutionLoop** | Batch signal processing, trade monitoring |
-| **DecisionPipeline** | Protocol-based interfaces (collector, filter, scorer, confidence calculator) |
-| **TradeEngine** | TP/SL calculation, duplicate check, DB persist, notification emit |
-| **PaperExecutor** | Open/close trades, PnL calculation, stale trade cleanup (7d) |
-| **TPSLEngine** | Entry/Stop/TP1/TP2/RR from ATR |
-
----
-
-## 15. Scanner
+### Monitoring
 
 | Component | Detail |
 |-----------|--------|
-| **Timeframes** | 1m, 5m, 15m, 1h, 4h, 1d |
-| **Strategies** | Trend, momentum, breakout, reversal, liquidity (5 total) |
-| **Output** | Opportunity categories with ranking |
-| **Real-time** | Scanner websocket for live results |
-| **Integration** | Results persisted as Signal records in database |
+| **Logging** | Rotating file handlers (10MB, 5 backups) |
+| **Log Files** | engine.log, trade.log, error.log |
+| **Docker** | Dev + Production (Traefik, PostgreSQL, Redis, Prometheus, Grafana) |
 
 ---
 
-## 16. Terminal
-
-| Component | Detail |
-|-----------|--------|
-| **Elite Terminal** | Enterprise Decision Intelligence Platform |
-| **Trading Workspace** | Multi-panel layout with chart + order panel |
-| **Professional Workspace** | Resizable 3-panel layout |
-| **AI Experience** | Chat + signals + analysis layout |
-| **Hero Dashboard** | Overview with 18 widgets |
-| **TradingView** | Theme sync, crosshair sync, indicators, timeframes, comparison, layouts |
-
----
-
-## 17. Paper Trading
-
-All execution is paper-only. No real money is at risk.
-
-| Component | Function |
-|-----------|----------|
-| **PaperExecutor** | Validates → Persists → Monitors → Closes |
-| **TP/SL Monitoring** | Checks all open trades against current price |
-| **Auto-close** | Stale trades closed after 7 days |
-| **PnL Calculation** | Unrealized and realized PnL |
-| **Duplicate Prevention** | Prevents duplicate open trades per signal |
-
----
-
-## 18. Notifications
-
-| Component | Detail |
-|-----------|--------|
-| **Event Foundation** | Typed events for trade lifecycle |
-| **Dispatcher** | Routes events to WebSocket and Telegram |
-| **WebSocket Integration** | Real-time notification center in frontend |
-| **Trade Events** | Open, close, TP/SL hit |
-| **Frontend** | Notification center with filtering and history |
-
----
-
-## 19. Testing
-
-| Layer | Framework | Count | Status |
-|-------|-----------|-------|--------|
-| **Backend** | pytest | 952 | All passing |
-| **Frontend** | Vitest | 60 | All passing |
-| **TypeScript** | tsc strict | — | 0 errors |
-| **Build** | Vite | — | Clean (530KB JS, 55KB CSS) |
-| **Regression** | — | — | None reported |
-
-**Test Files**:
-- `tests/test_integration.py` — End-to-end pipeline (6 phases)
-- `tests/test_risk_manager.py` — 5 risk rules
-- `tests/test_position_sizing.py` — ATR-based sizing
-- `tests/test_portfolio_engine.py` — 14 portfolio metrics
-- `tests/test_performance_engine.py` — 12 performance metrics
-- `tests/test_api_routes.py` — 53 API route tests
-- `tests/test_edge_cases.py` — Edge case coverage
-
----
-
-## 20. AI Architecture
+## 6. AI Architecture
 
 ### Current AI Components
 
@@ -368,7 +305,7 @@ The `CoordinatorService` acts as a registry for intelligence sources. Currently 
 - Trade execution
 - Notification dispatch
 
-### Future Agent Responsibilities
+### Agent Responsibilities
 
 | Agent | Responsibility |
 |-------|---------------|
@@ -381,7 +318,7 @@ The `CoordinatorService` acts as a registry for intelligence sources. Currently 
 
 ---
 
-## 21. Completed Epics
+## 7. Completed Epics
 
 | Epic | Name | Commit | Status |
 |------|------|--------|--------|
@@ -409,7 +346,7 @@ The `CoordinatorService` acts as a registry for intelligence sources. Currently 
 
 ---
 
-## 22. Release History
+## 8. Release History
 
 ### Release 0.96 RC — Release Candidate
 
@@ -440,113 +377,46 @@ The `CoordinatorService` acts as a registry for intelligence sources. Currently 
 
 ---
 
-## 23. Current Phase
-
-**Founder Alpha** — The founder (Mustafa) uses the platform daily. Real feedback from real usage. No public access until Founder Alpha validates the product experience.
-
-**Release Decision**: READY FOR CLOSED BETA — platform is functionally complete, security hardened, and awaiting closed beta testers.
-
----
-
-## 24. Current Priorities
-
-1. **Founder Alpha validation** — daily usage, real feedback
-2. **Fix ConfidenceEngine math bug** (BP2) — double-scaling causes every signal approved
-3. **Fix ATRr_14 typo** (BP3) — breaks indicator pipeline
-4. **Add Alembic database migrations** — schema changes dangerous without them
-5. **Pin dependency versions** — reproducible builds
-6. **Wire real data sources** into ExplanationService/CoordinatorService
-7. **Add rate limiting** to API endpoints
-8. **Move JWT token** to httpOnly cookies
-
----
-
-## 25. Known Limitations
-
-| Category | Limitation | Impact |
-|----------|-----------|--------|
-| Functional | No live exchange integration | Paper trading only |
-| Functional | ConfidenceEngine math bug (double-scaling) | Every signal approved at STRONG_APPROVE |
-| Functional | ATRr_14 typo in indicator pipeline | All indicator data reads as zero |
-| Functional | Intelligence sources are stub/dummy data | No real market intelligence wired |
-| Scalability | Portfolio engine loads all trades in memory | Memory pressure at 10k+ trades |
-| Scalability | No pagination on list endpoints | Degraded UX with large datasets |
-| Scalability | No rate limiting on API | Susceptible to abuse |
-| Security | JWT secret key < 32 bytes | Cryptographic weakness warning |
-| Security | No ForeignKey on Trade.signal_id | Orphaned trades possible |
-| Security | Token stored in localStorage | XSS-vulnerable |
-| Maintainability | 32 datetime.utcnow() deprecation warnings | Python 3.14 breakage |
-| Maintainability | 7 legacy test files with zero assertions | Confidence gap |
-| Maintainability | Dead code artifacts (DC1-9) | Maintenance burden |
-| Maintainability | No database migration system | Schema changes dangerous |
-
----
-
-## 26. Roadmap
-
-### Current (Completed)
-- Foundation (DecisionEngine, Pipeline, PaperExecutor, Scoring)
-- Execution Loop v1
-- Risk Engine, Position Sizing, Analytics
-- Live Execution Routing, Exchange Adapters
-- Notification System, WebSocket
-- Frontend Dashboard (33 pages, 200+ components)
-- Sprints 39-60
-- Epics 1-8 (Scanner, Market Intelligence, Decision Intelligence, Terminal, Optimization, Beta Readiness)
-- Security Hardening, UX Polish
-- Project Memory System v1.0–v3.0
-
-### Next (Public Beta Preparation)
-1. Fix ConfidenceEngine math bug (BP2)
-2. Fix ATRr_14 typo (BP3)
-3. Add Alembic database migrations
-4. Pin dependency versions
-5. Wire real data sources into ExplanationService/CoordinatorService
-6. Add rate limiting to API endpoints
-7. Move JWT token to httpOnly cookies
-
-### Future (Enterprise Platform)
-- EPIC 1: Foundation Hardening (pin deps, pyproject.toml, Alembic, API versioning)
-- EPIC 2: Execution Engine Optimization (async loop, caching, pagination)
-- EPIC 3: Elite Scanner (multi-timeframe, divergence, pattern recognition)
-- EPIC 4: Market Intelligence Platform (on-chain, correlation, liquidity heatmap)
-- EPIC 5: News Intelligence (NLP sentiment, news ingestion)
-- EPIC 6: Whale Intelligence (on-chain tracking, whale alerts)
-- EPIC 7: Probability Engine (ML outcome prediction, Monte Carlo)
-- EPIC 8: Elite Terminal (pro trading terminal, advanced charts)
-- EPIC 9: Portfolio Intelligence (VaR, optimization, attribution)
-- EPIC 10: AI Assistant (LLM integration, natural language, RAG)
-- EPIC 11: Production Readiness (E2E tests, CI/CD, load testing)
-- EPIC 12: Beta Launch (integration testing, security audit, onboarding)
-
-### Long-Term
-- Multi-user SaaS (roles, workspaces, audit logging)
-- Live Trading (exchange integration, circuit breakers)
-- Strategy Marketplace (shared strategies, community)
-- White-label (custom branding, enterprise features)
-
----
-
-## 27. Strategic Decisions
+## 9. Strategic Decisions
 
 These decisions are permanent until explicitly changed.
 
-| Decision | Reason |
-|----------|--------|
-| **No Public Beta** | Founder Alpha first. |
-| **Frontend before new AI agents** | Backend is sufficiently mature. |
-| **No token before real users** | Product first. |
-| **Security before Production** | Protect users before scaling. |
-| **Founder uses the platform first** | Real feedback from real usage. |
-| **Architecture before features** | Maintainable codebase over speed. |
-| **Quality before speed** | Ship it right, not just ship it. |
-| **Paper-first execution** | Validate logic before live risk. |
-| **Explainable decisions** | Never generate black-box signals. |
-| **Human stays in control** | AI recommends, human decides. |
+| Date | Decision | Reason | Impact | Status |
+|------|----------|--------|--------|--------|
+| 2026-07-10 | **No Public Beta** | Founder Alpha first. | Product validated before public access | Active |
+| 2026-07-10 | **Frontend before new AI agents** | Backend is sufficiently mature. | Frontend gets priority in next sprints | Active |
+| 2026-07-10 | **No token before real users** | Product first. | No monetization before product-market fit | Active |
+| 2026-07-10 | **Security before Production** | Protect users before scaling. | Security hardening completed before launch | Active |
+| 2026-07-10 | **Founder uses the platform first** | Real feedback from real usage. | Founder Alpha phase before closed beta | Active |
+| 2026-07-10 | **Architecture before features** | Maintainable codebase over speed. | No feature work without architecture review | Active |
+| 2026-07-10 | **Quality before speed** | Ship it right, not just ship it. | No shortcuts on testing or security | Active |
+| 2026-07-03 | **Paper-first execution architecture** | Validate trading logic before live trading risk | All execution is paper-only; live infrastructure dormant | Active |
+| 2026-07-03 | **Python/FastAPI backend** | Async support, type hints, modern ecosystem | Fast API development, good typing story | Active |
+| 2026-07-03 | **React 19 + TypeScript frontend** | Type safety, modern tooling, Vite speed | Strict mode enabled, zero TS errors | Active |
+| 2026-07-03 | **PostgreSQL database** | Production-grade, JSON support, reliability | SQLite fallback for dev/testing | Active |
+| 2026-07-03 | **SQLAlchemy ORM** | Declarative models, migration-ready, Pythonic | Models: Signal, Trade, User, Notification, Watchlist, JournalEntry | Active |
+| 2026-07-03 | **Hyperliquid as primary exchange** | Perpetual futures, low fees, good API | Binance as secondary connector | Active |
+| 2026-07-05 | **5-component weighted scoring** | Balanced multi-factor signal evaluation | Scores must sum to 1.0, enforced in config.py | Active |
+| 2026-07-05 | **Dependency Injection pattern** | Testability, swappable components | All major components accept injectable deps | Active |
+| 2026-07-05 | **Logging over print** | Production-grade observability | Rotating file handlers: engine.log, trade.log, error.log | Active |
+| 2026-07-06 | **Synchronous blocking main loop** | Simplicity for single-developer project | DecisionEngine.run() is `while True`; async refactor planned for EPIC 2 | Active |
+| 2026-07-10 | **Default-deny auth middleware** | Most routes should require authentication | Only /health, /auth/register, /auth/login are public | Active |
+| 2026-07-10 | **JWT token on WebSocket connections** | Prevent unauthorized real-time data access | Token passed as ?token= query param, validated on connect | Active |
+| 2026-07-10 | **Security headers on all responses** | OWASP best practice | X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, etc. | Active |
+| 2026-07-10 | **CORS restricted to configured origin** | Prevent cross-origin abuse | Default: http://localhost:5173; production must set explicitly | Active |
+| 2026-07-10 | **CSP in index.html** | Prevent XSS via script injection | Restricts script/style sources, allows TradingView widgets | Active |
+| 2026-07-10 | **Password validation (8-char minimum)** | Basic security hygiene | Prevents trivially weak passwords | Active |
+| 2026-07-10 | **Closed Beta before Public Beta** | Validate real-world behavior, gather UX feedback | 10-50 testers; polish items addressed before public | Active |
+| 2026-07-10 | **Release Candidate approved** | 952 backend tests pass, 60 frontend tests pass | Platform demonstrably functional end-to-end | Active |
+| 2026-07-10 | **Zustand for client state** | Lightweight, no boilerplate | 5 stores: UI, preferences, workspace, terminal | Active |
+| 2026-07-10 | **React Query for server state** | Caching, stale-while-revalidate | 10s staleTime, automatic refetch | Active |
+| 2026-07-10 | **TradingView widget for charts** | Industry-standard, lightweight | Avoids building custom charting engine | Active |
+| 2026-07-10 | **Dark theme only** | Trader preference, reduces design surface | CSS variables for theming | Active |
+| 2026-07-10 | **Code-split routes with lazy loading** | Performance optimization | All routes lazy-loaded via Suspense | Active |
 
 ---
 
-## 28. Development Workflow
+## 10. Development Workflow
 
 ```
 Founder
@@ -580,20 +450,27 @@ Next Sprint
 
 ---
 
-## 29. Quality Gates
+## 11. CTO Principles
 
-| Gate | Criteria | Status |
-|------|----------|--------|
-| **Build** | TypeScript strict mode, Vite production bundle, no circular dependencies | PASS |
-| **Testing** | 952 backend tests, 60 frontend tests, 0 failures | PASS |
-| **Security** | Default-deny auth, JWT, WebSocket auth, security headers, CSP | PASS |
-| **Architecture** | Protocol-based interfaces, DI pattern, layered pipeline | PASS |
-| **Documentation** | MASTER_BOOK, PROJECT_STATUS, DECISIONS, RELEASE_HISTORY, BACKLOG | PASS |
-| **Regression** | None reported | PASS |
+The Chief Architect (AI) must follow these principles:
+
+1. **Protect architecture** — Preserve existing design patterns and module boundaries
+2. **Reduce technical debt** — Fix issues before they compound
+3. **Prefer clarity** — Simple, readable code over clever implementations
+4. **Product before code** — Understand the why before the how
+5. **Quality before speed** — Ship it right, not just ship it
+6. **Long-term thinking** — Consider maintenance burden and scalability
+7. **Never commit failing code** — Tests must pass before commit
+8. **Preserve architecture** — Do not rewrite working components
+9. **Dependency Injection** — All major components accept injectable deps
+10. **Logging over print** — Structured logging with rotating handlers
+11. **One feature = one commit** — Atomic, reviewable changes
+12. **No duplicate logic** — DRY across the codebase
+13. **Type hints everywhere** — Python + TypeScript strict mode
 
 ---
 
-## 30. Founder Principles
+## 12. Founder Principles
 
 1. **Founder Alpha first** — the founder uses the product daily
 2. **Daily usage** — real feedback from real usage
@@ -603,24 +480,7 @@ Next Sprint
 
 ---
 
-## 31. Chief Architect Principles
-
-1. **Architecture first** — design before implementation
-2. **Maintainability first** — clean code over clever code
-3. **No unnecessary complexity** — simplest solution that works
-4. **Product before code** — understand the why before the how
-5. **Quality before speed** — ship it right, not just ship it
-6. **Never commit failing code** — tests must pass
-7. **Preserve architecture** — do not rewrite working components
-8. **Dependency Injection** — all major components accept injectable deps
-9. **Logging over print** — structured logging with rotating handlers
-10. **One feature = one commit** — atomic, reviewable changes
-11. **No duplicate logic** — DRY across the codebase
-12. **Type hints everywhere** — Python + TypeScript strict mode
-
----
-
-## 32. Product Philosophy
+## 13. Product Philosophy
 
 ### Explain Every Decision
 
@@ -643,24 +503,121 @@ When the platform recommends a trade, it explains:
 - What the confidence level is
 - What similar trades did in the past
 
----
+### Decision Framework
 
-## 33. Future Vision
+Every recommendation must include:
+- **Why?** — Clear rationale for the action
+- **Why now?** — Timing justification
+- **Risk?** — What could go wrong
+- **Confidence?** — How certain is the AI
+- **Alternative?** — What other options exist
 
-1. **Enterprise AI Platform** — AI-powered decision support with LLM assistant
-2. **Explainable Intelligence** — every signal comes with full reasoning chain
-3. **Multi-user SaaS** — role-based access, team workspaces, audit logging
-4. **Live Trading** — exchange integration with circuit breakers and position reconciliation
-5. **News & Whale Intelligence** — NLP sentiment, on-chain whale tracking
-6. **Probability Engine** — ML outcome prediction, Monte Carlo simulation
-7. **AI Assistant** — natural language queries, trade explanations, market insights
-8. **Strategy Marketplace** — shared strategies, community features
-9. **White-label** — enterprise deployment with custom branding
-10. **Global Reach** — multi-language support, mobile applications
+Human always makes the final decision.
 
 ---
 
-## 34. AI Continuity Protocol
+## 14. Known Limitations
+
+| Category | Limitation | Impact |
+|----------|-----------|--------|
+| Functional | No live exchange integration | Paper trading only |
+| Functional | ConfidenceEngine math bug (double-scaling) | Every signal approved at STRONG_APPROVE |
+| Functional | ATRr_14 typo in indicator pipeline | All indicator data reads as zero |
+| Functional | Intelligence sources are stub/dummy data | No real market intelligence wired |
+| Scalability | Portfolio engine loads all trades in memory | Memory pressure at 10k+ trades |
+| Scalability | No pagination on list endpoints | Degraded UX with large datasets |
+| Scalability | No rate limiting on API | Susceptible to abuse |
+| Security | JWT secret key < 32 bytes | Cryptographic weakness warning |
+| Security | No ForeignKey on Trade.signal_id | Orphaned trades possible |
+| Security | Token stored in localStorage | XSS-vulnerable |
+| Maintainability | 32 datetime.utcnow() deprecation warnings | Python 3.14 breakage |
+| Maintainability | 7 legacy test files with zero assertions | Confidence gap |
+| Maintainability | Dead code artifacts (DC1-9) | Maintenance burden |
+| Maintainability | No database migration system | Schema changes dangerous |
+
+---
+
+## 15. Current Priorities
+
+1. **Founder Alpha validation** — daily usage, real feedback
+2. **Fix ConfidenceEngine math bug** (BP2) — double-scaling causes every signal approved
+3. **Fix ATRr_14 typo** (BP3) — breaks indicator pipeline
+4. **Add Alembic database migrations** — schema changes dangerous without them
+5. **Pin dependency versions** — reproducible builds
+6. **Wire real data sources** into ExplanationService/CoordinatorService
+7. **Add rate limiting** to API endpoints
+8. **Move JWT token** to httpOnly cookies
+
+---
+
+## 16. Future Vision
+
+### Next (Public Beta Preparation)
+
+1. Fix ConfidenceEngine math bug (BP2)
+2. Fix ATRr_14 typo (BP3)
+3. Add Alembic database migrations
+4. Pin dependency versions
+5. Wire real data sources into ExplanationService/CoordinatorService
+6. Add rate limiting to API endpoints
+7. Move JWT token to httpOnly cookies
+
+### Future (Enterprise Platform)
+
+- EPIC 1: Foundation Hardening (pin deps, pyproject.toml, Alembic, API versioning)
+- EPIC 2: Execution Engine Optimization (async loop, caching, pagination)
+- EPIC 3: Elite Scanner (multi-timeframe, divergence, pattern recognition)
+- EPIC 4: Market Intelligence Platform (on-chain, correlation, liquidity heatmap)
+- EPIC 5: News Intelligence (NLP sentiment, news ingestion)
+- EPIC 6: Whale Intelligence (on-chain tracking, whale alerts)
+- EPIC 7: Probability Engine (ML outcome prediction, Monte Carlo)
+- EPIC 8: Elite Terminal (pro trading terminal, advanced charts)
+- EPIC 9: Portfolio Intelligence (VaR, optimization, attribution)
+- EPIC 10: AI Assistant (LLM integration, natural language, RAG)
+- EPIC 11: Production Readiness (E2E tests, CI/CD, load testing)
+- EPIC 12: Beta Launch (integration testing, security audit, onboarding)
+
+### Long-Term
+
+- Multi-user SaaS (roles, workspaces, audit logging)
+- Live Trading (exchange integration, circuit breakers)
+- Strategy Marketplace (shared strategies, community)
+- White-label (custom branding, enterprise features)
+
+---
+
+## 17. Elite Platform Manifesto
+
+### Our Promise
+
+Build something we would proudly use every day.
+
+### Values
+
+**Product First** — Build something we would proudly use every day.
+
+**Quality First** — Ship it right, not just ship it.
+
+**Users First** — Real feedback from real usage.
+
+**Architecture First** — Design before implementation.
+
+**Security First** — Protect users before scaling.
+
+**Explainability First** — Never generate black-box signals.
+
+### Development Charter
+
+1. **Founder decides** — Product vision and final decisions
+2. **Chief Architect designs** — System architecture and technical leadership
+3. **Development Assistant implements** — Code, tests, documentation
+4. **Founder validates** — Real usage, real feedback
+5. **Chief Architect reviews** — Architecture protection, quality review
+6. **Repeat** — Continuous improvement cycle
+
+---
+
+## 18. AI Continuity Protocol
 
 Every AI assistant **MUST FIRST** read:
 
@@ -668,7 +625,7 @@ Every AI assistant **MUST FIRST** read:
 2. `docs/PROJECT_MEMORY/PROJECT_STATUS.md`
 3. `docs/PROJECT_MEMORY/DECISIONS.md`
 
-**Before** making any proposal.
+**Before** making any recommendation.
 
 These documents **override assumptions**. Follow these rules:
 
@@ -677,28 +634,63 @@ These documents **override assumptions**. Follow these rules:
 - **Never** ignore previous architectural decisions.
 - **Always** continue from the latest documented state.
 
-### Project Memory Rule
+---
 
-After **EVERY major sprint**, automatically update:
+## 19. Project Team
 
-- `MASTER_BOOK.md`
-- `PROJECT_STATUS.md`
-- `DECISIONS.md`
-- `RELEASE_HISTORY.md`
-- `BACKLOG.md`
+### Founder
 
-These files must always reflect the current state of the project.
+**Mustafa**
 
-### Quality Rules
-
-- Use existing repository.
-- Use git history.
-- Use existing reports.
-- Use existing documentation.
-- Never fabricate history.
-- Never remove important architectural decisions.
-- Keep documentation synchronized.
+**Responsibilities**:
+- Product Vision
+- Final Decisions
+- Founder Alpha
+- Daily Product Validation
 
 ---
 
-*Constitution Version: 3.0 | Last updated: 2026-07-10 | Branch: execution-layer | Commit: c6f9e83*
+### Chief Architect (AI)
+
+**ChatGPT (OpenAI)**
+
+**Responsibilities**:
+- System Architecture
+- Technical Leadership
+- Product Strategy
+- Architecture Protection
+- Quality Review
+- Release Review
+- Long-term Planning
+
+---
+
+### Development Assistant
+
+**Codex / OpenCode**
+
+**Responsibilities**:
+- Implementation
+- Testing
+- Refactoring
+- Documentation
+- Execution
+- Bug Fixes
+
+---
+
+## Quality Rules
+
+- Use repository information
+- Use git history
+- Use existing reports
+- Use existing documentation
+- Never fabricate history
+- Never remove historical decisions
+- Never remove important architectural decisions
+- Keep documentation synchronized
+- Keep all project memory synchronized
+
+---
+
+*Constitution Version: 3.0 | Last updated: 2026-07-10 | Branch: execution-layer | Commit: d0688fa*
