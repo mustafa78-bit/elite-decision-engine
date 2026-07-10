@@ -1,10 +1,5 @@
-import { lazy, Suspense, ComponentType } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 import { Skeleton } from "../ui/skeleton";
-
-interface LazyLoadProps {
-  importFn: () => Promise<{ default: ComponentType<any> }>;
-  fallback?: React.ReactNode;
-}
 
 function DefaultFallback() {
   return (

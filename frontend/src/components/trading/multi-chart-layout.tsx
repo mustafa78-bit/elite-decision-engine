@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { ChartPanel } from "./chart-panel";

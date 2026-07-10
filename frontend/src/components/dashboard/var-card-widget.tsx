@@ -14,7 +14,6 @@ export function VaRCardWidget({
   var99 = 0,
   volatility = 0,
   beta = 0,
-  correlation = 0,
 }: VaRCardWidgetProps) {
   return (
     <Card className="h-full">

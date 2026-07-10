@@ -1,23 +1,11 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { useWidgetRegistry, type WidgetDefinition } from "./widget-registry";
 import { cn } from "../../lib/utils";
 import { useWorkspaceStore } from "../../stores/workspace-store";
 
-interface DashboardLayout {
-  id: string;
-  name: string;
-  widgets: { widgetId: string; x: number; y: number; w: number; h: number }[];
-}
-
-interface DashboardBuilderProps {
-  currentLayout?: DashboardLayout;
-  onSave?: (layout: DashboardLayout) => void;
-}
-
-export function DashboardBuilder({ currentLayout, onSave }: DashboardBuilderProps) {
+export function DashboardBuilder() {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -39,8 +27,12 @@ export function DashboardBuilder({ currentLayout, onSave }: DashboardBuilderProp
       addPanel({
         id: `widget-${widget.id}-${Date.now()}`,
         type: widget.component,
-        position: { x: 100 + Math.random() * 200, y: 100 + Math.random() * 200 },
-        size: { width: widget.defaultWidth * 300, height: widget.defaultHeight * 200 },
+        title: widget.name,
+        x: 100 + Math.random() * 200,
+        y: 100 + Math.random() * 200,
+        w: widget.defaultWidth * 300,
+        h: widget.defaultHeight * 200,
+        minimized: false,
       });
     },
     [addPanel],

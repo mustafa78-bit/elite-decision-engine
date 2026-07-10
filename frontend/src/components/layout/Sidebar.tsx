@@ -12,18 +12,18 @@ const sections: { title: string; items: NavItem[] }[] = [
     title: "Overview",
     items: [
       { label: "Dashboard", path: "/dashboard", icon: "◈" },
-      { label: "Portfolio Detail", path: "/portfolio-detail", icon: "▣" },
-      { label: "Trades", path: "/trades", icon: "⇄" },
-      { label: "Timeline", path: "/timeline", icon: "≡" },
-      { label: "Watchlists", path: "/watchlists", icon: "☰" },
+      { label: "Portfolio", path: "/portfolio", icon: "▣" },
+      { label: "Scanner", path: "/scanner", icon: "◎" },
+      { label: "Trade Journal", path: "/trades", icon: "⇄" },
+      { label: "Paper Trading", path: "/paper-trading", icon: "◻" },
     ],
   },
   {
-    title: "Analysis",
+    title: "Intelligence",
     items: [
+      { label: "Signals", path: "/signals", icon: "⚡" },
       { label: "Analytics", path: "/analytics", icon: "▦" },
       { label: "Market", path: "/market", icon: "◉" },
-      { label: "Signals", path: "/signals", icon: "⚡" },
       { label: "Risk", path: "/risk", icon: "▲" },
       { label: "Regime", path: "/regime", icon: "◆" },
     ],
@@ -31,6 +31,7 @@ const sections: { title: string; items: NavItem[] }[] = [
   {
     title: "Data",
     items: [
+      { label: "Intelligence", path: "/intelligence", icon: "✦" },
       { label: "Funding", path: "/funding", icon: "◎" },
       { label: "Open Interest", path: "/open-interest", icon: "◐" },
       { label: "Whale Activity", path: "/whale", icon: "◉" },
@@ -40,10 +41,11 @@ const sections: { title: string; items: NavItem[] }[] = [
   {
     title: "System",
     items: [
-      { label: "Intelligence", path: "/intelligence", icon: "✦" },
-      { label: "Execution", path: "/execution", icon: "▶" },
-      { label: "Paper Trading", path: "/paper-trading", icon: "◻" },
-      { label: "Preferences", path: "/preferences", icon: "⚙" },
+      { label: "Notifications", path: "/notifications", icon: "🔔" },
+      { label: "Timeline", path: "/timeline", icon: "≡" },
+      { label: "Watchlists", path: "/watchlists", icon: "☰" },
+      { label: "Settings", path: "/preferences", icon: "⚙" },
+      { label: "Profile", path: "/profile", icon: "👤" },
     ],
   },
 ];

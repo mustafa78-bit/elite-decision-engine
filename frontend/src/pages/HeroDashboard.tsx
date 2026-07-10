@@ -18,7 +18,6 @@ import { WatchlistWidget } from "../components/dashboard/watchlist-widget";
 import { RecentActivityWidget } from "../components/dashboard/recent-activity-widget";
 import { TimelineWidget } from "../components/dashboard/timeline-widget";
 import { QuickActionsWidget } from "../components/dashboard/quick-actions-widget";
-import { useUIStore } from "../stores/ui-store";
 
 const defaultQuickActions = [
   { label: "New Trade", icon: "⚡", shortcut: "⌘N" },

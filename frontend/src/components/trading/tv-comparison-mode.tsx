@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Badge } from "../ui/badge";
 
 interface ComparisonSymbol {
   symbol: string;

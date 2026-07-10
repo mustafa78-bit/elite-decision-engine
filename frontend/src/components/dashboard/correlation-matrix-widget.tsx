@@ -28,7 +28,7 @@ export function CorrelationMatrixWidget({
               </tr>
             </thead>
             <tbody>
-              {symbols.map((row, i) => (
+              {symbols.map((row, _i) => (
                 <tr key={row}>
                   <td className="p-1 font-medium text-[var(--text-primary)]">{row}</td>
                   {symbols.map((col) => {

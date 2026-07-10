@@ -56,7 +56,7 @@ export function useWatchlists() {
 export function useSignals() {
   return useQuery({
     queryKey: ["signals"],
-    queryFn: fetchSignals,
+    queryFn: () => fetchSignals(),
     refetchInterval: 20_000,
   });
 }

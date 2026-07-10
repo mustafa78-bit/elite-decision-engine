@@ -19,7 +19,7 @@ const activityBadge: Record<string, "success" | "danger" | "warning" | "info"> =
   signal: "info",
   risk: "warning",
   error: "danger",
-  order: "purple",
+  order: "info",
 };
 
 export function RecentActivityWidget({

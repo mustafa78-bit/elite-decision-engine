@@ -1,5 +1,5 @@
-import { Outlet, Navigate } from "react-router-dom";
-import Sidebar from "./sidebar";
+import { Outlet } from "react-router-dom";
+import Sidebar from "./Sidebar";
 import Topbar from "./topbar";
 import { CommandPalette } from "./command-palette";
 import { ToastProvider } from "./toast-provider";

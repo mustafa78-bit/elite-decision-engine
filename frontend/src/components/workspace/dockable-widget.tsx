@@ -22,7 +22,7 @@ export function DockableWidget({
   className,
 }: DockableWidgetProps) {
   const [position, setPosition] = useState(defaultPosition);
-  const [size, setSize] = useState(defaultSize);
+  const [size] = useState(defaultSize);
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = { x: 0, y: 0 };
 

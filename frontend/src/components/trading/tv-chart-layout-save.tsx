@@ -52,8 +52,12 @@ export function TVChartLayoutSave({
     addPanel({
       id: `layout-${layout.id}`,
       type: "chart-layout",
-      position: { x: 100, y: 100 },
-      size: { width: 600, height: 400 },
+      title: "Chart Layout",
+      x: 100,
+      y: 100,
+      w: 600,
+      h: 400,
+      minimized: false,
     });
   };
 

@@ -10,7 +10,8 @@ type OrderSide = "BUY" | "SELL";
 type OrderType = "MARKET" | "LIMIT" | "STOP";
 
 export function OrderPanel() {
-  const { symbol } = useTerminalStore();
+  const { symbol: rawSymbol } = useTerminalStore();
+  const symbol = rawSymbol ?? "BTCUSDT";
   const [side, setSide] = useState<OrderSide>("BUY");
   const [orderType, setOrderType] = useState<OrderType>("LIMIT");
   const [price, setPrice] = useState("42890.00");

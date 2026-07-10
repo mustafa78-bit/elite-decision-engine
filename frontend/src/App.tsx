@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/layout/Layout";
 import Analytics from "./pages/Analytics";
+import AssetDetail from "./pages/AssetDetail";
 import Backtest from "./pages/Backtest";
 import Dashboard from "./pages/Dashboard";
 import Execution from "./pages/Execution";
@@ -15,8 +16,10 @@ import NotificationsPage from "./pages/Notifications";
 import Overview from "./pages/Overview";
 import PaperTrading from "./pages/PaperTrading";
 import Portfolio from "./pages/Portfolio";
+import Profile from "./pages/Profile";
 import Regime from "./pages/Regime";
 import Risk from "./pages/Risk";
+import Scanner from "./pages/Scanner";
 import Signals from "./pages/Signals";
 import SignalsRanking from "./pages/SignalsRanking";
 import Trades from "./pages/Trades";
@@ -165,6 +168,9 @@ function App() {
             >
               <Route path="/overview" element={<Overview />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/scanner" element={<Scanner />} />
+              <Route path="/asset/:symbol" element={<AssetDetail />} />
+              <Route path="/profile" element={<Profile />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/timeline" element={<TimelinePage />} />
           <Route path="/watchlists" element={<WatchlistsPage />} />

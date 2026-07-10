@@ -16,8 +16,6 @@ export function TradeDistributionWidget({
   total = 0,
   avgWin = 0,
   avgLoss = 0,
-  largestWin = 0,
-  largestLoss = 0,
 }: TradeDistributionWidgetProps) {
   const winRate = total > 0 ? (wins / total) * 100 : 0;
   const winPct = total > 0 ? (wins / total) * 100 : 0;

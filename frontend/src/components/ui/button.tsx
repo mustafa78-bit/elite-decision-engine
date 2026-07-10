@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "danger" | "glass";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "glass" | "outline";
   size?: "sm" | "md" | "lg";
   children: ReactNode;
 }
@@ -19,6 +19,8 @@ const variants: Record<string, string> = {
     "bg-red-900/40 text-red-400 hover:bg-red-900/60 border border-red-800/50",
   glass:
     "glass text-[var(--text-primary)] hover:bg-white/[0.08]",
+  outline:
+    "text-[var(--text-secondary)] border border-[var(--border-default)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]",
 };
 
 const sizes: Record<string, string> = {

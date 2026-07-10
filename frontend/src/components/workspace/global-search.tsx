@@ -3,9 +3,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useUIStore } from "../../stores/ui-store";
 import { useTerminalStore } from "../../stores/terminal-store";
+import { useWorkspaceStore } from "../../stores/workspace-store";
 import { useKeyboardShortcut } from "../../lib/accessibility";
 
-const searchCategories = [
+interface SearchItem {
+  label: string;
+  path: string;
+  icon: string;
+  action?: string;
+}
+
+const searchCategories: { name: string; items: SearchItem[] }[] = [
   {
     name: "Pages",
     items: [
@@ -55,7 +63,7 @@ export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [focusedIdx, setFocusedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { toggleSidebar, toggleFullscreen } = useUIStore();
+  const { toggleSidebar: wsToggleSidebar, toggleFullscreen: wsToggleFullscreen } = useWorkspaceStore();
 
   useKeyboardShortcut("k", () => setGlobalSearchOpen(true), { ctrl: true });
   useKeyboardShortcut("Escape", () => { if (globalSearchOpen) setGlobalSearchOpen(false); });
@@ -68,7 +76,7 @@ export function GlobalSearch() {
     }
   }, [globalSearchOpen]);
 
-  const flatItems = searchCategories.flatMap((cat) => cat.items);
+  const flatItems: SearchItem[] = searchCategories.flatMap((cat) => cat.items);
   const filtered = query
     ? flatItems.filter((item) =>
         item.label.toLowerCase().includes(query.toLowerCase()),
@@ -83,14 +91,14 @@ export function GlobalSearch() {
       } else if (item.action === "symbol-search") {
         setGlobalSearchOpen(false);
       } else if (item.action === "toggle-sidebar") {
-        toggleSidebar();
+        wsToggleSidebar();
       } else if (item.action === "toggle-fullscreen") {
-        toggleFullscreen();
+        wsToggleFullscreen();
       } else if (item.path) {
         navigate(item.path);
       }
     },
-    [navigate, setGlobalSearchOpen, setSymbol, toggleSidebar, toggleFullscreen],
+    [navigate, setGlobalSearchOpen, setSymbol, wsToggleSidebar, wsToggleFullscreen],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

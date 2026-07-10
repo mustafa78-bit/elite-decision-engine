@@ -11,7 +11,6 @@ export function UptimeTrackerWidget({
   uptimePercent = 99.9,
   currentStreak = 0,
   longestStreak = 0,
-  lastDowntime = "",
 }: UptimeTrackerWidgetProps) {
   const color =
     uptimePercent >= 99.9

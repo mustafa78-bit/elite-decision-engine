@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { formatUSD } from "../../lib/utils";
 
 interface PerformanceWidgetProps {
   sharpeRatio?: number;

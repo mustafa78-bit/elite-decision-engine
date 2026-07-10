@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
 import { fetchKpiDetail } from "../../api/widgets";
 import { formatUSD } from "../../lib/utils";

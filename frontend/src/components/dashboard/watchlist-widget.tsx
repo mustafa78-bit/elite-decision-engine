@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
 import { fetchWatchlists } from "../../api/watchlists";
 import { useTerminalStore } from "../../stores/terminal-store";

@@ -12,7 +12,6 @@ export function DrawdownWidget({
   currentDrawdown = 0,
   maxDrawdown = 0,
   peakValue = 0,
-  currentValue = 0,
 }: DrawdownWidgetProps) {
   const ddPct = peakValue > 0 ? (currentDrawdown / peakValue) * 100 : 0;
 

@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../ui/button";
-import { cn } from "../../lib/utils";
-
 interface OverlayConfig {
   id: string;
   name: string;

@@ -8,7 +8,7 @@ const regimeBadge: Record<string, "success" | "warning" | "danger" | "info"> = {
   TREND: "success",
   DOWNTREND: "danger",
   RANGE: "warning",
-  DEAD: "default",
+  DEAD: "info",
 };
 
 export function MarketRegimeWidget() {

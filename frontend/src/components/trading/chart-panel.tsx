@@ -25,7 +25,7 @@ export function ChartPanel({ data = [] }: ChartPanelProps) {
     const container = containerRef.current;
     const renderChart = async () => {
       try {
-        const { createChart, ColorType } = await import("lightweight-charts");
+        const { createChart, ColorType, CandlestickSeries } = await import("lightweight-charts");
         const chart = createChart(container, {
           width: container.clientWidth,
           height: container.clientHeight,
@@ -54,16 +54,9 @@ export function ChartPanel({ data = [] }: ChartPanelProps) {
           },
           handleScroll: false,
           handleScale: false,
-          watermark: {
-            visible: true,
-            text: symbol,
-            color: "rgba(255,255,255,0.03)",
-            fontSize: 32,
-            fontFamily: "JetBrains Mono",
-          },
         });
 
-        const candleSeries = chart.addCandlestickSeries({
+        const candleSeries = chart.addSeries(CandlestickSeries, {
           upColor: "rgba(34, 197, 94, 0.8)",
           downColor: "rgba(239, 68, 68, 0.8)",
           borderUpColor: "rgba(34, 197, 94, 0.8)",
@@ -72,7 +65,7 @@ export function ChartPanel({ data = [] }: ChartPanelProps) {
           wickDownColor: "rgba(239, 68, 68, 0.4)",
         });
 
-        candlestickSeries.setData(data.map((d) => ({
+        candleSeries.setData(data.map((d) => ({
           time: d.time as any,
           open: d.open,
           high: d.high,

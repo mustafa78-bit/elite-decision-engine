@@ -15,12 +15,19 @@ export function WorkspaceManager() {
   const { addPanel } = useWorkspaceStore();
 
   const addWidget = useCallback((widget: FloatingWidget) => {
-    setWidgets((prev) => [...prev, widget]);
-    addPanel({
-      id: widget.id,
-      type: widget.title,
-      position: { x: 100 + prev.length * 30, y: 100 + prev.length * 30 },
-      size: { width: 400, height: 300 },
+    setWidgets((prev) => {
+      const updated = [...prev, widget];
+      addPanel({
+        id: widget.id,
+        type: widget.title,
+        title: widget.title,
+        x: 100 + prev.length * 30,
+        y: 100 + prev.length * 30,
+        w: 400,
+        h: 300,
+        minimized: false,
+      });
+      return updated;
     });
   }, [addPanel]);
 

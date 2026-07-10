@@ -15,7 +15,6 @@ interface StressTestWidgetProps {
 
 export function StressTestWidget({
   scenarios = [],
-  worstCaseLoss = 0,
 }: StressTestWidgetProps) {
   return (
     <Card className="h-full">
