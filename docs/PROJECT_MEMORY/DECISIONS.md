@@ -1,8 +1,21 @@
 # DECISIONS — Elite Platform
 
 > Every strategic decision recorded. Each entry includes date, decision, reason, impact, and status.
+> These decisions are permanent until explicitly changed.
 
 ---
+
+## Strategic Decisions (Permanent)
+
+| Date | Decision | Reason | Impact | Status |
+|------|----------|--------|--------|--------|
+| 2026-07-10 | **No Public Beta** | Founder Alpha first. | Product validated before public access | Active |
+| 2026-07-10 | **Frontend before new AI agents** | Backend is sufficiently mature. | Frontend gets priority in next sprints | Active |
+| 2026-07-10 | **No token before real users** | Product first. | No monetization before product-market fit | Active |
+| 2026-07-10 | **Security before Production** | Protect users before scaling. | Security hardening completed before launch | Active |
+| 2026-07-10 | **Founder uses the platform first** | Real feedback from real usage. | Founder Alpha phase before closed beta | Active |
+| 2026-07-10 | **Architecture before features** | Maintainable codebase over speed. | No feature work without architecture review | Active |
+| 2026-07-10 | **Quality before speed** | Ship it right, not just ship it. | No shortcuts on testing or security | Active |
 
 ## Architecture Decisions
 
@@ -35,7 +48,7 @@
 | Date | Decision | Reason | Impact | Status |
 |------|----------|--------|--------|--------|
 | 2026-07-10 | Closed Beta before Public Beta | Validate real-world behavior, gather UX feedback, identify scaling issues | 10-50 testers; polish items addressed before public | Active |
-| 2026-07-10 | Release Candidate approved | 953 backend tests pass, 60 frontend tests pass, all core features work | Platform demonstrably functional end-to-end | Active |
+| 2026-07-10 | Release Candidate approved | 952 backend tests pass, 60 frontend tests pass, all core features work | Platform demonstrably functional end-to-end | Active |
 | 2026-07-10 | Not production-ready yet | Security gaps (localStorage token, no rate limiting), missing ops files | 5-week hardening sprint needed for production | Active |
 
 ## Frontend Decisions

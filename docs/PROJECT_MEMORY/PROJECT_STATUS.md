@@ -6,25 +6,29 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Release** | 1.0.0 Release Candidate |
+| **Current Release** | 0.96 RC |
 | **Branch** | `execution-layer` |
-| **Last Commit** | `580b88f` — Create Project Memory System v2.0 (2026-07-10) |
-| **Current Phase** | Closed Beta Preparation |
+| **Last Commit** | `c6f9e83` — Create Project Memory System v2.0 (2026-07-10) |
+| **Current Phase** | Founder Alpha |
+| **Release Decision** | READY FOR CLOSED BETA |
 
 ---
 
 | Dimension | Status | Detail |
 |-----------|--------|--------|
-| **Backend** | 94% | 784/785 tests passing. All core modules operational. |
-| **Frontend** | 93% | 35/35 tests passing. 0 TS errors. 40+ widgets, TradingView integration. |
-| **Security** | Hardened | Default-deny auth, JWT, WebSocket auth, security headers, CSP. Remaining: localStorage token, no rate limiting. |
-| **Testing** | 953+ backend, 60+ frontend | TypeScript strict mode. Vite build clean. |
+| **Backend** | Mature | 952 tests passing. All core modules operational. |
+| **Frontend** | Beta Ready | 60 tests passing. 0 TS errors. 40+ widgets, TradingView integration. |
+| **Security Hardening** | Completed | Default-deny auth, JWT, WebSocket auth, security headers, CSP. |
+| **Product Experience Sprint** | Completed | UX audit, UI polish, beta certification docs. |
+| **Product Completion Sprint** | Completed | Release Candidate ready. |
+| **Testing** | 952 backend, 60 frontend | TypeScript strict mode. Vite build clean. |
+| **Regression** | None Reported | — |
 
 ---
 
 | Field | Value |
 |-------|-------|
-| **Current Mission** | Launch Closed Beta with 10-50 testers. Validate real-world behavior: live market data, paper trading, scanner accuracy. Gather UX feedback. Identify scaling issues. |
+| **Current Mission** | Founder Alpha — founder uses platform daily. Real feedback from real usage. |
 | **Next Mission** | Fix blocking issues before Public Beta: (1) Fix ConfidenceEngine math bug, (2) Fix ATRr_14 typo, (3) Add Alembic migrations, (4) Pin dependency versions, (5) Wire real data sources. |
 
 ---
@@ -40,4 +44,4 @@
 
 ---
 
-*Branch: execution-layer | Commit: 580b88f*
+*Branch: execution-layer | Commit: c6f9e83*

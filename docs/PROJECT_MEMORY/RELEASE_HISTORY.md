@@ -4,14 +4,14 @@
 
 ---
 
-## Release 1.0.0 — Release Candidate
+## Release 0.96 RC — Release Candidate
 
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-07-10 |
 | **Branch** | `execution-layer` |
 | **Commit** | `818c4ee` |
-| **Status** | Ready for Closed Beta |
+| **Status** | READY FOR CLOSED BETA |
 
 ### Major Features
 - Full paper trading pipeline: Signal → Decision → Execution → TP/SL → Close
@@ -37,7 +37,7 @@
 - PerformanceIntelligence and BacktestV2 for analytics
 
 ### Testing
-- 953 backend tests passing (784/785 in final suite)
+- 952 backend tests passing
 - 60 frontend tests passing
 - TypeScript strict mode enabled
 - Vite build clean (530KB JS, 55KB CSS, 336ms)
@@ -54,11 +54,29 @@
 ### Quality
 - UX audit and polish pass
 - Beta certification documentation
-- Project Memory System v1.0 and v2.0
+- Project Memory System v1.0–v3.0
 
 ---
 
 ## Pre-1.0 Development History
+
+### Foundation Phase (2026-07-03 to 2026-07-06)
+
+| Milestone | Description | Commit |
+|-----------|-------------|--------|
+| Initial commit | Database models, basic structure | `02d9719` |
+| DecisionEngine | Core engine with signal polling | Early commits |
+| DecisionPipeline | Scoring pipeline with 5 components | Early commits |
+| PaperExecutor v2 | TP/SL monitoring, trade close | `a3ef7da` |
+| Execution Loop v1 | Batch orchestration, signal contract | `c7f83fc` |
+| Risk Engine | 5-rule risk evaluation | `d5230ff` |
+| Position Sizing | ATR-based sizing engine | `14d58f0` |
+| Portfolio Analytics | 14 portfolio metrics | `c1ad6c8` |
+| Performance Analytics | 12 performance metrics | `005c6dd` |
+| Live Execution | Hyperliquid adapter, dry-run pipeline | `99b3ba8` |
+| Notification System | Events, dispatcher, WebSocket | `23d7738` |
+| Frontend Dashboard | React foundation, 33 pages | `2da4b70` |
+| CI/CD Pipeline | GitHub Actions, Docker | `8dca11b` |
 
 ### Sprints 39-60 (2026-07-06 to 2026-07-10)
 
@@ -100,23 +118,16 @@
 | Epic 7 | Platform Optimization — pycache cleanup, gitignore, datetime fix, DB optimization | `6ebaa13` |
 | Epic 8 | Beta Readiness — reports, fixes, full test pass | `1b61087` |
 
-### Foundation Phase (2026-07-03 to 2026-07-06)
+### Final Sprints (2026-07-10)
 
-| Milestone | Description | Commit |
-|-----------|-------------|--------|
-| Initial commit | Database models, basic structure | `02d9719` |
-| DecisionEngine | Core engine with signal polling | Early commits |
-| DecisionPipeline | Scoring pipeline with 5 components | Early commits |
-| PaperExecutor v2 | TP/SL monitoring, trade close | `a3ef7da` |
-| Execution Loop v1 | Batch orchestration, signal contract | `c7f83fc` |
-| Risk Engine | 5-rule risk evaluation | `d5230ff` |
-| Position Sizing | ATR-based sizing engine | `14d58f0` |
-| Portfolio Analytics | 14 portfolio metrics | `c1ad6c8` |
-| Performance Analytics | 12 performance metrics | `005c6dd` |
-| Live Execution | Hyperliquid adapter, dry-run pipeline | `99b3ba8` |
-| Notification System | Events, dispatcher, WebSocket | `23d7738` |
-| Frontend Dashboard | React foundation, 33 pages | `2da4b70` |
-| CI/CD Pipeline | GitHub Actions, Docker | `8dca11b` |
+| Sprint | Feature | Commit |
+|--------|---------|--------|
+| — | Elite Terminal: Enterprise Decision Intelligence Platform | `1204952` |
+| — | UX audit, UI polish, beta certification docs | `5e35d84` |
+| — | Security hardening sprint | `7770f92` |
+| — | Product Completion Sprint — Release Candidate | `818c4ee` |
+| — | Project Memory System v1.0 | `580b88f` |
+| — | Project Memory System v2.0 | `c6f9e83` |
 
 ---
 
