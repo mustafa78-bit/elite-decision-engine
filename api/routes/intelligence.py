@@ -6,7 +6,7 @@ from database import FINAL_STATUSES, Signal, Trade, get_session
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
-from scoring.regime_engine import RegimeEngine
+from scoring.regime_ai import RegimeAI
 from market_data.btc_health import BTCHealth
 
 
@@ -23,7 +23,7 @@ def get_intelligence():
         indicators = IndicatorEngine()
         btc = BTCHealth()
         vol = VolatilityEngine()
-        regime = RegimeEngine()
+        regime = RegimeAI()
 
         df = collector.get_ohlcv(symbol="BTC", timeframe="1h")
         if not df.empty:

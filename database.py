@@ -141,6 +141,9 @@ class UserSettings(Base):
     timezone = Column(String(50), default="UTC")
     dashboard_config = Column(JSON, default=dict)
     risk_preferences = Column(JSON, default=dict)
+    theme = Column(String(20), default="dark")
+    layout_config = Column(JSON, default=dict)
+    notification_preferences = Column(JSON, default=dict)
 
 
 # ------------------------------------------------------------------
@@ -156,6 +159,21 @@ class Notification(Base):
     payload = Column(JSON, default=dict)
     read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# ------------------------------------------------------------------
+# WATCHLIST TABLE
+# ------------------------------------------------------------------
+
+class Watchlist(Base):
+    __tablename__ = "watchlists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=True, index=True)
+    name = Column(String(50), nullable=False, default="Default")
+    symbols = Column(JSON, default=list)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
 
 # ------------------------------------------------------------------
 # JOURNAL ENTRY TABLE

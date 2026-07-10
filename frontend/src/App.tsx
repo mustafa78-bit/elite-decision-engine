@@ -8,7 +8,9 @@ import Dashboard from "./pages/Dashboard";
 import Execution from "./pages/Execution";
 import Intelligence from "./pages/Intelligence";
 import Journal from "./pages/Journal";
+import LoginPage from "./pages/LoginPage";
 import Market from "./pages/Market";
+import NotFound from "./pages/NotFound";
 import NotificationsPage from "./pages/Notifications";
 import Overview from "./pages/Overview";
 import PaperTrading from "./pages/PaperTrading";
@@ -20,6 +22,21 @@ import SignalsRanking from "./pages/SignalsRanking";
 import Trades from "./pages/Trades";
 import TradingControl from "./pages/TradingControl";
 import LiveMarket from "./pages/LiveMarket";
+import PreferencesPage from "./pages/PreferencesPage";
+import TimelinePage from "./pages/TimelinePage";
+import WatchlistsPage from "./pages/WatchlistsPage";
+import PortfolioDetailPage from "./pages/PortfolioDetailPage";
+import FundingPage from "./pages/FundingPage";
+import OpenInterestPage from "./pages/OpenInterestPage";
+import WhalePage from "./pages/WhalePage";
+import LiquidityPage from "./pages/LiquidityPage";
+import HeroDashboard from "./pages/HeroDashboard";
+import TradingWorkspace from "./pages/TradingWorkspace";
+import AIExperience from "./pages/AIExperience";
+import ProfessionalWorkspace from "./pages/ProfessionalWorkspace";
+import { ThemeProvider } from "./components/theme/ThemeProvider";
+import { AuthProvider } from "./components/auth/AuthProvider";
+import { AuthGuard } from "./components/auth/AuthGuard";
 import type {
   CandleWsPayload,
   MarketPayload,
@@ -31,8 +48,10 @@ import type {
   VolumeWsPayload,
   WsEvent,
 } from "./types/trade";
-import { connectTradesSocket } from "./websocket/client";
-import type { ConnectionStatus } from "./types/connection";
+import {
+  connectTradesSocket,
+} from "./websocket/client";
+import type { ConnectionStatus, WsRoomStatus } from "./types/connection";
 
 const MAX_EVENTS = 100;
 
@@ -47,6 +66,13 @@ function App() {
   const [latestPrice, setLatestPrice] = useState<PriceWsPayload | null>(null);
   const [latestCandle, setLatestCandle] = useState<CandleWsPayload | null>(null);
   const [latestVolume, setLatestVolume] = useState<VolumeWsPayload | null>(null);
+  const [wsRooms, setWsRooms] = useState<WsRoomStatus>({
+    trades: "DISCONNECTED",
+    analytics: "DISCONNECTED",
+    portfolio: "DISCONNECTED",
+    notifications: "DISCONNECTED",
+    preferences: "DISCONNECTED",
+  });
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -96,7 +122,10 @@ function App() {
           setLatestVolume(data.payload as VolumeWsPayload);
         }
       },
-      (s) => setStatus(s),
+      (s) => {
+        setStatus(s);
+        setWsRooms((prev) => ({ ...prev, trades: s }));
+      },
     );
     return () => wsRef.current?.close();
   }, []);
@@ -120,13 +149,26 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route element={<Layout status={status} context={outletContext} />}>
-          <Route path="/overview" element={<Overview />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/login" element={<LoginPage />} />
+
+            <Route
+              element={
+                <AuthGuard>
+                  <Layout status={status} wsRooms={wsRooms} context={outletContext} />
+                </AuthGuard>
+              }
+            >
+              <Route path="/overview" element={<Overview />} />
+              <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/trades" element={<Trades />} />
+          <Route path="/timeline" element={<TimelinePage />} />
+          <Route path="/watchlists" element={<WatchlistsPage />} />
+          <Route path="/portfolio-detail" element={<PortfolioDetailPage />} />
           <Route path="/market" element={<Market />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/portfolio" element={<Portfolio />} />
@@ -142,9 +184,22 @@ function App() {
           <Route path="/trading-control" element={<TradingControl />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/backtest" element={<Backtest />} />
+          <Route path="/preferences" element={<PreferencesPage />} />
+          <Route path="/funding" element={<FundingPage />} />
+          <Route path="/open-interest" element={<OpenInterestPage />} />
+          <Route path="/whale" element={<WhalePage />} />
+          <Route path="/liquidity" element={<LiquidityPage />} />
+          <Route path="/hero-dashboard" element={<HeroDashboard />} />
+          <Route path="/trading-workspace" element={<TradingWorkspace />} />
+          <Route path="/ai-experience" element={<AIExperience />} />
+          <Route path="/professional-workspace" element={<ProfessionalWorkspace />} />
         </Route>
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
+    </ThemeProvider>
   );
 }
 

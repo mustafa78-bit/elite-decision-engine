@@ -1,46 +1,105 @@
 import { NavLink } from "react-router-dom";
+import { cn } from "../../lib/utils";
 
-const items = [
-  { label: "Overview", path: "/overview" },
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Trades", path: "/trades" },
-  { label: "Market", path: "/market" },
-  { label: "Signals", path: "/signals" },
-  { label: "Signals Ranking", path: "/signals/ranking" },
-  { label: "Risk", path: "/risk" },
-  { label: "Regime", path: "/regime" },
-  { label: "Analytics", path: "/analytics" },
-  { label: "Portfolio", path: "/portfolio" },
-  { label: "Paper Trading", path: "/paper-trading" },
-  { label: "Notifications", path: "/notifications" },
-  { label: "Execution", path: "/execution" },
-  { label: "Intelligence", path: "/intelligence" },
-  { label: "Live Market", path: "/live-market" },
-  { label: "Trading Control", path: "/trading-control" },
-  { label: "Journal", path: "/journal" },
-  { label: "Backtest", path: "/backtest" },
+interface NavItem {
+  label: string;
+  path: string;
+  icon: string;
+}
+
+const sections: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Overview",
+    items: [
+      { label: "Dashboard", path: "/dashboard", icon: "◈" },
+      { label: "Portfolio Detail", path: "/portfolio-detail", icon: "▣" },
+      { label: "Trades", path: "/trades", icon: "⇄" },
+      { label: "Timeline", path: "/timeline", icon: "≡" },
+      { label: "Watchlists", path: "/watchlists", icon: "☰" },
+    ],
+  },
+  {
+    title: "Analysis",
+    items: [
+      { label: "Analytics", path: "/analytics", icon: "▦" },
+      { label: "Market", path: "/market", icon: "◉" },
+      { label: "Signals", path: "/signals", icon: "⚡" },
+      { label: "Risk", path: "/risk", icon: "▲" },
+      { label: "Regime", path: "/regime", icon: "◆" },
+    ],
+  },
+  {
+    title: "Data",
+    items: [
+      { label: "Funding", path: "/funding", icon: "◎" },
+      { label: "Open Interest", path: "/open-interest", icon: "◐" },
+      { label: "Whale Activity", path: "/whale", icon: "◉" },
+      { label: "Liquidity", path: "/liquidity", icon: "≈" },
+    ],
+  },
+  {
+    title: "System",
+    items: [
+      { label: "Intelligence", path: "/intelligence", icon: "✦" },
+      { label: "Execution", path: "/execution", icon: "▶" },
+      { label: "Paper Trading", path: "/paper-trading", icon: "◻" },
+      { label: "Preferences", path: "/preferences", icon: "⚙" },
+    ],
+  },
 ];
 
 export default function Sidebar() {
   return (
-    <aside className="w-44 border-r border-gray-800 bg-gray-950 flex flex-col shrink-0">
-      <nav className="flex flex-col py-2">
-        {items.map(({ label, path }) => (
-          <NavLink
-            key={path}
-            to={path}
-            className={({ isActive }) =>
-              `text-left px-4 py-1.5 text-xs uppercase tracking-wider transition-colors ${
-                isActive
-                  ? "text-gray-100 bg-gray-900"
-                  : "text-gray-500 hover:text-gray-200 hover:bg-gray-900"
-              }`
-            }
-          >
-            {label}
-          </NavLink>
+    <aside className="w-56 h-full flex flex-col bg-[var(--bg-base)] border-r border-[var(--border-subtle)] shrink-0 overflow-y-auto">
+      <div className="px-4 py-4 border-b border-[var(--border-subtle)]">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[var(--accent-blue)] shadow-[0_0_6px_var(--accent-blue)]" />
+          <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+            Elite Terminal
+          </span>
+        </div>
+        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.1em]">
+          Decision Engine v1
+        </p>
+      </div>
+
+      <nav className="flex-1 py-3 px-2 space-y-4">
+        {sections.map((section) => (
+          <div key={section.title}>
+            <div className="px-2 mb-1">
+              <span className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.12em]">
+                {section.title}
+              </span>
+            </div>
+            {section.items.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-[var(--transition-fast)]",
+                    isActive
+                      ? "text-[var(--text-primary)] bg-[var(--bg-hover)]"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
+                  )
+                }
+              >
+                <span className="w-4 text-center text-[11px]">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
+
+      <div className="px-4 py-3 border-t border-[var(--border-subtle)]">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-green)]" />
+          <span className="text-[10px] text-[var(--text-muted)] font-mono">
+            System Online
+          </span>
+        </div>
+      </div>
     </aside>
   );
 }

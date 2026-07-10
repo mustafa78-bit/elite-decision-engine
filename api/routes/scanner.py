@@ -17,7 +17,7 @@ def get_scanner() -> OpportunityScanner:
 @router.get("/scanner/top-opportunities")
 def get_top_opportunities(
     n: int = Query(5, ge=1, le=50),
-    timeframe: str = Query("1h", regex="^(1h|4h|1d)$"),
+    timeframe: str = Query("1h", pattern="^(1h|4h|1d)$"),
 ):
     scanner = get_scanner()
     ops = scanner.top_opportunities(n=n, timeframe=timeframe)
@@ -43,7 +43,7 @@ def get_top_opportunities(
 @router.get("/scanner/dashboard")
 def get_scanner_dashboard(
     n: int = Query(5, ge=1, le=50),
-    timeframe: str = Query("1h", regex="^(1h|4h|1d)$"),
+    timeframe: str = Query("1h", pattern="^(1h|4h|1d)$"),
 ):
     scanner = get_scanner()
     dashboard = scanner.get_dashboard(n=n, timeframe=timeframe)

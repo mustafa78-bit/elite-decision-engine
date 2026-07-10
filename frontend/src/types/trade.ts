@@ -1,6 +1,16 @@
 export type TradeEventType = "TRADE_OPENED" | "TRADE_CLOSED";
 
-export type WsEventType = TradeEventType | "MARKET_UPDATE" | "SIGNAL_UPDATE" | "RISK_UPDATE" | "PRICE_UPDATE" | "CANDLE_UPDATE" | "VOLUME_UPDATE";
+export type WsEventType =
+  | TradeEventType
+  | "MARKET_UPDATE"
+  | "SIGNAL_UPDATE"
+  | "RISK_UPDATE"
+  | "PRICE_UPDATE"
+  | "CANDLE_UPDATE"
+  | "VOLUME_UPDATE"
+  | "PORTFOLIO_UPDATE"
+  | "NOTIFICATION_UPDATE"
+  | "PREFERENCES_UPDATE";
 
 export interface MarketPayload {
   price: number;

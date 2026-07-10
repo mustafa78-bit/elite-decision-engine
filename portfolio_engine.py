@@ -61,8 +61,9 @@ class PortfolioEngine:
             session.close()
 
     def _compute(self, session: Any) -> PortfolioStats:
-        open_trades = session.query(Trade).filter(Trade.status == "OPEN").all()
-        closed_trades = session.query(Trade).filter(Trade.status.in_(_CLOSED_STATUSES)).all()
+        all_trades = session.query(Trade).all()
+        open_trades = [t for t in all_trades if t.status == "OPEN"]
+        closed_trades = [t for t in all_trades if t.status in _CLOSED_STATUSES]
 
         open_count = len(open_trades)
         closed_count = len(closed_trades)

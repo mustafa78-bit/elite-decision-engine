@@ -2,8 +2,8 @@ import logging
 import sys
 
 from core.engine import DecisionEngine
-from core.validator import StartupValidator
 from database import create_tables
+from startup import StartupValidator
 from logging_config import setup_logging
 
 

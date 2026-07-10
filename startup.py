@@ -1,10 +1,25 @@
-"""Startup validation and environment checks."""
+"""Startup validation and environment checks.
+
+Usage:
+    validator = StartupValidator()
+    if not validator.run():
+        sys.exit(1)
+
+    # Or use convenience functions:
+    startup()    # run checks + create tables
+    shutdown()   # cleanup
+"""
+
+from __future__ import annotations
 
 import logging
 import os
 import sys
 
-from database import Base, create_tables, get_session
+from sqlalchemy import text
+
+from config import CHECK_INTERVAL, MAX_OPEN_TRADES, MIN_SCORE
+from database import Base, create_tables, engine, get_session
 
 logger = logging.getLogger(__name__)
 
@@ -22,72 +37,97 @@ OPTIONAL_ENV_VARS = {
 VALID_ENVS = {"development", "staging", "production"}
 
 
-def validate_env() -> list[str]:
-    errors: list[str] = []
-    for var in REQUIRED_ENV_VARS:
-        if not os.getenv(var):
-            errors.append(f"Missing required env var: {var}")
-    env = os.getenv("API_ENV", "development")
-    if env not in VALID_ENVS:
-        errors.append(f"API_ENV must be one of {VALID_ENVS}, got: {env}")
-    if env == "production":
-        if not os.getenv("JWT_SECRET"):
-            errors.append("JWT_SECRET is required when API_ENV=production")
-        if os.getenv("CORS_ORIGINS", "").strip() in ("", "*"):
-            errors.append("CORS_ORIGINS must be explicitly set (not '*') when API_ENV=production")
-    return errors
+class StartupValidator:
+    """Validate all runtime dependencies before the engine enters the main loop."""
 
+    def run(self, fail_fast: bool = True) -> bool:
+        logger.info("Starting startup validation")
 
-def check_database() -> list[str]:
-    errors: list[str] = []
-    try:
-        session = get_session()
-        session.execute(__import__("sqlalchemy").text("SELECT 1"))
-        session.close()
-        logger.info("Database connection OK")
-    except Exception as e:
-        errors.append(f"Database connection failed: {e}")
-        return errors
+        checks = [
+            ("Environment variables", self._check_env_vars),
+            ("PostgreSQL env vars", self._check_postgres_vars),
+            ("Configuration sanity", self._check_config_sanity),
+            ("Database connectivity", self._check_db_connectivity),
+            ("Table accessibility", self._check_tables),
+        ]
 
-    try:
-        session = get_session()
-        for table_name in ("signals", "trades", "users", "notifications", "journal_entries", "user_settings"):
+        all_pass = True
+        for label, check in checks:
             try:
-                session.execute(
-                    __import__("sqlalchemy").text(f"SELECT 1 FROM {table_name} LIMIT 0")
-                )
-                logger.debug("Table %s accessible", table_name)
+                check()
+                logger.info("PASS  %s", label)
             except Exception as e:
-                errors.append(f"Table {table_name} not accessible: {e}")
-        session.close()
-    except Exception as e:
-        errors.append(f"Table verification failed: {e}")
+                logger.error("FAIL  %s: %s", label, e)
+                all_pass = False
+                if fail_fast:
+                    return False
 
-    return errors
+        if all_pass:
+            logger.info("All startup checks passed.")
+        return all_pass
 
+    def _check_env_vars(self) -> None:
+        errors: list[str] = []
+        for var in REQUIRED_ENV_VARS:
+            if not os.getenv(var):
+                errors.append(f"Missing required env var: {var}")
+        env = os.getenv("API_ENV", "development")
+        if env not in VALID_ENVS:
+            errors.append(f"API_ENV must be one of {VALID_ENVS}, got: {env}")
+        if env == "production":
+            if not os.getenv("JWT_SECRET"):
+                errors.append("JWT_SECRET is required when API_ENV=production")
+            if os.getenv("CORS_ORIGINS", "").strip() in ("", "*"):
+                errors.append("CORS_ORIGINS must be explicitly set (not '*') when API_ENV=production")
+        if errors:
+            raise ValueError("; ".join(errors))
 
-def run_startup_checks() -> bool:
-    logger.info("Running startup checks...")
+    def _check_postgres_vars(self) -> None:
+        from config import POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_USER
+        missing = []
+        if not POSTGRES_HOST:
+            missing.append("POSTGRES_HOST")
+        if not POSTGRES_USER:
+            missing.append("POSTGRES_USER")
+        if not POSTGRES_PASSWORD:
+            missing.append("POSTGRES_PASSWORD")
+        if missing:
+            raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
 
-    env_errors = validate_env()
-    for err in env_errors:
-        logger.error("ENV: %s", err)
+    def _check_config_sanity(self) -> None:
+        errors = []
+        if not isinstance(CHECK_INTERVAL, (int, float)) or CHECK_INTERVAL < 1:
+            errors.append(f"CHECK_INTERVAL ({CHECK_INTERVAL}) must be >= 1")
+        if not isinstance(MIN_SCORE, (int, float)) or MIN_SCORE < 0 or MIN_SCORE > 100:
+            errors.append(f"MIN_SCORE ({MIN_SCORE}) must be between 0 and 100")
+        if not isinstance(MAX_OPEN_TRADES, int) or MAX_OPEN_TRADES < 0:
+            errors.append(f"MAX_OPEN_TRADES ({MAX_OPEN_TRADES}) must be >= 0")
+        if errors:
+            raise ValueError("; ".join(errors))
 
-    db_errors = check_database()
-    for err in db_errors:
-        logger.error("DB: %s", err)
+    def _check_db_connectivity(self) -> None:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+        except Exception as e:
+            raise RuntimeError(f"Cannot connect to database: {e}")
 
-    all_errors = env_errors + db_errors
-    if all_errors:
-        logger.critical("Startup checks failed: %d error(s)", len(all_errors))
-        return False
-
-    logger.info("All startup checks passed")
-    return True
+    def _check_tables(self) -> None:
+        session = get_session()
+        try:
+            for table_name in ("signals", "trades", "users", "notifications", "journal_entries", "user_settings"):
+                try:
+                    session.execute(text(f"SELECT 1 FROM {table_name} LIMIT 0"))
+                    logger.debug("Table %s accessible", table_name)
+                except Exception as e:
+                    raise RuntimeError(f"Table {table_name} not accessible: {e}")
+        finally:
+            session.close()
 
 
 def startup():
-    if not run_startup_checks():
+    validator = StartupValidator()
+    if not validator.run():
         sys.exit(1)
     create_tables()
     logger.info("Tables verified")
@@ -96,7 +136,6 @@ def startup():
 def shutdown():
     logger.info("Shutting down Elite Decision Engine")
     try:
-        from database import engine
         engine.dispose()
         logger.info("Database engine disposed")
     except Exception as e:

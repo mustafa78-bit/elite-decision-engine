@@ -115,17 +115,19 @@ def test_get_monitoring_with_data(api_client, db_session):
 def test_get_notifications_empty(api_client):
     resp = api_client.get("/notifications")
     assert resp.status_code == 200
-    assert resp.json() == []
+    body = resp.json()
+    assert body["notifications"] == []
+    assert body["total"] == 0
 
 
 def test_get_notifications_with_data(api_client, db_session):
     _make_notification(db_session, event_type="test_event")
     resp = api_client.get("/notifications")
     assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) == 1
-    assert data[0]["event_type"] == "test_event"
-    assert data[0]["read"] is False
+    body = resp.json()
+    assert len(body["notifications"]) == 1
+    assert body["notifications"][0]["event_type"] == "test_event"
+    assert body["notifications"][0]["read"] is False
 
 
 def test_mark_notification_read(api_client, db_session):

@@ -786,7 +786,7 @@ class TestJWTSecurity:
 class TestProductionReadiness:
 
     def test_startup_rejects_prod_without_jwt(self):
-        from startup import validate_env
+        from startup import StartupValidator
         import os
         # simulate
         original = os.environ.get("API_ENV")
@@ -796,8 +796,9 @@ class TestProductionReadiness:
             os.environ["API_ENV"] = "production"
             os.environ.pop("JWT_SECRET", None)
             os.environ["CORS_ORIGINS"] = "https://example.com"
-            errors = validate_env()
-            assert any("JWT_SECRET" in e for e in errors)
+            validator = StartupValidator()
+            with pytest.raises(ValueError, match="JWT_SECRET"):
+                validator._check_env_vars()
         finally:
             if original is not None:
                 os.environ["API_ENV"] = original
@@ -813,7 +814,7 @@ class TestProductionReadiness:
                 os.environ.pop("CORS_ORIGINS", None)
 
     def test_startup_rejects_prod_wildcard_cors(self):
-        from startup import validate_env
+        from startup import StartupValidator
         import os
         original = os.environ.get("API_ENV")
         orig_jwt = os.environ.get("JWT_SECRET")
@@ -822,8 +823,9 @@ class TestProductionReadiness:
             os.environ["API_ENV"] = "production"
             os.environ["JWT_SECRET"] = "super-secret-123"
             os.environ["CORS_ORIGINS"] = "*"
-            errors = validate_env()
-            assert any("CORS_ORIGINS" in e for e in errors)
+            validator = StartupValidator()
+            with pytest.raises(ValueError, match="CORS_ORIGINS"):
+                validator._check_env_vars()
         finally:
             if original is not None:
                 os.environ["API_ENV"] = original

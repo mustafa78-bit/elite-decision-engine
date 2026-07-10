@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, Optional
 
 from database import get_session, Trade
 from execution.tp_sl import TPSLEngine
@@ -11,9 +14,13 @@ logger = logging.getLogger(__name__)
 
 class TradeEngine:
 
-    def __init__(self):
-        self.tp_sl = TPSLEngine()
-        self.notifications = NotificationDispatcher()
+    def __init__(
+        self,
+        tp_sl: Optional[TPSLEngine] = None,
+        notifications: Optional[NotificationDispatcher] = None,
+    ) -> None:
+        self.tp_sl = tp_sl or TPSLEngine()
+        self.notifications = notifications or NotificationDispatcher()
 
     def create_trade(
         self,
