@@ -58,8 +58,7 @@ class PerformanceEngine:
             session.close()
 
     def _compute(self, session: Any) -> PerformanceStats:
-        all_trades = session.query(Trade).all()
-        closed = [t for t in all_trades if t.status in _CLOSED]
+        closed = session.query(Trade).filter(Trade.status.in_(_CLOSED)).all()
 
         if not closed:
             return PerformanceStats()

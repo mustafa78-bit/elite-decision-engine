@@ -45,8 +45,8 @@ class TestExchangeModels:
         assert t.bid == Decimal("50000")
 
     def test_candle_fields(self):
-        from datetime import datetime
-        c = Candle(symbol="BTC", timeframe="1h", open=Decimal("100"), high=Decimal("110"), low=Decimal("90"), close=Decimal("105"), volume=Decimal("1000"), timestamp=datetime.utcnow())
+        from datetime import datetime, timezone
+        c = Candle(symbol="BTC", timeframe="1h", open=Decimal("100"), high=Decimal("110"), low=Decimal("90"), close=Decimal("105"), volume=Decimal("1000"), timestamp=datetime.now(timezone.utc))
         assert c.closed is True
         assert c.timeframe == "1h"
 

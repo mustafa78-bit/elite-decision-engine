@@ -22,3 +22,7 @@ venv/
 
 # Test database
 test_elite.db
+
+# Cache
+.pytest_cache/
+*.db
