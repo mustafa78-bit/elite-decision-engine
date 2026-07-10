@@ -50,6 +50,7 @@ from api.routes.preferences import router as preferences_router
 from api.routes.watchlists import router as watchlists_router
 from api.routes.timeline import router as timeline_router
 from api.routes.scanner import router as scanner_router
+from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
@@ -158,6 +159,7 @@ app.include_router(preferences_router)
 app.include_router(watchlists_router)
 app.include_router(timeline_router)
 app.include_router(scanner_router)
+app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 
 manager = WebSocketManager()
@@ -228,6 +230,19 @@ async def ws_portfolio(websocket: WebSocket) -> None:
 @app.websocket("/ws/notifications")
 async def ws_notifications(websocket: WebSocket) -> None:
     await manager.connect(websocket, room="notifications")
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)
+    except Exception:
+        await manager.disconnect(websocket)
+        raise
+
+
+@app.websocket("/ws/scanner")
+async def ws_scanner(websocket: WebSocket) -> None:
+    await manager.connect(websocket, room="scanner")
     try:
         while True:
             await websocket.receive_text()
