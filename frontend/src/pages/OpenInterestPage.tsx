@@ -43,7 +43,7 @@ export default function OpenInterestPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-gray-500">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         Open Interest
       </h2>
 
@@ -62,18 +62,18 @@ export default function OpenInterestPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="text-lg font-mono text-gray-100">
+                  <div className="text-lg font-mono text-[var(--text-primary)]">
                     {formatUSD(item.open_interest)}
                   </div>
                   <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-gray-500">24h Change</span>
-                    <span className={item.change_24h >= 0 ? "text-green-400" : "text-red-400"}>
+                    <span className="text-[var(--text-secondary)]">24h Change</span>
+                    <span className={item.change_24h >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}>
                       {item.change_24h >= 0 ? "+" : ""}{item.change_24h}%
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-gray-500">Volume</span>
-                    <span className="text-gray-400">{formatUSD(item.volume)}</span>
+                    <span className="text-[var(--text-secondary)]">Volume</span>
+                    <span className="text-[var(--text-secondary)]">{formatUSD(item.volume)}</span>
                   </div>
                 </div>
               </CardContent>

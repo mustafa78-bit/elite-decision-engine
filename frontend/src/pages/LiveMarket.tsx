@@ -12,7 +12,7 @@ export default function LiveMarket() {
 
   if (!hasData) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         Waiting for live data... connect to WebSocket
       </div>
     );
@@ -20,7 +20,7 @@ export default function LiveMarket() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-gray-500">Live Market Feed</h2>
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">Live Market Feed</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {latestPrice && (
           <LivePriceCard

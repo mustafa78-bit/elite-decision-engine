@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { addGlobalToast } from "../components/layout/ToastProvider";
+import { addGlobalToast } from "../components/layout/toast-provider";
 import { apiFetch } from "../api/client";
 
 export default function LoginPage() {
@@ -30,16 +30,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-950">
+    <div className="h-screen flex items-center justify-center bg-[var(--bg-surface)]">
       <form
         onSubmit={handleSubmit}
-        className="border border-gray-800 rounded p-6 w-full max-w-sm space-y-4"
+        className="border border-[var(--border-subtle)] rounded p-6 w-full max-w-sm space-y-4"
       >
         <div>
-          <h1 className="text-sm font-semibold tracking-wide text-gray-100">
+          <h1 className="text-sm font-semibold tracking-wide text-[var(--text-primary)]">
             Elite Terminal
           </h1>
-          <p className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">
+          <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest mt-1">
             Sign in to continue
           </p>
         </div>

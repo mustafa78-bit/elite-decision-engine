@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
-import { addGlobalToast } from "../components/layout/ToastProvider";
+import { addGlobalToast } from "../components/layout/toast-provider";
 import { fetchPreferences, updateTheme, updateLayout } from "../api/preferences";
 import type { UserPreferencesDTO } from "../types/api/preferences";
 
@@ -37,7 +37,7 @@ export default function PreferencesPage() {
 
   if (!prefs) {
     return (
-      <div className="text-xs text-gray-500 font-mono uppercase">
+      <div className="text-xs text-[var(--text-secondary)] font-mono uppercase">
         No preferences data
       </div>
     );
@@ -45,7 +45,7 @@ export default function PreferencesPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xs uppercase tracking-widest text-gray-500">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         User Preferences
       </h2>
 
@@ -56,8 +56,8 @@ export default function PreferencesPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-400 font-mono">
-                Current: <span className="text-gray-200">{prefs.theme}</span>
+              <span className="text-xs text-[var(--text-secondary)] font-mono">
+                Current: <span className="text-[var(--text-primary)]">{prefs.theme}</span>
               </span>
               <Button
                 size="sm"
@@ -85,9 +85,9 @@ export default function PreferencesPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-400 font-mono">
+              <span className="text-xs text-[var(--text-secondary)] font-mono">
                 Sidebar:{" "}
-                <span className="text-gray-200">
+                <span className="text-[var(--text-primary)]">
                   {prefs.layout_config?.sidebar_collapsed ? "Collapsed" : "Expanded"}
                 </span>
               </span>

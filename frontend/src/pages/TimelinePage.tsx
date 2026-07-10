@@ -37,10 +37,10 @@ export default function TimelinePage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-widest text-gray-500">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
           Timeline
         </h2>
-        <span className="text-[10px] text-gray-600 font-mono">
+        <span className="text-[10px] text-[var(--text-muted)] font-mono">
           {total} events
         </span>
       </div>
@@ -52,8 +52,8 @@ export default function TimelinePage() {
           ))}
         </div>
       ) : events.length === 0 ? (
-        <div className="border border-dashed border-gray-800 rounded p-8 text-center">
-          <p className="text-xs text-gray-600 font-mono uppercase tracking-widest">
+        <div className="border border-dashed border-[var(--border-subtle)] rounded p-8 text-center">
+          <p className="text-xs text-[var(--text-muted)] font-mono uppercase tracking-widest">
             No timeline events
           </p>
         </div>
@@ -66,11 +66,11 @@ export default function TimelinePage() {
                   <Badge variant={(typeBadge[e.type] as "success" | "info" | "warning" | "default") || "default"}>
                     {e.type}
                   </Badge>
-                  <span className="text-xs text-gray-300 font-mono">
+                  <span className="text-xs text-[var(--text-primary)] font-mono">
                     {e.data?.symbol as string || e.data?.event_type as string || `#${e.id}`}
                   </span>
                 </div>
-                <span className="text-[10px] text-gray-600 font-mono">
+                <span className="text-[10px] text-[var(--text-muted)] font-mono">
                   {e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : ""}
                 </span>
               </div>

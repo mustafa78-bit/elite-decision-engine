@@ -11,9 +11,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  CONNECTED: "bg-green-500",
-  DISCONNECTED: "bg-red-500",
-  RECONNECTING: "bg-yellow-500",
+  CONNECTED: "bg-[var(--accent-green)]",
+  DISCONNECTED: "bg-[var(--accent-red)]",
+  RECONNECTING: "bg-[var(--accent-yellow)]",
 };
 
 export function ConnectionStatusBadge({ wsRooms }: ConnectionStatusProps) {
@@ -22,8 +22,8 @@ export function ConnectionStatusBadge({ wsRooms }: ConnectionStatusProps) {
 
   return (
     <div className="flex items-center gap-2" title={`WS: ${Object.entries(wsRooms).map(([k, v]) => `${k}=${v}`).join(", ")}`}>
-      <span className={`inline-block w-2 h-2 rounded-full ${statusColors[overall] || "bg-gray-500"}`} />
-      <span className="text-[9px] text-gray-600 uppercase font-mono">
+      <span className={`inline-block w-2 h-2 rounded-full ${statusColors[overall] || "bg-[var(--text-muted)]"}`} />
+      <span className="text-[9px] text-[var(--text-muted)] uppercase font-mono">
         {statusLabels[overall] || overall}
       </span>
     </div>

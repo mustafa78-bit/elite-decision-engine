@@ -48,7 +48,7 @@ export default function Risk() {
 
   if (loading) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         Loading risk data...
       </div>
     );
@@ -57,9 +57,9 @@ export default function Risk() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
+        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
           {error}
-          <button onClick={fetchRiskData} className="ml-2 underline text-gray-400 hover:text-gray-200">
+          <button onClick={fetchRiskData} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
             Retry
           </button>
         </div>
@@ -69,7 +69,7 @@ export default function Risk() {
 
   if (!risk) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         No risk data available
       </div>
     );
@@ -85,7 +85,7 @@ export default function Risk() {
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
           Risk Overview
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -121,7 +121,7 @@ export default function Risk() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+          <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
             Exposure
           </h2>
           <ExposureCard
@@ -133,7 +133,7 @@ export default function Risk() {
         </section>
 
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+          <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
             Position Sizing
           </h2>
           <PositionSizeCard

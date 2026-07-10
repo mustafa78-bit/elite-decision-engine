@@ -37,8 +37,8 @@ export default function PortfolioDetailPage() {
 
   if (!data) {
     return (
-      <div className="border border-dashed border-gray-800 rounded p-8 text-center">
-        <p className="text-xs text-gray-600 font-mono uppercase tracking-widest">
+      <div className="border border-dashed border-[var(--border-subtle)] rounded p-8 text-center">
+        <p className="text-xs text-[var(--text-muted)] font-mono uppercase tracking-widest">
           No portfolio data
         </p>
       </div>
@@ -49,7 +49,7 @@ export default function PortfolioDetailPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xs uppercase tracking-widest text-gray-500">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         Portfolio Detail
       </h2>
 
@@ -59,7 +59,7 @@ export default function PortfolioDetailPage() {
             <CardTitle>Total PnL</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className={`text-lg font-mono ${summary.total_pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+            <span className={`text-lg font-mono ${summary.total_pnl >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
               ${summary.total_pnl.toFixed(2)}
             </span>
           </CardContent>
@@ -70,7 +70,7 @@ export default function PortfolioDetailPage() {
             <CardTitle>Win Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-lg font-mono text-gray-100">
+            <span className="text-lg font-mono text-[var(--text-primary)]">
               {summary.win_rate.toFixed(1)}%
             </span>
           </CardContent>
@@ -81,7 +81,7 @@ export default function PortfolioDetailPage() {
             <CardTitle>Profit Factor</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-lg font-mono text-gray-100">
+            <span className="text-lg font-mono text-[var(--text-primary)]">
               {summary.profit_factor.toFixed(2)}
             </span>
           </CardContent>
@@ -92,7 +92,7 @@ export default function PortfolioDetailPage() {
             <CardTitle>Sharpe</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className={`text-lg font-mono ${risk.sharpe >= 1 ? "text-green-400" : "text-yellow-400"}`}>
+            <span className={`text-lg font-mono ${risk.sharpe >= 1 ? "text-[var(--accent-green)]" : "text-[var(--accent-yellow)]"}`}>
               {risk.sharpe.toFixed(2)}
             </span>
           </CardContent>
@@ -105,7 +105,7 @@ export default function PortfolioDetailPage() {
             <CardTitle>Max Drawdown</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-lg font-mono text-red-400">
+            <span className="text-lg font-mono text-[var(--accent-red)]">
               -${risk.max_drawdown.toFixed(2)}
             </span>
           </CardContent>
@@ -116,7 +116,7 @@ export default function PortfolioDetailPage() {
             <CardTitle>Calmar</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-lg font-mono text-gray-100">
+            <span className="text-lg font-mono text-[var(--text-primary)]">
               {risk.calmar.toFixed(2)}
             </span>
           </CardContent>
@@ -127,7 +127,7 @@ export default function PortfolioDetailPage() {
             <CardTitle>Recovery Factor</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-lg font-mono text-gray-100">
+            <span className="text-lg font-mono text-[var(--text-primary)]">
               {risk.recovery_factor.toFixed(2)}
             </span>
           </CardContent>

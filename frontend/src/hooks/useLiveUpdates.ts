@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { addGlobalToast } from "../components/layout/ToastProvider";
+import { addGlobalToast } from "../components/layout/toast-provider";
 
 interface LiveUpdateConfig<T> {
   url: string;

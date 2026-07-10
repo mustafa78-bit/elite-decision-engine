@@ -16,7 +16,7 @@ const variants: Record<string, string> = {
   ghost:
     "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
   danger:
-    "bg-red-900/40 text-red-400 hover:bg-red-900/60 border border-red-800/50",
+    "bg-[var(--accent-red)]/15 text-[var(--accent-red)] hover:bg-[var(--accent-red)]/25 border border-[var(--accent-red)]/30",
   glass:
     "glass text-[var(--text-primary)] hover:bg-white/[0.08]",
   outline:

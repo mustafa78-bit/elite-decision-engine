@@ -1,14 +1,18 @@
-import { useUIStore } from "../../stores/ui-store";
+import { useUIStore, type Toast } from "../../stores/ui-store";
 
 const typeStyles: Record<string, string> = {
   success:
-    "border-[var(--accent-green)]/30 bg-green-950/40 text-[var(--accent-green)]",
+    "border-[var(--accent-green)]/30 bg-[var(--accent-green)]/10 text-[var(--accent-green)]",
   error:
-    "border-[var(--accent-red)]/30 bg-red-950/40 text-[var(--accent-red)]",
-  info: "border-[var(--accent-blue)]/30 bg-blue-950/40 text-[var(--accent-blue)]",
+    "border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 text-[var(--accent-red)]",
+  info: "border-[var(--accent-blue)]/30 bg-[var(--accent-blue)]/10 text-[var(--accent-blue)]",
   warning:
-    "border-[var(--accent-yellow)]/30 bg-yellow-950/40 text-[var(--accent-yellow)]",
+    "border-[var(--accent-yellow)]/30 bg-[var(--accent-yellow)]/10 text-[var(--accent-yellow)]",
 };
+
+export function addGlobalToast(message: string, type: Toast["type"] = "info", duration = 4000) {
+  useUIStore.getState().addToast({ message, type, duration });
+}
 
 export function ToastProvider() {
   const { toasts, dismissToast } = useUIStore();

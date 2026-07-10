@@ -8,12 +8,12 @@ interface Props {
 
 export default function Header({ wsRooms }: Props) {
   return (
-    <header className="flex items-center justify-between border-b border-gray-800 px-4 py-2">
+    <header className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-2">
       <div>
-        <h1 className="text-sm font-semibold tracking-wide text-gray-100">
+        <h1 className="text-sm font-semibold tracking-wide text-[var(--text-primary)]">
           Elite Terminal
         </h1>
-        <p className="text-[9px] text-gray-600 uppercase tracking-widest">
+        <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest">
           Decision Engine v1
         </p>
       </div>
@@ -22,7 +22,7 @@ export default function Header({ wsRooms }: Props) {
           {Object.entries(wsRooms).map(([room, s]) => (
             <span
               key={room}
-              className={`inline-block w-1.5 h-1.5 rounded-full ${s === "CONNECTED" ? "bg-green-500" : "bg-red-500"}`}
+              className={`inline-block w-1.5 h-1.5 rounded-full ${s === "CONNECTED" ? "bg-[var(--accent-green)]" : "bg-[var(--accent-red)]"}`}
               title={`${room}: ${s}`}
             />
           ))}

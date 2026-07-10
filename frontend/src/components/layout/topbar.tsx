@@ -52,7 +52,7 @@ export default function Topbar() {
               onClick={() => setSymbol(s)}
               className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
                 symbol === s
-                  ? "text-[var(--accent-blue)] bg-blue-950/40 border border-blue-800/40"
+                   ? "text-[var(--accent-blue)] bg-[var(--accent-blue)]/10 border border-[var(--accent-blue)]/20"
                   : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent"
               }`}
             >

@@ -22,10 +22,10 @@ const sampleNotifications: Notification[] = [
 ];
 
 const typeStyles: Record<string, string> = {
-  info: "bg-blue-950/40 border-blue-800/30",
-  success: "bg-green-950/40 border-green-800/30",
-  warning: "bg-yellow-950/40 border-yellow-800/30",
-  error: "bg-red-950/40 border-red-800/30",
+  info: "bg-[var(--accent-blue)]/10 border-[var(--accent-blue)]/20",
+  success: "bg-[var(--accent-green)]/10 border-[var(--accent-green)]/20",
+  warning: "bg-[var(--accent-yellow)]/10 border-[var(--accent-yellow)]/20",
+  error: "bg-[var(--accent-red)]/10 border-[var(--accent-red)]/20",
 };
 
 const typeDots: Record<string, string> = {

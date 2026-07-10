@@ -5,10 +5,10 @@ import { fetchSignalsRanking } from "../api/signals_ranking";
 import { ApiError } from "../api/client";
 
 const DECISION_COLORS: Record<string, string> = {
-  STRONG_APPROVE: "text-green-400",
-  APPROVE: "text-blue-400",
-  WATCH: "text-yellow-400",
-  REJECT: "text-red-400",
+  STRONG_APPROVE: "text-[var(--accent-green)]",
+  APPROVE: "text-[var(--accent-blue)]",
+  WATCH: "text-[var(--accent-yellow)]",
+  REJECT: "text-[var(--accent-red)]",
 };
 
 export default function SignalsRanking() {
@@ -33,7 +33,7 @@ export default function SignalsRanking() {
 
   if (loading) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         Loading signal ranking...
       </div>
     );
@@ -42,9 +42,9 @@ export default function SignalsRanking() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
+        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
           {error}
-          <button onClick={load} className="ml-2 underline text-gray-400 hover:text-gray-200">Retry</button>
+          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Retry</button>
         </div>
       </div>
     );
@@ -52,7 +52,7 @@ export default function SignalsRanking() {
 
   if (signals.length === 0) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         No signal data
       </div>
     );
@@ -60,13 +60,13 @@ export default function SignalsRanking() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-gray-500">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         Signal Leaderboard
       </h2>
-      <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
+      <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-gray-800 text-gray-500 text-[10px] uppercase tracking-wider">
+            <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">
               <th className="text-left px-3 py-1.5 font-medium w-8">#</th>
               <th className="text-left px-3 py-1.5 font-medium">Symbol</th>
               <th className="text-left px-3 py-1.5 font-medium">Side</th>
@@ -82,22 +82,22 @@ export default function SignalsRanking() {
           </thead>
           <tbody>
             {signals.map((s) => (
-              <tr key={s.id} className="border-t border-gray-800/50 hover:bg-gray-800/30">
-                <td className="px-3 py-1.5 text-gray-500 tabular-nums">{s.rank}</td>
-                <td className="px-3 py-1.5 text-gray-200">{s.symbol}</td>
-                <td className={`px-3 py-1.5 ${s.side === "LONG" ? "text-green-400" : "text-red-400"}`}>
+              <tr key={s.id} className="border-t border-[var(--border-subtle)]/50 hover:bg-[var(--bg-hover)]">
+                <td className="px-3 py-1.5 text-[var(--text-secondary)] tabular-nums">{s.rank}</td>
+                <td className="px-3 py-1.5 text-[var(--text-primary)]">{s.symbol}</td>
+                <td className={`px-3 py-1.5 ${s.side === "LONG" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                   {s.side}
                 </td>
-                <td className="px-3 py-1.5 text-right text-gray-300 tabular-nums">{s.score.toFixed(3)}</td>
-                <td className="px-3 py-1.5 text-right text-gray-300 tabular-nums">{s.confidence.toFixed(1)}%</td>
-                <td className={`px-3 py-1.5 ${DECISION_COLORS[s.decision] || "text-gray-300"}`}>
+                <td className="px-3 py-1.5 text-right text-[var(--text-primary)] tabular-nums">{s.score.toFixed(3)}</td>
+                <td className="px-3 py-1.5 text-right text-[var(--text-primary)] tabular-nums">{s.confidence.toFixed(1)}%</td>
+                <td className={`px-3 py-1.5 ${DECISION_COLORS[s.decision] || "text-[var(--text-primary)]"}`}>
                   {s.decision.replace("_", " ")}
                 </td>
-                <td className="px-3 py-1.5 text-right text-gray-300 tabular-nums">{(s.trend_score * 100).toFixed(0)}%</td>
-                <td className="px-3 py-1.5 text-right text-gray-300 tabular-nums">{(s.volume_score * 100).toFixed(0)}%</td>
-                <td className="px-3 py-1.5 text-right text-gray-300 tabular-nums">{(s.btc_score * 100).toFixed(0)}%</td>
-                <td className="px-3 py-1.5 text-right text-gray-300 tabular-nums">{(s.risk_score * 100).toFixed(0)}%</td>
-                <td className="px-3 py-1.5 text-right text-gray-300">{s.status}</td>
+                <td className="px-3 py-1.5 text-right text-[var(--text-primary)] tabular-nums">{(s.trend_score * 100).toFixed(0)}%</td>
+                <td className="px-3 py-1.5 text-right text-[var(--text-primary)] tabular-nums">{(s.volume_score * 100).toFixed(0)}%</td>
+                <td className="px-3 py-1.5 text-right text-[var(--text-primary)] tabular-nums">{(s.btc_score * 100).toFixed(0)}%</td>
+                <td className="px-3 py-1.5 text-right text-[var(--text-primary)] tabular-nums">{(s.risk_score * 100).toFixed(0)}%</td>
+                <td className="px-3 py-1.5 text-right text-[var(--text-primary)]">{s.status}</td>
               </tr>
             ))}
           </tbody>

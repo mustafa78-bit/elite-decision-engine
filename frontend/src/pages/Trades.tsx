@@ -15,14 +15,14 @@ export default function Trades() {
   return (
     <div className="space-y-4">
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-2">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-2">
           Open Trades
         </h2>
         <OpenTrades trades={openTrades} />
       </section>
 
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-2">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-2">
           Closed Trades
         </h2>
         <ClosedTrades trades={closedTrades} />

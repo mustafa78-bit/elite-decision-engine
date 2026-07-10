@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
-import { addGlobalToast } from "../components/layout/ToastProvider";
+import { addGlobalToast } from "../components/layout/toast-provider";
 import {
   fetchWatchlists,
   createWatchlist,
@@ -81,7 +81,7 @@ export default function WatchlistsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xs uppercase tracking-widest text-gray-500">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         Watchlists
       </h2>
 
@@ -104,8 +104,8 @@ export default function WatchlistsPage() {
           ))}
         </div>
       ) : watchlists.length === 0 ? (
-        <div className="border border-dashed border-gray-800 rounded p-8 text-center">
-          <p className="text-xs text-gray-600 font-mono uppercase tracking-widest">
+        <div className="border border-dashed border-[var(--border-subtle)] rounded p-8 text-center">
+          <p className="text-xs text-[var(--text-muted)] font-mono uppercase tracking-widest">
             No watchlists yet
           </p>
         </div>

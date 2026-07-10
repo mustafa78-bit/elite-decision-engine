@@ -6,8 +6,8 @@ export default function NotFound() {
 
   return (
     <div className="h-full flex flex-col items-center justify-center gap-4">
-      <div className="text-4xl font-mono text-gray-700">404</div>
-      <p className="text-xs text-gray-500 font-mono uppercase tracking-widest">
+      <div className="text-4xl font-mono text-[var(--text-muted)]">404</div>
+      <p className="text-xs text-[var(--text-secondary)] font-mono uppercase tracking-widest">
         Page not found
       </p>
       <Button variant="outline" onClick={() => navigate("/dashboard")}>

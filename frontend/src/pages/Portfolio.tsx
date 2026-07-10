@@ -34,7 +34,7 @@ export default function Portfolio() {
 
   if (loading) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         Loading portfolio...
       </div>
     );
@@ -43,9 +43,9 @@ export default function Portfolio() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
+        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
           {error}
-          <button onClick={load} className="ml-2 underline text-gray-400 hover:text-gray-200">
+          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
             Retry
           </button>
         </div>
@@ -55,7 +55,7 @@ export default function Portfolio() {
 
   if (!port) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         No portfolio data
       </div>
     );
@@ -71,7 +71,7 @@ export default function Portfolio() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-gray-500">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         Portfolio Terminal
       </h2>
 

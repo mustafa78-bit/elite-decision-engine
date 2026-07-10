@@ -46,7 +46,7 @@ export default function FundingPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-widest text-gray-500">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
           Funding Rates
         </h2>
       </div>
@@ -71,15 +71,15 @@ export default function FundingPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-1 text-[10px] font-mono">
-                  <div className="flex justify-between text-gray-500">
+                  <div className="flex justify-between text-[var(--text-secondary)]">
                     <span>Predicted</span>
-                    <span className={item.predicted_rate > 0 ? "text-red-400" : "text-green-400"}>
+                    <span className={item.predicted_rate > 0 ? "text-[var(--accent-red)]" : "text-[var(--accent-green)]"}>
                       {(item.predicted_rate * 100).toFixed(3)}%
                     </span>
                   </div>
-                  <div className="flex justify-between text-gray-500">
+                  <div className="flex justify-between text-[var(--text-secondary)]">
                     <span>Next Funding</span>
-                    <span className="text-gray-400">
+                    <span className="text-[var(--text-secondary)]">
                       {new Date(item.next_funding_time).toLocaleTimeString()}
                     </span>
                   </div>

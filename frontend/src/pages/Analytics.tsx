@@ -49,7 +49,7 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         Loading analytics...
       </div>
     );
@@ -58,9 +58,9 @@ export default function Analytics() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
+        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 rounded">
           {error}
-          <button onClick={fetchAll} className="ml-2 underline text-gray-400 hover:text-gray-200">
+          <button onClick={fetchAll} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
             Retry
           </button>
         </div>
@@ -70,7 +70,7 @@ export default function Analytics() {
 
   if (!hasData) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         No trade data yet — start trading to generate analytics
       </div>
     );
@@ -79,7 +79,7 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
           Performance Metrics
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -99,7 +99,7 @@ export default function Analytics() {
       </section>
 
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
           Portfolio Summary
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -124,7 +124,7 @@ export default function Analytics() {
       </section>
 
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
           Equity Curve
         </h2>
         <PerformanceChart
@@ -136,21 +136,21 @@ export default function Analytics() {
       </section>
 
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
           Drawdown
         </h2>
         <DrawdownChart equityCurve={port!.equity_curve} />
       </section>
 
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
           Win Rate
         </h2>
         <WinRateChart winRate={port!.win_rate} totalTrades={port!.closed_trades} />
       </section>
 
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-gray-500 mb-3">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
           Summary
         </h2>
         <PerformanceSummary

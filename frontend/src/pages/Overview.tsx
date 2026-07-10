@@ -33,8 +33,8 @@ interface PerfSummary {
 
 function OverviewCard({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
+    <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded p-4">
+      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">
         {label}
       </h3>
       {children}
@@ -77,7 +77,7 @@ export default function Overview() {
 
   if (loading) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
         Loading overview...
       </div>
     );
@@ -86,9 +86,9 @@ export default function Overview() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
+        <div className="text-[var(--accent-red)] text-xs p-4 border border-red-900 bg-[var(--accent-red)]/10 rounded">
           {error}
-          <button onClick={fetchAll} className="ml-2 underline text-gray-400 hover:text-gray-200">
+          <button onClick={fetchAll} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
             Retry
           </button>
         </div>
@@ -100,7 +100,7 @@ export default function Overview() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-gray-500">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         Terminal Overview
       </h2>
 
@@ -108,51 +108,51 @@ export default function Overview() {
         {market && (
           <OverviewCard label="BTC Status">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-lg font-bold tabular-nums text-gray-100">
+              <span className="text-lg font-bold tabular-nums text-[var(--text-primary)]">
                 ${market.price.toLocaleString(undefined, { minimumFractionDigits: 0 })}
               </span>
               <RegimeBadge regime={market.regime} />
             </div>
             <div className="grid grid-cols-2 gap-1 text-xs">
-              <div><span className="text-gray-500">RSI</span> <span className="tabular-nums text-gray-200 float-right">{market.rsi.toFixed(0)}</span></div>
-              <div><span className="text-gray-500">Health</span> <span className="tabular-nums text-gray-200 float-right">{(market.btc_health_score * 100).toFixed(0)}%</span></div>
+              <div><span className="text-[var(--text-secondary)]">RSI</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{market.rsi.toFixed(0)}</span></div>
+              <div><span className="text-[var(--text-secondary)]">Health</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{(market.btc_health_score * 100).toFixed(0)}%</span></div>
             </div>
           </OverviewCard>
         )}
 
         <OverviewCard label="Trades">
-          <div className="text-2xl font-bold tabular-nums text-gray-100 mb-2">
+          <div className="text-2xl font-bold tabular-nums text-[var(--text-primary)] mb-2">
             {openTrades.length}
-            <span className="text-sm text-gray-500 ml-1">/ {openTrades.length + closedTrades.length}</span>
+            <span className="text-sm text-[var(--text-secondary)] ml-1">/ {openTrades.length + closedTrades.length}</span>
           </div>
           <div className="grid grid-cols-2 gap-1 text-xs">
-            <div><span className="text-green-400">{openTrades.length} open</span></div>
-            <div><span className="text-gray-500 tabular-nums float-right">{closedTrades.length} closed</span></div>
+            <div><span className="text-[var(--accent-green)]">{openTrades.length} open</span></div>
+            <div><span className="text-[var(--text-secondary)] tabular-nums float-right">{closedTrades.length} closed</span></div>
           </div>
         </OverviewCard>
 
         {risk && (
           <OverviewCard label="Risk">
             <div className="text-2xl font-bold tabular-nums mb-2">
-              <span className={risk.risk_score >= 0.5 ? "text-green-400" : "text-red-400"}>
+              <span className={risk.risk_score >= 0.5 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}>
                 {(risk.risk_score * 100).toFixed(0)}%
               </span>
             </div>
             <div className="grid grid-cols-2 gap-1 text-xs">
-              <div><span className="text-gray-500">Open</span> <span className="tabular-nums text-gray-200 float-right">{risk.open_trades}/{risk.max_open_trades}</span></div>
-              <div><span className="text-gray-500">Loss</span> <span className={`tabular-nums float-right ${risk.daily_loss < 0 ? "text-red-400" : "text-gray-200"}`}>${Math.abs(risk.daily_loss).toFixed(0)}</span></div>
+              <div><span className="text-[var(--text-secondary)]">Open</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{risk.open_trades}/{risk.max_open_trades}</span></div>
+              <div><span className="text-[var(--text-secondary)]">Loss</span> <span className={`tabular-nums float-right ${risk.daily_loss < 0 ? "text-[var(--accent-red)]" : "text-[var(--text-primary)]"}`}>${Math.abs(risk.daily_loss).toFixed(0)}</span></div>
             </div>
           </OverviewCard>
         )}
 
         {perf && (
           <OverviewCard label="Performance">
-            <div className={`text-2xl font-bold tabular-nums mb-2 ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+            <div className={`text-2xl font-bold tabular-nums mb-2 ${totalPnl >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
               ${totalPnl.toFixed(0)}
             </div>
             <div className="grid grid-cols-2 gap-1 text-xs">
-              <div><span className="text-gray-500">Win Rate</span> <span className="tabular-nums text-gray-200 float-right">{perf.win_rate.toFixed(0)}%</span></div>
-              <div><span className="text-gray-500">Sharpe</span> <span className="tabular-nums text-gray-200 float-right">{perf.sharpe_ratio.toFixed(2)}</span></div>
+              <div><span className="text-[var(--text-secondary)]">Win Rate</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.win_rate.toFixed(0)}%</span></div>
+              <div><span className="text-[var(--text-secondary)]">Sharpe</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.sharpe_ratio.toFixed(2)}</span></div>
             </div>
           </OverviewCard>
         )}

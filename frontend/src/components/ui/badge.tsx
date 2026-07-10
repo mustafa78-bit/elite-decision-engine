@@ -16,12 +16,12 @@ interface BadgeProps {
 
 const variants: Record<string, string> = {
   default: "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]",
-  success: "bg-green-950/60 text-[var(--accent-green)] border border-green-800/40",
-  warning: "bg-yellow-950/60 text-[var(--accent-yellow)] border border-yellow-800/40",
-  danger: "bg-red-950/60 text-[var(--accent-red)] border border-red-800/40",
-  info: "bg-blue-950/60 text-[var(--accent-blue)] border border-blue-800/40",
-  purple: "bg-purple-950/60 text-[var(--accent-purple)] border border-purple-800/40",
-  cyan: "bg-cyan-950/60 text-[var(--accent-cyan)] border border-cyan-800/40",
+  success: "bg-[var(--bg-elevated)] text-[var(--accent-green)] border border-[var(--accent-green)]/30",
+  warning: "bg-[var(--bg-elevated)] text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30",
+  danger: "bg-[var(--bg-elevated)] text-[var(--accent-red)] border border-[var(--accent-red)]/30",
+  info: "bg-[var(--bg-elevated)] text-[var(--accent-blue)] border border-[var(--accent-blue)]/30",
+  purple: "bg-[var(--bg-elevated)] text-[var(--accent-purple)] border border-[var(--accent-purple)]/30",
+  cyan: "bg-[var(--bg-elevated)] text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/30",
 };
 
 export function Badge({

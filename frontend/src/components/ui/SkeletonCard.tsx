@@ -6,7 +6,7 @@ interface SkeletonCardProps {
 
 export function SkeletonCard({ lines = 3 }: SkeletonCardProps) {
   return (
-    <div className="border border-gray-800 rounded p-4 space-y-3">
+    <div className="border border-[var(--border-subtle)] rounded p-4 space-y-3">
       <Skeleton className="h-4 w-1/3" />
       {Array.from({ length: lines }).map((_, i) => (
         <Skeleton key={i} className={`h-3 w-${i === lines - 1 ? "1/2" : "full"}`} />
