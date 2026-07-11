@@ -1,6 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+
 from pydantic import BaseModel
 
+from api.rate_limit import limiter
 from auth.service import login_user, register_user
 
 router = APIRouter()
@@ -24,11 +26,13 @@ class RegisterRequest(BaseModel):
 
 
 @router.post("/auth/register")
-def register(body: RegisterRequest):
+@limiter.limit("3/minute")
+def register(request: Request, body: RegisterRequest):
     RegisterRequest.validate_password(body.password)
     return register_user(body.username, body.email, body.password)
 
 
 @router.post("/auth/login")
-def login(body: AuthRequest):
+@limiter.limit("5/minute")
+def login(request: Request, body: AuthRequest):
     return login_user(body.username, body.password)

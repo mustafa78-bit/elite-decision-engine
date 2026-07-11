@@ -6,6 +6,8 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 from api.events import (
     CandlePayload,
@@ -21,6 +23,7 @@ from api.events import (
     serialize,
 )
 from api.middleware import auth_middleware
+from api.rate_limit import limiter
 from monitoring.health import HealthService
 from api.routes.auth import router as auth_router
 from api.routes.backtest import router as backtest_router
@@ -73,6 +76,8 @@ _background_tasks: set[asyncio.Task] = set()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from logging_config import setup_logging
+    setup_logging()
     logger.info("Application starting up")
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
@@ -95,6 +100,9 @@ app = FastAPI(
     debug=DEBUG,
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.exception_handler(Exception)
