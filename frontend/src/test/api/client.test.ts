@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { apiFetch, BASE_URL } from "../../api/client";
+
+process.env.VITE_API_URL = "http://localhost:8000";
 
 describe("apiFetch", () => {
-  it("exports BASE_URL", () => {
+  it("reads BASE_URL from VITE_API_URL env", async () => {
+    const { BASE_URL } = await import("../../api/client");
     expect(BASE_URL).toBe("http://localhost:8000");
   });
 
   it("throws ApiError on non-ok response", async () => {
+    const { apiFetch } = await import("../../api/client");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
@@ -16,6 +19,7 @@ describe("apiFetch", () => {
   });
 
   it("parses JSON on success", async () => {
+    const { apiFetch } = await import("../../api/client");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ data: "ok" }),

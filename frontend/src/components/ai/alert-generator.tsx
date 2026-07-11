@@ -19,12 +19,7 @@ interface AlertGeneratorProps {
 }
 
 export function AlertGenerator({
-  alerts: initialAlerts = [
-    { id: "1", title: "RSI Oversold", description: "BTC RSI(14) dropped below 30", type: "Technical", severity: "high", time: "2m ago", triggered: true },
-    { id: "2", title: "Volume Surge", description: "ETH volume > 2x 24h avg", type: "Volume", severity: "medium", time: "15m ago", triggered: true },
-    { id: "3", title: "Resistance Break", description: "SOL broke above $185", type: "Price", severity: "high", time: "1h ago", triggered: true },
-    { id: "4", title: "Funding Spike", description: "BTC funding > 0.05%", type: "Derivatives", severity: "low", time: "3h ago", triggered: false },
-  ],
+  alerts: initialAlerts = [],
 }: AlertGeneratorProps) {
   const [selectedType, setSelectedType] = useState("all");
   const [alerts, setAlerts] = useState(initialAlerts);

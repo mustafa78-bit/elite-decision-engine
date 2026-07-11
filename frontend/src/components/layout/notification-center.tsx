@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "../ui/badge";
 import { cn } from "../../lib/utils";
+import { apiFetch } from "../../api/client";
 
 interface Notification {
   id: string;
@@ -12,14 +13,6 @@ interface Notification {
   read: boolean;
   category: string;
 }
-
-const sampleNotifications: Notification[] = [
-  { id: "1", title: "Signal Generated", message: "BTC/USDT buy signal detected with 82% confidence", type: "success", time: "2m ago", read: false, category: "signals" },
-  { id: "2", title: "Risk Alert", message: "Portfolio VaR exceeded 2% threshold", type: "warning", time: "15m ago", read: false, category: "risk" },
-  { id: "3", title: "Execution Report", message: "Limit order filled: 0.5 BTC @ $42,100", type: "info", time: "1h ago", read: true, category: "execution" },
-  { id: "4", title: "System Health", message: "All systems operational", type: "success", time: "2h ago", read: true, category: "system" },
-  { id: "5", title: "Connection Lost", message: "WebSocket reconnected after 3s downtime", type: "error", time: "3h ago", read: true, category: "system" },
-];
 
 const typeStyles: Record<string, string> = {
   info: "bg-[var(--accent-blue)]/10 border-[var(--accent-blue)]/20",
@@ -38,7 +31,28 @@ const typeDots: Record<string, string> = {
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<string>("all");
-  const [notifications, setNotifications] = useState(sampleNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  useEffect(() => {
+    apiFetch<{ notifications?: Array<{ id: number; event_type: string; payload?: Record<string, unknown>; read: boolean; created_at: string | null }> }>("/notifications?limit=20")
+      .then((res) => {
+        if (res.notifications) {
+          setNotifications(res.notifications.map((n) => {
+            const p = n.payload || {};
+            return {
+              id: String(n.id),
+              title: (p.title as string) || n.event_type,
+              message: (p.message as string) || (p.description as string) || "",
+              type: ((p.severity === "error" || p.severity === "critical" ? "error" : p.severity === "warning" ? "warning" : p.severity === "success" ? "success" : "info") as "info" | "success" | "warning" | "error"),
+              time: n.created_at ? new Date(n.created_at).toLocaleString() : "",
+              read: n.read,
+              category: n.event_type,
+            };
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const categories = ["all", "signals", "risk", "execution", "system"];
   const unread = notifications.filter((n) => !n.read).length;

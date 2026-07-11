@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { apiFetch } from "../api/client";
@@ -14,26 +14,15 @@ export default function OpenInterestPage() {
   const [data, setData] = useState<OIData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiFetch<OIData[] | { open_interest: OIData[] }>("/open-interest");
-      const items = Array.isArray(res) ? res : (res as { open_interest: OIData[] }).open_interest;
-      setData(items || []);
-    } catch {
-      setData([
-        { symbol: "BTCUSDT", open_interest: 12_450_000_000, change_24h: 3.2, volume: 2_100_000_000 },
-        { symbol: "ETHUSDT", open_interest: 5_800_000_000, change_24h: -1.5, volume: 980_000_000 },
-        { symbol: "SOLUSDT", open_interest: 1_200_000_000, change_24h: 8.7, volume: 340_000_000 },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    let mounted = true;
+    setLoading(true);
+    apiFetch<{ open_interest: OIData[] }>("/open-interest")
+      .then((res) => { if (mounted) setData(res.open_interest || []); })
+      .catch(() => { if (mounted) setData([]); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const formatUSD = (n: number) => {
     if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
@@ -53,6 +42,12 @@ export default function OpenInterestPage() {
             <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
+      ) : data.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-xs font-mono text-[var(--text-muted)]">No open interest data available</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.map((item) => (

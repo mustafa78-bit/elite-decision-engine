@@ -18,22 +18,16 @@ interface ExplainableAIPanelProps {
 
 export function ExplainableAIPanel({
   symbol = "BTC/USDT",
-  prediction = "BULLISH",
-  confidence = 78,
-  factors = [
-    { factor: "Technical Momentum", impact: 35, direction: "positive", description: "RSI > 60, MACD bullish cross" },
-    { factor: "Volume Analysis", impact: 25, direction: "positive", description: "Volume 2.5x above 24h average" },
-    { factor: "Market Regime", impact: 20, direction: "positive", description: "Trending market with bullish bias" },
-    { factor: "Funding Rate", impact: -10, direction: "negative", description: "Elevated funding may cap upside" },
-    { factor: "Whale Activity", impact: 10, direction: "positive", description: "Large inflow to spot exchanges" },
-  ],
+  prediction = "PENDING",
+  confidence = 0,
+  factors = [],
 }: ExplainableAIPanelProps) {
   return (
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Explainable AI</CardTitle>
-          <Badge variant={prediction === "BULLISH" ? "success" : "danger"}>
+          <Badge variant={prediction === "BULLISH" ? "success" : prediction === "BEARISH" ? "danger" : "default"}>
             {prediction} {confidence}%
           </Badge>
         </div>

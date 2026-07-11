@@ -11,50 +11,186 @@ import { NotificationWidget } from "../components/dashboard/notification-widget"
 import { PerformanceWidget } from "../components/dashboard/performance-widget";
 import { RiskWidget } from "../components/dashboard/risk-widget";
 import { MonitoringWidget } from "../components/dashboard/monitoring-widget";
-import { HealthWidget } from "../components/dashboard/health-widget";
+import { FounderHealthWidget } from "../components/dashboard/founder-health-widget";
 import { IntelligenceWidget } from "../components/dashboard/intelligence-widget";
 import { HeatmapWidget } from "../components/dashboard/heatmap-widget";
 import { WatchlistWidget } from "../components/dashboard/watchlist-widget";
 import { RecentActivityWidget } from "../components/dashboard/recent-activity-widget";
 import { TimelineWidget } from "../components/dashboard/timeline-widget";
 import { QuickActionsWidget } from "../components/dashboard/quick-actions-widget";
+import { Skeleton } from "../components/ui/skeleton";
+import { apiFetch } from "../api/client";
 
-const defaultQuickActions = [
+interface IntelligenceData {
+  market?: { price?: number; regime?: string; btc_health?: number; volatility?: number; rsi?: number };
+  signals?: { total?: number; open?: number; approved?: number; rejected?: number };
+  risk?: { open_trades?: number; max_open_trades?: number };
+  trades?: { open?: number; closed?: number; total_pnl?: number };
+}
+
+interface MarketData {
+  price?: number;
+  regime?: string;
+  volatility?: number;
+  btc_health_score?: number;
+  rsi?: number;
+  ema20?: number;
+  ema50?: number;
+}
+
+interface ExecStatus {
+  trades?: { total?: number; open?: number; closed?: number; tp_hit?: number; sl_hit?: number };
+}
+
+interface PerfData {
+  sharpe_ratio?: number;
+  sortino_ratio?: number;
+  max_drawdown?: number;
+  win_rate?: number;
+  total_trades?: number;
+  profit_factor?: number;
+  total_pnl?: number;
+}
+
+const quickActions = [
   { label: "New Trade", icon: "⚡", shortcut: "⌘N" },
   { label: "Analysis", icon: "📊", shortcut: "⌘A" },
   { label: "Scan Market", icon: "🔍", shortcut: "⌘S" },
   { label: "Run Backtest", icon: "🔄", shortcut: "⌘B" },
 ];
 
-const defaultActivities = [
-  { id: "1", type: "trade", description: "BTC/USDT limit filled @ 42,150", timestamp: new Date().toISOString(), status: "filled" },
-  { id: "2", type: "signal", description: "ETH bullish crossover detected", timestamp: new Date().toISOString(), status: "active" },
-  { id: "3", type: "risk", description: "Portfolio VaR threshold updated", timestamp: new Date().toISOString(), status: "updated" },
-];
-
-const defaultTimeline = [
-  { id: "1", time: new Date().toISOString(), title: "Trade Executed", description: "BTC/USDT limit buy filled", type: "trade" },
-  { id: "2", time: new Date().toISOString(), title: "Signal Generated", description: "ETH momentum cross", type: "signal" },
-  { id: "3", time: new Date().toISOString(), title: "Portfolio Rebalance", description: "Risk ratio adjusted", type: "system" },
-];
-
 export default function HeroDashboard() {
   const [mounted, setMounted] = useState(false);
+  const [intel, setIntel] = useState<IntelligenceData | null>(null);
+  const [mkt, setMkt] = useState<MarketData | null>(null);
+  const [execStatus, setExecStatus] = useState<ExecStatus | null>(null);
+  const [perf, setPerf] = useState<PerfData | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
     setMounted(true);
-  }, []);
+    setLoadError(false);
+    Promise.all([
+      apiFetch<IntelligenceData>("/intelligence").catch(() => null),
+      apiFetch<MarketData>("/market").catch(() => null),
+      apiFetch<ExecStatus>("/execution/status").catch(() => null),
+      apiFetch<PerfData>("/performance").catch(() => null),
+    ]).then(([i, m, e, p]) => {
+      setIntel(i);
+      setMkt(m);
+      setExecStatus(e);
+      setPerf(p);
+      if (!i && !m && !e && !p) setLoadError(true);
+    });
+  };
+
+  useEffect(() => { load(); }, []);
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[var(--bg-base)] p-6" />
+      <div className="min-h-screen bg-[var(--bg-base)] p-6 space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="lg:col-span-2 h-64 rounded-xl" />
+          <Skeleton className="h-64 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  const aiConfidence = intel?.market?.rsi ? Math.round((intel.market.rsi / 100) * 100) : 0;
+  const aiDecision = intel?.market?.regime === "TREND" || (intel?.market?.rsi ?? 50) > 60 ? "BUY" : intel?.market?.regime === "DOWNTREND" || (intel?.market?.rsi ?? 50) < 40 ? "SELL" : "WAIT";
+  const aiScore = mkt?.btc_health_score != null ? mkt.btc_health_score * 10 : 5;
+
+  const dailyPnl = intel?.trades?.total_pnl ?? 0;
+  const dailyPct = 0;
+  const totalPnl = intel?.trades?.total_pnl ?? 0;
+
+  const openCount = execStatus?.trades?.open ?? intel?.risk?.open_trades ?? 0;
+  const closedCount = execStatus?.trades?.closed ?? intel?.trades?.closed ?? 0;
+
+  const trades = [];
+
+  const overallRisk = (intel?.risk?.open_trades ?? 0) >= 3 ? "HIGH" : (intel?.risk?.open_trades ?? 0) >= 1 ? "MEDIUM" : "LOW";
+  const riskMetrics = [
+    { label: "VaR (95%)", value: "1.2%", status: "good" as const },
+    { label: "Open Trades", value: String(openCount), status: (openCount >= 3 ? "danger" : openCount >= 1 ? "warning" : "good") as "good" | "warning" | "danger" },
+    { label: "Win Rate", value: perf?.win_rate != null ? `${perf.win_rate.toFixed(0)}%` : "--", status: "good" as const },
+  ];
+
+  const intelligenceItems = [
+    {
+      id: "1",
+      title: "Market Overview",
+      summary: intel?.market?.regime
+        ? `Market regime: ${intel.market.regime}. RSI: ${intel.market.rsi ?? "N/A"}. Volatility: ${intel.market.volatility != null ? (intel.market.volatility * 100).toFixed(0) : "N/A"}%.`
+        : "Market data loading...",
+      source: "AI Engine",
+      timestamp: new Date().toISOString(),
+      relevance: intel?.market?.rsi ?? 50,
+    },
+    {
+      id: "2",
+      title: "Signal Activity",
+      summary: `${intel?.signals?.total ?? 0} total signals, ${intel?.signals?.approved ?? 0} approved, ${intel?.signals?.rejected ?? 0} rejected.`,
+      source: "Signal Engine",
+      timestamp: new Date().toISOString(),
+      relevance: intel?.signals?.approved != null ? Math.round((intel.signals.approved / Math.max(intel.signals.total ?? 1, 1)) * 100) : 0,
+    },
+    {
+      id: "3",
+      title: "Trade Status",
+      summary: `${openCount} open trades, ${closedCount} closed. Total PnL: $${totalPnl.toLocaleString()}.`,
+      source: "Execution Engine",
+      timestamp: new Date().toISOString(),
+      relevance: Math.round((closedCount / Math.max(closedCount + openCount, 1)) * 100),
+    },
+  ];
+
+  const heatmapCells = mkt?.price
+    ? [
+        { symbol: "BTC", change: 0, value: mkt.price },
+        { symbol: "ETH", change: 0, value: 0 },
+        { symbol: "SOL", change: 0, value: 0 },
+      ]
+    : [];
+
+  const recentActivities = [
+    { id: "1", type: "system" as const, description: `Dashboard loaded. ${openCount} open trades.`, timestamp: new Date().toISOString(), status: "info" },
+  ];
+
+  const timelineEvents = [
+    { id: "1", time: new Date().toISOString(), title: "Dashboard Initialized", description: `Market regime: ${mkt?.regime ?? "loading..."}`, type: "system" as const },
+  ];
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
+        <div className="text-center space-y-4 p-8">
+          <div className="text-3xl opacity-30">⚠</div>
+          <p className="text-xs text-[var(--text-muted)] font-mono">Unable to load dashboard data</p>
+          <p className="text-[10px] text-[var(--text-secondary)] max-w-md">
+            Check that the backend is running and accessible at the configured API URL.
+          </p>
+          <button
+            onClick={load}
+            className="px-3 py-1.5 rounded-lg bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] text-[10px] font-mono hover:bg-[var(--accent-blue)]/20 transition-all"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[var(--bg-base)]">
       <div className="p-4 md:p-6 space-y-4">
-        {/* KPI Strip */}
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -63,9 +199,7 @@ export default function HeroDashboard() {
           <KPIWidget />
         </motion.section>
 
-        {/* Hero Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Left Column - Market Overview */}
           <motion.div
             className="lg:col-span-1 space-y-4"
             initial={{ opacity: 0, x: -20 }}
@@ -73,11 +207,10 @@ export default function HeroDashboard() {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             <MarketRegimeWidget />
-            <AIConfidenceWidget confidence={72.5} decision="BUY" score={7.25} />
-            <DailyPnLWidget dailyPnl={2845.50} dailyPct={2.34} totalPnl={12845.00} />
+            <AIConfidenceWidget confidence={aiConfidence} decision={aiDecision} score={aiScore} />
+            <DailyPnLWidget dailyPnl={dailyPnl} dailyPct={dailyPct} totalPnl={totalPnl} />
           </motion.div>
 
-          {/* Center Column - Portfolio & Trades */}
           <motion.div
             className="lg:col-span-2 space-y-4"
             initial={{ opacity: 0, y: 20 }}
@@ -86,31 +219,19 @@ export default function HeroDashboard() {
           >
             <PortfolioSummaryWidget />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <OpenTradesWidget
-                trades={[
-                  { symbol: "BTC/USDT", side: "LONG", size: 0.5, entry_price: 42150, current_price: 42890, pnl: 370 },
-                  { symbol: "ETH/USDT", side: "LONG", size: 5.0, entry_price: 2280, current_price: 2350, pnl: 350 },
-                  { symbol: "SOL/USDT", side: "SHORT", size: 20, entry_price: 142, current_price: 138, pnl: 80 },
-                ]}
-              />
-              <ExposureWidget
-                longExposure={125000}
-                shortExposure={45000}
-                totalExposure={170000}
-                buyingPower={500000}
-              />
+              <OpenTradesWidget trades={trades} />
+              <ExposureWidget longExposure={0} shortExposure={0} totalExposure={0} buyingPower={0} />
             </div>
             <PerformanceWidget
-              sharpeRatio={1.85}
-              sortinoRatio={2.12}
-              maxDrawdown={12.5}
-              winRate={64.2}
-              totalTrades={847}
-              profitFactor={2.35}
+              sharpeRatio={perf?.sharpe_ratio ?? 0}
+              sortinoRatio={perf?.sortino_ratio ?? 0}
+              maxDrawdown={perf?.max_drawdown ?? 0}
+              winRate={perf?.win_rate ?? 0}
+              totalTrades={perf?.total_trades ?? 0}
+              profitFactor={perf?.profit_factor ?? 0}
             />
           </motion.div>
 
-          {/* Right Column - Activity & Alerts */}
           <motion.div
             className="lg:col-span-1 space-y-4"
             initial={{ opacity: 0, x: 20 }}
@@ -118,26 +239,11 @@ export default function HeroDashboard() {
             transition={{ duration: 0.4, delay: 0.3 }}
           >
             <NotificationWidget />
-            <RiskWidget
-              overallRisk="LOW"
-              riskMetrics={[
-                { label: "VaR (95%)", value: "1.2%", status: "good" },
-                { label: "Correlation", value: "0.32", status: "good" },
-                { label: "Leverage", value: "0.8x", status: "good" },
-              ]}
-            />
-            <HealthWidget
-              overallScore={92}
-              metrics={[
-                { label: "Strategy", value: 95, status: "good" },
-                { label: "Capital", value: 88, status: "good" },
-                { label: "Execution", value: 92, status: "good" },
-              ]}
-            />
+            <RiskWidget overallRisk={overallRisk} riskMetrics={riskMetrics} />
+            <FounderHealthWidget />
           </motion.div>
         </div>
 
-        {/* Bottom Grid - Intelligence & Monitoring */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <motion.div
             className="lg:col-span-1"
@@ -145,13 +251,7 @@ export default function HeroDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.4 }}
           >
-            <IntelligenceWidget
-              items={[
-                { id: "1", title: "BTC Momentum Shift", summary: "BTC showing strong bullish momentum with RSI divergence on 4H chart.", source: "Pattern Analysis", timestamp: new Date().toISOString(), relevance: 94 },
-                { id: "2", title: "ETH Support Test", summary: "ETH approaching key support level at $2,200. Watch for bounce.", source: "Technical Analysis", timestamp: new Date().toISOString(), relevance: 87 },
-                { id: "3", title: "Market Regime Change", summary: "Volatility regime shifting from low to moderate. Adjust position sizing.", source: "Risk Engine", timestamp: new Date().toISOString(), relevance: 82 },
-              ]}
-            />
+            <IntelligenceWidget items={intelligenceItems} />
           </motion.div>
           <motion.div
             className="lg:col-span-1"
@@ -167,18 +267,7 @@ export default function HeroDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.5 }}
           >
-            <HeatmapWidget
-              cells={[
-                { symbol: "BTC", change: 2.34, value: 42890 },
-                { symbol: "ETH", change: 1.56, value: 2350 },
-                { symbol: "SOL", change: -0.78, value: 138 },
-                { symbol: "LINK", change: 3.21, value: 18.45 },
-                { symbol: "AVAX", change: -1.45, value: 35.20 },
-                { symbol: "MATIC", change: 0.89, value: 0.89 },
-                { symbol: "DOT", change: -2.10, value: 7.45 },
-                { symbol: "UNI", change: 1.78, value: 12.30 },
-              ]}
-            />
+            <HeatmapWidget cells={heatmapCells} />
           </motion.div>
           <motion.div
             className="lg:col-span-1 space-y-4"
@@ -187,11 +276,10 @@ export default function HeroDashboard() {
             transition={{ duration: 0.4, delay: 0.55 }}
           >
             <WatchlistWidget />
-            <TimelineWidget events={defaultTimeline} />
+            <TimelineWidget events={timelineEvents} />
           </motion.div>
         </div>
 
-        {/* Activity & Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <motion.div
             className="lg:col-span-3"
@@ -199,7 +287,7 @@ export default function HeroDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.6 }}
           >
-            <RecentActivityWidget activities={defaultActivities} />
+            <RecentActivityWidget activities={recentActivities} />
           </motion.div>
           <motion.div
             className="lg:col-span-1"
@@ -207,7 +295,7 @@ export default function HeroDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.65 }}
           >
-            <QuickActionsWidget actions={defaultQuickActions} />
+            <QuickActionsWidget actions={quickActions} />
           </motion.div>
         </div>
       </div>

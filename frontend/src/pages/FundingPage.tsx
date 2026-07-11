@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
@@ -15,27 +15,15 @@ export default function FundingPage() {
   const [data, setData] = useState<FundingData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiFetch<FundingData[] | { funding: FundingData[] }>("/funding");
-      const items = Array.isArray(res) ? res : (res as { funding: FundingData[] }).funding;
-      setData(items || []);
-    } catch {
-      // silent - placeholder if endpoint doesn't exist
-      setData([
-        { symbol: "BTCUSDT", current_rate: 0.008, predicted_rate: 0.006, next_funding_time: "2026-07-09T12:00:00Z" },
-        { symbol: "ETHUSDT", current_rate: 0.012, predicted_rate: 0.010, next_funding_time: "2026-07-09T12:00:00Z" },
-        { symbol: "SOLUSDT", current_rate: -0.005, predicted_rate: -0.003, next_funding_time: "2026-07-09T12:00:00Z" },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    let mounted = true;
+    setLoading(true);
+    apiFetch<{ funding: FundingData[] }>("/funding")
+      .then((res) => { if (mounted) setData(res.funding || []); })
+      .catch(() => { if (mounted) setData([]); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const rateBadge = (rate: number): "success" | "danger" | "warning" => {
     if (rate > 0.01) return "danger";
@@ -57,6 +45,12 @@ export default function FundingPage() {
             <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
+      ) : data.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-xs font-mono text-[var(--text-muted)]">No funding data available</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.map((item) => (

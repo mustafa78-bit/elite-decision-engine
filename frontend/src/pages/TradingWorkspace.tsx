@@ -1,25 +1,54 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { SymbolSearch } from "../components/trading/symbol-search";
 import { ChartPanel } from "../components/trading/chart-panel";
 import { OrderPanel } from "../components/trading/order-panel";
+import { Skeleton } from "../components/ui/skeleton";
+import { apiFetch } from "../api/client";
 
-const sampleCandles = Array.from({ length: 100 }, (_, i) => {
-  const base = 42000 + Math.sin(i * 0.1) * 2000 + (i * 15);
-  const open = base + (Math.random() - 0.5) * 200;
-  const close = base + (Math.random() - 0.5) * 200;
-  const high = Math.max(open, close) + Math.random() * 150;
-  const low = Math.min(open, close) - Math.random() * 150;
-  return {
-    time: Math.floor(Date.now() / 1000) - (100 - i) * 3600,
-    open,
-    high,
-    low,
-    close,
-    volume: Math.random() * 1000 + 500,
-  };
-});
+interface LiveCandle {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+interface Candle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
 
 export default function TradingWorkspace() {
+  const [candles, setCandles] = useState<Candle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    apiFetch<{ symbol: string; candles: LiveCandle[] }>("/market/live?symbol=BTC&timeframe=1h&limit=100")
+      .then((res) => {
+        if (mounted && res.candles) {
+          setCandles(res.candles.map((c) => ({
+            time: Math.floor(c.timestamp / 1000),
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+            volume: c.volume,
+          })));
+        }
+      })
+      .catch(() => { if (mounted) setCandles([]); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[var(--bg-base)] p-4 md:p-6">
       <motion.div
@@ -40,7 +69,11 @@ export default function TradingWorkspace() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <ChartPanel data={sampleCandles} />
+          {loading ? (
+            <Skeleton className="h-[400px] w-full rounded-xl" />
+          ) : (
+            <ChartPanel data={candles} />
+          )}
         </motion.div>
 
         <motion.div

@@ -24,12 +24,13 @@ export function DashboardBuilder() {
 
   const handleAddWidget = useCallback(
     (widget: WidgetDefinition) => {
+      const idx = Date.now();
       addPanel({
-        id: `widget-${widget.id}-${Date.now()}`,
+        id: `widget-${widget.id}-${idx}`,
         type: widget.component,
         title: widget.name,
-        x: 100 + Math.random() * 200,
-        y: 100 + Math.random() * 200,
+        x: 100 + ((idx % 3) * 250),
+        y: 100 + (Math.floor(idx / 3) % 3) * 200,
         w: widget.defaultWidth * 300,
         h: widget.defaultHeight * 200,
         minimized: false,

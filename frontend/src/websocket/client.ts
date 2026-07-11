@@ -6,7 +6,7 @@ export type { ConnectionStatus };
 export type MessageHandler = (data: WsEvent) => void;
 export type StatusHandler = (status: ConnectionStatus) => void;
 
-const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000";
+const WS_BASE = import.meta.env.VITE_WS_URL;
 
 function getToken(): string {
   return localStorage.getItem("auth_token") ?? "";

@@ -63,7 +63,7 @@ export function useLiveUpdates<T = unknown>(config: LiveUpdateConfig<T>) {
   return { data, connected };
 }
 
-const WS_BASE = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000";
+const WS_BASE = import.meta.env.VITE_WS_URL;
 
 export function useNotificationUpdates() {
   const prevNotifRef = useRef(0);
