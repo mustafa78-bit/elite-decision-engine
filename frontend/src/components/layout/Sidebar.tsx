@@ -22,6 +22,7 @@ const sections: { title: string; items: NavItem[] }[] = [
     title: "Intelligence",
     items: [
       { label: "Signals", path: "/signals", icon: "⚡" },
+      { label: "Decision Center", path: "/decisions", icon: "◈" },
       { label: "Analytics", path: "/analytics", icon: "▦" },
       { label: "Market", path: "/market", icon: "◉" },
       { label: "Risk", path: "/risk", icon: "▲" },

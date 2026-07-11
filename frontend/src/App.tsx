@@ -6,6 +6,7 @@ import Analytics from "./pages/Analytics";
 import AssetDetail from "./pages/AssetDetail";
 import Backtest from "./pages/Backtest";
 import Dashboard from "./pages/Dashboard";
+import DecisionCenter from "./pages/DecisionCenter";
 import Execution from "./pages/Execution";
 import Intelligence from "./pages/Intelligence";
 import Journal from "./pages/Journal";
@@ -169,6 +170,7 @@ function App() {
               <Route path="/overview" element={<Overview />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/scanner" element={<Scanner />} />
+              <Route path="/decisions" element={<DecisionCenter />} />
               <Route path="/asset/:symbol" element={<AssetDetail />} />
               <Route path="/profile" element={<Profile />} />
           <Route path="/trades" element={<Trades />} />
