@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -286,10 +286,12 @@ export default function AssetDetail() {
   const { symbol } = useParams<{ symbol: string }>();
   const { latestPrice, latestIntelligence, notifications } = useOutletContext<LayoutContext>();
   const { setSymbol, addRecentSymbol } = useTerminalStore();
+  const navigate = useNavigate();
   const [candles, setCandles] = useState<Candle[]>([]);
   const [timeframe, setTimeframe] = useState("1h");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [candleError, setCandleError] = useState(false);
+  const [candleLoading, setCandleLoading] = useState(false);
 
   useEffect(() => {
     if (symbol) {
@@ -301,6 +303,7 @@ export default function AssetDetail() {
   const loadCandles = useCallback(async () => {
     if (!symbol) return;
     setCandleError(false);
+    setCandleLoading(true);
     try {
       const data = await apiFetch<Candle[]>(`/market/live?symbol=${symbol}&timeframe=${timeframe}&limit=100`);
       if (Array.isArray(data) && data.length > 0) {
@@ -308,6 +311,8 @@ export default function AssetDetail() {
       }
     } catch {
       setCandleError(true);
+    } finally {
+      setCandleLoading(false);
     }
   }, [symbol, timeframe]);
 
@@ -358,6 +363,9 @@ export default function AssetDetail() {
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/scanner")} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] -ml-1">
+              ← Back
+            </Button>
             <h1 className="text-sm font-semibold text-[var(--text-primary)]">
               {symbol ?? "Unknown"}
             </h1>
@@ -392,7 +400,14 @@ export default function AssetDetail() {
                 </h2>
                 <TVTimeframeSelector selected={timeframe as any} onChange={(tf) => setTimeframe(tf)} />
               </div>
-              {candleError ? (
+              {candleLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-6 h-6 border-2 border-[var(--border-default)] border-t-[var(--accent-blue)] rounded-full animate-spin" />
+                    <span className="text-[10px] text-[var(--text-muted)] font-mono">Loading chart data...</span>
+                  </div>
+                </div>
+              ) : candleError ? (
                 <div className="flex flex-col items-center gap-2 py-6">
                   <p className="text-xs text-[var(--accent-red)] font-mono">Failed to load chart data</p>
                   <Button variant="ghost" size="sm" onClick={loadCandles}>Retry</Button>
@@ -503,22 +518,24 @@ export default function AssetDetail() {
               </div>
             </div>
 
-            <div>
-              <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-2">
-                Decision Timeline
-              </h2>
-              <DecisionTimeline events={recentTrades.length > 0 ? recentTrades.map((n, i) => ({
-                id: `event-${i}`,
-                time: new Date(n.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-                type: n.event === "TRADE_OPENED" ? "execution" as const : "signal" as const,
-                symbol: n.payload.symbol,
-                action: n.event === "TRADE_OPENED" ? "Opened" : "Closed",
-                confidence: n.payload.intelligence?.confidence ? Math.round(n.payload.intelligence.confidence * 100) : 85,
-                outcome: n.event === "TRADE_CLOSED"
-                  ? (n.payload.pnl != null && n.payload.pnl >= 0 ? "correct" as const : "incorrect" as const)
-                  : undefined,
-              })) : undefined} />
-            </div>
+            {recentTrades.length > 0 && (
+              <div>
+                <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-2">
+                  Decision Timeline
+                </h2>
+                <DecisionTimeline events={recentTrades.map((n, i) => ({
+                  id: `event-${i}`,
+                  time: new Date(n.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+                  type: n.event === "TRADE_OPENED" ? "execution" as const : "signal" as const,
+                  symbol: n.payload.symbol,
+                  action: n.event === "TRADE_OPENED" ? "Opened" : "Closed",
+                  confidence: n.payload.intelligence?.confidence ? Math.round(n.payload.intelligence.confidence * 100) : 85,
+                  outcome: n.event === "TRADE_CLOSED"
+                    ? (n.payload.pnl != null && n.payload.pnl >= 0 ? "correct" as const : "incorrect" as const)
+                    : undefined,
+                }))} />
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">

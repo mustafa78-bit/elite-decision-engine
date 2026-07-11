@@ -632,9 +632,22 @@ export default function Scanner() {
         ) : loading ? (
           <Card>
             <CardContent className="p-4">
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-8 bg-[var(--bg-elevated)] rounded animate-pulse" />
+              <div className="space-y-1">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex gap-3 px-4 py-2.5">
+                    <div className="w-6 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-16 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-10 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-16 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="flex-1 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-16 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-8 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-8 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-12 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-12 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-8 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                    <div className="w-12 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
+                  </div>
                 ))}
               </div>
             </CardContent>
@@ -677,9 +690,14 @@ export default function Scanner() {
                       return (
                         <tr
                           key={`${result.symbol}-${result.rank}`}
+                          tabIndex={0}
                           onClick={() => handleSelect(result)}
                           onDoubleClick={() => handleNavigate(result.symbol)}
-                          className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)]/50 cursor-pointer"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSelect(result);
+                            if (e.key === "Enter" && e.shiftKey) handleNavigate(result.symbol);
+                          }}
+                          className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)]/50 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)]"
                         >
                           <TableCell className="w-8 text-[11px]">
                             #{result.rank}

@@ -490,9 +490,11 @@ export default function DecisionCenter() {
             <CardContent className="py-2">
               <span className={cn(
                 "text-lg font-mono tabular-nums font-bold",
-                analytics.winRate >= 50 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]",
+                analytics.totalDecisions > 0
+                  ? analytics.winRate >= 50 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"
+                  : "text-[var(--text-muted)]",
               )}>
-                {analytics.winRate}%
+                {analytics.totalDecisions > 0 ? `${analytics.winRate}%` : "--"}
               </span>
             </CardContent>
           </Card>
@@ -503,9 +505,9 @@ export default function DecisionCenter() {
             <CardContent className="py-2">
               <span className={cn(
                 "text-lg font-mono tabular-nums font-bold",
-                getConfidenceColor(analytics.avgConfidence),
+                analytics.totalDecisions > 0 ? getConfidenceColor(analytics.avgConfidence) : "text-[var(--text-muted)]",
               )}>
-                {analytics.avgConfidence}%
+                {analytics.totalDecisions > 0 ? `${analytics.avgConfidence}%` : "--"}
               </span>
             </CardContent>
           </Card>
@@ -516,9 +518,9 @@ export default function DecisionCenter() {
             <CardContent className="py-2">
               <span className={cn(
                 "text-lg font-mono tabular-nums font-bold",
-                getRiskColor(analytics.avgRisk),
+                analytics.totalDecisions > 0 ? getRiskColor(analytics.avgRisk) : "text-[var(--text-muted)]",
               )}>
-                {analytics.avgRisk.toFixed(2)}
+                {analytics.totalDecisions > 0 ? analytics.avgRisk.toFixed(2) : "--"}
               </span>
             </CardContent>
           </Card>
@@ -527,8 +529,11 @@ export default function DecisionCenter() {
               <CardTitle>Best Strategy</CardTitle>
             </CardHeader>
             <CardContent className="py-2">
-              <span className="text-sm font-mono text-[var(--accent-green)]">
-                {analytics.bestStrategy}
+              <span className={cn(
+                "text-sm font-mono",
+                analytics.totalDecisions > 0 ? "text-[var(--accent-green)]" : "text-[var(--text-muted)]",
+              )}>
+                {analytics.totalDecisions > 0 ? analytics.bestStrategy : "--"}
               </span>
             </CardContent>
           </Card>
@@ -537,8 +542,11 @@ export default function DecisionCenter() {
               <CardTitle>Weakest Strategy</CardTitle>
             </CardHeader>
             <CardContent className="py-2">
-              <span className="text-sm font-mono text-[var(--accent-red)]">
-                {analytics.worstStrategy}
+              <span className={cn(
+                "text-sm font-mono",
+                analytics.totalDecisions > 0 ? "text-[var(--accent-red)]" : "text-[var(--text-muted)]",
+              )}>
+                {analytics.totalDecisions > 0 ? analytics.worstStrategy : "--"}
               </span>
             </CardContent>
           </Card>
@@ -612,7 +620,9 @@ export default function DecisionCenter() {
                       return (
                         <tr
                           key={item.id}
-                          className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)]/50"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleExplain(item); }}
+                          className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)]"
                         >
                           <TableCell className="w-20">
                             <span className="text-xs font-semibold text-[var(--text-primary)]">
