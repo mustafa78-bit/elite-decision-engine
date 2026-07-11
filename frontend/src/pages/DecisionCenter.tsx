@@ -317,6 +317,7 @@ export default function DecisionCenter() {
   const { openTrades, closedTrades } = useOutletContext<LayoutContext>();
   const [signals, setSignals] = useState<SignalRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DecisionTab>("all");
   const [selectedItem, setSelectedItem] = useState<DecisionItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -324,10 +325,12 @@ export default function DecisionCenter() {
   const loadSignals = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await fetchSignals();
       setSignals(data);
     } catch {
       setSignals([]);
+      setError("Failed to load signals. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -348,7 +351,7 @@ export default function DecisionCenter() {
         trend_score: signal.trend_score,
         volume_score: signal.volume_score,
         btc_score: signal.btc_score,
-        mtf_score: signal.btc_score,
+        mtf_score: (signal.trend_score + signal.volume_score + signal.btc_score) / 3,
         risk_score: signal.risk_score,
         rsi: 50,
         ema20: 0,
@@ -446,14 +449,12 @@ export default function DecisionCenter() {
     const avgRisk = decisions.length > 0
       ? decisions.reduce((s, d) => s + d.risk, 0) / decisions.length
       : 0;
-    const bestStrat = "Trend Following";
-    const worstStrat = "Mean Reversion";
     return {
       winRate: Math.round(winRate),
       avgConfidence: Math.round(avgConf),
       avgRisk: parseFloat(avgRisk.toFixed(2)),
-      bestStrategy: bestStrat,
-      worstStrategy: worstStrat,
+      bestStrategy: "N/A",
+      worstStrategy: "N/A",
       totalDecisions: decisions.length,
     };
   }, [decisions]);
@@ -559,7 +560,16 @@ export default function DecisionCenter() {
           ))}
         </div>
 
-        {loading ? (
+        {error ? (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center gap-3 py-4">
+                <p className="text-xs text-[var(--accent-red)] font-mono text-center">{error}</p>
+                <Button variant="ghost" size="sm" onClick={loadSignals}>Retry</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : loading ? (
           <Card>
             <CardContent className="p-4">
               <div className="space-y-3">

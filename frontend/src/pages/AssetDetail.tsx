@@ -289,6 +289,7 @@ export default function AssetDetail() {
   const [candles, setCandles] = useState<Candle[]>([]);
   const [timeframe, setTimeframe] = useState("1h");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [candleError, setCandleError] = useState(false);
 
   useEffect(() => {
     if (symbol) {
@@ -299,13 +300,14 @@ export default function AssetDetail() {
 
   const loadCandles = useCallback(async () => {
     if (!symbol) return;
+    setCandleError(false);
     try {
       const data = await apiFetch<Candle[]>(`/market/live?symbol=${symbol}&timeframe=${timeframe}&limit=100`);
       if (Array.isArray(data) && data.length > 0) {
         setCandles(data);
       }
     } catch {
-      /* chart will show empty state */
+      setCandleError(true);
     }
   }, [symbol, timeframe]);
 
@@ -390,7 +392,14 @@ export default function AssetDetail() {
                 </h2>
                 <TVTimeframeSelector selected={timeframe as any} onChange={(tf) => setTimeframe(tf)} />
               </div>
-              <ChartPanel data={candles} />
+              {candleError ? (
+                <div className="flex flex-col items-center gap-2 py-6">
+                  <p className="text-xs text-[var(--accent-red)] font-mono">Failed to load chart data</p>
+                  <Button variant="ghost" size="sm" onClick={loadCandles}>Retry</Button>
+                </div>
+              ) : (
+                <ChartPanel data={candles} />
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -498,7 +507,17 @@ export default function AssetDetail() {
               <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-2">
                 Decision Timeline
               </h2>
-              <DecisionTimeline events={recentTrades.length > 0 ? undefined : []} />
+              <DecisionTimeline events={recentTrades.length > 0 ? recentTrades.map((n, i) => ({
+                id: `event-${i}`,
+                time: new Date(n.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+                type: n.event === "TRADE_OPENED" ? "execution" as const : "signal" as const,
+                symbol: n.payload.symbol,
+                action: n.event === "TRADE_OPENED" ? "Opened" : "Closed",
+                confidence: n.payload.intelligence?.confidence ? Math.round(n.payload.intelligence.confidence * 100) : 85,
+                outcome: n.event === "TRADE_CLOSED"
+                  ? (n.payload.pnl != null && n.payload.pnl >= 0 ? "correct" as const : "incorrect" as const)
+                  : undefined,
+              })) : undefined} />
             </div>
           </div>
 

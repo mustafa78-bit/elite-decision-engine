@@ -427,20 +427,25 @@ export default function Scanner() {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<ScannerResult | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { setSymbol, addRecentSymbol } = useTerminalStore();
   const navigate = useNavigate();
 
   const loadCategory = useCallback(async (category: string) => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await apiFetch<ScannerResult[]>(`/scanner/category/${category}?n=20`);
+      const data = await apiFetch<ScannerResult[]>(
+        `/scanner/category/${category}?n=20&timeframe=${timeframe}&market=${market}`,
+      );
       setOpportunities(data);
     } catch {
       setOpportunities([]);
+      setError("Failed to load scanner data. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timeframe, market]);
 
   useEffect(() => {
     loadCategory(activeCategory);
@@ -613,7 +618,18 @@ export default function Scanner() {
           ))}
         </div>
 
-        {loading ? (
+        {error ? (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center gap-3 py-4">
+                <p className="text-xs text-[var(--accent-red)] font-mono text-center">{error}</p>
+                <Button variant="ghost" size="sm" onClick={() => loadCategory(activeCategory)}>
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : loading ? (
           <Card>
             <CardContent className="p-4">
               <div className="space-y-3">
