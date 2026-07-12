@@ -19,11 +19,14 @@ from config import DATABASE_URL
 
 logger = logging.getLogger(__name__)
 
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_pre_ping=not _is_sqlite,
+    pool_size=1 if _is_sqlite else 10,
+    max_overflow=0 if _is_sqlite else 20,
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
 )
 
 SessionLocal = sessionmaker(

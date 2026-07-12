@@ -3,116 +3,108 @@ setlocal enabledelayedexpansion
 title Elite Decision Engine - Startup
 
 echo ============================================
-echo  Elite Decision Engine — Founder Alpha Start
+echo  Elite Decision Engine - Founder Alpha Start
 echo ============================================
 echo.
 
-REM ── Prerequisites ──────────────────────────────────────────────────────────
+set ERR=0
 
-:check_python
+echo [1/10] Checking Python...
 python --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [FAIL] Python is not installed or not in PATH.
-    echo        Install Python 3.12+ from https://www.python.org/
-    pause
-    exit /b 1
+    set ERR=1
+    goto :done
 )
 for /f "tokens=2" %%V in ('python --version 2^>^&1') do set PYTHON_VER=%%V
 echo [OK]  Python %PYTHON_VER%
 
-:check_node
+echo [2/10] Checking Node.js...
 node --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [FAIL] Node.js is not installed or not in PATH.
-    echo        Install Node.js 22+ from https://nodejs.org/
-    pause
-    exit /b 1
+    set ERR=1
+    goto :done
 )
 for /f "tokens=1" %%V in ('node --version') do set NODE_VER=%%V
 echo [OK]  Node %NODE_VER%
 
-:check_npm
-npm --version >nul 2>&1
+echo [3/10] Checking npm...
+call npm --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [FAIL] npm is not installed or not in PATH.
-    pause
-    exit /b 1
+    set ERR=1
+    goto :done
 )
-for /f %%V in ('npm --version') do set NPM_VER=%%V
+for /f "delims=" %%V in ('npm --version') do set NPM_VER=%%V
 echo [OK]  npm %NPM_VER%
 
-:check_venv
-if not exist ".venv\Scripts\activate" (
+echo [4/10] Checking virtual environment...
+if not exist ".venv\Scripts\python.exe" (
     echo [FAIL] Virtual environment not found.
-    echo        Run: python -m venv .venv
-    echo        Then: .venv\Scripts\pip install -r requirements.txt
-    pause
-    exit /b 1
+    set ERR=1
+    goto :done
 )
 echo [OK]  Virtual environment (.venv)
 
-:check_node_modules
-if not exist "frontend\node_modules" (
-    echo [FAIL] frontend/node_modules not found.
-    echo        Run: cd frontend ^&^& npm install
-    pause
-    exit /b 1
+echo [5/10] Checking frontend dependencies...
+if not exist "frontend\node_modules\.package-lock.json" (
+    echo [FAIL] frontend/node_modules not found or incomplete.
+    set ERR=1
+    goto :done
 )
 echo [OK]  Node modules (frontend/node_modules)
 
 echo.
 
-REM ── Environment ────────────────────────────────────────────────────────────
+echo [6/10] Starting FastAPI backend...
 set JWT_SECRET=dev-secret-for-local-development
 set DATABASE_URL=sqlite:///test_elite.db
+start "Elite-Backend" cmd /c "title Elite-Backend && .venv\Scripts\python.exe -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
 
-REM ── Step 1: Start Backend ──────────────────────────────────────────────────
-echo [1/4] Starting FastAPI backend...
-start "Elite-Backend" cmd /c "title Elite-Backend && .venv\Scripts\activate && set JWT_SECRET=%JWT_SECRET% && set DATABASE_URL=%DATABASE_URL% && uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
-
-REM ── Step 2: Wait for Backend Health Check ──────────────────────────────────
-echo [2/4] Waiting for backend to be ready...
+echo [7/10] Waiting for backend to be ready...
 set RETRIES=0
-
-:wait_loop
-timeout /t 2 /nobreak >nul
-
-REM Capture health check response
-for /f "delims=" %%R in ('curl -s http://localhost:8000/health 2^>nul') do set HEALTH_RESPONSE=%%R
-
-if defined HEALTH_RESPONSE (
+:wait_backend
+%SystemRoot%\System32\timeout.exe /t 2 /nobreak >nul 2>&1
+set HEALTH=
+for /f "delims=" %%R in ('%SystemRoot%\System32\curl.exe -s -o nul -w "%%{http_code}" http://localhost:8000/health 2^>nul') do set HEALTH=%%R
+if "!HEALTH!"=="200" (
     echo [OK]  Backend is ready.
     goto :backend_ready
 )
-
 set /a RETRIES+=1
 if !RETRIES! geq 15 (
     echo [FAIL] Backend did not start within 30 seconds.
-    echo.
-    echo        Possible issues:
-    echo        - Port 8000 already in use
-    echo        - Missing Python dependencies (run: .venv\Scripts\pip install -r requirements.txt)
-    echo        - Database configuration error
-    echo        - Syntax error in Python code
-    echo.
-    echo        Check the "Elite-Backend" window for error details.
-    echo        Press any key to open the backend log, or close this window.
-    pause >nul
-    start notepad engine.log 2>nul
-    exit /b 1
+    set ERR=1
+    goto :done
 )
-echo       Retrying... (!RETRIES!/15)
-goto wait_loop
-
+echo        Retrying... (!RETRIES!/15)
+goto wait_backend
 :backend_ready
 
-REM ── Step 3: Start Frontend ─────────────────────────────────────────────────
-echo [3/4] Starting Vite frontend...
-start "Elite-Frontend" cmd /c "title Elite-Frontend && cd /d %~dp0frontend && npm run dev"
+echo [8/10] Starting Vite frontend...
+start "Elite-Frontend" cmd /c "title Elite-Frontend && cd /d %~dp0frontend && npm.cmd run dev"
 
-REM ── Step 4: Open Browser ──────────────────────────────────────────────────
-echo [4/4] Opening browser...
-timeout /t 4 /nobreak >nul
+echo [9/10] Waiting for frontend to be ready...
+set FRONTEND_RETRIES=0
+:wait_frontend
+%SystemRoot%\System32\timeout.exe /t 2 /nobreak >nul 2>&1
+set FRONTEND=
+for /f "delims=" %%R in ('%SystemRoot%\System32\curl.exe -s -o nul -w "%%{http_code}" http://localhost:5173 2^>nul') do set FRONTEND=%%R
+if "!FRONTEND!"=="200" (
+    echo [OK]  Frontend is ready.
+    goto :frontend_ready
+)
+set /a FRONTEND_RETRIES+=1
+if !FRONTEND_RETRIES! geq 15 (
+    echo [WARN] Frontend did not respond within 30 seconds.
+    goto :frontend_ready
+)
+echo        Retrying... (!FRONTEND_RETRIES!/15)
+goto wait_frontend
+:frontend_ready
+
+echo [10/10] Opening browser...
 start http://localhost:5173
 
 echo.
@@ -129,5 +121,15 @@ echo.
 echo  To stop, close windows or run: stop_elite.bat
 echo ============================================
 echo.
+goto :done
 
+:done
+if %ERR% neq 0 (
+    echo.
+    echo ============================================
+    echo  Startup failed with errors. See above.
+    echo ============================================
+    pause
+    exit /b 1
+)
 exit /b 0
