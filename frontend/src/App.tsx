@@ -39,7 +39,7 @@ import TradingWorkspace from "./pages/TradingWorkspace";
 import AIExperience from "./pages/AIExperience";
 import ProfessionalWorkspace from "./pages/ProfessionalWorkspace";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
-import { AuthProvider } from "./components/auth/AuthProvider";
+import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { AuthGuard } from "./components/auth/AuthGuard";
 import type {
   CandleWsPayload,
@@ -77,10 +77,10 @@ function App() {
     notifications: "DISCONNECTED",
     preferences: "DISCONNECTED",
   });
+  const { token } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
     if (!token) return;
     wsRef.current = connectTradesSocket(
       (data: WsEvent) => {
@@ -134,7 +134,7 @@ function App() {
       },
     );
     return () => wsRef.current?.close();
-  }, []);
+  }, [token]);
 
   const latestIntelligence = [...notifications]
     .reverse()
