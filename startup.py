@@ -83,7 +83,9 @@ class StartupValidator:
             raise ValueError("; ".join(errors))
 
     def _check_postgres_vars(self) -> None:
-        from config import POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_USER
+        from config import DATABASE_URL, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_USER
+        if DATABASE_URL.startswith("sqlite"):
+            return
         missing = []
         if not POSTGRES_HOST:
             missing.append("POSTGRES_HOST")
