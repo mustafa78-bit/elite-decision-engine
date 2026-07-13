@@ -80,6 +80,8 @@ function App() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (!token) return;
     wsRef.current = connectTradesSocket(
       (data: WsEvent) => {
         if (data.event === "TRADE_OPENED" || data.event === "TRADE_CLOSED") {
