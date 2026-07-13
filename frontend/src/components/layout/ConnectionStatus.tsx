@@ -17,8 +17,8 @@ const statusColors: Record<string, string> = {
 };
 
 export function ConnectionStatusBadge({ wsRooms }: ConnectionStatusProps) {
-  const allOk = Object.values(wsRooms).every((s) => s === "CONNECTED");
-  const overall: CS = allOk ? "CONNECTED" : "DISCONNECTED";
+  const isLive = wsRooms["trades"] === "CONNECTED";
+  const overall: CS = isLive ? "CONNECTED" : "DISCONNECTED";
 
   return (
     <div className="flex items-center gap-2" title={`WS: ${Object.entries(wsRooms).map(([k, v]) => `${k}=${v}`).join(", ")}`}>
