@@ -9,3 +9,4 @@ numpy
 tenacity
 websocket-client
 colorlog
+pytest

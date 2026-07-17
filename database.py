@@ -2,24 +2,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text
 from sqlalchemy.sql import func
-from dotenv import load_dotenv
-import os
+from config import (
+    POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD,
+)
 
-# -----------------------------------------------------------------------------
-# LOAD ENV
-# -----------------------------------------------------------------------------
-
-load_dotenv()
-
-# -----------------------------------------------------------------------------
-# DATABASE CONFIG
-# -----------------------------------------------------------------------------
-
-DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
-DB_PORT = os.getenv("POSTGRES_PORT", "5432")
-DB_NAME = os.getenv("POSTGRES_DB", "decision_engine")
-DB_USER = os.getenv("POSTGRES_USER", "postgres")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
+DB_HOST = POSTGRES_HOST or "localhost"
+DB_PORT = POSTGRES_PORT or "5432"
+DB_NAME = POSTGRES_DB or "decision_engine"
+DB_USER = POSTGRES_USER or "postgres"
+DB_PASSWORD = POSTGRES_PASSWORD or "postgres"
 
 DATABASE_URL = (
     f"postgresql://{DB_USER}:{DB_PASSWORD}"
