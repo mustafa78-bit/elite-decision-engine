@@ -46,6 +46,14 @@ class PositionSizingEngine:
 
     def calculate(self, candidate: Any) -> PositionSize:
         entry = candidate.entry or 0.0
+        if entry < 0:
+            logger.warning("Entry price is negative; using minimum position size")
+            return PositionSize(
+                quantity=self.min_quantity,
+                notional_value=0.0,
+                risk_amount=0.0,
+            )
+
         atr = candidate.scores.get("atr", 0.0)
 
         risk_per_unit = atr * self.atr_multiplier

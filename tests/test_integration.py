@@ -291,6 +291,7 @@ def test_signal_risk_execution_flow(db_session, session_factory, monkeypatch):
     class _Candidate:
         def __init__(self):
             self.symbol = "BTCUSDT"
+            self.side = "LONG"
             self.entry = 50000.0
 
     rm = RiskManager(session_factory=session_factory)

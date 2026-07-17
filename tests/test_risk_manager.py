@@ -71,6 +71,46 @@ class TestRiskManager:
         assert allowed is False
         assert "Maximum open trades" in reason
 
+    def test_invalid_symbol_rejection(self, db_session, session_factory):
+        mgr = RiskManager(session_factory=session_factory)
+        candidate = _make_candidate(symbol=None)
+        decision = mgr.evaluate_trade(candidate)
+        assert decision.allowed is False
+        assert decision.rejection_code == "INVALID_TRADE"
+        assert "missing or invalid symbol" in decision.reason
+
+        candidate = _make_candidate(symbol="   ")
+        decision = mgr.evaluate_trade(candidate)
+        assert decision.allowed is False
+        assert decision.rejection_code == "INVALID_TRADE"
+
+    def test_invalid_side_rejection(self, db_session, session_factory):
+        mgr = RiskManager(session_factory=session_factory)
+        candidate = _make_candidate(side="UP")
+        decision = mgr.evaluate_trade(candidate)
+        assert decision.allowed is False
+        assert decision.rejection_code == "INVALID_TRADE"
+        assert "Side must be LONG or SHORT" in decision.reason
+
+    def test_invalid_entry_rejection(self, db_session, session_factory):
+        mgr = RiskManager(session_factory=session_factory)
+        candidate = _make_candidate(entry=0.0)
+        decision = mgr.evaluate_trade(candidate)
+        assert decision.allowed is True
+
+        candidate = _make_candidate(entry=-100.0)
+        decision = mgr.evaluate_trade(candidate)
+        assert decision.allowed is False
+        assert decision.rejection_code == "INVALID_TRADE"
+        assert "Entry price cannot be negative" in decision.reason
+
+    def test_evaluate_with_transactional_session(self, db_session, session_factory):
+        mgr = RiskManager(session_factory=session_factory)
+        candidate = _make_candidate(entry=100.0)
+        decision = mgr.evaluate_trade(candidate, session=db_session)
+        assert decision.allowed is True
+        assert decision.reason == ""
+
     def test_open_trade_limit_ignores_closed_trades(self, db_session, session_factory):
         _seed_trade(db_session, status="OPEN")
         _seed_trade(db_session, status="TP_HIT")

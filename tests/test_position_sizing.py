@@ -95,3 +95,15 @@ class TestPositionSizing:
         assert result.quantity == 0.001
         assert result.notional_value == pytest.approx(50.0, abs=0.01)
         assert result.risk_amount == 0.0
+
+    def test_zero_or_negative_entry_uses_minimum_and_zero_values(self):
+        sizer = PositionSizingEngine(
+            account_equity=10000,
+            risk_percentage=1.0,
+            atr_multiplier=1.5,
+            min_quantity=0.001,
+        )
+        result_neg = sizer.calculate(_MockCandidate(entry=-100.0, atr=50.0))
+        assert result_neg.quantity == 0.001
+        assert result_neg.notional_value == 0.0
+        assert result_neg.risk_amount == 0.0
