@@ -27,12 +27,21 @@ router = APIRouter()
 def get_risk():
     session = get_session()
     try:
-        all_trades = session.query(Trade).all()
+        open_trades = session.query(Trade).filter(Trade.status == "OPEN").all()
+        today_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+        )
+        daily_losses = (
+            session.query(Trade.pnl)
+            .filter(
+                Trade.status.in_(FINAL_STATUSES),
+                Trade.closed_at >= today_start,
+                Trade.pnl < 0
+            )
+            .all()
+        )
     finally:
         session.close()
-
-    open_trades = [t for t in all_trades if t.status == "OPEN"]
-    closed_trades = [t for t in all_trades if t.status in FINAL_STATUSES]
 
     open_count = len(open_trades)
     symbol_exposure: dict[str, float] = {}
@@ -42,16 +51,7 @@ def get_risk():
 
     portfolio_exposure = sum(t.entry or 0 for t in open_trades)
 
-    today_start = datetime.now(timezone.utc).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    daily_loss = sum(
-        t.pnl or 0
-        for t in closed_trades
-        if t.pnl is not None and t.pnl < 0
-        and t.closed_at is not None
-        and t.closed_at >= today_start
-    )
+    daily_loss = sum(r.pnl for r in daily_losses if r.pnl is not None)
 
     risk_engine = RiskEngine()
     risk_assessment = risk_engine.evaluate({"atr": 0}, {"score": 0})

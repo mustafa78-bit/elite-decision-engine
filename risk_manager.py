@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from config import (
     MAX_DAILY_LOSS,
@@ -48,26 +48,72 @@ class RiskManager:
         decision = self.evaluate_trade(candidate)
         return decision.allowed, decision.reason
 
-    def evaluate_trade(self, candidate: Any) -> RiskDecision:
+    def evaluate_trade(self, candidate: Any, session: Optional[Any] = None) -> RiskDecision:
         """Evaluate a trade candidate against all portfolio risk rules.
 
         Returns a structured ``RiskDecision`` with per-check details.
         """
-        session = self.session_factory()
-        try:
+        if session is not None:
             return self._evaluate(candidate, session)
+        session_instance = self.session_factory()
+        try:
+            return self._evaluate(candidate, session_instance)
         finally:
-            session.close()
+            session_instance.close()
 
     def _evaluate(self, candidate: Any, session: Any) -> RiskDecision:
-        entry = candidate.entry or 0.0
         checks: list[RiskCheckDetail] = []
 
-        open_count = (
+        # 1. Candidate structural validation
+        symbol = getattr(candidate, "symbol", None)
+        side = getattr(candidate, "side", None)
+        entry = getattr(candidate, "entry", None)
+
+        if not symbol or not isinstance(symbol, str) or len(symbol.strip()) == 0:
+            checks.append(RiskCheckDetail(
+                name=RejectionCode.INVALID_TRADE,
+                passed=False,
+                detail="Invalid trade candidate: missing or invalid symbol.",
+                value=0.0,
+                limit=0.0,
+            ))
+            decision = risk_decision_from_checks(checks)
+            summarize_decision(decision, "RiskManager")
+            return decision
+
+        if not side or not isinstance(side, str) or side.upper() not in ("LONG", "SHORT"):
+            checks.append(RiskCheckDetail(
+                name=RejectionCode.INVALID_TRADE,
+                passed=False,
+                detail=f"Invalid trade candidate: invalid side '{side}'. Side must be LONG or SHORT.",
+                value=0.0,
+                limit=0.0,
+            ))
+            decision = risk_decision_from_checks(checks)
+            summarize_decision(decision, "RiskManager")
+            return decision
+
+        entry_val = entry or 0.0
+        if entry_val < 0:
+            checks.append(RiskCheckDetail(
+                name=RejectionCode.INVALID_TRADE,
+                passed=False,
+                detail=f"Invalid entry price: {entry_val:.2f}. Entry price cannot be negative.",
+                value=float(entry_val),
+                limit=0.0,
+            ))
+            decision = risk_decision_from_checks(checks)
+            summarize_decision(decision, "RiskManager")
+            return decision
+
+        # 2. Performance Optimization: Consolidate 3 DB queries into 1 query for open trades
+        open_trades = (
             session.query(Trade)
             .filter(Trade.status == "OPEN")
-            .count()
+            .all()
         )
+        open_count = len(open_trades)
+
         checks.append(RiskCheckDetail(
             name=RejectionCode.MAX_OPEN_TRADES,
             passed=open_count < MAX_OPEN_TRADES,
@@ -83,18 +129,16 @@ class RiskManager:
             summarize_decision(decision, "RiskManager")
             return decision
 
-        symbol_exposure = (
-            session.query(Trade.entry)
-            .filter(Trade.symbol == candidate.symbol, Trade.status == "OPEN")
-            .all()
+        current_symbol_total = sum(
+            r.entry for r in open_trades
+            if r.symbol == symbol and r.entry is not None
         )
-        current_symbol_total = sum(r.entry for r in symbol_exposure)
-        total_symbol = current_symbol_total + entry
+        total_symbol = current_symbol_total + entry_val
         checks.append(RiskCheckDetail(
             name=RejectionCode.SYMBOL_EXPOSURE,
             passed=total_symbol <= MAX_EXPOSURE_PER_SYMBOL,
             detail=(
-                f"Symbol exposure limit exceeded for {candidate.symbol}: "
+                f"Symbol exposure limit exceeded for {symbol}: "
                 f"{total_symbol:.2f} > {MAX_EXPOSURE_PER_SYMBOL}"
                 if total_symbol > MAX_EXPOSURE_PER_SYMBOL else ""
             ),
@@ -106,13 +150,8 @@ class RiskManager:
             summarize_decision(decision, "RiskManager")
             return decision
 
-        total_exposure = (
-            session.query(Trade.entry)
-            .filter(Trade.status == "OPEN")
-            .all()
-        )
-        current_total = sum(r.entry for r in total_exposure)
-        portfolio_total = current_total + entry
+        current_total = sum(r.entry for r in open_trades if r.entry is not None)
+        portfolio_total = current_total + entry_val
         checks.append(RiskCheckDetail(
             name=RejectionCode.PORTFOLIO_EXPOSURE,
             passed=portfolio_total <= MAX_PORTFOLIO_EXPOSURE,
@@ -129,8 +168,9 @@ class RiskManager:
             summarize_decision(decision, "RiskManager")
             return decision
 
+        # 3. Standardize timezone representation to tz-naive for maximum DB compatibility
         today_start = datetime.now(timezone.utc).replace(
-            hour=0, minute=0, second=0, microsecond=0
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
         )
         daily_losses = (
             session.query(Trade.pnl)
@@ -160,16 +200,16 @@ class RiskManager:
 
         checks.append(RiskCheckDetail(
             name=RejectionCode.POSITION_SIZE_LIMIT,
-            passed=entry <= MAX_POSITION_SIZE_USD,
+            passed=entry_val <= MAX_POSITION_SIZE_USD,
             detail=(
                 f"Position size limit exceeded: "
-                f"{entry:.2f} > {MAX_POSITION_SIZE_USD}"
-                if entry > MAX_POSITION_SIZE_USD else ""
+                f"{entry_val:.2f} > {MAX_POSITION_SIZE_USD}"
+                if entry_val > MAX_POSITION_SIZE_USD else ""
             ),
-            value=round(entry, 2),
+            value=round(entry_val, 2),
             limit=MAX_POSITION_SIZE_USD,
         ))
-        if entry > MAX_POSITION_SIZE_USD:
+        if entry_val > MAX_POSITION_SIZE_USD:
             decision = risk_decision_from_checks(checks)
             summarize_decision(decision, "RiskManager")
             return decision

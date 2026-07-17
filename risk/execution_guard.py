@@ -31,6 +31,7 @@ class GuardResult:
 @dataclass(frozen=True)
 class _Candidate:
     symbol: str
+    side: str
     entry: float
 
 
@@ -184,7 +185,7 @@ class ExecutionGuard:
             metadata["regime"] = "UNKNOWN"
 
         # 4. Delegate portfolio-level checks to RiskManager
-        candidate = _Candidate(symbol=symbol, entry=entry_price * quantity)
+        candidate = _Candidate(symbol=symbol, side=side, entry=entry_price * quantity)
         risk_mgr = RiskManager(session_factory=self.session_factory)
         portfolio_decision = risk_mgr.evaluate_trade(candidate)
         metadata["portfolio_decision"] = portfolio_decision
