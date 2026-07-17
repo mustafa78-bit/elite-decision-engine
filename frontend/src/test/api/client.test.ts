@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-process.env.VITE_API_URL = "http://localhost:8000";
+// @ts-ignore
+const processEnv = typeof process !== "undefined" ? process.env : import.meta.env;
+processEnv.VITE_API_URL = "http://localhost:8000";
 
 describe("apiFetch", () => {
   it("reads BASE_URL from VITE_API_URL env", async () => {

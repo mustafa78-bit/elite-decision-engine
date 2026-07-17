@@ -114,7 +114,7 @@ export default function HeroDashboard() {
   const openCount = execStatus?.trades?.open ?? intel?.risk?.open_trades ?? 0;
   const closedCount = execStatus?.trades?.closed ?? intel?.trades?.closed ?? 0;
 
-  const trades = [];
+  const trades: any[] = [];
 
   const overallRisk = (intel?.risk?.open_trades ?? 0) >= 3 ? "HIGH" : (intel?.risk?.open_trades ?? 0) >= 1 ? "MEDIUM" : "LOW";
   const riskMetrics = [

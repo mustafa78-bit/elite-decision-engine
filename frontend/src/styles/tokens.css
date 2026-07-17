@@ -1,30 +1,55 @@
 :root {
-  /* Background */
-  --bg-base: #0a0a0f;
-  --bg-surface: #12121a;
-  --bg-elevated: #1a1a2e;
-  --bg-glass: rgba(18, 18, 30, 0.8);
+  /* Elite Design System Backgrounds & Surfaces */
+  --bg-base: #0B0F14;         /* Primary Background */
+  --bg-secondary: #111827;    /* Secondary Background */
+  --bg-surface: #1A2332;      /* Surface Background */
+  --bg-elevated: #151B26;     /* Cards Background */
+  --bg-glass: rgba(21, 27, 38, 0.8);
   --bg-hover: rgba(255, 255, 255, 0.04);
 
-  /* Borders */
-  --border-subtle: #1a1a2e;
-  --border-default: #2a2a3e;
+  /* Elite Borders */
+  --border-subtle: #263041;   /* Borders */
+  --border-default: #263041;
   --border-accent: rgba(59, 130, 246, 0.3);
 
-  /* Text */
-  --text-primary: #e8e8ed;
-  --text-secondary: #8e8ea0;
-  --text-muted: #5c5c72;
-  --text-inverse: #0a0a0f;
+  /* Elite Typography Text Colors */
+  --text-primary: #F3F4F6;    /* Primary Text */
+  --text-secondary: #9CA3AF;  /* Secondary Text */
+  --text-muted: #6B7280;      /* Muted Text */
+  --text-inverse: #0B0F14;
 
-  /* Accents */
-  --accent-blue: #3b82f6;
-  --accent-purple: #8b5cf6;
-  --accent-cyan: #06b6d4;
-  --accent-green: #22c55e;
-  --accent-red: #ef4444;
-  --accent-yellow: #eab308;
-  --accent-orange: #f97316;
+  /* Decision Semantic Colors */
+  --decision-strong-buy: #00E676;
+  --decision-buy: #43A047;
+  --decision-neutral: #FFD54F;
+  --decision-sell: #FB8C00;
+  --decision-strong-sell: #F44336;
+
+  /* Risk Semantic Colors */
+  --risk-low: #00C853;
+  --risk-medium: #FDD835;
+  --risk-high: #FF6D00;
+  --risk-critical: #D50000;
+
+  /* Market Regime Colors */
+  --regime-bull: #00E676;
+  --regime-sideways: #FFD54F;
+  --regime-bear: #EF5350;
+
+  /* Chart Colors */
+  --chart-profit: #00E676;
+  --chart-loss: #FF5252;
+  --chart-volume: #42A5F5;
+  --chart-liquidity: #AB47BC;
+
+  /* Legacy Fallbacks / Core Accents mapped safely to semantic tokens */
+  --accent-blue: #42A5F5;
+  --accent-purple: #AB47BC;
+  --accent-cyan: #00E676;
+  --accent-green: #00E676;
+  --accent-red: #FF5252;
+  --accent-yellow: #FFD54F;
+  --accent-orange: #FB8C00;
 
   /* Glass */
   --glass-bg: rgba(18, 18, 30, 0.6);
