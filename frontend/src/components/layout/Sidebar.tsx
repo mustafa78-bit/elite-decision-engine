@@ -54,19 +54,7 @@ const sections: { title: string; items: NavItem[] }[] = [
 export default function Sidebar() {
   return (
     <aside className="w-56 h-full flex flex-col bg-[var(--bg-base)] border-r border-[var(--border-subtle)] shrink-0 overflow-y-auto">
-      <div className="px-4 py-4 border-b border-[var(--border-subtle)]">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[var(--accent-blue)] shadow-[0_0_6px_var(--accent-blue)]" />
-          <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
-            Elite Terminal
-          </span>
-        </div>
-        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.1em]">
-          Decision Engine v1
-        </p>
-      </div>
-
-      <nav className="flex-1 py-3 px-2 space-y-4">
+      <nav className="flex-1 py-4 px-2 space-y-4">
         {sections.map((section) => (
           <div key={section.title}>
             <div className="px-2 mb-1">
