@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+declare const process: any;
 process.env.VITE_API_URL = "http://localhost:8000";
 
 describe("apiFetch", () => {
