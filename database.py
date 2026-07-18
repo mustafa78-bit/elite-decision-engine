@@ -300,6 +300,22 @@ class DecisionExplanation(Base):
 
 
 # ------------------------------------------------------------------
+# SAVED STRATEGIES (STRATEGY LAB)
+# ------------------------------------------------------------------
+
+class SavedStrategy(Base):
+    __tablename__ = "saved_strategies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    rules = Column(JSON, default=dict)  # Visual builder rules, conditions, etc.
+    parameters = Column(JSON, default=dict)  # Params for optimization/sensitivity
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# ------------------------------------------------------------------
 # TRADE STATUS CONSTANTS
 # ------------------------------------------------------------------
 

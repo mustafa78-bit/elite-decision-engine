@@ -28,6 +28,7 @@ from api.rate_limit import limiter
 from monitoring.health import HealthService
 from api.routes.auth import router as auth_router
 from api.routes.backtest import router as backtest_router
+from api.routes.strategy_lab import router as strategy_lab_router
 from api.routes.execution import router as execution_router
 from api.routes.funding import router as funding_router
 from api.routes.intelligence import router as intelligence_router
@@ -159,6 +160,7 @@ async def security_headers_middleware(request: Request, call_next):
 
 app.include_router(auth_router)
 app.include_router(backtest_router)
+app.include_router(strategy_lab_router)
 app.include_router(execution_router)
 app.include_router(intelligence_router)
 app.include_router(funding_router)
