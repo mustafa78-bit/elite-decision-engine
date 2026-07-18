@@ -5,7 +5,9 @@ interface Props {
   title: string;
 }
 
-export default function PaperPositionTable({ trades, title }: Props) {
+import React from "react";
+
+function PaperPositionTableComponent({ trades, title }: Props) {
   if (trades.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded p-4">
@@ -55,3 +57,6 @@ export default function PaperPositionTable({ trades, title }: Props) {
     </div>
   );
 }
+
+const PaperPositionTable = React.memo(PaperPositionTableComponent);
+export default PaperPositionTable;

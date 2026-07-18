@@ -17,7 +17,9 @@ interface Props {
   signals: SignalRow[];
 }
 
-export default function LiveSignalTable({ signals }: Props) {
+import React from "react";
+
+function LiveSignalTableComponent({ signals }: Props) {
   if (signals.length === 0) {
     return (
       <div className="text-gray-600 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
@@ -78,3 +80,6 @@ export default function LiveSignalTable({ signals }: Props) {
     </div>
   );
 }
+
+const LiveSignalTable = React.memo(LiveSignalTableComponent);
+export default LiveSignalTable;

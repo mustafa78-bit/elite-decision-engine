@@ -10,7 +10,9 @@ interface Props {
   positions: Position[];
 }
 
-export default function PositionTable({ positions }: Props) {
+import React from "react";
+
+function PositionTableComponent({ positions }: Props) {
   if (positions.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded p-4">
@@ -58,3 +60,6 @@ export default function PositionTable({ positions }: Props) {
     </div>
   );
 }
+
+const PositionTable = React.memo(PositionTableComponent);
+export default PositionTable;
