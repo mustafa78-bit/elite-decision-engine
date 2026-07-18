@@ -22,7 +22,9 @@ interface Props {
   signals: SignalRow[];
 }
 
-export default function SignalTable({ signals }: Props) {
+import React from "react";
+
+function SignalTableComponent({ signals }: Props) {
   if (signals.length === 0) {
     return (
       <div className="text-gray-600 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
@@ -89,3 +91,6 @@ export default function SignalTable({ signals }: Props) {
     </div>
   );
 }
+
+const SignalTable = React.memo(SignalTableComponent);
+export default SignalTable;
