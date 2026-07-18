@@ -1,3 +1,5 @@
+declare const process: any;
+
 import { describe, expect, it, vi } from "vitest";
 
 process.env.VITE_API_URL = "http://localhost:8000";
