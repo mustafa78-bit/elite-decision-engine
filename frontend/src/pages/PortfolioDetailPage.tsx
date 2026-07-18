@@ -8,14 +8,16 @@ import type { PortfolioFullDTO } from "../types/api/portfolio";
 export default function PortfolioDetailPage() {
   const [data, setData] = useState<PortfolioFullDTO | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const res = await fetchPortfolioFull();
       setData(res);
     } catch {
-      // silent
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -31,6 +33,14 @@ export default function PortfolioDetailPage() {
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 rounded p-8 text-center cursor-pointer" onClick={load}>
+        <p className="text-xs text-[var(--accent-red)] font-mono">Failed to load portfolio. Click to retry.</p>
       </div>
     );
   }

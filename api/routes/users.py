@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Request
+import logging
+
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from database import User, UserSettings, get_session
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -10,12 +13,12 @@ router = APIRouter()
 def get_me(request: Request):
     user_id = getattr(request.state, "user_id", None)
     if not user_id:
-        return {"error": "Not authenticated"}
+        raise HTTPException(status_code=401, detail="Not authenticated")
     session = get_session()
     try:
         user = session.query(User).filter(User.id == user_id).first()
         if not user:
-            return {"error": "User not found"}
+            raise HTTPException(status_code=404, detail="User not found")
         return {"id": user.id, "username": user.username, "email": user.email}
     finally:
         session.close()
@@ -31,7 +34,7 @@ class SettingsBody(BaseModel):
 def update_settings(body: SettingsBody, request: Request):
     user_id = getattr(request.state, "user_id", None)
     if not user_id:
-        return {"error": "Not authenticated"}
+        raise HTTPException(status_code=401, detail="Not authenticated")
     session = get_session()
     try:
         settings = session.query(UserSettings).filter(UserSettings.user_id == user_id).first()
@@ -54,7 +57,8 @@ def update_settings(body: SettingsBody, request: Request):
         }}
     except Exception as e:
         session.rollback()
-        return {"error": str(e)}
+        logger.error("Failed to update settings: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to update settings")
     finally:
         session.close()
 
@@ -63,7 +67,7 @@ def update_settings(body: SettingsBody, request: Request):
 def get_settings(request: Request):
     user_id = getattr(request.state, "user_id", None)
     if not user_id:
-        return {"error": "Not authenticated"}
+        raise HTTPException(status_code=401, detail="Not authenticated")
     session = get_session()
     try:
         settings = session.query(UserSettings).filter(UserSettings.user_id == user_id).first()

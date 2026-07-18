@@ -1,22 +1,20 @@
-import { forwardRef, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { forwardRef, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { Controller, type Control, type FieldError, type FieldValues, type Path } from "react-hook-form";
 import { cn } from "../../lib/utils";
 
-interface FormFieldProps<T extends FieldValues> {
-  name: Path<T>;
-  control: Control<T>;
+interface FormFieldProps {
   label?: string;
   error?: FieldError;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }
 
-export function FormField<T extends FieldValues>({
+export function FormField({
   label,
   error,
   children,
   className,
-}: FormFieldProps<T>) {
+}: FormFieldProps) {
   return (
     <div className={cn("space-y-1.5", className)}>
       {label && (
@@ -118,7 +116,7 @@ export function ControlledInput<T extends FieldValues>({
       name={name}
       control={control}
       render={({ field, fieldState }) => (
-        <FormField name={name} control={control} label={label} error={fieldState.error}>
+        <FormField label={label} error={fieldState.error}>
           <FormInput
             {...field}
             type={type}

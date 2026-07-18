@@ -2,7 +2,6 @@ import type { ConnectionStatus, WsRoomStatus } from "../../types/connection";
 import { ConnectionStatusBadge } from "./ConnectionStatus";
 
 interface Props {
-  status: ConnectionStatus;
   wsRooms: WsRoomStatus;
 }
 

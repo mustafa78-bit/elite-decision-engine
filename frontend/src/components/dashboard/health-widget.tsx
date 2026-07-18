@@ -13,14 +13,15 @@ interface HealthWidgetProps {
 
 export function HealthWidget({
   metrics = [],
-  overallScore = 100,
+  overallScore,
 }: HealthWidgetProps) {
-  const scoreColor =
-    overallScore >= 80
+  const scoreColor = overallScore != null
+    ? overallScore >= 80
       ? "var(--accent-green)"
       : overallScore >= 50
         ? "var(--accent-yellow)"
-        : "var(--accent-red)";
+        : "var(--accent-red)"
+    : "var(--text-muted)";
 
   return (
     <Card className="h-full">
@@ -30,7 +31,7 @@ export function HealthWidget({
           className="text-lg font-mono font-bold tabular-nums"
           style={{ color: scoreColor }}
         >
-          {overallScore.toFixed(0)}
+          {overallScore != null ? overallScore.toFixed(0) : "--"}
         </span>
       </CardHeader>
       <CardContent>

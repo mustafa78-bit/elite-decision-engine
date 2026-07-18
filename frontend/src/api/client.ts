@@ -1,4 +1,8 @@
-export const BASE_URL = import.meta.env.VITE_API_URL;
+export const BASE_URL: string = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+export function getWsBaseUrl(): string {
+    return BASE_URL.replace(/^http/, "ws");
+}
 
 export class ApiError extends Error {
   status: number;

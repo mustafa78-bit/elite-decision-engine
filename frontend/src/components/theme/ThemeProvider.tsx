@@ -9,6 +9,8 @@ interface ThemeState {
   setContrast: (contrast: "normal" | "high") => void;
   density: "compact" | "comfortable" | "spacious";
   setDensity: (density: "compact" | "comfortable" | "spacious") => void;
+  fontSize: "small" | "medium" | "large";
+  setFontSize: (size: "small" | "medium" | "large") => void;
   reducedMotion: boolean;
 }
 
@@ -21,8 +23,15 @@ function getSystemReducedMotion(): boolean {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode] = useState<ThemeMode>("dark");
-  const [contrast, setContrast] = useState<"normal" | "high">("normal");
-  const [density, setDensity] = useState<"compact" | "comfortable" | "spacious">("compact");
+  const [contrast, setContrast] = useState<"normal" | "high">(() => {
+    return (localStorage.getItem("elide-contrast") as "normal" | "high") || "normal";
+  });
+  const [density, setDensity] = useState<"compact" | "comfortable" | "spacious">(() => {
+    return (localStorage.getItem("elide-density") as "compact" | "comfortable" | "spacious") || "compact";
+  });
+  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">(() => {
+    return (localStorage.getItem("elide-font-size") as "small" | "medium" | "large") || "small";
+  });
   const [reducedMotion, setReducedMotion] = useState(getSystemReducedMotion);
 
   useEffect(() => {
@@ -32,16 +41,32 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  const applyDensity = useCallback(() => {
+  const applySettings = useCallback(() => {
     const root = document.documentElement;
     root.setAttribute("data-density", density);
     root.setAttribute("data-contrast", contrast);
     root.setAttribute("data-theme", mode);
-  }, [density, contrast, mode]);
+    root.setAttribute("data-font-size", fontSize);
+    localStorage.setItem("elide-density", density);
+    localStorage.setItem("elide-contrast", contrast);
+    localStorage.setItem("elide-font-size", fontSize);
+  }, [density, contrast, mode, fontSize]);
 
   useEffect(() => {
-    applyDensity();
-  }, [applyDensity]);
+    applySettings();
+  }, [applySettings]);
+
+  const handleSetDensity = useCallback((d: "compact" | "comfortable" | "spacious") => {
+    setDensity(d);
+  }, []);
+
+  const handleSetContrast = useCallback((c: "normal" | "high") => {
+    setContrast(c);
+  }, []);
+
+  const handleSetFontSize = useCallback((s: "small" | "medium" | "large") => {
+    setFontSize(s);
+  }, []);
 
   return (
     <ThemeContext.Provider
@@ -49,12 +74,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         mode,
         setMode: () => {},
         contrast,
-        setContrast,
+        setContrast: handleSetContrast,
         density,
-        setDensity,
+        setDensity: handleSetDensity,
+        fontSize,
+        setFontSize: handleSetFontSize,
         reducedMotion,
       }}
     >
+      <style>{`
+        [data-font-size="small"] { --text-scale: 0.875; }
+        [data-font-size="medium"] { --text-scale: 1; }
+        [data-font-size="large"] { --text-scale: 1.125; }
+        [data-contrast="high"] {
+          --text-primary: #FFFFFF;
+          --text-secondary: #CBD5E1;
+          --border-subtle: #475569;
+        }
+      `}</style>
       {children}
     </ThemeContext.Provider>
   );

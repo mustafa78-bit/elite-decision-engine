@@ -37,7 +37,10 @@ class TestWidgetsAPI:
     def test_get_notifications_widget(self, api_client):
         resp = api_client.get("/widgets/notifications")
         assert resp.status_code == 200
-        assert resp.json()["unread_count"] == 0
+        body = resp.json()
+        assert "notifications" in body
+        assert body["unread"] == 0
+        assert body["total"] == 0
 
     def test_get_unknown_widget_returns_404(self, api_client):
         resp = api_client.get("/widgets/nonexistent")

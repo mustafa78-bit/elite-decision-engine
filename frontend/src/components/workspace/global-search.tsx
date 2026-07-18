@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useUIStore } from "../../stores/ui-store";
 import { useTerminalStore } from "../../stores/terminal-store";
 import { useWorkspaceStore } from "../../stores/workspace-store";
-import { useKeyboardShortcut } from "../../lib/accessibility";
+import { useKeyboardShortcut, useFocusTrap } from "../../lib/accessibility";
 
 interface SearchItem {
   label: string;
@@ -18,10 +18,13 @@ const searchCategories: { name: string; items: SearchItem[] }[] = [
     name: "Pages",
     items: [
       { label: "Dashboard", path: "/dashboard", icon: "◈" },
+      { label: "Hero Dashboard", path: "/hero-dashboard", icon: "◈" },
       { label: "Trades", path: "/trades", icon: "⇄" },
       { label: "Analytics", path: "/analytics", icon: "▦" },
       { label: "Market", path: "/market", icon: "◉" },
+      { label: "Live Market", path: "/live-market", icon: "◉" },
       { label: "Signals", path: "/signals", icon: "⚡" },
+      { label: "Signals Ranking", path: "/signals/ranking", icon: "⚡" },
       { label: "Risk", path: "/risk", icon: "▲" },
       { label: "Portfolio Detail", path: "/portfolio-detail", icon: "▣" },
       { label: "Intelligence", path: "/intelligence", icon: "✦" },
@@ -33,8 +36,17 @@ const searchCategories: { name: string; items: SearchItem[] }[] = [
       { label: "Liquidity", path: "/liquidity", icon: "≈" },
       { label: "Timeline", path: "/timeline", icon: "≡" },
       { label: "Paper Trading", path: "/paper-trading", icon: "◻" },
+      { label: "Trading Control", path: "/trading-control", icon: "◈" },
+      { label: "Trading Workspace", path: "/trading-workspace", icon: "▦" },
+      { label: "AI Experience", path: "/ai-experience", icon: "✦" },
+      { label: "Professional Workspace", path: "/professional-workspace", icon: "▣" },
       { label: "Preferences", path: "/preferences", icon: "⚙" },
       { label: "Backtest", path: "/backtest", icon: "◈" },
+      { label: "Scanner", path: "/scanner", icon: "◎" },
+      { label: "Decision Center", path: "/decisions", icon: "◈" },
+      { label: "Notifications", path: "/notifications", icon: "🔔" },
+      { label: "Regime", path: "/regime", icon: "◆" },
+      { label: "Portfolio", path: "/portfolio", icon: "▣" },
     ],
   },
   {
@@ -52,20 +64,32 @@ const searchCategories: { name: string; items: SearchItem[] }[] = [
       { label: "Bitcoin", path: "", icon: "₿", action: "symbol-BTC/USDT" },
       { label: "Ethereum", path: "", icon: "⟠", action: "symbol-ETH/USDT" },
       { label: "Solana", path: "", icon: "◎", action: "symbol-SOL/USDT" },
+      { label: "BNB", path: "", icon: "◆", action: "symbol-BNB/USDT" },
+      { label: "Cardano", path: "", icon: "◈", action: "symbol-ADA/USDT" },
+      { label: "XRP", path: "", icon: "◉", action: "symbol-XRP/USDT" },
+      { label: "Dogecoin", path: "", icon: "◒", action: "symbol-DOGE/USDT" },
+      { label: "Avalanche", path: "", icon: "◐", action: "symbol-AVAX/USDT" },
     ],
   },
 ];
 
 export function GlobalSearch() {
-  const { globalSearchOpen, setGlobalSearchOpen } = useUIStore();
+  const { globalSearchOpen, setGlobalSearchOpen, setCommandPaletteOpen } = useUIStore();
   const { setSymbol } = useTerminalStore();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [focusedIdx, setFocusedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toggleSidebar: wsToggleSidebar, toggleFullscreen: wsToggleFullscreen } = useWorkspaceStore();
+  const focusTrapRef = useFocusTrap(globalSearchOpen);
 
-  useKeyboardShortcut("k", () => setGlobalSearchOpen(true), { ctrl: true });
+  useKeyboardShortcut("/", () => {
+    if (!globalSearchOpen) {
+      setCommandPaletteOpen(false);
+      setGlobalSearchOpen(true);
+    }
+  }, { enabled: !globalSearchOpen });
+
   useKeyboardShortcut("Escape", () => { if (globalSearchOpen) setGlobalSearchOpen(false); });
 
   useEffect(() => {
@@ -132,6 +156,7 @@ export function GlobalSearch() {
             transition={{ duration: 0.15 }}
             className="w-[560px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-elevated)] backdrop-blur-2xl shadow-2xl shadow-black/40 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
+            ref={focusTrapRef}
           >
             <div className="p-3 border-b border-[var(--border-subtle)]">
               <input

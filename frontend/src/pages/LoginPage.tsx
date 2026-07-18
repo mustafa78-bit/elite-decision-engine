@@ -30,7 +30,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-[var(--bg-surface)]">
+    <div className="h-screen flex items-center justify-center bg-[var(--bg-elevated)]">
       <form
         onSubmit={handleSubmit}
         className="border border-[var(--border-subtle)] rounded p-6 w-full max-w-sm space-y-4"

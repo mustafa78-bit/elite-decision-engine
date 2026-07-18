@@ -7,6 +7,12 @@ load_dotenv()
 logger = logging.getLogger("config")
 
 API_ENV = os.getenv("API_ENV", "development")
+VERSION = os.getenv("APP_VERSION", "0.9.0")
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+if LOG_LEVEL not in VALID_LOG_LEVELS:
+    LOG_LEVEL = "INFO"
 
 CRITICAL_VARS = {
     "JWT_SECRET": "Authentication will not work",
@@ -15,7 +21,13 @@ RECOMMENDED_VARS = {
     "DATABASE_URL": "Falling back to POSTGRES_* env vars",
     "TELEGRAM_TOKEN": "Telegram notifications will be disabled",
     "HL_API_KEY": "Hyperliquid exchange connector will be unavailable",
+    "NVIDIA_API_KEY": "NVIDIA NIM provider will be unavailable",
 }
+
+NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "")
+AI_PROVIDER: str = os.getenv("AI_PROVIDER", "nvidia")
+AI_MODEL: str = os.getenv("AI_MODEL", "")
+NVIDIA_BASE_URL: str = os.getenv("NVIDIA_BASE_URL", "")
 
 for var in CRITICAL_VARS:
     if not os.getenv(var):
@@ -29,6 +41,12 @@ for var, msg in RECOMMENDED_VARS.items():
         logger.warning("%s not set. %s", var, msg)
 
 JWT_SECRET = os.getenv("JWT_SECRET", "")
+
+ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "")
+HL_API_KEY: str = os.getenv("HL_API_KEY", "")
+HL_SECRET: str = os.getenv("HL_SECRET", "")
+TELEGRAM_TOKEN: str = os.getenv("TELEGRAM_TOKEN", "")
+TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_USER = os.getenv("POSTGRES_USER")

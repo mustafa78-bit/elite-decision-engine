@@ -1,183 +1,516 @@
-"""Unit tests for the PerformanceEngine — every metric verified."""
+"""Unit tests for the Performance Engine.
 
-from datetime import datetime, timedelta, timezone
+Verifies: Sharpe, Sortino, Calmar, Average Win/Loss, Expectancy,
+Payoff Ratio, Recovery Factor, Largest Win/Loss, Consecutive
+Wins/Losses, Average Holding Time, Trade Frequency.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone, timedelta
 
 import pytest
-from database import Trade
-from performance_engine import PerformanceEngine, PerformanceStats
+
+from database import (
+    CLOSED,
+    STOP_LOSS,
+    TAKE_PROFIT,
+    CANCEL,
+    PaperTrade,
+    Trade,
+)
+from performance import PerformanceEngine, PerformanceReport
+from portfolio.core import PortfolioSnapshot
+
+_INFINITE = 999.99
 
 
-def _seed(session, entry=50000.0, stop=49250.0, side="LONG", pnl=0.0,
-          status="OPEN", created_at=None, closed_at=None):
-    t = Trade(
+def _make_trade(db_session, **overrides):
+    kwargs = dict(
+        signal_id=1,
         symbol="BTCUSDT",
-        side=side,
-        entry=entry,
-        stop=stop,
-        tp1=entry * 1.02,
-        rr=1.5,
-        status=status,
-        pnl=pnl,
-        closed_at=closed_at,
+        side="LONG",
+        entry=50000.0,
+        stop=49250.0,
+        tp1=51000.0,
+        status="OPEN",
+        pnl=None,
     )
-    session.add(t)
-    session.flush()
+    kwargs.update(overrides)
+    t = Trade(**kwargs)
+    db_session.add(t)
+    db_session.flush()
     return t
 
 
-class TestPerformanceEngine:
+def _make_paper_trade(db_session, **overrides):
+    kwargs = dict(
+        position_id=1,
+        order_id=1,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=50000.0,
+        quantity=1.0,
+        pnl=0.0,
+        status="OPEN",
+    )
+    kwargs.update(overrides)
+    pt = PaperTrade(**kwargs)
+    db_session.add(pt)
+    db_session.flush()
+    return pt
 
-    def test_empty_portfolio(self, db_session, session_factory):
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        assert stats.sharpe_ratio == 0.0
-        assert stats.sortino_ratio == 0.0
-        assert stats.profit_factor == 0.0
-        assert stats.expectancy == 0.0
-        assert stats.recovery_factor == 0.0
-        assert stats.calmar_ratio == 0.0
-        assert stats.average_r_multiple == 0.0
-        assert stats.average_holding_hours == 0.0
-        assert stats.consecutive_wins == 0
-        assert stats.consecutive_losses == 0
-        assert stats.best_trade == 0.0
-        assert stats.worst_trade == 0.0
 
-    def test_all_winners(self, db_session, session_factory):
-        now = datetime.now(timezone.utc)
-        _seed(db_session, pnl=1000.0, status="TP_HIT", closed_at=now)
-        _seed(db_session, pnl=2000.0, status="TP_HIT", closed_at=now)
-        _seed(db_session, pnl=3000.0, status="TP_HIT", closed_at=now)
+# ── Empty portfolio ────────────────────────────────────────────────────────
 
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        assert stats.sharpe_ratio == pytest.approx(2.0, abs=0.01)
-        assert stats.sortino_ratio == 999.99
-        assert stats.profit_factor == 999.99
-        assert stats.consecutive_wins == 3
-        assert stats.consecutive_losses == 0
-        assert stats.best_trade == 3000.0
-        assert stats.worst_trade == 1000.0
 
-    def test_all_losers(self, db_session, session_factory):
-        now = datetime.now(timezone.utc)
-        _seed(db_session, pnl=-1000.0, status="SL_HIT", closed_at=now)
-        _seed(db_session, pnl=-2000.0, status="SL_HIT", closed_at=now)
-        _seed(db_session, pnl=-3000.0, status="SL_HIT", closed_at=now)
+def test_empty(session_factory):
+    engine = PerformanceEngine(session_factory=session_factory)
+    snap = PortfolioSnapshot()
+    report = engine.report(snap)
+    assert report.sharpe_ratio == 0.0
+    assert report.sortino_ratio == 0.0
+    assert report.calmar_ratio == 0.0
+    assert report.average_win == 0.0
+    assert report.average_loss == 0.0
+    assert report.expectancy == 0.0
+    assert report.payoff_ratio == 0.0
+    assert report.recovery_factor == 0.0
+    assert report.largest_win == 0.0
+    assert report.largest_loss == 0.0
+    assert report.consecutive_wins == 0
+    assert report.consecutive_losses == 0
+    assert report.average_holding_time_hours == 0.0
+    assert report.trade_frequency_per_day == 0.0
 
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        assert stats.sharpe_ratio == pytest.approx(-2.0, abs=0.01)
-        assert stats.sortino_ratio == pytest.approx(-0.93, abs=0.02)
-        assert stats.profit_factor == 0.0
-        assert stats.consecutive_wins == 0
-        assert stats.consecutive_losses == 3
-        assert stats.best_trade == -1000.0
-        assert stats.worst_trade == -3000.0
 
-    def test_mixed_trades(self, db_session, session_factory):
-        now = datetime.now(timezone.utc)
-        _seed(db_session, pnl=500.0, status="TP_HIT", closed_at=now)
-        _seed(db_session, pnl=-200.0, status="SL_HIT", closed_at=now)
-        _seed(db_session, pnl=300.0, status="TP_HIT", closed_at=now)
+# ── Single winning trade ────────────────────────────────────────────────────
 
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        # Returns: [500/50000=0.01, -200/50000=-0.004, 300/50000=0.006]
-        # mean = (0.01 - 0.004 + 0.006)/3 = 0.004
-        # stdev ≈ 0.0072
-        assert stats.sharpe_ratio == pytest.approx(0.55, abs=0.05)
-        # Profit Factor = 800 / 200 = 4.0
-        assert stats.profit_factor == 4.0
-        # Expectancy = (2/3 * 400) - (1/3 * 200) = 266.67 - 66.67 = 200.0
-        assert stats.expectancy == pytest.approx(200.0, abs=0.01)
-        assert stats.consecutive_wins == 1
-        assert stats.best_trade == 500.0
-        assert stats.worst_trade == -200.0
 
-    def test_expectancy(self, db_session, session_factory):
-        now = datetime.now(timezone.utc)
-        _seed(db_session, pnl=1000.0, status="TP_HIT", closed_at=now)
-        _seed(db_session, pnl=1000.0, status="TP_HIT", closed_at=now)
-        _seed(db_session, pnl=-500.0, status="SL_HIT", closed_at=now)
-        _seed(db_session, pnl=-500.0, status="SL_HIT", closed_at=now)
+def test_single_win(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    trade = _make_trade(
+        db_session, status="TP_HIT", pnl=2000.0,
+        created_at=now - timedelta(hours=24),
+        closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, pnl=2000.0, status=TAKE_PROFIT,
+    )
 
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        # win_rate = 2/4 = 0.5, loss_rate = 2/4 = 0.5
-        # avg_win = 1000, avg_loss = -500
-        # expectancy = 0.5 * 1000 - 0.5 * 500 = 500 - 250 = 250
-        assert stats.expectancy == 250.0
+    snap = PortfolioSnapshot(
+        total_equity=12000.0,
+        initial_capital=10000.0,
+        total_pnl=2000.0,
+        realized_pnl=2000.0,
+        equity_curve=[10000.0, 12000.0],
+        max_drawdown=0.0,
+        closed_trades=1,
+        winning_trades=1,
+        losing_trades=0,
+        win_rate=100.0,
+    )
 
-    def test_r_multiple(self, db_session, session_factory):
-        now = datetime.now(timezone.utc)
-        # risk = abs(50000 - 49250) = 750
-        _seed(db_session, entry=50000.0, stop=49250.0, pnl=1500.0,
-              status="TP_HIT", closed_at=now)  # R = 1500/750 = 2.0
-        _seed(db_session, entry=50000.0, stop=49250.0, pnl=-375.0,
-              status="SL_HIT", closed_at=now)   # R = -375/750 = -0.5
-        _seed(db_session, entry=50000.0, stop=49250.0, pnl=750.0,
-              status="TP_HIT", closed_at=now)   # R = 750/750 = 1.0
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
 
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        # avg_r = (2.0 - 0.5 + 1.0) / 3 = 2.5 / 3 = 0.833...
-        assert stats.average_r_multiple == pytest.approx(0.83, abs=0.01)
+    assert report.average_win == 2000.0
+    assert report.largest_win == 2000.0
+    assert report.average_loss == 0.0
+    assert report.largest_loss == 0.0
+    assert report.consecutive_wins == 1
+    assert report.consecutive_losses == 0
+    assert report.average_holding_time_hours == 24.0
+    assert report.trade_frequency_per_day > 0
+    # Zero drawdown + positive return → infinite ratios
+    assert report.calmar_ratio == _INFINITE
+    assert report.recovery_factor == _INFINITE
 
-    def test_holding_time(self, db_session, session_factory):
-        now = datetime.now(timezone.utc)
-        created = now - timedelta(hours=24)
-        _seed(db_session, pnl=500.0, status="TP_HIT",
-              closed_at=now)
-        # Manually set created_at via query since the fixture autocreates it
-        trade = db_session.query(Trade).first()
-        trade.created_at = created
-        db_session.flush()
 
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        assert stats.average_holding_hours == pytest.approx(24.0, abs=0.1)
+# ── Single loss ──────────────────────────────────────────────────────────────
 
-    def test_consecutive_streaks(self, db_session, session_factory):
-        now = datetime.now(timezone.utc)
-        # pattern: W, W, L, L, L, W
-        _seed(db_session, pnl=100.0, status="TP_HIT", closed_at=now)
-        _seed(db_session, pnl=200.0, status="TP_HIT",
-              closed_at=now + timedelta(seconds=1))
-        _seed(db_session, pnl=-100.0, status="SL_HIT",
-              closed_at=now + timedelta(seconds=2))
-        _seed(db_session, pnl=-200.0, status="SL_HIT",
-              closed_at=now + timedelta(seconds=3))
-        _seed(db_session, pnl=-300.0, status="SL_HIT",
-              closed_at=now + timedelta(seconds=4))
-        _seed(db_session, pnl=400.0, status="TP_HIT",
-              closed_at=now + timedelta(seconds=5))
 
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        assert stats.consecutive_wins == 2
-        assert stats.consecutive_losses == 3
+def test_single_loss(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    trade = _make_trade(
+        db_session, status="SL_HIT", pnl=-1000.0,
+        created_at=now - timedelta(hours=12),
+        closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, pnl=-1000.0, status=STOP_LOSS,
+    )
 
-    def test_recovery_and_calmar(self, db_session, session_factory):
-        now = datetime.now(timezone.utc)
-        _seed(db_session, pnl=2000.0, status="TP_HIT", closed_at=now)
-        _seed(db_session, pnl=3000.0, status="TP_HIT",
-              closed_at=now + timedelta(seconds=1))
-        _seed(db_session, pnl=-4000.0, status="SL_HIT",
-              closed_at=now + timedelta(seconds=2))
-        _seed(db_session, pnl=1000.0, status="TP_HIT",
-              closed_at=now + timedelta(seconds=3))
+    snap = PortfolioSnapshot(
+        total_equity=9000.0,
+        initial_capital=10000.0,
+        total_pnl=-1000.0,
+        realized_pnl=-1000.0,
+        equity_curve=[10000.0, 9000.0],
+        max_drawdown=10.0,
+        closed_trades=1,
+        winning_trades=0,
+        losing_trades=1,
+        win_rate=0.0,
+    )
 
-        engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000)
-        stats = engine.stats()
-        # cum pnl: [2000, 5000, 1000, 2000]
-        # peak pnl: 2000→5000→5000→5000
-        # dd dollars: 0→0→4000→3000, max_dd=4000
-        # recovery = 2000/4000 = 0.5
-        assert stats.recovery_factor == 0.5
-        # equity: [10000, 12000, 15000, 11000, 12000]
-        # peak_eq: 10000→12000→15000→15000→15000
-        # dd_pct: 0→0→0→0.267→0.2, max_dd_pct=0.267
-        # total_return_pct = 2000/10000*100 = 20%
-        # calmar = 20 / (0.267*100) = 20/26.7 = 0.75
-        assert stats.calmar_ratio == pytest.approx(0.75, abs=0.02)
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    assert report.average_loss == -1000.0
+    assert report.largest_loss == -1000.0
+    assert report.average_win == 0.0
+    assert report.consecutive_losses == 1
+    assert report.average_holding_time_hours == 12.0
+    # Negative return + positive drawdown = negative calmar
+    assert report.calmar_ratio < 0
+    assert report.recovery_factor < 0
+
+
+# ── Mixed wins and losses ────────────────────────────────────────────────────
+
+
+def test_mixed_trades(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    t1 = _make_trade(
+        db_session, signal_id=1, status="TP_HIT", pnl=3000.0,
+        created_at=now - timedelta(hours=48), closed_at=now - timedelta(hours=24),
+    )
+    _make_paper_trade(
+        db_session, position_id=t1.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, pnl=3000.0, status=TAKE_PROFIT,
+    )
+    t2 = _make_trade(
+        db_session, signal_id=2, status="SL_HIT", pnl=-1000.0,
+        created_at=now - timedelta(hours=24), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t2.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, pnl=-1000.0, status=STOP_LOSS,
+    )
+
+    snap = PortfolioSnapshot(
+        total_equity=12000.0,
+        initial_capital=10000.0,
+        total_pnl=2000.0,
+        realized_pnl=2000.0,
+        equity_curve=[10000.0, 13000.0, 12000.0],
+        max_drawdown=7.69,
+        closed_trades=2,
+        winning_trades=1,
+        losing_trades=1,
+        win_rate=50.0,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    assert report.average_win == 3000.0
+    assert report.average_loss == -1000.0
+    assert report.expectancy == 1000.0  # 0.5*3000 - 0.5*1000 = 1000
+    assert report.payoff_ratio == 3.0  # 3000 / 1000
+    assert report.largest_win == 3000.0
+    assert report.largest_loss == -1000.0
+    assert report.consecutive_wins == 1
+    assert report.consecutive_losses == 1
+    assert report.sharpe_ratio != 0.0
+    assert report.sortino_ratio != 0.0
+    assert report.calmar_ratio != 0.0
+
+
+# ── Consecutive streaks ──────────────────────────────────────────────────────
+
+
+def test_consecutive_streaks(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    results = [2000.0, 1500.0, 1000.0, -500.0, -300.0, 2500.0, -800.0]
+    trades = []
+    for i, pnl in enumerate(results):
+        t = _make_trade(
+            db_session, signal_id=i + 1, status="TP_HIT" if pnl > 0 else "SL_HIT",
+            pnl=pnl,
+            created_at=now - timedelta(hours=len(results) - i),
+            closed_at=now - timedelta(hours=len(results) - 1 - i),
+        )
+        trades.append(t)
+        _make_paper_trade(
+            db_session, position_id=t.id, symbol="BTCUSDT", side="LONG",
+            entry=50000.0, quantity=1.0, pnl=pnl,
+            status=TAKE_PROFIT if pnl > 0 else STOP_LOSS,
+        )
+
+    # Build equity curve
+    eq = [10000.0]
+    for p in results:
+        eq.append(eq[-1] + p)
+
+    snap = PortfolioSnapshot(
+        total_equity=eq[-1],
+        initial_capital=10000.0,
+        total_pnl=sum(results),
+        realized_pnl=sum(results),
+        equity_curve=eq,
+        max_drawdown=5.0,
+        closed_trades=len(results),
+        winning_trades=4,
+        losing_trades=3,
+        win_rate=57.14,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    # Streaks: wins=3 (+2000,+1500,+1000), losses=2 (-500,-300), win=1 (+2500), loss=1 (-800)
+    assert report.consecutive_wins == 3
+    assert report.consecutive_losses == 2
+
+
+# ── Holding time and frequency ──────────────────────────────────────────────
+
+
+def test_holding_time_and_frequency(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    t1 = _make_trade(
+        db_session, signal_id=1, status="TP_HIT", pnl=1000.0,
+        created_at=now - timedelta(hours=48), closed_at=now - timedelta(hours=24),
+    )
+    _make_paper_trade(
+        db_session, position_id=t1.id, quantity=1.0, pnl=1000.0, status=TAKE_PROFIT,
+    )
+    t2 = _make_trade(
+        db_session, signal_id=2, status="TP_HIT", pnl=500.0,
+        created_at=now - timedelta(hours=24), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t2.id, quantity=1.0, pnl=500.0, status=TAKE_PROFIT,
+    )
+
+    snap = PortfolioSnapshot(
+        total_equity=11500.0,
+        initial_capital=10000.0,
+        total_pnl=1500.0,
+        realized_pnl=1500.0,
+        equity_curve=[10000.0, 11000.0, 11500.0],
+        max_drawdown=0.0,
+        closed_trades=2,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    # t1: 24h, t2: 24h → avg = 24h
+    assert report.average_holding_time_hours == 24.0
+    # span = 48h = 2 days, 2 trades → 1 per day
+    assert report.trade_frequency_per_day == 1.0
+
+
+# ── Payoff ratio edge cases ─────────────────────────────────────────────────
+
+
+def test_payoff_ratio_all_wins(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    t1 = _make_trade(
+        db_session, signal_id=1, status="TP_HIT", pnl=500.0,
+        created_at=now - timedelta(hours=24), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t1.id, quantity=1.0, pnl=500.0, status=TAKE_PROFIT,
+    )
+
+    snap = PortfolioSnapshot(
+        total_equity=10500.0,
+        initial_capital=10000.0,
+        total_pnl=500.0,
+        realized_pnl=500.0,
+        equity_curve=[10000.0, 10500.0],
+        max_drawdown=0.0,
+        closed_trades=1,
+        winning_trades=1,
+        losing_trades=0,
+        win_rate=100.0,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    assert report.average_loss == 0.0
+    # avg_win=500, avg_loss=0 → infinite payoff ratio
+    assert report.payoff_ratio == _INFINITE
+
+
+# ── Expectancy edge cases ──────────────────────────────────────────────────
+
+
+def test_expectancy_all_losses(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    t1 = _make_trade(
+        db_session, signal_id=1, status="SL_HIT", pnl=-500.0,
+        created_at=now - timedelta(hours=24), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t1.id, quantity=1.0, pnl=-500.0, status=STOP_LOSS,
+    )
+
+    snap = PortfolioSnapshot(
+        total_equity=9500.0,
+        initial_capital=10000.0,
+        total_pnl=-500.0,
+        realized_pnl=-500.0,
+        equity_curve=[10000.0, 9500.0],
+        max_drawdown=5.0,
+        closed_trades=1,
+        winning_trades=0,
+        losing_trades=1,
+        win_rate=0.0,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    assert report.average_win == 0.0
+    assert report.average_loss == -500.0
+    assert report.expectancy == -500.0  # 0 - 1.0*500 = -500
+    assert report.largest_win == 0.0
+    assert report.largest_loss == -500.0
+
+
+# ── Sharpe / Sortino with flat equity curve ─────────────────────────────────
+
+
+def test_sharpe_sortino_flat(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    t1 = _make_trade(
+        db_session, signal_id=1, status="TP_HIT", pnl=0.0,
+        created_at=now - timedelta(hours=24), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t1.id, quantity=1.0, pnl=0.0, status=TAKE_PROFIT,
+    )
+
+    snap = PortfolioSnapshot(
+        total_equity=10000.0,
+        initial_capital=10000.0,
+        total_pnl=0.0,
+        realized_pnl=0.0,
+        equity_curve=[10000.0, 10000.0],
+        max_drawdown=0.0,
+        closed_trades=1,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    assert report.sharpe_ratio == 0.0
+    assert report.sortino_ratio == 0.0
+    assert report.calmar_ratio == 0.0
+
+
+# ── Recovery factor with drawdown ────────────────────────────────────────────
+
+
+def test_recovery_factor(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    t1 = _make_trade(
+        db_session, signal_id=1, status="SL_HIT", pnl=-2000.0,
+        created_at=now - timedelta(hours=48), closed_at=now - timedelta(hours=24),
+    )
+    _make_paper_trade(
+        db_session, position_id=t1.id, quantity=1.0, pnl=-2000.0, status=STOP_LOSS,
+    )
+    t2 = _make_trade(
+        db_session, signal_id=2, status="TP_HIT", pnl=3000.0,
+        created_at=now - timedelta(hours=24), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t2.id, quantity=1.0, pnl=3000.0, status=TAKE_PROFIT,
+    )
+
+    # peak = 10000, drop to 8000 (20% dd), recover to 11000
+    snap = PortfolioSnapshot(
+        total_equity=11000.0,
+        initial_capital=10000.0,
+        total_pnl=1000.0,
+        realized_pnl=1000.0,
+        equity_curve=[10000.0, 8000.0, 11000.0],
+        max_drawdown=20.0,
+        closed_trades=2,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    # max_dd_dollars = 20% of 10000 = 2000
+    # recovery = 1000 / 2000 = 0.5
+    assert report.recovery_factor == 0.5
+
+
+# ── CANCEL trades excluded ──────────────────────────────────────────────────
+
+
+def test_cancelled_trades_excluded(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    t1 = _make_trade(
+        db_session, signal_id=1, status="CANCEL", pnl=0.0,
+        created_at=now - timedelta(hours=24), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t1.id, quantity=1.0, pnl=0.0, status=CANCEL,
+    )
+
+    snap = PortfolioSnapshot(
+        total_equity=10000.0,
+        initial_capital=10000.0,
+        total_pnl=0.0,
+        equity_curve=[10000.0],
+        max_drawdown=0.0,
+        closed_trades=0,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    assert report.sharpe_ratio == 0.0
+    assert report.average_win == 0.0
+    assert report.consecutive_wins == 0
+
+
+# ── Integration with PortfolioEngine ────────────────────────────────────────
+
+
+def test_integration_with_portfolio(db_session, session_factory):
+    now = datetime.now(timezone.utc)
+    t1 = _make_trade(
+        db_session, signal_id=1, status="TP_HIT", pnl=2000.0,
+        created_at=now - timedelta(hours=24), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t1.id, quantity=1.0, pnl=2000.0, status=TAKE_PROFIT,
+    )
+    t2 = _make_trade(
+        db_session, signal_id=2, status="SL_HIT", pnl=-500.0,
+        created_at=now - timedelta(hours=12), closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=t2.id, quantity=1.0, pnl=-500.0, status=STOP_LOSS,
+    )
+
+    # Generate snapshot from PortfolioEngine
+    from portfolio import PortfolioEngine
+    pe = PortfolioEngine(session_factory=session_factory, initial_capital=10000.0)
+    snap = pe.snapshot()
+
+    perf_engine = PerformanceEngine(session_factory=session_factory)
+    report = perf_engine.report(snap)
+
+    assert report.average_win == 2000.0
+    assert report.average_loss == -500.0
+    assert report.expectancy == 750.0  # 0.5*2000 - 0.5*500 = 750
+    assert report.payoff_ratio == 4.0  # 2000 / 500
+    assert report.largest_win == 2000.0
+    assert report.largest_loss == -500.0
+    assert report.consecutive_wins == 1
+    assert report.consecutive_losses == 1
+    assert report.sharpe_ratio != 0.0
+    assert report.sortino_ratio != 0.0

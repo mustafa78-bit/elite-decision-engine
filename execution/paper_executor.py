@@ -141,7 +141,7 @@ class PaperExecutor:
             session.commit()
             session.refresh(trade)
             session.expunge(trade)
-            self.logger.info("Opened paper trade %s %s at %.8f", symbol, side, request.entry)
+            self.logger.info("Opened paper trade %s %s at %s", symbol, side, float(request.entry))
             return trade
         except Exception:
             session.rollback()
@@ -334,7 +334,7 @@ class PaperExecutor:
 
     def _monitor_trade(self, session: Any, trade: Trade) -> TradeMonitorResult:
         if self._stale_trade(trade):
-            self.logger.warning("Stale trade %s auto-closed after %d days", trade.id, STALE_TRADE_DAYS)
+            self.logger.warning("Stale trade %s auto-closed after %s days", trade.id, STALE_TRADE_DAYS)
             current_price = self.get_current_price(str(trade.symbol))
             realized_pnl = self.calculate_realized_pnl(trade, current_price)
             self._close_trade_record(
@@ -362,7 +362,7 @@ class PaperExecutor:
                 pnl=realized_pnl,
             )
             self.logger.info(
-                "Paper trade %s closed at %.8f with status %s",
+                "Paper trade %s closed at %s with status %s",
                 trade.id,
                 current_price,
                 close_status,
@@ -371,7 +371,7 @@ class PaperExecutor:
         else:
             session.add(trade)
             self.logger.debug(
-                "Paper trade %s monitored at %.8f: pnl %.8f (%.4f%%)",
+                "Paper trade %s monitored at %s: pnl %s (%s%%)",
                 trade.id,
                 current_price,
                 pnl.unrealized_pnl,

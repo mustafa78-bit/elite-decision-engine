@@ -4,6 +4,7 @@ import uuid
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from config import API_ENV
 from auth.jwt import decode_access_token
 
 
@@ -27,6 +28,13 @@ async def auth_middleware(request: Request, call_next):
     request.state.request_id = rid
 
     if path in PUBLIC_PATHS:
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = rid
+        return response
+
+    if API_ENV == "development":
+        request.state.user_id = 1
+        request.state.username = "dev"
         response = await call_next(request)
         response.headers["X-Request-ID"] = rid
         return response

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
@@ -17,6 +17,14 @@ interface TabsProps {
 
 export function Tabs({ tabs, defaultTab, className, onChange }: TabsProps) {
   const [active, setActive] = useState(defaultTab || tabs[0]?.id);
+
+  useEffect(() => {
+    if (defaultTab) {
+      setActive(defaultTab);
+    } else if (tabs.length > 0 && !tabs.find((t) => t.id === active)) {
+      setActive(tabs[0].id);
+    }
+  }, [tabs, defaultTab, active]);
 
   return (
     <div className={cn("flex flex-col", className)}>

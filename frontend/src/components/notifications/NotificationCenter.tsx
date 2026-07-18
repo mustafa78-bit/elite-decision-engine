@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { NotificationRow } from "../../api/notifications";
 import { fetchNotifications, markNotificationRead } from "../../api/notifications";
+import type { NotificationDetailDTO } from "../../types/api/notifications";
 import NotificationItem from "./NotificationItem";
 
 export default function NotificationCenter() {
-  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
+  const [notifications, setNotifications] = useState<NotificationDetailDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,7 +14,7 @@ export default function NotificationCenter() {
       setError(null);
       setLoading(true);
       const data = await fetchNotifications();
-      setNotifications(data);
+      setNotifications(data.notifications);
     } catch {
       setError("Failed to load notifications");
     } finally {
@@ -47,7 +47,7 @@ export default function NotificationCenter() {
 
   if (error) {
     return (
-      <div className="text-red-400 text-xs p-4 border border-red-900 bg-red-950/30 rounded">
+      <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 rounded">
         {error}
         <button onClick={load} className="ml-2 underline text-gray-400 hover:text-gray-200">
           Retry

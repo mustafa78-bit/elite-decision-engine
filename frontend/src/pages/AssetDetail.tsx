@@ -121,12 +121,8 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
               </span>
             </div>
             <div className="widget-body">
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                {decision === "STRONG_BUY" || decision === "BUY"
-                  ? "Strong bullish momentum detected across multiple timeframes. Volume confirms the move with above-average participation. Key resistance levels are being tested with high conviction."
-                  : decision === "STRONG_SELL" || decision === "SELL"
-                    ? "Bearish pressure increasing with breakdown below key support. Volume spikes indicate distribution. Momentum oscillators diverging negatively."
-                    : "Market showing mixed signals. No clear directional bias. Waiting for confirmation from volume and momentum indicators."}
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                Awaiting AI analysis from the intelligence engine.
               </p>
             </div>
           </div>
@@ -188,8 +184,8 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
               </span>
             </div>
             <div className="widget-body">
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                Price is trading above both the 20 and 50 EMA on the 1h timeframe, indicating a short-term bullish trend. The 4h chart shows higher highs and higher lows. However, RSI is approaching overbought territory which may suggest a pullback.
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                Awaiting AI analysis from the intelligence engine.
               </p>
             </div>
           </div>
@@ -200,25 +196,10 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
                 Key Levels
               </span>
             </div>
-            <div className="widget-body space-y-1">
-              {[
-                { type: "RESISTANCE", level: 72500 },
-                { type: "RESISTANCE", level: 71000 },
-                { type: "SUPPORT", level: 68500 },
-                { type: "SUPPORT", level: 67000 },
-              ].map((kl, i) => (
-                <div key={i} className="flex justify-between text-[11px]">
-                  <span className={cn(
-                    "font-mono",
-                    kl.type === "SUPPORT" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]",
-                  )}>
-                    {kl.type}
-                  </span>
-                  <span className="font-mono tabular-nums text-[var(--text-primary)]">
-                    ${kl.level.toLocaleString()}
-                  </span>
-                </div>
-              ))}
+            <div className="widget-body">
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                Awaiting AI analysis from the intelligence engine.
+              </p>
             </div>
           </div>
 
@@ -228,22 +209,10 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
                 Signals
               </span>
             </div>
-            <div className="widget-body space-y-2">
-              {[
-                { name: "EMA Crossover", status: "ACTIVE", description: "Price crossed above EMA 20 on 1h" },
-                { name: "Volume Spike", status: "ACTIVE", description: "Volume 2.5x above 20-period average" },
-                { name: "RSI Momentum", status: "WARNING", description: "RSI at 72, approaching overbought" },
-              ].map((s, i) => (
-                <div key={i} className="text-[11px]">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={s.status === "ACTIVE" ? "success" : "warning"} className="text-[8px]">
-                      {s.status}
-                    </Badge>
-                    <span className="font-medium text-[var(--text-primary)]">{s.name}</span>
-                  </div>
-                  <p className="text-[var(--text-muted)] mt-0.5">{s.description}</p>
-                </div>
-              ))}
+            <div className="widget-body">
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                Awaiting AI analysis from the intelligence engine.
+              </p>
             </div>
           </div>
 
@@ -254,12 +223,8 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
               </span>
             </div>
             <div className="widget-body">
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                {risk < 0.3
-                  ? "Risk levels are manageable. Position sizing within recommended parameters. Stop-loss placement at logical support levels provides adequate protection."
-                  : risk < 0.5
-                    ? "Moderate risk detected. Consider reducing position size. Wider stops may be needed due to current volatility. Monitor funding rates for additional risk signals."
-                    : "Elevated risk. High volatility or low liquidity detected. Consider waiting for better risk/reward setup. Tight position sizing recommended."}
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                Awaiting AI analysis from the intelligence engine.
               </p>
             </div>
           </div>
@@ -271,8 +236,8 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
               </span>
             </div>
             <div className="widget-body">
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                {"Current volume is significantly above the 20-period moving average, confirming strong participation. Buy volume dominates sell volume by a ratio of 1.4:1. Accumulation pattern observed over the past 48 hours."}
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                Awaiting AI analysis from the intelligence engine.
               </p>
             </div>
           </div>

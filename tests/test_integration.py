@@ -325,3 +325,233 @@ def test_risk_manager_rejects(db_session, session_factory, monkeypatch):
 
     trade = db_session.query(Trade).filter(Trade.signal_id == signal_id).first()
     assert trade is None, "Trade should not be created when risk rejects"
+
+
+# ===========================================================================
+# Paper Trade Journal Integration
+# ===========================================================================
+
+
+class TestPaperTradeJournalIntegration:
+    """Signal → PaperOrder → Fill → PaperPosition → PaperTrade journal."""
+
+    def test_signal_to_paper_order(
+        self, db_session, session_factory,
+    ):
+        signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")
+        db_session.add(signal)
+        db_session.flush()
+
+        pipeline = _build_pipeline()
+        executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+        journal = _build_executor(MockCollector(close_price=50000.0), session_factory)
+        from execution.paper import PaperExecutor as PaperDomainExecutor
+        domain_executor = PaperDomainExecutor(
+            position_executor=journal,
+            session_factory=session_factory,
+        )
+        loop = ExecutionLoop(
+            pipeline=pipeline,
+            paper_executor=executor,
+            risk_manager=RiskManager(session_factory=session_factory),
+            trade_journal=domain_executor,
+        )
+        engine = DecisionEngine(execution_loop=loop)
+        engine.process_signal(signal)
+
+        db_session.refresh(signal)
+        trade = db_session.query(Trade).filter(Trade.signal_id == signal.id).first()
+        assert trade is not None
+
+        from database import PaperOrder as PaperOrderModel
+        paper_order = (
+            db_session.query(PaperOrderModel)
+            .filter(PaperOrderModel.trade_id == trade.id)
+            .first()
+        )
+        assert paper_order is not None, "PaperOrder should be created"
+        assert paper_order.status == "FILLED", f"Expected FILLED, got {paper_order.status}"
+        assert paper_order.symbol == "BTCUSDT"
+        assert paper_order.side == "LONG"
+
+    def test_order_to_fill(
+        self, db_session, session_factory,
+    ):
+        signal = Signal(symbol="ETHUSDT", side="LONG", timeframe="1h", status="OPEN")
+        db_session.add(signal)
+        db_session.flush()
+
+        pipeline = _build_pipeline()
+        executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+        journal = _build_executor(MockCollector(close_price=50000.0), session_factory)
+        from execution.paper import PaperExecutor as PaperDomainExecutor
+        domain_executor = PaperDomainExecutor(
+            position_executor=journal,
+            session_factory=session_factory,
+        )
+        loop = ExecutionLoop(
+            pipeline=pipeline,
+            paper_executor=executor,
+            risk_manager=RiskManager(session_factory=session_factory),
+            trade_journal=domain_executor,
+        )
+        DecisionEngine(execution_loop=loop).process_signal(signal)
+
+        trade = db_session.query(Trade).filter(Trade.signal_id == signal.id).first()
+        assert trade is not None
+
+        from database import PaperOrder as PaperOrderModel
+        from database import PaperTrade as PaperTradeModel
+        paper_order = (
+            db_session.query(PaperOrderModel)
+            .filter(PaperOrderModel.trade_id == trade.id)
+            .first()
+        )
+        assert paper_order is not None
+        assert paper_order.filled_price == 50000.0
+        assert paper_order.filled_quantity is not None
+        assert paper_order.filled_quantity > 0
+        assert paper_order.status == "FILLED"
+
+        paper_trade = (
+            db_session.query(PaperTradeModel)
+            .filter(PaperTradeModel.position_id == trade.id)
+            .first()
+        )
+        assert paper_trade is not None, "PaperTrade should be created"
+        assert paper_trade.entry == 50000.0
+        assert paper_trade.quantity > 0
+        assert paper_trade.status == "OPEN"
+        assert paper_trade.order_id == paper_order.id
+
+    def test_fill_to_position_link(
+        self, db_session, session_factory,
+    ):
+        signal = Signal(symbol="SOLUSDT", side="SHORT", timeframe="1h", status="OPEN")
+        db_session.add(signal)
+        db_session.flush()
+
+        pipeline = _build_pipeline()
+        executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+        journal = _build_executor(MockCollector(close_price=50000.0), session_factory)
+        from execution.paper import PaperExecutor as PaperDomainExecutor
+        domain_executor = PaperDomainExecutor(
+            position_executor=journal,
+            session_factory=session_factory,
+        )
+        loop = ExecutionLoop(
+            pipeline=pipeline,
+            paper_executor=executor,
+            risk_manager=RiskManager(session_factory=session_factory),
+            trade_journal=domain_executor,
+        )
+        DecisionEngine(execution_loop=loop).process_signal(signal)
+
+        trade = db_session.query(Trade).filter(Trade.signal_id == signal.id).first()
+        assert trade is not None
+        assert trade.status == "OPEN"
+
+        from database import PaperTrade as PaperTradeModel
+        paper_trade = (
+            db_session.query(PaperTradeModel)
+            .filter(PaperTradeModel.position_id == trade.id)
+            .first()
+        )
+        assert paper_trade is not None
+        assert paper_trade.position_id == trade.id
+        assert paper_trade.symbol == "SOLUSDT"
+        assert paper_trade.side == "SHORT"
+
+    def test_position_to_trade_journal(
+        self, db_session, session_factory,
+    ):
+        signal = Signal(symbol="ADAUSDT", side="LONG", timeframe="1h", status="OPEN")
+        db_session.add(signal)
+        db_session.flush()
+
+        pipeline = _build_pipeline()
+        executor = _build_executor(MockCollector(close_price=50000.0), session_factory)
+        journal = _build_executor(MockCollector(close_price=50000.0), session_factory)
+        from execution.paper import PaperExecutor as PaperDomainExecutor
+        domain_executor = PaperDomainExecutor(
+            position_executor=journal,
+            session_factory=session_factory,
+        )
+        loop = ExecutionLoop(
+            pipeline=pipeline,
+            paper_executor=executor,
+            risk_manager=RiskManager(session_factory=session_factory),
+            trade_journal=domain_executor,
+        )
+        DecisionEngine(execution_loop=loop).process_signal(signal)
+
+        trade = db_session.query(Trade).filter(Trade.signal_id == signal.id).first()
+        assert trade is not None
+
+        from database import PaperTrade as PaperTradeModel
+        paper_trade = (
+            db_session.query(PaperTradeModel)
+            .filter(PaperTradeModel.position_id == trade.id)
+            .first()
+        )
+        assert paper_trade is not None
+        assert paper_trade.entry == 50000.0
+        assert paper_trade.quantity > 0
+        assert paper_trade.symbol == "ADAUSDT"
+        assert paper_trade.side == "LONG"
+        assert paper_trade.status == "OPEN"
+
+    def test_duplicate_signal_prevention(
+        self, db_session, session_factory,
+    ):
+        signal = Signal(symbol="DOTUSDT", side="LONG", timeframe="1h", status="OPEN")
+        db_session.add(signal)
+        db_session.flush()
+
+        pipeline = _build_pipeline(
+            collector=MockCollector(close_price=10.0),
+            scoring_engine=MockScoringEngine(),
+        )
+        executor = _build_executor(MockCollector(close_price=10.0), session_factory)
+        journal = _build_executor(MockCollector(close_price=10.0), session_factory)
+        from execution.paper import PaperExecutor as PaperDomainExecutor
+        domain_executor = PaperDomainExecutor(
+            position_executor=journal,
+            session_factory=session_factory,
+        )
+        loop = ExecutionLoop(
+            pipeline=pipeline,
+            paper_executor=executor,
+            risk_manager=RiskManager(session_factory=session_factory),
+            trade_journal=domain_executor,
+        )
+        engine = DecisionEngine(execution_loop=loop)
+
+        engine.process_signal(signal)
+        db_session.refresh(signal)
+        assert signal.status == "EXECUTED"
+
+        first_trade = db_session.query(Trade).filter(Trade.signal_id == signal.id).first()
+        assert first_trade is not None
+
+        signal.status = "OPEN"
+        db_session.flush()
+
+        engine.process_signal(signal)
+        db_session.refresh(signal)
+
+        from database import PaperOrder as PaperOrderModel
+        orders = (
+            db_session.query(PaperOrderModel)
+            .filter(PaperOrderModel.trade_id == first_trade.id)
+            .all()
+        )
+        assert len(orders) == 1, "Should only have one PaperOrder despite processing signal twice"
+
+        from database import PaperTrade as PaperTradeModel
+        trades = (
+            db_session.query(PaperTradeModel)
+            .filter(PaperTradeModel.position_id == first_trade.id)
+            .all()
+        )
+        assert len(trades) == 1, "Should only have one PaperTrade despite processing signal twice"

@@ -1,43 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/layout/Layout";
-import Analytics from "./pages/Analytics";
-import AssetDetail from "./pages/AssetDetail";
-import Backtest from "./pages/Backtest";
-import Dashboard from "./pages/Dashboard";
-import DecisionCenter from "./pages/DecisionCenter";
-import Execution from "./pages/Execution";
-import Intelligence from "./pages/Intelligence";
-import Journal from "./pages/Journal";
-import LoginPage from "./pages/LoginPage";
-import Market from "./pages/Market";
-import NotFound from "./pages/NotFound";
-import NotificationsPage from "./pages/Notifications";
-import Overview from "./pages/Overview";
-import PaperTrading from "./pages/PaperTrading";
-import Portfolio from "./pages/Portfolio";
-import Profile from "./pages/Profile";
-import Regime from "./pages/Regime";
-import Risk from "./pages/Risk";
-import Scanner from "./pages/Scanner";
-import Signals from "./pages/Signals";
-import SignalsRanking from "./pages/SignalsRanking";
-import Trades from "./pages/Trades";
-import TradingControl from "./pages/TradingControl";
-import LiveMarket from "./pages/LiveMarket";
-import PreferencesPage from "./pages/PreferencesPage";
-import TimelinePage from "./pages/TimelinePage";
-import WatchlistsPage from "./pages/WatchlistsPage";
-import PortfolioDetailPage from "./pages/PortfolioDetailPage";
-import FundingPage from "./pages/FundingPage";
-import OpenInterestPage from "./pages/OpenInterestPage";
-import WhalePage from "./pages/WhalePage";
-import LiquidityPage from "./pages/LiquidityPage";
-import HeroDashboard from "./pages/HeroDashboard";
-import TradingWorkspace from "./pages/TradingWorkspace";
-import AIExperience from "./pages/AIExperience";
-import ProfessionalWorkspace from "./pages/ProfessionalWorkspace";
+import { LoadingScreen } from "./components/layout/LoadingScreen";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { AuthGuard } from "./components/auth/AuthGuard";
@@ -55,15 +20,45 @@ import type {
 import {
   connectTradesSocket,
 } from "./websocket/client";
-import type { ConnectionStatus, WsRoomStatus } from "./types/connection";
+import type { WsRoomStatus } from "./types/connection";
+
+const Analytics = lazy(() => import("./pages/Analytics"));
+const AssetDetail = lazy(() => import("./pages/AssetDetail"));
+const Backtest = lazy(() => import("./pages/Backtest"));
+const CommandDeck = lazy(() => import("./pages/CommandDeck"));
+const DecisionCenter = lazy(() => import("./pages/DecisionCenter"));
+const Execution = lazy(() => import("./pages/Execution"));
+const Intelligence = lazy(() => import("./pages/Intelligence"));
+const Journal = lazy(() => import("./pages/Journal"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const Market = lazy(() => import("./pages/Market"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const NotificationsPage = lazy(() => import("./pages/Notifications"));
+const Overview = lazy(() => import("./pages/Overview"));
+const PaperTrading = lazy(() => import("./pages/PaperTrading"));
+const Portfolio = lazy(() => import("./pages/Portfolio"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Regime = lazy(() => import("./pages/Regime"));
+const Risk = lazy(() => import("./pages/Risk"));
+const Scanner = lazy(() => import("./pages/Scanner"));
+const Signals = lazy(() => import("./pages/Signals"));
+const Trades = lazy(() => import("./pages/Trades"));
+const TradingControl = lazy(() => import("./pages/TradingControl"));
+const PreferencesPage = lazy(() => import("./pages/PreferencesPage"));
+const TimelinePage = lazy(() => import("./pages/TimelinePage"));
+const WatchlistsPage = lazy(() => import("./pages/WatchlistsPage"));
+const FundingPage = lazy(() => import("./pages/FundingPage"));
+const OpenInterestPage = lazy(() => import("./pages/OpenInterestPage"));
+const HeroDashboard = lazy(() => import("./pages/HeroDashboard"));
+const TradingWorkspace = lazy(() => import("./pages/TradingWorkspace"));
+const AIExperience = lazy(() => import("./pages/AIExperience"));
 
 const MAX_EVENTS = 100;
 
-function App() {
+function AppRoutes() {
   const [notifications, setNotifications] = useState<TradeNotification[]>([]);
   const [openTrades, setOpenTrades] = useState<TradePayload[]>([]);
   const [closedTrades, setClosedTrades] = useState<TradePayload[]>([]);
-  const [status, setStatus] = useState<ConnectionStatus>("DISCONNECTED");
   const [latestMarket, setLatestMarket] = useState<MarketPayload | null>(null);
   const [latestSignal, setLatestSignal] = useState<SignalPayload | null>(null);
   const [latestRiskWs, setLatestRiskWs] = useState<RiskWsPayload | null>(null);
@@ -129,7 +124,6 @@ function App() {
         }
       },
       (s) => {
-        setStatus(s);
         setWsRooms((prev) => ({ ...prev, trades: s }));
       },
     );
@@ -155,60 +149,69 @@ function App() {
   };
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/login" element={<LoginPage />} />
+    <BrowserRouter>
+      <Suspense fallback={<LoadingScreen />}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/command-deck" replace />} />
+        <Route path="/login" element={<LoginPage />} />
 
-            <Route
-              element={
-                <AuthGuard>
-                  <Layout status={status} wsRooms={wsRooms} context={outletContext} />
-                </AuthGuard>
-              }
-            >
-              <Route path="/overview" element={<Overview />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/scanner" element={<Scanner />} />
-              <Route path="/decisions" element={<DecisionCenter />} />
-              <Route path="/asset/:symbol" element={<AssetDetail />} />
-              <Route path="/profile" element={<Profile />} />
+        <Route
+          element={
+            <AuthGuard>
+              <Layout wsRooms={wsRooms} context={outletContext} />
+            </AuthGuard>
+          }
+        >
+          <Route path="/command-deck" element={<CommandDeck />} />
+          <Route path="/overview" element={<Overview />} />
+          <Route path="/dashboard" element={<Navigate to="/command-deck" replace />} />
+          <Route path="/scanner" element={<Scanner />} />
+          <Route path="/decisions" element={<DecisionCenter />} />
+          <Route path="/asset/:symbol" element={<AssetDetail />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/timeline" element={<TimelinePage />} />
           <Route path="/watchlists" element={<WatchlistsPage />} />
-          <Route path="/portfolio-detail" element={<PortfolioDetailPage />} />
+          <Route path="/portfolio-detail" element={<Navigate to="/portfolio" replace />} />
           <Route path="/market" element={<Market />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/signals" element={<Signals />} />
-          <Route path="/signals/ranking" element={<SignalsRanking />} />
+          <Route path="/signals/ranking" element={<Navigate to="/signals" replace />} />
           <Route path="/risk" element={<Risk />} />
           <Route path="/regime" element={<Regime />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/paper-trading" element={<PaperTrading />} />
           <Route path="/execution" element={<Execution />} />
           <Route path="/intelligence" element={<Intelligence />} />
-          <Route path="/live-market" element={<LiveMarket />} />
+          <Route path="/live-market" element={<Navigate to="/market" replace />} />
           <Route path="/trading-control" element={<TradingControl />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/backtest" element={<Backtest />} />
           <Route path="/preferences" element={<PreferencesPage />} />
           <Route path="/funding" element={<FundingPage />} />
           <Route path="/open-interest" element={<OpenInterestPage />} />
-          <Route path="/whale" element={<WhalePage />} />
-          <Route path="/liquidity" element={<LiquidityPage />} />
+          <Route path="/whale" element={<Navigate to="/command-deck" replace />} />
+          <Route path="/liquidity" element={<Navigate to="/command-deck" replace />} />
           <Route path="/hero-dashboard" element={<HeroDashboard />} />
           <Route path="/trading-workspace" element={<TradingWorkspace />} />
           <Route path="/ai-experience" element={<AIExperience />} />
-          <Route path="/professional-workspace" element={<ProfessionalWorkspace />} />
+          <Route path="/professional-workspace" element={<Navigate to="/execution" replace />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
-    </AuthProvider>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { getWsBaseUrl } from "../api/client";
 import type { ConnectionStatus } from "../types/connection";
 import type { WsEvent } from "../types/trade";
 
@@ -6,7 +7,7 @@ export type { ConnectionStatus };
 export type MessageHandler = (data: WsEvent) => void;
 export type StatusHandler = (status: ConnectionStatus) => void;
 
-const WS_BASE = import.meta.env.VITE_WS_URL;
+const WS_BASE = getWsBaseUrl();
 
 function getToken(): string {
   return localStorage.getItem("auth_token") ?? "";

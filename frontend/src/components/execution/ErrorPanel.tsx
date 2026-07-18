@@ -13,7 +13,7 @@ export default function ErrorPanel({ errors }: Props) {
   }
 
   return (
-    <div className="bg-gray-900 border border-red-900 rounded p-4">
+    <div className="bg-[var(--bg-elevated)] border border-[var(--accent-red)]/30 rounded p-4">
       <h3 className="text-[10px] uppercase tracking-widest text-red-400 mb-2">
         Errors ({errors.length})
       </h3>

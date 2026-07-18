@@ -3,12 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable, Optional
 
-from database import Trade, Signal, get_session
+from database import FINAL_STATUSES, Trade, Signal, get_session
 from dto.analytics import KPIDTO
 
 logger = logging.getLogger(__name__)
-
-_CLOSED_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
 
 
 class KPIService:
@@ -25,7 +23,7 @@ class KPIService:
             session.close()
 
     def _compute(self, trades: list[Trade], signals: Optional[list[Signal]] = None) -> list[KPIDTO]:
-        closed = [t for t in trades if t.status in _CLOSED_STATUSES]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         open_t = [t for t in trades if t.status == "OPEN"]
         wins = [t for t in closed if t.pnl and t.pnl > 0]
         losses = [t for t in closed if t.pnl and t.pnl < 0]

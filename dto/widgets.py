@@ -74,8 +74,32 @@ class MonitoringDashboardWidgetDTO:
 
 @dataclass
 class NotificationDashboardWidgetDTO:
-    unread_count: int = 0
-    recent: list[dict[str, Any]] = field(default_factory=list)
+    unread: int = 0
+    total: int = 0
+    notifications: list[dict[str, Any]] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class HeroBannerDTO:
+    decision: str = "WAIT"
+    confidence: float = 0.0
+    risk: float = 0.0
+    summary: str = ""
+    reasons: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    risk_notes: list[str] = field(default_factory=list)
+    supporting_signals: list[str] = field(default_factory=list)
+    entry: float = 0.0
+    tp: float = 0.0
+    sl: float = 0.0
+    rr: float = 0.0
+    timestamp: str = ""
+    market_regime: str = "UNKNOWN"
+    signal_id: int = 0
+    symbol: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

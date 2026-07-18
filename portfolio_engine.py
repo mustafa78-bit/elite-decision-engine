@@ -12,11 +12,9 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
 from config import ACCOUNT_EQUITY
-from database import Trade, get_session
+from database import FINAL_STATUSES, Trade, get_session
 
 logger = logging.getLogger(__name__)
-
-_CLOSED_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
 _INFINITE_PF = 999.99
 
 
@@ -63,7 +61,7 @@ class PortfolioEngine:
     def _compute(self, session: Any) -> PortfolioStats:
         all_trades = session.query(Trade).all()
         open_trades = [t for t in all_trades if t.status == "OPEN"]
-        closed_trades = [t for t in all_trades if t.status in _CLOSED_STATUSES]
+        closed_trades = [t for t in all_trades if t.status in FINAL_STATUSES]
 
         open_count = len(open_trades)
         closed_count = len(closed_trades)

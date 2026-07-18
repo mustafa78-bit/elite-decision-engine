@@ -7,13 +7,11 @@ interface ConnectionStatusProps {
 const statusLabels: Record<string, string> = {
   CONNECTED: "Live",
   DISCONNECTED: "Offline",
-  RECONNECTING: "Reconnecting",
 };
 
 const statusColors: Record<string, string> = {
   CONNECTED: "bg-[var(--accent-green)]",
   DISCONNECTED: "bg-[var(--accent-red)]",
-  RECONNECTING: "bg-[var(--accent-yellow)]",
 };
 
 export function ConnectionStatusBadge({ wsRooms }: ConnectionStatusProps) {

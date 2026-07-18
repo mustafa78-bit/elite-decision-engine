@@ -1,5 +1,5 @@
+import asyncio
 import logging
-import time
 
 from config import CHECK_INTERVAL
 from database import Signal, get_session, update_signal_status
@@ -32,7 +32,7 @@ class DecisionEngine:
             logger.exception("Signal processing failed: %s", e)
             update_signal_status(signal.id, "REJECTED")
 
-    def run(self):
+    async def run(self):
 
         while True:
 
@@ -46,4 +46,4 @@ class DecisionEngine:
                 for signal in signals:
                     self.process_signal(signal)
 
-            time.sleep(CHECK_INTERVAL)
+            await asyncio.sleep(CHECK_INTERVAL)

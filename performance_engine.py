@@ -14,11 +14,9 @@ from statistics import mean, stdev
 from typing import Any, Callable, Optional
 
 from config import ACCOUNT_EQUITY
-from database import Trade, get_session
+from database import FINAL_STATUSES, Trade, get_session
 
 logger = logging.getLogger(__name__)
-
-_CLOSED = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
 _RFR = 0.0  # risk-free rate default
 
 
@@ -58,7 +56,7 @@ class PerformanceEngine:
             session.close()
 
     def _compute(self, session: Any) -> PerformanceStats:
-        closed = session.query(Trade).filter(Trade.status.in_(_CLOSED)).all()
+        closed = session.query(Trade).filter(Trade.status.in_(FINAL_STATUSES)).all()
 
         if not closed:
             return PerformanceStats()

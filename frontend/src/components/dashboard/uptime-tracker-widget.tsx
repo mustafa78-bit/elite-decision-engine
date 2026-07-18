@@ -8,16 +8,17 @@ interface UptimeTrackerWidgetProps {
 }
 
 export function UptimeTrackerWidget({
-  uptimePercent = 99.9,
+  uptimePercent,
   currentStreak = 0,
   longestStreak = 0,
 }: UptimeTrackerWidgetProps) {
-  const color =
-    uptimePercent >= 99.9
+  const color = uptimePercent != null
+    ? uptimePercent >= 99.9
       ? "var(--accent-green)"
       : uptimePercent >= 99.0
         ? "var(--accent-yellow)"
-        : "var(--accent-red)";
+        : "var(--accent-red)"
+    : "var(--text-muted)";
 
   return (
     <Card className="h-full">
@@ -26,21 +27,27 @@ export function UptimeTrackerWidget({
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-4">
-          <div className="relative w-16 h-16">
-            <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
-              <circle cx="32" cy="32" r="28" fill="none" stroke="var(--bg-elevated)" strokeWidth="4" />
-              <circle
-                cx="32" cy="32" r="28" fill="none" stroke={color} strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray={`${(uptimePercent / 100) * 176} 176`}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xs font-mono font-bold tabular-nums" style={{ color }}>
-                {uptimePercent.toFixed(1)}%
-              </span>
+          {uptimePercent != null ? (
+            <div className="relative w-16 h-16">
+              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="var(--bg-elevated)" strokeWidth="4" />
+                <circle
+                  cx="32" cy="32" r="28" fill="none" stroke={color} strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={`${(uptimePercent / 100) * 176} 176`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-mono font-bold tabular-nums" style={{ color }}>
+                  {uptimePercent.toFixed(1)}%
+                </span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="relative w-16 h-16 flex items-center justify-center">
+              <span className="text-xs font-mono text-[var(--text-muted)]">--</span>
+            </div>
+          )}
           <div className="space-y-1">
             <div>
               <div className="text-[9px] text-[var(--text-muted)]">Current Streak</div>

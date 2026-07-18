@@ -17,17 +17,41 @@ for structured log ingestion.
 import json
 import logging
 import os
+import re
 from logging.handlers import RotatingFileHandler
+
+from config import LOG_LEVEL
 
 LOG_FORMAT = "%(asctime)s [%(name)s] %(levelname)-8s %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 _MAX_BYTES = 10 * 1024 * 1024
 _BACKUP_COUNT = 5
 
+_SENSITIVE_PATTERNS = [
+    (re.compile(r'(?i)(password|passwd|secret|token|key|api[_-]?key)\s*[:=]\s*["\']?[^\s,;\'"]+'), r'\1=***'),
+    (re.compile(r'(?i)(Authorization:\s*Bearer\s+)\S+'), r'\1***'),
+    (re.compile(r'(?i)(jwt[_-]?secret)\s*=\s*["\']?[^\s,;\'"]+'), r'\1=***'),
+    (re.compile(r'(?i)(encryption[_-]?key)\s*=\s*["\']?[^\s,;\'"]+'), r'\1=***'),
+]
+
+
+class _SensitiveDataFilter(logging.Filter):
+    def filter(self, record):
+        if hasattr(record, 'msg') and isinstance(record.msg, str):
+            for pattern, replacement in _SENSITIVE_PATTERNS:
+                record.msg = pattern.sub(replacement, record.msg)
+        if record.args:
+            cleaned = []
+            for arg in record.args:
+                s = str(arg)
+                for pattern, replacement in _SENSITIVE_PATTERNS:
+                    s = pattern.sub(replacement, s)
+                cleaned.append(s)
+            record.args = tuple(cleaned)
+        return True
+
 
 class _ModuleFilter(logging.Filter):
-    """Allow log records whose logger name starts with one of *prefixes*."""
-
     def __init__(self, prefixes):
         super().__init__()
         self.prefixes = prefixes
@@ -60,12 +84,17 @@ def setup_logging(log_dir="logs"):
     api_env = os.getenv("API_ENV", "development")
     is_prod = api_env == "production"
 
+    level = getattr(logging, LOG_LEVEL, logging.INFO)
+
     file_formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
     console_formatter = _JsonFormatter() if is_prod else logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
 
+    sensitive_filter = _SensitiveDataFilter()
+
     console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
+    console.setLevel(level)
     console.setFormatter(console_formatter)
+    console.addFilter(sensitive_filter)
 
     handlers = [
         console,
@@ -88,6 +117,9 @@ def setup_logging(log_dir="logs"):
         ),
     ]
 
+    for h in handlers:
+        h.addFilter(sensitive_filter)
+
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
     root.handlers.clear()
@@ -96,14 +128,6 @@ def setup_logging(log_dir="logs"):
 
 
 def log_state(logger_name: str, component: str, state: str, **extra) -> None:
-    """Emit a structured state-change log entry.
-
-    Args:
-        logger_name: Logger name (e.g. ``"execution.lifecycle"``).
-        component: Component name (e.g. ``"pipeline"``).
-        state: State label (e.g. ``"started"``, ``"completed"``, ``"failed"``).
-        extra: Additional key=value pairs to include.
-    """
     logger = logging.getLogger(logger_name)
     parts = [f"component={component}", f"state={state}"]
     parts.extend(f"{k}={v}" for k, v in extra.items())

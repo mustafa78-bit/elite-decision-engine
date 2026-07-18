@@ -19,7 +19,7 @@ import sys
 from sqlalchemy import text
 
 from config import CHECK_INTERVAL, MAX_OPEN_TRADES, MIN_SCORE
-from database import Base, create_tables, engine, get_session
+from database import create_tables, engine, get_session
 
 logger = logging.getLogger(__name__)
 
@@ -135,11 +135,24 @@ def startup():
     logger.info("Tables verified")
 
 
-def shutdown():
+def shutdown(timeout: float = 5.0):
     logger.info("Shutting down Elite Decision Engine")
+    try:
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                for task in asyncio.all_tasks(loop):
+                    if task is not asyncio.current_task():
+                        task.cancel()
+        except RuntimeError:
+            pass
+    except Exception as e:
+        logger.warning("Error during async cleanup: %s", e)
     try:
         engine.dispose()
         logger.info("Database engine disposed")
     except Exception as e:
         logger.warning("Error during engine dispose: %s", e)
+    logging.shutdown()
     logger.info("Shutdown complete")

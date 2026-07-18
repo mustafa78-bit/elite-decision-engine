@@ -1,9 +1,7 @@
 import logging
 import time
-from dataclasses import dataclass
-from typing import Any, Optional
-
 from config import API_ENV, CHECK_INTERVAL, MIN_SCORE, MAX_OPEN_TRADES
+from database import FINAL_STATUSES
 from database import get_session
 
 logger = logging.getLogger(__name__)
@@ -12,14 +10,6 @@ _ENGINE_START_TIME: float = time.time()
 
 _INTERNAL_ERRORS: dict[str, int] = {}
 _LAST_SUCCESS: dict[str, float] = {}
-
-
-@dataclass
-class HealthComponent:
-    status: str
-    detail: str = ""
-    latency_ms: float = 0.0
-    last_success_ago: Optional[float] = None
 
 
 def _track_result(component: str, ok: bool, latency: float) -> None:
@@ -136,14 +126,23 @@ class HealthService:
     def execution() -> dict:
         try:
             from execution.execution_loop import ExecutionLoop
-            loop = ExecutionLoop()
-            return {
-                "status": "ok",
-                "pipeline_ready": loop.pipeline is not None,
-                "trade_engine_ready": loop.trade_engine is not None,
-                "risk_manager_ready": loop.risk_manager is not None,
-                "paper_executor_ready": loop.paper_executor is not None,
+            result = {
+                "pipeline_ready": False,
+                "trade_engine_ready": False,
+                "risk_manager_ready": False,
+                "paper_executor_ready": False,
             }
+            try:
+                loop = ExecutionLoop()
+                result["pipeline_ready"] = loop.pipeline is not None
+                result["trade_engine_ready"] = loop.trade_engine is not None
+                result["risk_manager_ready"] = loop.risk_manager is not None
+                result["paper_executor_ready"] = loop.paper_executor is not None
+                result["status"] = "ok"
+            except Exception as e:
+                result["status"] = "degraded"
+                result["detail"] = str(e)
+            return result
         except Exception as e:
             return {
                 "status": "error",
@@ -194,7 +193,6 @@ class HealthService:
     @staticmethod
     def risk() -> dict:
         try:
-            from risk_manager import RiskManager
             from config import (
                 MAX_OPEN_TRADES, MAX_EXPOSURE_PER_SYMBOL,
                 MAX_PORTFOLIO_EXPOSURE, MAX_DAILY_LOSS,
@@ -223,7 +221,7 @@ class HealthService:
             open_signals = session.query(Signal).filter(Signal.status == "OPEN").count()
             total_trades = session.query(Trade).count()
             open_trades = session.query(Trade).filter(Trade.status == "OPEN").count()
-            closed_trades = session.query(Trade).filter(Trade.status.in_({"TP_HIT", "SL_HIT", "CLOSED"})).count()
+            closed_trades = session.query(Trade).filter(Trade.status.in_(FINAL_STATUSES)).count()
             session.close()
             return {
                 "status": "ok",

@@ -34,8 +34,4 @@ export function formatTime(iso: string | null): string {
   });
 }
 
-export function cnEx(
-  ...inputs: (string | boolean | undefined | null)[]
-): string {
-  return inputs.filter(Boolean).join(" ");
-}
+

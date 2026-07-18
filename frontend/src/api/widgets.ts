@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { WidgetDTO, KPIDTO, PortfolioSummaryDTO, MonitoringStatusDTO, NotificationItemDTO } from "../types/api/widget";
+import type { WidgetDTO, KPIDTO, PortfolioSummaryDTO, MonitoringStatusDTO, NotificationWidgetDTO, HeroBannerDTO } from "../types/api/widget";
 
 export function fetchWidgets(): Promise<{ widgets: WidgetDTO[] }> {
   return apiFetch("/widgets");
@@ -33,10 +33,14 @@ export function fetchMonitoringWidgetStatus(): Promise<{ widget: WidgetDTO; moni
   return apiFetch("/widgets/monitoring/status");
 }
 
-export function fetchNotificationsWidget(limit = 10): Promise<{ widget: WidgetDTO; notifications: NotificationItemDTO[]; total: number; unread: number }> {
+export function fetchNotificationsWidget(limit = 10): Promise<NotificationWidgetDTO> {
   return apiFetch(`/widgets/notifications?limit=${limit}`);
 }
 
-export function fetchNotificationsWidgetRecent(limit = 10): Promise<{ widget: WidgetDTO; notifications: NotificationItemDTO[]; total: number; unread: number }> {
+export function fetchNotificationsWidgetRecent(limit = 10): Promise<NotificationWidgetDTO> {
   return apiFetch(`/widgets/notifications/recent?limit=${limit}`);
+}
+
+export function fetchHeroBanner(): Promise<HeroBannerDTO> {
+  return apiFetch("/dashboard/hero");
 }

@@ -315,7 +315,7 @@ describe("Subsystem status display", () => {
 describe("OLLOCommander", () => {
   it("shows loading state", () => {
     render(<OLLOCommander greeting={null} briefing={null} loading={true} error={null} />);
-    expect(document.querySelector(".animate-spin")).toBeTruthy();
+    expect(document.querySelector(".skeleton-pulse")).toBeTruthy();
   });
 
   it("shows error state", () => {
@@ -394,8 +394,8 @@ describe("OLLOCommander", () => {
     expect(screen.getByText(/Today's briefing covers/)).toBeInTheDocument();
   });
 
-  it("shows OLLO Commander label", () => {
+  it("shows awaiting connection state", () => {
     render(<OLLOCommander greeting={null} briefing={null} loading={false} error={null} />);
-    expect(screen.getByText("OLLO Commander")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting OLLO connection...")).toBeInTheDocument();
   });
 });

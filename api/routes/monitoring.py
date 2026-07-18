@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from database import Notification, Trade, Signal, get_session
+from database import FINAL_STATUSES, Notification, Trade, Signal, get_session
 from config import API_ENV, DEBUG
 from monitoring.health import HealthService
 
@@ -34,7 +34,7 @@ def get_monitoring():
             all_trades = session.query(Trade).all()
             trade_counts["total"] = len(all_trades)
             trade_counts["open"] = len([t for t in all_trades if t.status == "OPEN"])
-            trade_counts["closed"] = len([t for t in all_trades if t.status in {"TP_HIT", "SL_HIT", "CLOSED"}])
+            trade_counts["closed"] = len([t for t in all_trades if t.status in FINAL_STATUSES])
             signal_count = session.query(Signal).count()
             notification_count = session.query(Notification).count()
         finally:

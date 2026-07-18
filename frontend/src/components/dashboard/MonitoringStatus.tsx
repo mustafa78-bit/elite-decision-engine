@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { fetchMonitoringWidgetStatus } from "../../api/widgets";
 import type { MonitoringStatusDTO } from "../../types/api/widget";
@@ -8,13 +9,16 @@ import type { MonitoringStatusDTO } from "../../types/api/widget";
 export function MonitoringStatus() {
   const [data, setData] = useState<MonitoringStatusDTO | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetchMonitoringWidgetStatus();
       setData(res.monitoring);
-    } catch {
-      // silent
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load monitoring status");
     } finally {
       setLoading(false);
     }
@@ -38,6 +42,11 @@ export function MonitoringStatus() {
       <CardContent>
         {loading ? (
           <Skeleton className="h-20 w-full" />
+        ) : error ? (
+          <div className="flex flex-col items-center gap-3 py-3">
+            <p className="text-[11px] text-[var(--accent-red)] font-mono text-center">{error}</p>
+            <Button variant="ghost" size="sm" onClick={load}>Retry</Button>
+          </div>
         ) : !data ? (
           <p className="text-[10px] text-gray-600 font-mono">No status data</p>
         ) : (

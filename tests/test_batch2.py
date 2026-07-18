@@ -180,7 +180,7 @@ class TestWidgetService:
         from services.widget_service import WidgetService
         svc = WidgetService(session_factory=lambda: db_session)
         result = svc.get_widget("notifications")
-        assert result["unread_count"] == 0
+        assert result["unread"] == 0
 
     def test_widget_unknown_type(self, db_session):
         from services.widget_service import WidgetService

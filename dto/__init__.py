@@ -42,6 +42,7 @@ from dto.widgets import (
     PortfolioDashboardWidgetDTO,
     MonitoringDashboardWidgetDTO,
     NotificationDashboardWidgetDTO,
+    HeroBannerDTO,
 )
 from dto.preferences import (
     UserPreferencesDTO,
@@ -104,6 +105,7 @@ __all__ = [
     "PortfolioDashboardWidgetDTO",
     "MonitoringDashboardWidgetDTO",
     "NotificationDashboardWidgetDTO",
+    "HeroBannerDTO",
     "UserPreferencesDTO",
     "ThemeConfigDTO",
     "LayoutConfigDTO",

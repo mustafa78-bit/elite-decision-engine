@@ -63,12 +63,14 @@ class TestWidgetDTOs:
 
     def test_notification_widget_to_dict(self):
         dto = NotificationDashboardWidgetDTO(
-            unread_count=5,
-            recent=[{"id": 1, "event_type": "test", "payload": {}}],
+            unread=5,
+            total=10,
+            notifications=[{"id": 1, "event_type": "test", "payload": {}}],
         )
         d = dto.to_dict()
-        assert d["unread_count"] == 5
-        assert len(d["recent"]) == 1
+        assert d["unread"] == 5
+        assert d["total"] == 10
+        assert len(d["notifications"]) == 1
 
     def test_explanation_widget_empty(self):
         dto = ExplanationDashboardWidgetDTO()

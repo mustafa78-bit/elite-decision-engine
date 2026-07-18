@@ -6,10 +6,11 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from database import Signal, Trade, get_session
+from database import FINAL_STATUSES, OPEN, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     ExplanationDashboardWidgetDTO,
+    HeroBannerDTO,
     KPIDashboardWidgetDTO,
     MonitoringDashboardWidgetDTO,
     NotificationDashboardWidgetDTO,
@@ -147,7 +148,7 @@ def dashboard_portfolio(request: Request):
     session = get_session()
     try:
         trades = session.query(Trade).all()
-        closed = [t for t in trades if t.status in ("TP_HIT", "SL_HIT", "CLOSED")]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         open_trades = [t for t in trades if t.status == "OPEN"]
         total_pnl = sum(t.pnl or 0 for t in closed)
         wins = [t for t in closed if t.pnl and t.pnl > 0]
@@ -219,9 +220,11 @@ def dashboard_notifications(request: Request):
             .limit(10)
             .all()
         )
+        total = session.query(Notification).count()
         widget = NotificationDashboardWidgetDTO(
-            unread_count=unread,
-            recent=[
+            unread=unread,
+            total=total,
+            notifications=[
                 {
                     "id": n.id,
                     "event_type": n.event_type,
@@ -238,3 +241,98 @@ def dashboard_notifications(request: Request):
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
         session.close()
+
+
+@router.get("/dashboard/hero")
+def dashboard_hero(request: Request):
+    session = get_session()
+    signal: Signal | None = None
+    trade: Trade | None = None
+    try:
+        signal = session.query(Signal).order_by(Signal.created_at.desc()).first()
+        trade = session.query(Trade).filter(Trade.status == OPEN).order_by(Trade.created_at.desc()).first()
+    finally:
+        session.close()
+
+    try:
+        from portfolio.engine import PortfolioEngine
+        from performance.engine import PerformanceEngine
+        snapshot = PortfolioEngine().snapshot()
+        perf = PerformanceEngine().report(snapshot)
+
+        market_regime = "UNKNOWN"
+        try:
+            from scoring.regime_ai import get_regime_ai
+            from market_data.indicators import IndicatorEngine
+            from market_data.collector import HyperliquidCollector
+            collector = HyperliquidCollector()
+            df = collector.get_ohlcv(symbol="BTC", timeframe="1h")
+            if not df.empty:
+                values = IndicatorEngine().calculate(df)
+                reg = get_regime_ai().detect(values)
+                market_regime = reg.get("regime", "UNKNOWN")
+        except Exception:
+            logger.warning("Failed to fetch market regime for hero banner", exc_info=True)
+
+        from explain.engine import ExplainEngine
+        from explain.core import ExplainInput
+
+        from explain.core import ExplainResult
+
+        empty_result = ExplainResult()
+        result = empty_result
+
+        if signal:
+            inp = ExplainInput(
+                symbol=signal.symbol,
+                side=signal.side,
+                technical_score=signal.score or 0,
+                whale_score=signal.funding_score or signal.oi_score or 0,
+                news_score=signal.cvd_score or 0,
+                risk_score=signal.risk_score or 0,
+                trend_score=signal.trend_score or 0,
+                portfolio_total_equity=snapshot.total_equity,
+                portfolio_unrealized_pnl=snapshot.unrealized_pnl,
+                portfolio_realized_pnl=snapshot.realized_pnl,
+                portfolio_exposure=snapshot.exposure,
+                portfolio_initial_capital=snapshot.initial_capital,
+                performance_sharpe=perf.sharpe,
+                performance_sortino=perf.sortino,
+                performance_calmar=perf.calmar,
+                performance_profit_factor=perf.profit_factor,
+                performance_win_rate=perf.win_rate,
+                performance_total_pnl=perf.total_pnl,
+                performance_max_drawdown=perf.max_drawdown,
+            )
+            result = ExplainEngine().explain(inp)
+
+        from datetime import datetime, timezone
+
+        entry = float(trade.entry or 0) if trade else (float(signal.price or 0) if signal else 0.0)
+        tp = float(trade.tp1 or 0) if trade else 0.0
+        sl = float(trade.stop or 0) if trade else 0.0
+        rr = float(trade.rr or 0) if trade else 0.0
+        ts = signal.created_at.isoformat() if signal and signal.created_at else datetime.now(timezone.utc).isoformat()
+
+        widget = HeroBannerDTO(
+            decision=result.decision,
+            confidence=round(result.confidence, 1),
+            risk=round(signal.risk_score or 0, 2) if signal else 0.0,
+            summary=result.summary,
+            reasons=result.reasons,
+            warnings=result.warnings,
+            risk_notes=result.risk_notes,
+            supporting_signals=result.supporting_signals,
+            entry=round(entry, 2),
+            tp=round(tp, 2),
+            sl=round(sl, 2),
+            rr=round(rr, 2),
+            timestamp=ts,
+            market_regime=market_regime,
+            signal_id=signal.id if signal else 0,
+            symbol=signal.symbol if signal else "",
+        )
+        return widget.to_dict()
+    except Exception as e:
+        logger.error("Dashboard hero failed: %s", e)
+        return JSONResponse(status_code=500, content={"error": str(e)})

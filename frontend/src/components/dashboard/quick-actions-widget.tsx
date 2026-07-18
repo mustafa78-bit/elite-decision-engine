@@ -12,6 +12,10 @@ interface QuickActionsWidgetProps {
 }
 
 export function QuickActionsWidget({ actions = [] }: QuickActionsWidgetProps) {
+  if (actions.length === 0) {
+    return null;
+  }
+
   return (
     <Card className="h-full">
       <CardHeader>

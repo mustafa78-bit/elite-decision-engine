@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable, Optional
 
-from database import Signal, Trade, Notification, get_session
+from database import FINAL_STATUSES, Signal, Trade, Notification, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     KPIDashboardWidgetDTO,
@@ -52,7 +52,7 @@ class WidgetService:
         session = self.session_factory()
         try:
             trades = session.query(Trade).all()
-            closed = [t for t in trades if t.status in frozenset({"TP_HIT", "SL_HIT", "CLOSED"})]
+            closed = [t for t in trades if t.status in FINAL_STATUSES]
             open_t = [t for t in trades if t.status == "OPEN"]
             wins = [t for t in closed if t.pnl and t.pnl > 0]
             total_pnl = sum(t.pnl or 0 for t in closed)
@@ -88,14 +88,16 @@ class WidgetService:
         finally:
             session.close()
 
-    def _notifications_widget(self) -> dict[str, Any]:
+    def _notifications_widget(self, limit: int = 10) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            recent = session.query(Notification).order_by(Notification.created_at.desc()).limit(10).all()
+            recent = session.query(Notification).order_by(Notification.created_at.desc()).limit(limit).all()
             unread = session.query(Notification).filter(Notification.read == False).count()
+            total = session.query(Notification).count()
             return NotificationDashboardWidgetDTO(
-                unread_count=unread,
-                recent=[{
+                unread=unread,
+                total=total,
+                notifications=[{
                     "id": n.id, "event_type": n.event_type,
                     "payload": n.payload, "read": n.read,
                     "created_at": n.created_at.isoformat() if n.created_at else None,

@@ -6,20 +6,21 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "glass" | "elevated";
 }
 
+const CARD_VARIANTS: Record<string, string> = {
+  default: "widget-card",
+  glass: "glass rounded-xl",
+  elevated: "surface-elevated rounded-xl",
+};
+
 export function Card({
   variant = "default",
   className,
   children,
   ...props
 }: CardProps) {
-  const variants: Record<string, string> = {
-    default: "widget-card",
-    glass: "glass rounded-xl",
-    elevated: "surface-elevated rounded-xl",
-  };
 
   return (
-    <div className={cn(variants[variant], className)} {...props}>
+    <div className={cn(CARD_VARIANTS[variant], className)} {...props}>
       {children}
     </div>
   );

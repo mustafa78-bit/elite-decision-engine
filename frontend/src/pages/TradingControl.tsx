@@ -34,7 +34,7 @@ export default function TradingControl() {
 
   if (error) {
     return (
-      <div className="text-[var(--accent-red)] text-xs p-4 border border-red-900 bg-[var(--accent-red)]/10 rounded mb-4">
+      <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 rounded mb-4">
         {error}
         <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Retry</button>
       </div>

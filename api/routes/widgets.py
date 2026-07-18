@@ -25,7 +25,7 @@ def list_widgets():
 @cached(ttl=15)
 def get_widget(widget_type: str, limit: int = Query(10, ge=1, le=100)):
     svc = _get_widget_service()
-    result = svc.get_widget(widget_type)
+    result = svc.get_widget(widget_type, limit=limit)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result

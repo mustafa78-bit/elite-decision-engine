@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
 from database import update_signal_status
+from execution.paper import PaperExecutor as PaperDomainExecutor
 from execution.paper_executor import PaperExecutor, TradeMonitorResult
 from execution.pipeline import DecisionPipeline, TradeCandidate, TradingSignal
 from execution.trade_engine import TradeEngine
@@ -42,6 +43,7 @@ class ExecutionLoop:
         position_sizer: Optional[PositionSizingEngine] = None,
         logger: Optional[logging.Logger] = None,
         signal_ranker: Optional[SignalRankingAI] = None,
+        trade_journal: Optional[PaperDomainExecutor] = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
         self.trade_engine = trade_engine or TradeEngine()
@@ -50,6 +52,7 @@ class ExecutionLoop:
         self.position_sizer = position_sizer or PositionSizingEngine()
         self.logger = logger or logging.getLogger(__name__)
         self.signal_ranker = signal_ranker
+        self.trade_journal = trade_journal
 
     def run_once(self, signals: Iterable[TradingSignal]) -> ExecutionLoopResult:
         """Process a batch of signals and monitor open paper trades once."""
@@ -155,6 +158,23 @@ class ExecutionLoop:
 
         trade = self._create_trade(candidate)
         if trade is not None:
+            if self.trade_journal is not None:
+                journal_result = self.trade_journal.execute_signal(
+                    trade_id=trade.id,
+                    entry=float(candidate.entry),
+                    quantity=float(position_size.quantity),
+                )
+                if journal_result is not None:
+                    paper_order, paper_position, paper_trade = journal_result
+                    self.logger.info(
+                        "Trade journal created: order=%s position=%s trade=%s",
+                        paper_order.id, paper_position.id,
+                        paper_trade.id if paper_trade is not None else None,
+                    )
+                else:
+                    self.logger.warning(
+                        "Trade journal returned None for trade %s", trade.id,
+                    )
             update_signal_status(signal.id, "EXECUTED")
         else:
             update_signal_status(signal.id, "OPEN")

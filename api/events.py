@@ -144,7 +144,6 @@ class CandleUpdateEvent:
 class VolumePayload:
     symbol: str = ""
     volume_24h: float = 0.0
-    volume_change: float = 0.0
 
 
 @dataclass

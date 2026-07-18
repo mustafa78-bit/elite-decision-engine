@@ -59,8 +59,9 @@ class TestDashboardAPI:
         resp = api_client.get("/dashboard/notifications")
         assert resp.status_code == 200
         body = resp.json()
-        assert "unread_count" in body
-        assert "recent" in body
+        assert "unread" in body
+        assert "notifications" in body
+        assert "total" in body
 
     def test_dashboard_notifications_with_data(self, api_client, db_session):
         for i in range(3):
@@ -69,8 +70,9 @@ class TestDashboardAPI:
         resp = api_client.get("/dashboard/notifications")
         assert resp.status_code == 200
         body = resp.json()
-        assert body["unread_count"] == 3
-        assert len(body["recent"]) == 3
+        assert body["unread"] == 3
+        assert len(body["notifications"]) == 3
+        assert body["total"] == 3
 
     def test_dashboard_explanation_nonexistent(self, api_client):
         resp = api_client.get("/dashboard/explanation/99999")

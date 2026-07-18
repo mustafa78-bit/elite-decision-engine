@@ -1,19 +1,73 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { motion } from "framer-motion"
 import { useSubsystems } from "../hooks/useSubsystems"
-import { computeMissionStatus, type MissionStatus } from "../types/mission"
-import EvidencePanel from "../components/hq/EvidencePanel"
-import MissionStatusBar from "../components/hq/MissionStatusBar"
+import { computeMissionStatus } from "../types/mission"
 import OLLOCommander from "../components/hq/OLLOCommander"
-import SubsystemRow from "../components/hq/SubsystemRow"
+import MissionRing from "../components/hq/MissionRing"
+import MissionFlow from "../components/hq/MissionFlow"
+import SubsystemHealthBar from "../components/hq/SubsystemHealthBar"
+import HQLoadingScreen from "../components/hq/HQLoadingScreen"
+import type { SubsystemStatus } from "../types/system"
+
+function statusColor(status: SubsystemStatus): string {
+  switch (status) {
+    case "ONLINE": return "#3EDC97"
+    case "DEGRADED": return "#FFB547"
+    case "OFFLINE": return "#FF5D73"
+    case "UNKNOWN": return "#6B7891"
+  }
+}
+
+function qualityColor(q: string): string {
+  switch (q) {
+    case "HIGH": return "#3EDC97"
+    case "MEDIUM": return "#FFB547"
+    case "LOW": return "#FF5D73"
+    default: return "#6B7891"
+  }
+}
+
+function ProgressLine({ value, label, color }: { value: number; label: string; color: string }) {
+  const pct = Math.min(Math.max(value * 100, 0), 100)
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className="font-mono shrink-0 text-right"
+        style={{ fontSize: 8, color: "var(--text-muted)", width: 90, letterSpacing: "0.05em" }}
+      >
+        {label}
+      </span>
+      <div
+        className="flex-1 h-px rounded-full overflow-hidden"
+        style={{ backgroundColor: "var(--border-subtle)" }}
+      >
+        <motion.div
+          className="h-full rounded-full"
+          style={{ backgroundColor: color }}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        />
+      </div>
+      <span
+        className="font-mono tabular-nums shrink-0"
+        style={{ fontSize: 8, color, width: 28, textAlign: "right" as const }}
+      >
+        {pct.toFixed(0)}%
+      </span>
+    </div>
+  )
+}
 
 export default function CommandDeck() {
+  const [showLoading, setShowLoading] = useState(true)
+
   const {
     scanner, risk, council, portfolio, whale, market, evidence,
     ollo, aiHealth, loading,
   } = useSubsystems()
 
   const decisionQuality = evidence.data?.decision_quality ?? null
-  const evidenceStrength = evidence.data?.evidence_strength ?? 0
   const warnings = evidence.data?.warnings ?? []
   const riskScore = risk.data?.risk_score ?? null
   const aiConnected = aiHealth.data?.ollo.connected ?? ollo.status.data?.ai_health.connected ?? null
@@ -22,344 +76,249 @@ export default function CommandDeck() {
   const offlineCount = [scanner, risk, council, portfolio, whale, market, evidence, ollo.status, aiHealth]
     .filter((s) => s.status === "OFFLINE").length
 
-  const missionStatus: MissionStatus = computeMissionStatus(riskScore, decisionQuality, aiConnected, offlineCount)
+  const missionStatus = useMemo(
+    () => computeMissionStatus(riskScore, decisionQuality, aiConnected, offlineCount),
+    [riskScore, decisionQuality, aiConnected, offlineCount],
+  )
 
   const currentMission = ollo.briefing?.title || ollo.status.data?.current_mission_profile?.replace(/_/g, " ") || undefined
-  const scannerCount = scanner.data?.opportunities_found ?? null
-  const portfolioPnl = portfolio.data?.total_pnl ?? null
-  const portfolioWinRate = portfolio.data?.win_rate ?? null
-  const whaleCount = whale.data?.length ?? null
-  const councilAgents = council.data?.agent_count ?? null
-  const marketPrice = market.data?.price ?? null
-  const marketRegime = market.data?.regime ?? null
+
+  const sectors = useMemo(() => [
+    { label: "Scanner", status: scanner.status },
+    { label: "Council", status: council.status },
+    { label: "Risk", status: risk.status },
+    { label: "Portfolio", status: portfolio.status },
+    { label: "Whale", status: whale.status },
+    { label: "Market", status: market.status },
+  ], [scanner.status, council.status, risk.status, portfolio.status, whale.status, market.status])
+
+  const flowNodes = useMemo(() => [
+    { label: "Scanner" as const, active: scanner.status === "ONLINE", color: statusColor(scanner.status) },
+    { label: "Whale" as const, active: whale.status === "ONLINE", color: statusColor(whale.status) },
+    { label: "Council" as const, active: council.status === "ONLINE", color: statusColor(council.status) },
+    { label: "Evidence" as const, active: evidence.status === "ONLINE", color: statusColor(evidence.status) },
+    { label: "Decision" as const, active: aiHealth.status === "ONLINE", color: statusColor(aiHealth.status) },
+    { label: "Founder" as const, active: true, color: "#4F8CFF" },
+    { label: "Action" as const, active: true, color: "#78A8FF" },
+  ], [scanner.status, whale.status, council.status, evidence.status, aiHealth.status])
+
+  const missionColor = useMemo(() => {
+    switch (missionStatus) {
+      case "ACTIVE": return "#3EDC97"
+      case "MONITORING": return "#4F8CFF"
+      case "CAUTION": return "#FFB547"
+      case "CRITICAL": return "#FF5D73"
+    }
+  }, [missionStatus])
+
+  const recommendation = evidence.data?.recommendation || null
+  const confidence = evidence.data?.decision_confidence ?? null
+  const strength = evidence.data?.evidence_strength ?? null
+  const explainability = evidence.data?.explainability ?? null
+  const supportingCount = evidence.data?.supporting_evidence.length ?? null
+  const conflictCount = evidence.data?.contradicting_evidence.length ?? null
+  const warningCount = evidence.data?.warnings.length ?? null
+
+  // Hide loading screen after subsystems load
+  useEffect(() => {
+    if (!loading && showLoading) {
+      const timer = setTimeout(() => setShowLoading(false), 1200)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, showLoading])
 
   return (
-    <div className="min-h-full flex flex-col">
-      {/* Mission Status Bar */}
-      <MissionStatusBar
-        status={missionStatus}
-        decisionQuality={decisionQuality ?? "UNKNOWN"}
-        evidenceStrength={evidenceStrength}
-        warnings={warnings.length}
-        currentMission={currentMission}
-        aiConnected={aiConnected ?? undefined}
-        aiLatency={aiLatency}
-        unreadAlerts={warnings.length}
-        systemStatus={aiHealth.data?.status?.toUpperCase()}
-      />
+    <>
+      {showLoading && <HQLoadingScreen />}
 
-      {/* Situation Summary */}
-      {evidence.data?.summary && (
-        <div className="px-4 py-2 border-b border-[var(--border-subtle)]/30">
-          <div className="flex items-start gap-2">
-            <span className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] shrink-0 mt-0.5">
-              Situation
+      <motion.div
+        className="h-full flex flex-col"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showLoading ? 0 : 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
+        {/* ====== TOP BAR ====== */}
+        <header
+          className="flex items-center justify-between shrink-0"
+          style={{
+            height: 38,
+            padding: "0 20px",
+            borderBottom: "1px solid var(--border-subtle)",
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className="text-[8px] font-semibold uppercase tracking-[0.22em]"
+              style={{ color: "var(--text-primary)" }}
+            >
+              COMMAND HEADQUARTERS
             </span>
-            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-              {evidence.data.summary}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Main Grid */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 overflow-y-auto">
-        {/* Left Column */}
-        <div className="lg:col-span-5 space-y-4">
-          {/* OLLO Commander */}
-          <div className="glass-card overflow-hidden">
-            <OLLOCommander
-              greeting={ollo.greeting}
-              briefing={ollo.briefing}
-              loading={loading && !ollo.greeting}
-              error={ollo.status.error}
-            />
+            <span
+              className="text-[7px] font-mono uppercase tracking-[0.15em]"
+              style={{ color: "var(--text-muted)" }}
+            >
+              · Founder Alpha
+            </span>
+            {currentMission && (
+              <>
+                <span className="text-[7px]" style={{ color: "var(--border-subtle)" }}>·</span>
+                <span
+                  className="text-[7px] font-mono uppercase tracking-[0.1em]"
+                  style={{ color: missionColor }}
+                >
+                  {currentMission}
+                </span>
+              </>
+            )}
           </div>
 
-          {/* Current Mission */}
-          {ollo.briefing && (
-            <div className="glass-card p-4">
-              <div className="text-[9px] font-medium text-[var(--accent-blue)] uppercase tracking-[0.1em] mb-2">
-                Current Mission
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-1 h-1 rounded-full"
+                style={{ backgroundColor: missionColor, boxShadow: `0 0 4px ${missionColor}40` }}
+              />
+              <span
+                className="text-[8px] font-semibold uppercase tracking-[0.12em]"
+                style={{ color: missionColor }}
+              >
+                {missionStatus}
+              </span>
+            </div>
+
+            <span className="text-[6px]" style={{ color: "var(--border-subtle)" }}>|</span>
+
+            <span
+              className="text-[8px] font-mono tabular-nums"
+              style={{ color: "var(--text-muted)" }}
+            >
+              {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}
+            </span>
+
+            <div className="flex items-center gap-1">
+              <span
+                className="w-1 h-1 rounded-full"
+                style={{ backgroundColor: aiConnected !== false ? "#3EDC97" : "#FF5D73" }}
+              />
+              <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                AI {aiConnected !== false ? (aiLatency ? `${aiLatency.toFixed(0)}ms` : "OK") : "ERR"}
+              </span>
+            </div>
+
+            {warnings.length > 0 && (
+              <span className="text-[7px] font-mono" style={{ color: "#FFB547" }}>
+                {warnings.length} alert{warnings.length > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+        </header>
+
+        {/* ====== CONTENT — unified vertical flow ====== */}
+        <div className="flex-1 overflow-y-auto">
+          {/* 1 + 2: OLLO + Mission Ring */}
+          <div className="hq-section flex flex-col items-center py-10">
+            <div className="relative flex flex-col items-center">
+              <OLLOCommander
+                greeting={ollo.greeting}
+                briefing={ollo.briefing}
+                loading={loading && !ollo.greeting}
+                error={ollo.status.error}
+              />
+              <div className="mt-6">
+                <MissionRing sectors={sectors} />
               </div>
-              <div className="text-[10px] font-medium text-[var(--text-primary)] mb-1">
-                {ollo.briefing.title}
-              </div>
-              <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
-                {ollo.briefing.text}
-              </p>
-              <div className="mt-2 flex items-center gap-2 text-[8px] font-mono text-[var(--text-muted)]">
-                <span>{ollo.briefing.kind} briefing</span>
-                <span>·</span>
-                <span>{ollo.briefing.provider}</span>
+            </div>
+          </div>
+
+          {/* 3: Current Recommendation */}
+          {recommendation && (
+            <div className="hq-section">
+              <div className="max-w-xl mx-auto">
+                <div className="hq-section-label">Current Recommendation</div>
+                <p
+                  className="text-sm font-semibold leading-snug"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {recommendation}
+                </p>
               </div>
             </div>
           )}
 
-          {/* AI Health */}
-          <div className="glass-card p-4">
-            <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-3">
-              AI Health
-            </div>
-            <div className="space-y-1">
-              {loading && !aiHealth.data ? (
-                <div className="h-2 skeleton-pulse w-full" />
-              ) : (
-                <>
-                  <SubsystemRow label="OLLO Commander" status={aiHealth.data?.ollo.connected ? "ONLINE" : "OFFLINE"} detail={aiHealth.data?.ollo.latency_ms ? `${aiHealth.data.ollo.latency_ms.toFixed(0)}ms` : undefined} />
-                  <SubsystemRow label="Evidence Engine" status={aiHealth.data?.evidence_engine.available ? "ONLINE" : "OFFLINE"} />
-                  {Object.entries(aiHealth.data?.providers || {}).map(([name, p]) => (
-                    <SubsystemRow key={name} label={name.charAt(0).toUpperCase() + name.slice(1)} status={p.connected ? "ONLINE" : "OFFLINE"} />
-                  ))}
-                  <SubsystemRow label="System" status={aiHealth.data?.status === "healthy" ? "ONLINE" : aiHealth.data?.status ? "DEGRADED" : "UNKNOWN"} />
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Portfolio Snapshot */}
-          <div className="glass-card p-4">
-            <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-2">
-              Portfolio Vault
-            </div>
-            {portfolio.error ? (
-              <SubsystemRow label="Portfolio" status="OFFLINE" detail="Unavailable" />
-            ) : portfolio.data ? (
-              <div className="space-y-1.5 text-[10px] font-mono">
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">PnL</span>
-                  <span className={portfolioPnl !== null && portfolioPnl >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}>
-                    {portfolioPnl !== null ? `${portfolioPnl >= 0 ? "+" : ""}$${portfolioPnl.toLocaleString()}` : "--"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Win Rate</span>
-                  <span className="text-[var(--text-primary)]">
-                    {portfolioWinRate !== null ? `${(portfolioWinRate * 100).toFixed(1)}%` : "--"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Open Trades</span>
-                  <span className="text-[var(--text-primary)]">{portfolio.data?.open_trades ?? "--"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Total Trades</span>
-                  <span className="text-[var(--text-primary)]">{portfolio.data?.total_trades ?? "--"}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="h-2 skeleton-pulse w-full" />
-            )}
-          </div>
-
-          {/* Council Status */}
-          <div className="glass-card p-4">
-            <div className="text-[9px] font-medium text-[var(--accent-purple)] uppercase tracking-[0.1em] mb-2">
-              AI Council Chamber
-            </div>
-            {council.error ? (
-              <SubsystemRow label="Council" status="OFFLINE" detail="Unavailable" />
-            ) : council.data ? (
-              <div className="space-y-1.5 text-[10px] font-mono">
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Agents</span>
-                  <span className="text-[var(--text-primary)]">{councilAgents}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Active</span>
-                  <span className="text-[var(--text-primary)]">{council.data.agents.length} agents</span>
-                </div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {council.data.agents.slice(0, 4).map((agent) => (
-                    <span key={agent} className="px-1.5 py-0.5 text-[8px] font-mono rounded" style={{ backgroundColor: "rgba(139, 92, 246, 0.1)", color: "#8B5CF6" }}>
-                      {agent}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="h-2 skeleton-pulse w-full" />
-            )}
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="lg:col-span-7 space-y-4">
-          {/* Evidence Panel */}
-          <EvidencePanel
-            report={evidence.data}
-            loading={loading && !evidence.data}
-            error={evidence.error}
-          />
-
-          {/* Scanner + Market + Whale row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Scanner Room */}
-            <div className="glass-card p-4">
-              <div className="text-[9px] font-medium text-[var(--accent-cyan)] uppercase tracking-[0.1em] mb-2">
-                Scanner Room
-              </div>
-              {scanner.error ? (
-                <SubsystemRow label="Scanner" status="OFFLINE" />
-              ) : scanner.data ? (
-                <div className="space-y-1.5 text-[10px] font-mono">
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Symbols Scanned</span>
-                    <span className="text-[var(--text-primary)]">{scanner.data.symbols_scanned}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Opportunities</span>
-                    <span className="text-[var(--text-primary)]">{scannerCount}</span>
-                  </div>
-                  {scanner.data.top_opportunities && scanner.data.top_opportunities.length > 0 && (
-                    <div className="text-[8px] text-[var(--text-muted)] mt-1">
-                      Top: {scanner.data.top_opportunities[0].symbol} ({scanner.data.top_opportunities[0].score.toFixed(0)})
-                    </div>
+          {/* 4: Evidence */}
+          {(confidence !== null || strength !== null || explainability !== null) && (
+            <div className="hq-section">
+              <div className="max-w-xl mx-auto">
+                <div className="hq-section-label">Evidence</div>
+                <div className="space-y-2">
+                  {confidence !== null && (
+                    <ProgressLine
+                      value={confidence}
+                      label="Decision Confidence"
+                      color={qualityColor(decisionQuality ?? "UNKNOWN")}
+                    />
+                  )}
+                  {strength !== null && (
+                    <ProgressLine value={strength} label="Evidence Strength" color="#4F8CFF" />
+                  )}
+                  {explainability !== null && (
+                    <ProgressLine value={explainability} label="Explainability" color="#8B5CF6" />
                   )}
                 </div>
-              ) : (
-                <div className="h-2 skeleton-pulse w-full" />
-              )}
-            </div>
 
-            {/* Market Room */}
-            <div className="glass-card p-4">
-              <div className="text-[9px] font-medium text-[var(--accent-blue)] uppercase tracking-[0.1em] mb-2">
-                Market Room
-              </div>
-              {market.error ? (
-                <SubsystemRow label="Market" status="OFFLINE" />
-              ) : market.data ? (
-                <div className="space-y-1.5 text-[10px] font-mono">
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Price</span>
-                    <span className="text-[var(--text-primary)]">${marketPrice?.toLocaleString() ?? "--"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Regime</span>
-                    <span className="text-[var(--text-primary)]">{marketRegime ?? "--"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">RSI</span>
-                    <span className="text-[var(--text-primary)]">{market.data.rsi?.toFixed(0) ?? "--"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Volatility</span>
-                    <span className="text-[var(--text-primary)]">{(market.data.volatility * 100).toFixed(1)}%</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-2 skeleton-pulse w-full" />
-              )}
-            </div>
-
-            {/* Whale Intelligence */}
-            <div className="glass-card p-4">
-              <div className="text-[9px] font-medium text-[var(--accent-cyan)] uppercase tracking-[0.1em] mb-2" style={{ color: "#0E7490" }}>
-                Whale Intelligence
-              </div>
-              {whale.error ? (
-                <SubsystemRow label="Whale" status="OFFLINE" />
-              ) : whale.data ? (
-                <div className="space-y-1.5 text-[10px] font-mono">
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Recent Activity</span>
-                    <span className="text-[var(--text-primary)]">{whaleCount} events</span>
-                  </div>
-                  {whale.data.length > 0 && (
-                    <div className="text-[8px] text-[var(--text-muted)] mt-1 max-h-[60px] overflow-y-auto space-y-0.5">
-                      {whale.data.slice(0, 3).map((w, i) => (
-                        <div key={i} className="truncate">{w.symbol}: {w.type}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="h-2 skeleton-pulse w-full" />
-              )}
-            </div>
-          </div>
-
-          {/* OLLO System Status */}
-          {ollo.status.data && (
-            <div className="glass-card p-4">
-              <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-2">
-                OLLO System Status
-              </div>
-              <div className="space-y-1.5 text-[10px] font-mono">
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Mission Profile</span>
-                  <span className="text-[var(--text-primary)] capitalize">{ollo.status.data.current_mission_profile.replace(/_/g, " ")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Provider</span>
-                  <span className="text-[var(--text-primary)]">{ollo.status.data.provider}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Model</span>
-                  <span className="text-[var(--text-primary)]">{ollo.status.data.model}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Current Room</span>
-                  <span className="text-[var(--text-primary)] capitalize">{ollo.status.data.current_room.replace(/_/g, " ")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">AI Connection</span>
-                  <span style={{ color: ollo.status.data.ai_health.connected ? "#22C55E" : "#EF4444" }}>
-                    {ollo.status.data.ai_health.connected ? "Connected" : "Disconnected"}
-                  </span>
-                </div>
-                {ollo.status.data.ai_health.connected && (
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Latency</span>
-                    <span className="text-[var(--text-primary)]">{ollo.status.data.ai_health.latency_ms.toFixed(0)}ms</span>
+                {/* Counts */}
+                {(supportingCount !== null || conflictCount !== null || warningCount !== null) && (
+                  <div className="flex items-center gap-4 mt-3">
+                    {supportingCount !== null && (
+                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                        <span style={{ color: "#3EDC97" }}>{supportingCount}</span> supporting
+                      </span>
+                    )}
+                    {conflictCount !== null && conflictCount > 0 && (
+                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                        <span style={{ color: "#FF5D73" }}>{conflictCount}</span> conflicting
+                      </span>
+                    )}
+                    {warningCount !== null && warningCount > 0 && (
+                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                        <span style={{ color: "#FFB547" }}>{warningCount}</span> warnings
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Warnings */}
-          {warnings.length > 0 && (
-            <div className="glass-card p-4" style={{ borderColor: "rgba(249, 115, 22, 0.2)" }}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-yellow)]" />
-                <span className="text-[10px] font-medium text-[var(--accent-yellow)] uppercase tracking-[0.1em]">
-                  Warnings ({warnings.length})
-                </span>
-              </div>
-              <ul className="space-y-1">
-                {warnings.map((w, i) => (
-                  <li key={i} className="text-[11px] text-[var(--text-secondary)] leading-relaxed flex items-start gap-1.5">
-                    <span className="text-[var(--accent-yellow)] mt-0.5 shrink-0">!</span>
-                    {w}
-                  </li>
-                ))}
-              </ul>
+          {/* 5: Mission Flow */}
+          <div className="hq-section">
+            <div className="max-w-2xl mx-auto">
+              <MissionFlow nodes={flowNodes} />
             </div>
-          )}
-
-          {/* Risk Notes */}
-          {evidence.data?.risk_notes && evidence.data.risk_notes.length > 0 && (
-            <div className="glass-card p-4" style={{ borderColor: "rgba(239, 68, 68, 0.2)" }}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-red)]" />
-                <span className="text-[10px] font-medium text-[var(--accent-red)] uppercase tracking-[0.1em]">
-                  Risk Notes ({evidence.data.risk_notes.length})
-                </span>
-              </div>
-              <ul className="space-y-1">
-                {evidence.data.risk_notes.map((r, i) => (
-                  <li key={i} className="text-[11px] text-[var(--text-secondary)] leading-relaxed flex items-start gap-1.5">
-                    <span className="text-[var(--accent-red)] mt-0.5 shrink-0">▲</span>
-                    {r}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
-    </div>
+
+        {/* ====== BOTTOM: Subsystem Health ====== */}
+        <div
+          className="shrink-0"
+          style={{
+            padding: "8px 20px",
+            borderTop: "1px solid var(--border-subtle)",
+          }}
+        >
+          <SubsystemHealthBar
+            scanner={scanner}
+            risk={risk}
+            council={council}
+            portfolio={portfolio}
+            whale={whale}
+            market={market}
+            evidence={evidence}
+            olloStatus={ollo.status}
+            aiHealth={aiHealth}
+          />
+        </div>
+      </motion.div>
+    </>
   )
 }

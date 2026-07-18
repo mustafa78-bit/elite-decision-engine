@@ -14,35 +14,39 @@ interface MarketSentimentWidgetProps {
 }
 
 export function MarketSentimentWidget({
-  overall = "NEUTRAL",
-  score = 50,
+  overall,
+  score,
   sources = [],
 }: MarketSentimentWidgetProps) {
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Market Sentiment</CardTitle>
-        <Badge
-          variant={
-            overall === "BULLISH"
-              ? "success"
-              : overall === "BEARISH"
-                ? "danger"
-                : "warning"
-          }
-        >
-          {overall}
-        </Badge>
+        {overall != null ? (
+          <Badge
+            variant={
+              overall === "BULLISH"
+                ? "success"
+                : overall === "BEARISH"
+                  ? "danger"
+                  : "warning"
+            }
+          >
+            {overall}
+          </Badge>
+        ) : (
+          <span className="text-[10px] font-mono text-[var(--text-muted)]">--</span>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-3">
           <span className="text-2xl font-mono font-bold tabular-nums text-[var(--text-primary)]">
-            {score.toFixed(0)}
+            {score != null ? score.toFixed(0) : "--"}
           </span>
           <div className="flex-1 h-2 rounded-full bg-[var(--bg-elevated)] overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[var(--accent-red)] via-[var(--accent-yellow)] to-[var(--accent-green)] transition-all"
-              style={{ width: `${score}%` }}
+              style={{ width: `${score ?? 0}%` }}
             />
           </div>
         </div>

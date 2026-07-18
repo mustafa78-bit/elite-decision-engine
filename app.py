@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import sys
 
@@ -23,7 +24,7 @@ def main():
 
     engine = DecisionEngine()
 
-    engine.run()
+    asyncio.run(engine.run())
 
 
 if __name__ == "__main__":

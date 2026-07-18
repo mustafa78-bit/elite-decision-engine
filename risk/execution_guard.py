@@ -16,7 +16,7 @@ from risk.models import (
     summarize_decision,
 )
 from risk_manager import RiskManager
-from scoring.regime_ai import RegimeAI
+from scoring.regime_ai import get_regime_ai
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +44,12 @@ class ExecutionGuard:
     def __init__(
         self,
         exchange: Optional[ExchangeAdapter] = None,
-        regime_engine: Optional[RegimeAI] = None,
+        regime_engine: Optional["RegimeAI"] = None,
         session_factory: Callable[[], Any] = get_session,
         market_service: Optional[Any] = None,
     ) -> None:
         self.exchange = exchange
-        self.regime_engine = regime_engine or RegimeAI()
+        self.regime_engine = regime_engine or get_regime_ai()
         self.session_factory = session_factory
         self.market_service = market_service
 

@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Optional
 
-from database import Trade, get_session
+from database import FINAL_STATUSES, Trade, get_session
 from dto.analytics import (
     AnalyticsDTO,
     DailyAnalyticsDTO,
@@ -23,7 +23,7 @@ from dto.analytics import (
 
 logger = logging.getLogger(__name__)
 
-_CLOSED_STATUSES = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
+
 
 
 class AnalyticsService:
@@ -74,7 +74,7 @@ class AnalyticsService:
         result = []
         for day in sorted(daily.keys(), reverse=True)[:30]:
             day_trades = daily[day]
-            closed = [t for t in day_trades if t.status in _CLOSED_STATUSES]
+            closed = [t for t in day_trades if t.status in FINAL_STATUSES]
             wins = [t for t in closed if t.pnl and t.pnl > 0]
             losses = [t for t in closed if t.pnl and t.pnl < 0]
             total_pnl = sum(t.pnl or 0 for t in closed)
@@ -100,7 +100,7 @@ class AnalyticsService:
         result = []
         for wk in sorted(weekly.keys(), reverse=True)[:12]:
             wk_trades = weekly[wk]
-            closed = [t for t in wk_trades if t.status in _CLOSED_STATUSES]
+            closed = [t for t in wk_trades if t.status in FINAL_STATUSES]
             wins = [t for t in closed if t.pnl and t.pnl > 0]
             losses = [t for t in closed if t.pnl and t.pnl < 0]
             total_pnl = sum(t.pnl or 0 for t in closed)
@@ -125,7 +125,7 @@ class AnalyticsService:
         result = []
         for mo in sorted(monthly.keys(), reverse=True)[:12]:
             mo_trades = monthly[mo]
-            closed = [t for t in mo_trades if t.status in _CLOSED_STATUSES]
+            closed = [t for t in mo_trades if t.status in FINAL_STATUSES]
             wins = [t for t in closed if t.pnl and t.pnl > 0]
             losses = [t for t in closed if t.pnl and t.pnl < 0]
             total_pnl = sum(t.pnl or 0 for t in closed)
@@ -141,7 +141,7 @@ class AnalyticsService:
         return result
 
     def _win_loss_analytics(self, trades: list[Trade]) -> WinLossAnalyticsDTO:
-        closed = [t for t in trades if t.status in _CLOSED_STATUSES]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         wins = [t for t in closed if t.pnl and t.pnl > 0]
         losses = [t for t in closed if t.pnl and t.pnl < 0]
         total_closed = len(closed)
@@ -174,7 +174,7 @@ class AnalyticsService:
 
         result = []
         for symbol, sym_trades in sorted(by_symbol.items()):
-            closed = [t for t in sym_trades if t.status in _CLOSED_STATUSES]
+            closed = [t for t in sym_trades if t.status in FINAL_STATUSES]
             wins = [t for t in closed if t.pnl and t.pnl > 0]
             losses = [t for t in closed if t.pnl and t.pnl < 0]
             total_pnl = sum(t.pnl or 0 for t in closed)
@@ -200,7 +200,7 @@ class AnalyticsService:
 
         result = []
         for strategy, side_trades in by_side.items():
-            closed = [t for t in side_trades if t.status in _CLOSED_STATUSES]
+            closed = [t for t in side_trades if t.status in FINAL_STATUSES]
             wins = [t for t in closed if t.pnl and t.pnl > 0]
             losses = [t for t in closed if t.pnl and t.pnl < 0]
             total_pnl = sum(t.pnl or 0 for t in closed)
@@ -261,7 +261,7 @@ class AnalyticsService:
         )
 
     def _drawdown_analytics(self, trades: list[Trade]) -> DrawdownAnalyticsDTO:
-        closed = [t for t in trades if t.status in _CLOSED_STATUSES]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         closed_sorted = sorted(closed, key=lambda t: t.created_at or datetime.min)
         pnls = [t.pnl or 0 for t in closed_sorted]
 
@@ -361,7 +361,7 @@ class AnalyticsService:
         ]
 
     def _compute_kpis(self, trades: list[Trade]) -> list[KPIDTO]:
-        closed = [t for t in trades if t.status in _CLOSED_STATUSES]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         wins = [t for t in closed if t.pnl and t.pnl > 0]
         losses = [t for t in closed if t.pnl and t.pnl < 0]
         total_pnl = sum(t.pnl or 0 for t in closed)

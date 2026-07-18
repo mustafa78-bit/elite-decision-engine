@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Query
+import logging
+
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from database import JournalEntry, get_session
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -86,7 +89,8 @@ def create_journal(body: JournalCreate):
         return {"id": entry.id}
     except Exception as e:
         session.rollback()
-        return {"error": str(e)}
+        logger.error("Failed to create journal entry: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to create journal entry")
     finally:
         session.close()
 
@@ -97,7 +101,7 @@ def update_journal(entry_id: int, body: JournalUpdate):
     try:
         entry = session.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
         if not entry:
-            return {"error": "Entry not found"}
+            raise HTTPException(status_code=404, detail="Entry not found")
 
         if body.exit_price is not None:
             entry.exit_price = body.exit_price
@@ -112,9 +116,12 @@ def update_journal(entry_id: int, body: JournalUpdate):
 
         session.commit()
         return {"status": "updated"}
+    except HTTPException:
+        raise
     except Exception as e:
         session.rollback()
-        return {"error": str(e)}
+        logger.error("Failed to update journal entry %s: %s", entry_id, e)
+        raise HTTPException(status_code=500, detail="Failed to update journal entry")
     finally:
         session.close()
 
@@ -125,13 +132,16 @@ def delete_journal(entry_id: int):
     try:
         entry = session.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
         if not entry:
-            return {"error": "Entry not found"}
+            raise HTTPException(status_code=404, detail="Entry not found")
 
         session.delete(entry)
         session.commit()
         return {"status": "deleted"}
+    except HTTPException:
+        raise
     except Exception as e:
         session.rollback()
-        return {"error": str(e)}
+        logger.error("Failed to delete journal entry %s: %s", entry_id, e)
+        raise HTTPException(status_code=500, detail="Failed to delete journal entry")
     finally:
         session.close()

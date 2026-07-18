@@ -20,23 +20,27 @@ const statusColor: Record<string, string> = {
 
 export function RiskWidget({
   riskMetrics = [],
-  overallRisk = "LOW",
+  overallRisk,
 }: RiskWidgetProps) {
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Risk</CardTitle>
-        <Badge
-          variant={
-            overallRisk === "LOW"
-              ? "success"
-              : overallRisk === "MEDIUM"
-                ? "warning"
-                : "danger"
-          }
-        >
-          {overallRisk}
-        </Badge>
+        {overallRisk != null ? (
+          <Badge
+            variant={
+              overallRisk === "LOW"
+                ? "success"
+                : overallRisk === "MEDIUM"
+                  ? "warning"
+                  : "danger"
+            }
+          >
+            {overallRisk}
+          </Badge>
+        ) : (
+          <span className="text-[10px] font-mono text-[var(--text-muted)]">--</span>
+        )}
       </CardHeader>
       <CardContent>
         {riskMetrics.length === 0 ? (

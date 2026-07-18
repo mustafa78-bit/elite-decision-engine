@@ -20,23 +20,27 @@ const statusBadge: Record<string, "success" | "danger" | "warning"> = {
 
 export function HealthCheckWidget({
   checks = [],
-  overallStatus = "HEALTHY",
+  overallStatus,
 }: HealthCheckWidgetProps) {
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Health Checks</CardTitle>
-        <Badge
-          variant={
-            overallStatus === "HEALTHY"
-              ? "success"
-              : overallStatus === "DEGRADED"
-                ? "warning"
-                : "danger"
-          }
-        >
-          {overallStatus}
-        </Badge>
+        {overallStatus != null ? (
+          <Badge
+            variant={
+              overallStatus === "HEALTHY"
+                ? "success"
+                : overallStatus === "DEGRADED"
+                  ? "warning"
+                  : "danger"
+            }
+          >
+            {overallStatus}
+          </Badge>
+        ) : (
+          <span className="text-[10px] font-mono text-[var(--text-muted)]">--</span>
+        )}
       </CardHeader>
       <CardContent>
         {checks.length === 0 ? (

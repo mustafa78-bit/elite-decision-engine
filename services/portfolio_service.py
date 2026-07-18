@@ -8,8 +8,6 @@ from database import Trade, FINAL_STATUSES, get_session
 
 logger = logging.getLogger(__name__)
 
-_CLOSED = frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
-
 
 class PortfolioService:
     def __init__(self, session_factory: Optional[Callable[[], Any]] = None):
@@ -61,7 +59,7 @@ class PortfolioService:
             session.close()
 
     def _compute_summary(self, trades: list[Trade]) -> dict[str, Any]:
-        closed = [t for t in trades if t.status in _CLOSED]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         open_trades = [t for t in trades if t.status == "OPEN"]
         wins = [t for t in closed if t.pnl and t.pnl > 0]
         losses = [t for t in closed if t.pnl and t.pnl < 0]
@@ -96,7 +94,7 @@ class PortfolioService:
         }
 
     def _compute_distribution(self, trades: list[Trade]) -> dict[str, Any]:
-        closed = [t for t in trades if t.status in _CLOSED]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         by_symbol: dict[str, list[Trade]] = {}
         for t in closed:
             by_symbol.setdefault(t.symbol or "?", []).append(t)
@@ -117,7 +115,7 @@ class PortfolioService:
         }
 
     def _compute_performance(self, trades: list[Trade]) -> dict[str, Any]:
-        closed = [t for t in trades if t.status in _CLOSED]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         equity = self._equity_curve(closed)
         monthly = self._monthly_pnl(closed)
         daily = self._daily_pnl(closed)
@@ -131,7 +129,7 @@ class PortfolioService:
 
     def _compute_risk(self, trades: list[Trade]) -> dict[str, Any]:
         open_trades = [t for t in trades if t.status == "OPEN"]
-        closed = [t for t in trades if t.status in _CLOSED]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         total_exposure = sum(abs(t.pnl or 0) for t in open_trades)
         pnls = [t.pnl or 0 for t in closed]
         var95 = self._value_at_risk(pnls, 0.95)
@@ -165,7 +163,7 @@ class PortfolioService:
         return (m / s) if s > 0 else 0.0
 
     def _max_drawdown(self, trades: list[Trade]) -> float:
-        closed = [t for t in trades if t.status in _CLOSED]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         sorted_trades = sorted(closed, key=lambda t: t.created_at or datetime.min.replace(tzinfo=timezone.utc))
         peak = 0.0
         max_dd = 0.0
@@ -180,7 +178,7 @@ class PortfolioService:
         return max_dd
 
     def _current_drawdown(self, trades: list[Trade]) -> float:
-        closed = [t for t in trades if t.status in _CLOSED]
+        closed = [t for t in trades if t.status in FINAL_STATUSES]
         sorted_trades = sorted(closed, key=lambda t: t.created_at or datetime.min.replace(tzinfo=timezone.utc))
         peak = 0.0
         running = 0.0

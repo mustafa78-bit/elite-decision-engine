@@ -5,6 +5,15 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
+_shared_regime_ai: Optional["RegimeAI"] = None
+
+
+def get_regime_ai() -> "RegimeAI":
+    global _shared_regime_ai
+    if _shared_regime_ai is None:
+        _shared_regime_ai = RegimeAI()
+    return _shared_regime_ai
+
 
 class RegimeAI:
     """Improved market regime detector with trend strength, volatility class, and market phase."""

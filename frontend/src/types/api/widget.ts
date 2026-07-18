@@ -43,3 +43,22 @@ export interface NotificationItemDTO {
   read: boolean;
   created_at: string | null;
 }
+
+export interface HeroBannerDTO {
+  decision: string;
+  confidence: number;
+  risk: number;
+  summary: string;
+  reasons: string[];
+  warnings: string[];
+  risk_notes: string[];
+  supporting_signals: string[];
+  entry: number;
+  tp: number;
+  sl: number;
+  rr: number;
+  timestamp: string;
+  market_regime: string;
+  signal_id: number;
+  symbol: string;
+}

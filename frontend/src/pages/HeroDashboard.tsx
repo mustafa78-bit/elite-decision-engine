@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { KPIWidget } from "../components/dashboard/kpi-widget";
 import { MarketRegimeWidget } from "../components/dashboard/market-regime-widget";
@@ -20,6 +21,7 @@ import { TimelineWidget } from "../components/dashboard/timeline-widget";
 import { QuickActionsWidget } from "../components/dashboard/quick-actions-widget";
 import { Skeleton } from "../components/ui/skeleton";
 import { apiFetch } from "../api/client";
+import { useUIStore } from "../stores/ui-store";
 
 interface IntelligenceData {
   market?: { price?: number; regime?: string; btc_health?: number; volatility?: number; rsi?: number };
@@ -52,14 +54,9 @@ interface PerfData {
   total_pnl?: number;
 }
 
-const quickActions = [
-  { label: "New Trade", icon: "⚡", shortcut: "⌘N" },
-  { label: "Analysis", icon: "📊", shortcut: "⌘A" },
-  { label: "Scan Market", icon: "🔍", shortcut: "⌘S" },
-  { label: "Run Backtest", icon: "🔄", shortcut: "⌘B" },
-];
-
 export default function HeroDashboard() {
+  const navigate = useNavigate();
+  const { setCommandPaletteOpen } = useUIStore();
   const [mounted, setMounted] = useState(false);
   const [intel, setIntel] = useState<IntelligenceData | null>(null);
   const [mkt, setMkt] = useState<MarketData | null>(null);
@@ -85,6 +82,13 @@ export default function HeroDashboard() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const quickActions = [
+    { label: "New Trade", icon: "⚡", shortcut: "Ctrl+T", onClick: () => navigate("/trades") },
+    { label: "Scanner", icon: "🔍", shortcut: "Ctrl+S", onClick: () => navigate("/scanner") },
+    { label: "Command Palette", icon: "⌨", shortcut: "Ctrl+K", onClick: () => setCommandPaletteOpen(true) },
+    { label: "Run Backtest", icon: "🔄", shortcut: "Ctrl+B", onClick: () => navigate("/backtest") },
+  ];
 
   if (!mounted) {
     return (
@@ -114,11 +118,10 @@ export default function HeroDashboard() {
   const openCount = execStatus?.trades?.open ?? intel?.risk?.open_trades ?? 0;
   const closedCount = execStatus?.trades?.closed ?? intel?.trades?.closed ?? 0;
 
-  const trades = [];
+  const trades: { symbol: string; side: string; size: number; entry_price: number; current_price: number; pnl: number }[] = [];
 
   const overallRisk = (intel?.risk?.open_trades ?? 0) >= 3 ? "HIGH" : (intel?.risk?.open_trades ?? 0) >= 1 ? "MEDIUM" : "LOW";
   const riskMetrics = [
-    { label: "VaR (95%)", value: "1.2%", status: "good" as const },
     { label: "Open Trades", value: String(openCount), status: (openCount >= 3 ? "danger" : openCount >= 1 ? "warning" : "good") as "good" | "warning" | "danger" },
     { label: "Win Rate", value: perf?.win_rate != null ? `${perf.win_rate.toFixed(0)}%` : "--", status: "good" as const },
   ];
@@ -152,21 +155,11 @@ export default function HeroDashboard() {
     },
   ];
 
-  const heatmapCells = mkt?.price
-    ? [
-        { symbol: "BTC", change: 0, value: mkt.price },
-        { symbol: "ETH", change: 0, value: 0 },
-        { symbol: "SOL", change: 0, value: 0 },
-      ]
-    : [];
+  const heatmapCells: { symbol: string; change: number; value: number }[] = [];
 
-  const recentActivities = [
-    { id: "1", type: "system" as const, description: `Dashboard loaded. ${openCount} open trades.`, timestamp: new Date().toISOString(), status: "info" },
-  ];
+  const recentActivities: { id: string; type: "system"; description: string; timestamp: string; status: string }[] = [];
 
-  const timelineEvents = [
-    { id: "1", time: new Date().toISOString(), title: "Dashboard Initialized", description: `Market regime: ${mkt?.regime ?? "loading..."}`, type: "system" as const },
-  ];
+  const timelineEvents: { id: string; time: string; title: string; description: string; type: "system" }[] = [];
 
   if (loadError) {
     return (
@@ -220,7 +213,7 @@ export default function HeroDashboard() {
             <PortfolioSummaryWidget />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <OpenTradesWidget trades={trades} />
-              <ExposureWidget longExposure={0} shortExposure={0} totalExposure={0} buyingPower={0} />
+              <ExposureWidget />
             </div>
             <PerformanceWidget
               sharpeRatio={perf?.sharpe_ratio ?? 0}
