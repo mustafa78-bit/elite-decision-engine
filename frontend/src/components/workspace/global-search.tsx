@@ -69,11 +69,15 @@ export function GlobalSearch() {
   useKeyboardShortcut("Escape", () => { if (globalSearchOpen) setGlobalSearchOpen(false); });
 
   useEffect(() => {
+    let timer: any;
     if (globalSearchOpen) {
       setQuery("");
       setFocusedIdx(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      timer = setTimeout(() => inputRef.current?.focus(), 50);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [globalSearchOpen]);
 
   const flatItems: SearchItem[] = searchCategories.flatMap((cat) => cat.items);

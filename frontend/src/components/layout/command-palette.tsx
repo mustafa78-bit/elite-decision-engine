@@ -41,10 +41,14 @@ export function CommandPalette() {
   }, [commandPaletteOpen, setCommandPaletteOpen]);
 
   useEffect(() => {
+    let timer: any;
     if (commandPaletteOpen) {
       setQuery("");
-      setTimeout(() => inputRef.current?.focus(), 50);
+      timer = setTimeout(() => inputRef.current?.focus(), 50);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [commandPaletteOpen]);
 
   if (!commandPaletteOpen) return null;
