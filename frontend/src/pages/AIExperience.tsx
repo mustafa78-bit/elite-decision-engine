@@ -33,16 +33,16 @@ export default function AIExperience() {
     let mounted = true;
     Promise.all([
       apiFetch<SignalData[]>("/signals?limit=10").catch(() => [] as SignalData[]),
-      apiFetch<{ price?: number; regime?: string; volatility?: number; rsi?: number }>("/market").catch(() => ({})),
+      apiFetch<Record<string, any>>("/market").catch(() => ({} as Record<string, any>)),
     ]).then(([sigData, mktData]) => {
       if (!mounted) return;
       setSignals(Array.isArray(sigData) ? sigData : []);
-      if (mktData.price) {
+      if (mktData && "price" in mktData && typeof mktData.price === "number") {
         setMarket({
           price: mktData.price,
-          regime: mktData.regime || "UNKNOWN",
-          volatility: mktData.volatility || 0,
-          rsi: mktData.rsi || 50,
+          regime: (mktData.regime as string) || "UNKNOWN",
+          volatility: (mktData.volatility as number) || 0,
+          rsi: (mktData.rsi as number) || 50,
         });
       }
     }).finally(() => {

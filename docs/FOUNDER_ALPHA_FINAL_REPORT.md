@@ -66,6 +66,24 @@
 
 ---
 
+## REMAINING AUDIT FINDINGS & RECOMMENDATIONS
+
+As part of the final production readiness audit, the following engineering recommendations are delivered:
+
+1. **Indicator Pipeline ATR Calculation Verification (`ATRr_14`)**:
+   - Standard `pandas_ta` column output for Average True Range with length 14 indeed outputs `ATRr_14` (as verified programmatically). This is correct-by-design and operates as expected.
+
+2. **CORS & Rate Limiting Verification**:
+   - Backend CORS correctly configures specific allowed origins matching the environment files.
+   - Brute-force protection on authentication routes is properly handled via slowapi limiters on `/auth/login` (5/minute) and `/auth/register` (3/minute).
+
+3. **Production Readiness Gaps (Post-Alpha Road-map)**:
+   - Introduce database schema migration management (e.g. Alembic).
+   - Migrate JWT client storage from `localStorage` to HttpOnly secure cookies for maximized XSS protection.
+   - Configure Sentry or similar observability/error monitoring before scaling to public beta.
+
+---
+
 ## FILES CHANGED
 
 ### Backend
