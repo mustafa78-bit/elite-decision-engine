@@ -26,6 +26,11 @@ async def auth_middleware(request: Request, call_next):
     rid = _generate_request_id()
     request.state.request_id = rid
 
+    if request.method == "OPTIONS":
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = rid
+        return response
+
     if path in PUBLIC_PATHS:
         response = await call_next(request)
         response.headers["X-Request-ID"] = rid
