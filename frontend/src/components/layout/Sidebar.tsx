@@ -3,30 +3,30 @@ import { cn } from "../../lib/utils";
 
 const roomMap: Record<string, string> = {
   '/command-deck': '#2563EB',
-  '/portfolio': '#3B82F6',
-  '/scanner': '#06B6D4',
-  '/trades': '#F59E0B',
-  '/timeline': '#F59E0B',
-  '/journal': '#F59E0B',
-  '/signals': '#8B5CF6',
-  '/decisions': '#8B5CF6',
-  '/intelligence': '#8B5CF6',
-  '/ai-experience': '#8B5CF6',
-  '/regime': '#8B5CF6',
+  '/portfolio': '#ea580c',
+  '/scanner': '#10B981',
+  '/trades': '#ef4444',
+  '/timeline': '#ef4444',
+  '/journal': '#ef4444',
+  '/signals': '#7c3aed',
+  '/decisions': '#7c3aed',
+  '/intelligence': '#7c3aed',
+  '/ai-experience': '#7c3aed',
+  '/regime': '#7c3aed',
   '/funding': '#10B981',
   '/open-interest': '#10B981',
-  '/risk': '#F43F5E',
-  '/analytics': '#6366F1',
-  '/backtest': '#6366F1',
-  '/hero-dashboard': '#6366F1',
-  '/execution': '#14B8A6',
-  '/paper-trading': '#14B8A6',
-  '/trading-workspace': '#14B8A6',
-  '/trading-control': '#14B8A6',
-  '/market': '#0EA5E9',
-  '/watchlists': '#0EA5E9',
-  '/profile': '#6366F1',
-  '/preferences': '#6366F1',
+  '/risk': '#ef4444',
+  '/analytics': '#4f46e5',
+  '/backtest': '#4f46e5',
+  '/hero-dashboard': '#4f46e5',
+  '/execution': '#0891b2',
+  '/paper-trading': '#0891b2',
+  '/trading-workspace': '#0891b2',
+  '/trading-control': '#0891b2',
+  '/market': '#0891b2',
+  '/watchlists': '#0891b2',
+  '/profile': '#4f46e5',
+  '/preferences': '#4f46e5',
 };
 
 function getRoomColor(pathname: string): string {
@@ -123,103 +123,104 @@ export default function Sidebar() {
   const activeRoomColor = getRoomColor(pathname);
 
   return (
-    <aside className="w-56 h-full flex flex-col bg-[var(--bg-base)] border-r border-[var(--border-subtle)] shrink-0 overflow-y-auto">
-      <div className="px-4 py-4 border-b border-[var(--border-subtle)]">
-        <div className="flex items-center gap-2">
+    <aside className="w-56 h-full flex flex-col bg-white border-r border-[var(--border-default)] shrink-0 overflow-y-auto">
+      <div className="px-5 py-4 border-b border-[var(--border-subtle)]">
+        <div className="flex items-center gap-2.5">
           <span
-            className="w-2 h-2 rounded-full transition-colors duration-500"
+            className="w-2.5 h-2.5 rounded-full transition-all duration-500"
             style={{
               backgroundColor: activeRoomColor,
-              boxShadow: `0 0 8px ${activeRoomColor}`,
+              boxShadow: `0 0 10px ${activeRoomColor}60`,
             }}
           />
           <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
             Elite HQ
           </span>
         </div>
-        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.1em]">
+        <p className="text-[9px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.12em] font-semibold">
           Decision Intelligence
         </p>
       </div>
 
-      <nav className="flex-1 py-3 px-2 space-y-4">
+      <nav className="flex-1 py-4 px-2.5 space-y-5">
         {sections.map((section) => {
           const isSectionActive = section.items.some((it) => pathname.startsWith(it.path));
           return (
-            <div key={section.title}>
-              <div className="px-2 mb-1 flex items-center gap-2">
+            <div key={section.title} className="space-y-1">
+              <div className="px-2 mb-1.5 flex items-center gap-2">
                 <span
-                  className="w-1 h-3 rounded-full transition-opacity duration-500"
+                  className="w-0.5 h-3 rounded-full transition-opacity duration-500"
                   style={{
                     backgroundColor: isSectionActive ? activeRoomColor : 'transparent',
-                    opacity: isSectionActive ? 1 : 0.3,
+                    opacity: isSectionActive ? 1 : 0.2,
                   }}
                 />
                 <div className="min-w-0">
-                  <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.12em] leading-tight">
+                  <div className="text-[10px] font-bold text-[var(--text-primary)] uppercase tracking-[0.08em] opacity-80 leading-tight">
                     {section.title}
                   </div>
-                  <div className="text-[7px] text-[var(--text-muted)] font-mono uppercase tracking-[0.08em] opacity-50">
+                  <div className="text-[8px] text-[var(--text-muted)] font-mono uppercase tracking-[0.05em] opacity-80 mt-0.5">
                     {section.subtitle}
                   </div>
                 </div>
               </div>
-              {section.items.map((item) => {
-                const itemColor = getRoomColor(item.path);
-                const isActive = pathname.startsWith(item.path);
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const itemColor = getRoomColor(item.path);
+                  const isActive = pathname.startsWith(item.path);
 
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
-                      isActive
-                        ? "text-[var(--text-primary)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
-                    )}
-                    style={isActive ? {
-                      backgroundColor: `${activeRoomColor}15`,
-                      borderLeft: `2px solid ${activeRoomColor}`,
-                      boxShadow: `inset 0 0 20px ${activeRoomColor}08`,
-                    } : {}}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <span
-                      className="w-4 text-center text-[11px] transition-colors duration-300"
-                      style={{ color: isActive ? itemColor : undefined }}
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={cn(
+                        "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                        isActive
+                          ? "text-[var(--text-primary)] font-semibold"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
+                      )}
+                      style={isActive ? {
+                        backgroundColor: `${activeRoomColor}0a`,
+                        borderLeft: `2.5px solid ${activeRoomColor}`,
+                      } : {}}
+                      aria-current={isActive ? "page" : undefined}
                     >
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </NavLink>
-                );
-              })}
+                      <span
+                        className="w-4 text-center text-[12px] transition-colors duration-300"
+                        style={{ color: isActive ? itemColor : '#64748b' }}
+                      >
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </nav>
 
-      <div className="px-4 py-3 border-t border-[var(--border-subtle)]">
+      <div className="px-5 py-3.5 border-t border-[var(--border-subtle)] bg-slate-50/50">
         <div className="flex items-center gap-2">
           <span
-            className="w-1.5 h-1.5 rounded-full"
+            className="w-2 h-2 rounded-full"
             style={{
               backgroundColor: activeRoomColor,
-              boxShadow: `0 0 6px ${activeRoomColor}`,
-              animation: 'sidebar-pulse 2s ease-in-out infinite',
+              boxShadow: `0 0 8px ${activeRoomColor}80`,
+              animation: 'sidebar-pulse 2.5s ease-in-out infinite',
             }}
           />
-          <span className="text-[10px] text-[var(--text-muted)] font-mono">
-            System Online
+          <span className="text-[10px] text-[var(--text-secondary)] font-mono font-medium">
+            System Operational
           </span>
         </div>
       </div>
 
       <style>{`
         @keyframes sidebar-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.9); }
         }
       `}</style>
     </aside>
