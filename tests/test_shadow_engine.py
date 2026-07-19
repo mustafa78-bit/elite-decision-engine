@@ -29,14 +29,16 @@ class TestShadowEngine:
         assert r.reason == ""
         assert r.journal_id is None
 
-    def test_engine_process_rejected_signal(self, db_session):
+    def test_engine_process_rejected_signal(self, db_session, session_factory):
         from database import Signal
         sig = Signal(symbol="BTC", side="LONG", timeframe="1h", status="OPEN")
         db_session.add(sig)
         db_session.flush()
 
         signal = FakeSignal(id=sig.id, symbol="BTC", side="LONG")
-        engine = ShadowEngine(exchange=HyperliquidExchange())
+        from risk.execution_guard import ExecutionGuard
+        guard = ExecutionGuard(session_factory=session_factory)
+        engine = ShadowEngine(exchange=HyperliquidExchange(), guard=guard)
         result = engine.process(signal)
         # Pipeline will likely reject due to missing market data in test env
         assert isinstance(result, ShadowResult)
