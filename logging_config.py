@@ -40,13 +40,24 @@ class _SensitiveDataFilter(logging.Filter):
         if hasattr(record, 'msg') and isinstance(record.msg, str):
             for pattern, replacement in _SENSITIVE_PATTERNS:
                 record.msg = pattern.sub(replacement, record.msg)
+            if "HTTP Request" in record.msg and "%d" in record.msg:
+                if record.args and len(record.args) >= 4:
+                    args_list = list(record.args)
+                    try:
+                        args_list[3] = int(args_list[3])
+                        record.args = tuple(args_list)
+                    except (ValueError, TypeError):
+                        pass
         if record.args:
             cleaned = []
             for arg in record.args:
-                s = str(arg)
-                for pattern, replacement in _SENSITIVE_PATTERNS:
-                    s = pattern.sub(replacement, s)
-                cleaned.append(s)
+                if isinstance(arg, (int, float, bool)):
+                    cleaned.append(arg)
+                else:
+                    s = str(arg)
+                    for pattern, replacement in _SENSITIVE_PATTERNS:
+                        s = pattern.sub(replacement, s)
+                    cleaned.append(s)
             record.args = tuple(cleaned)
         return True
 
