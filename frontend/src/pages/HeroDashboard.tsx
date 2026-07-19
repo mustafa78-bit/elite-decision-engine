@@ -92,16 +92,16 @@ export default function HeroDashboard() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[var(--bg-base)] p-6 space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="min-h-screen bg-[#f8f9fc] p-8 space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
+            <Skeleton key={i} className="h-28 rounded-2xl bg-white border border-slate-200/50" />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Skeleton className="h-64 rounded-xl" />
-          <Skeleton className="lg:col-span-2 h-64 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Skeleton className="h-72 rounded-2xl bg-white border border-slate-200/50" />
+          <Skeleton className="lg:col-span-2 h-72 rounded-2xl bg-white border border-slate-200/50" />
+          <Skeleton className="h-72 rounded-2xl bg-white border border-slate-200/50" />
         </div>
       </div>
     );
@@ -163,18 +163,18 @@ export default function HeroDashboard() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
-        <div className="text-center space-y-4 p-8">
-          <div className="text-3xl opacity-30">⚠</div>
-          <p className="text-xs text-[var(--text-muted)] font-mono">Unable to load dashboard data</p>
-          <p className="text-[10px] text-[var(--text-secondary)] max-w-md">
+      <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center">
+        <div className="text-center space-y-4 p-8 bg-white border border-slate-200 rounded-3xl shadow-[0_4px_16px_rgba(15,23,42,0.03)] max-w-md">
+          <div className="text-3xl text-slate-400">⚠</div>
+          <p className="text-sm font-bold text-slate-800 font-mono">Unable to load dashboard data</p>
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed mt-2">
             Check that the backend is running and accessible at the configured API URL.
           </p>
           <button
             onClick={load}
-            className="px-3 py-1.5 rounded-lg bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] text-[10px] font-mono hover:bg-[var(--accent-blue)]/20 transition-all"
+            className="mt-4 px-4 py-2 rounded-xl bg-[var(--accent-blue)] text-white text-xs font-semibold hover:bg-blue-700 transition-all cursor-pointer"
           >
-            Retry
+            Retry Connection
           </button>
         </div>
       </div>
@@ -182,8 +182,10 @@ export default function HeroDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)]">
-      <div className="p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#f8f9fc]">
+      <div className="p-6 md:p-8 space-y-6 max-w-[1500px] mx-auto">
+
+        {/* KPI section */}
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -192,9 +194,10 @@ export default function HeroDashboard() {
           <KPIWidget />
         </motion.section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Mid grid layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <motion.div
-            className="lg:col-span-1 space-y-4"
+            className="lg:col-span-1 space-y-6"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
@@ -205,13 +208,13 @@ export default function HeroDashboard() {
           </motion.div>
 
           <motion.div
-            className="lg:col-span-2 space-y-4"
+            className="lg:col-span-2 space-y-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
             <PortfolioSummaryWidget />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <OpenTradesWidget trades={trades} />
               <ExposureWidget />
             </div>
@@ -226,7 +229,7 @@ export default function HeroDashboard() {
           </motion.div>
 
           <motion.div
-            className="lg:col-span-1 space-y-4"
+            className="lg:col-span-1 space-y-6"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
@@ -237,7 +240,8 @@ export default function HeroDashboard() {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Lower intelligence telemetry grids */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <motion.div
             className="lg:col-span-1"
             initial={{ opacity: 0, y: 20 }}
@@ -263,7 +267,7 @@ export default function HeroDashboard() {
             <HeatmapWidget cells={heatmapCells} />
           </motion.div>
           <motion.div
-            className="lg:col-span-1 space-y-4"
+            className="lg:col-span-1 space-y-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.55 }}
@@ -273,7 +277,8 @@ export default function HeroDashboard() {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Recent activity flow */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <motion.div
             className="lg:col-span-3"
             initial={{ opacity: 0, y: 20 }}

@@ -10,23 +10,23 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<string, string> = {
   primary:
-    "bg-[var(--accent-blue)] text-white hover:brightness-110 shadow-[0_0_12px_rgba(59,130,246,0.2)]",
+    "bg-[var(--accent-blue)] text-white hover:bg-blue-700 shadow-[0_2px_8px_rgba(37,99,235,0.15)]",
   secondary:
-    "bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:border-[var(--text-muted)]",
+    "bg-white text-[var(--text-primary)] border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-[0_1px_3px_rgba(15,23,42,0.02)]",
   ghost:
-    "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
+    "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-slate-100",
   danger:
-    "bg-[var(--accent-red)]/15 text-[var(--accent-red)] hover:bg-[var(--accent-red)]/25 border border-[var(--accent-red)]/30",
+    "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 bg-[var(--accent-red)]/0",
   glass:
-    "glass text-[var(--text-primary)] hover:bg-white/[0.08]",
+    "bg-white/80 backdrop-blur-md text-[var(--text-primary)] hover:bg-slate-50 border border-slate-200/50 shadow-[0_4px_12px_rgba(15,23,42,0.03)]",
   outline:
-    "text-[var(--text-secondary)] border border-[var(--border-default)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]",
+    "text-[var(--text-secondary)] border border-slate-200 hover:text-[var(--text-primary)] hover:border-slate-300 hover:bg-slate-50",
 };
 
 const sizes: Record<string, string> = {
-  sm: "h-7 px-3 text-xs",
-  md: "h-8 px-4 text-sm",
-  lg: "h-10 px-6 text-sm",
+  sm: "h-8 px-3 text-xs rounded-lg",
+  md: "h-9 px-4 text-sm rounded-lg",
+  lg: "h-11 px-6 text-sm rounded-xl",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -35,10 +35,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-[var(--transition-fast)]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)]",
+          "inline-flex items-center justify-center font-medium transition-all duration-[var(--transition-fast)] cursor-pointer select-none",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-white",
           "disabled:opacity-40 disabled:pointer-events-none",
-          "select-none",
           variants[variant],
           sizes[size],
           className,

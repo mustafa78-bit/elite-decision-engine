@@ -15,13 +15,13 @@ interface BadgeProps {
 }
 
 const variants: Record<string, string> = {
-  default: "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]",
-  success: "bg-[var(--bg-elevated)] text-[var(--accent-green)] border border-[var(--accent-green)]/30",
-  warning: "bg-[var(--bg-elevated)] text-[var(--accent-yellow)] border border-[var(--accent-yellow)]/30",
-  danger: "bg-[var(--bg-elevated)] text-[var(--accent-red)] border border-[var(--accent-red)]/30",
-  info: "bg-[var(--bg-elevated)] text-[var(--accent-blue)] border border-[var(--accent-blue)]/30",
-  purple: "bg-[var(--bg-elevated)] text-[var(--accent-purple)] border border-[var(--accent-purple)]/30",
-  cyan: "bg-[var(--bg-elevated)] text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/30",
+  default: "bg-slate-50 text-slate-600 border border-slate-200/60",
+  success: "bg-emerald-50 text-emerald-700 border border-emerald-200/50 accent-green",
+  warning: "bg-amber-50 text-amber-700 border border-amber-200/50 accent-yellow",
+  danger: "bg-rose-50 text-rose-700 border border-rose-200/50 accent-red",
+  info: "bg-blue-50 text-blue-700 border border-blue-200/50 accent-blue",
+  purple: "bg-purple-50 text-purple-700 border border-purple-200/50 accent-purple",
+  cyan: "bg-cyan-50 text-cyan-700 border border-cyan-200/50 accent-cyan",
 };
 
 export function Badge({
@@ -32,7 +32,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium font-mono rounded-md",
+        "inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold font-mono rounded-md tracking-wider uppercase select-none",
         variants[variant],
         className,
       )}
