@@ -65,8 +65,6 @@ export function CommandPalette() {
     }
   }, [commandPaletteOpen]);
 
-  if (!commandPaletteOpen) return null;
-
   const categories = Array.from(new Set(defaultCommands.map((c) => c.category)));
 
   const flatCommands = defaultCommands;
@@ -114,6 +112,8 @@ export function CommandPalette() {
       handleSelect(filtered[focusedIdx]);
     }
   };
+
+  if (!commandPaletteOpen) return null;
 
   return (
     <div
