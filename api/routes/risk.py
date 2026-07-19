@@ -43,7 +43,7 @@ def get_risk():
     portfolio_exposure = sum(t.entry or 0 for t in open_trades)
 
     today_start = datetime.now(timezone.utc).replace(
-        hour=0, minute=0, second=0, microsecond=0
+        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
     )
     daily_loss = sum(
         t.pnl or 0
