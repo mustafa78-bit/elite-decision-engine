@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import { LoadingScreen } from "./components/layout/LoadingScreen";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
+import { ToastProvider } from "./components/layout/toast-provider";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { AuthGuard } from "./components/auth/AuthGuard";
 import type {
@@ -211,6 +212,7 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <AppRoutes />
+        <ToastProvider />
       </AuthProvider>
     </ThemeProvider>
   );
