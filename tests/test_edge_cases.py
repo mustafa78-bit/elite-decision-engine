@@ -55,6 +55,10 @@ class MockRiskManager:
     def can_open_trade(self, candidate):
         return True, ""
 
+    def evaluate_trade(self, candidate):
+        from risk.models import RiskDecision
+        return RiskDecision(allowed=True, reason="", checks=[])
+
 
 class MockPaperExecutor:
     def monitor_open_trades(self):
@@ -726,11 +730,12 @@ class TestFinalStatuses:
         assert "TP_HIT" in FINAL_STATUSES
         assert "SL_HIT" in FINAL_STATUSES
         assert "CLOSED" in FINAL_STATUSES
-        assert len(FINAL_STATUSES) == 3
+        assert "CANCEL" in FINAL_STATUSES
+        assert len(FINAL_STATUSES) == 4
 
     def test_imported_in_paper_executor(self):
         from execution.paper_executor import FINAL_STATUSES
-        assert FINAL_STATUSES == frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
+        assert FINAL_STATUSES == frozenset({"TP_HIT", "SL_HIT", "CLOSED", "CANCEL"})
 
     def test_imported_in_risk_manager(self):
         from risk_manager import FINAL_STATUSES

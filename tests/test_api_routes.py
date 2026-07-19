@@ -288,14 +288,14 @@ def test_delete_journal(api_client):
 
 def test_update_journal_missing(api_client):
     resp = api_client.put("/journal/99999", json={"result": "WIN"})
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 def test_delete_journal_missing(api_client):
     resp = api_client.delete("/journal/99999")
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 # ─── Backtest ──────────────────────────────────────────────────────────────

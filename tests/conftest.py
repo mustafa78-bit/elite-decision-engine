@@ -126,17 +126,20 @@ def session_factory(db_connection):
 def db_session(session_factory, monkeypatch):
     """Provide a test session with all ``get_session`` call sites patched.
 
-    Patches:
-    - ``database.get_session`` — covers ``update_signal_status``
-    - ``execution.trade_engine.get_session`` — covers ``TradeEngine.create_trade``
-    - ``core.engine.get_session`` — covers ``DecisionEngine.get_open_signals``
-
-    The session is bound to the outer transaction managed by
-    ``db_connection``, so all changes are rolled back automatically.
+    Patches ``get_session`` across all imported modules so every query uses the
+    SQLite test database.
     """
+    import sys
+
     monkeypatch.setattr("database.get_session", session_factory)
-    monkeypatch.setattr("execution.trade_engine.get_session", session_factory)
-    monkeypatch.setattr("core.engine.get_session", session_factory)
+
+    for mod_name in list(sys.modules.keys()):
+        mod = sys.modules[mod_name]
+        if hasattr(mod, "get_session") and mod_name != "database":
+            try:
+                monkeypatch.setattr(f"{mod_name}.get_session", session_factory)
+            except Exception:
+                pass
 
     session = session_factory()
     yield session
