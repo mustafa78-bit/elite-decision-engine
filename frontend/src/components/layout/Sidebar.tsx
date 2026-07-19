@@ -18,6 +18,7 @@ const roomMap: Record<string, string> = {
   '/risk': '#F43F5E',
   '/analytics': '#6366F1',
   '/backtest': '#6366F1',
+  '/simulator': '#8B5CF6',
   '/hero-dashboard': '#6366F1',
   '/execution': '#14B8A6',
   '/paper-trading': '#14B8A6',
@@ -110,6 +111,7 @@ const sections: { title: string; subtitle: string; items: NavItem[] }[] = [
     items: [
       { label: "Analytics", path: "/analytics", icon: "▦" },
       { label: "Backtest", path: "/backtest", icon: "◻" },
+      { label: "Market Simulator", path: "/simulator", icon: "🎛" },
       { label: "Execution", path: "/execution", icon: "≡" },
       { label: "Paper Trading", path: "/paper-trading", icon: "◻" },
       { label: "Preferences", path: "/preferences", icon: "⚙" },

@@ -300,6 +300,55 @@ class DecisionExplanation(Base):
 
 
 # ------------------------------------------------------------------
+# SIMULATION SESSION TABLE
+# ------------------------------------------------------------------
+
+class SimulationSession(Base):
+    __tablename__ = "simulation_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    symbol = Column(String(20), nullable=False)
+    timeframe = Column(String(10), nullable=False)
+    scenario_name = Column(String(50), nullable=True)
+    start_date = Column(DateTime(timezone=True), nullable=False)
+    end_date = Column(DateTime(timezone=True), nullable=False)
+    current_index = Column(Integer, default=0)
+    mode = Column(String(30), default="MANUAL")
+    initial_balance = Column(Float, default=100000.0)
+    current_balance = Column(Float, default=100000.0)
+    metrics = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# ------------------------------------------------------------------
+# SIMULATION TRADE TABLE
+# ------------------------------------------------------------------
+
+class SimulationTrade(Base):
+    __tablename__ = "simulation_trades"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, nullable=False, index=True)
+    symbol = Column(String(20), nullable=False)
+    side = Column(String(10), nullable=False)
+    entry_price = Column(Float, nullable=False)
+    exit_price = Column(Float, nullable=True)
+    quantity = Column(Float, nullable=False)
+    leverage = Column(Float, default=1.0)
+    stop_loss = Column(Float, nullable=True)
+    take_profit = Column(Float, nullable=True)
+    pnl = Column(Float, default=0.0)
+    status = Column(String(20), default="OPEN")  # OPEN, CLOSED, CANCEL
+    close_reason = Column(String(30), nullable=True)  # TP_HIT, SL_HIT, MANUAL, REVERSED
+    elite_score = Column(Float, default=0.0)
+    explain_data = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    closed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ------------------------------------------------------------------
 # TRADE STATUS CONSTANTS
 # ------------------------------------------------------------------
 
@@ -340,6 +389,21 @@ def create_tables():
 if __name__ == "__main__":
     create_tables()
     logger.info("Database initialized successfully.")
+
+from contextlib import contextmanager
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = get_session()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 def update_signal_status(signal_id, new_status):
     if signal_id is None:
