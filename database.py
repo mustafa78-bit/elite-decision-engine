@@ -325,6 +325,20 @@ TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 # HELPERS
 # ------------------------------------------------------------------
 
+from contextlib import contextmanager
+
+@contextmanager
+def session_scope():
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
 def get_session():
     return SessionLocal()
 
