@@ -11,12 +11,12 @@ from decision.evidence.source_trace import SourceTrace
 def parse_decision_result(result: Any, symbol: str = "") -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
-    decision = getattr(result, "decision", "UNKNOWN")
-    confidence = getattr(result, "confidence", 0.0)
-    score = getattr(result, "score", 0.0)
-    risk_score = getattr(result, "risk_score", 0.0)
-    reasons = getattr(result, "reasons", [])
-    warnings = getattr(result, "warnings", [])
+    decision = getattr(result, "decision", "UNKNOWN") or "UNKNOWN"
+    confidence = getattr(result, "confidence", 0.0) or 0.0
+    score = getattr(result, "score", 0.0) or 0.0
+    risk_score = getattr(result, "risk_score", 0.0) or 0.0
+    reasons = getattr(result, "reasons", []) or []
+    warnings = getattr(result, "warnings", []) or []
 
     cat = get_category("decision_quality")
 
@@ -169,12 +169,12 @@ def parse_scanner_opportunity(result: Any) -> list[EvidenceItem]:
 def parse_council_report(result: Any) -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
-    symbol = getattr(result, "symbol", "UNKNOWN")
-    direction = getattr(result, "consensus_direction", "NEUTRAL")
-    score = getattr(result, "consensus_score", 0.0)
-    agreement = getattr(result, "agreement_level", "none")
-    agreeing = getattr(result, "sources_agreeing", 0)
-    disagreeing = getattr(result, "sources_disagreeing", 0)
+    symbol = getattr(result, "symbol", "UNKNOWN") or "UNKNOWN"
+    direction = getattr(result, "consensus_direction", "NEUTRAL") or "NEUTRAL"
+    score = getattr(result, "consensus_score", 0.0) or 0.0
+    agreement = getattr(result, "agreement_level", "none") or "none"
+    agreeing = getattr(result, "sources_agreeing", 0) or 0
+    disagreeing = getattr(result, "sources_disagreeing", 0) or 0
 
     items.append(
         EvidenceItem(
@@ -215,10 +215,10 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
 def parse_portfolio_summary(result: Any) -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
-    exposure = getattr(result, "current_exposure", 0.0)
-    max_exposure = getattr(result, "max_exposure", 0.0)
-    open_pnl = getattr(result, "open_pnl", 0.0)
-    win_rate = getattr(result, "win_rate", 0.0)
+    exposure = getattr(result, "current_exposure", 0.0) or 0.0
+    max_exposure = getattr(result, "max_exposure", 0.0) or 0.0
+    open_pnl = getattr(result, "open_pnl", 0.0) or 0.0
+    win_rate = getattr(result, "win_rate", 0.0) or 0.0
 
     if open_pnl < -1000:
         items.append(
@@ -346,13 +346,13 @@ def parse_whale_result(results: Any) -> list[EvidenceItem]:
 def parse_explain_result(result: Any) -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
-    decision = getattr(result, "decision", "")
-    confidence = getattr(result, "confidence", 0.0)
-    reasons = getattr(result, "reasons", [])
-    warnings = getattr(result, "warnings", [])
-    supporting_signals = getattr(result, "supporting_signals", [])
-    risk_notes = getattr(result, "risk_notes", [])
-    summary = getattr(result, "summary", "")
+    decision = getattr(result, "decision", "") or ""
+    confidence = getattr(result, "confidence", 0.0) or 0.0
+    reasons = getattr(result, "reasons", []) or []
+    warnings = getattr(result, "warnings", []) or []
+    supporting_signals = getattr(result, "supporting_signals", []) or []
+    risk_notes = getattr(result, "risk_notes", []) or []
+    summary = getattr(result, "summary", "") or ""
 
     if summary:
         items.append(

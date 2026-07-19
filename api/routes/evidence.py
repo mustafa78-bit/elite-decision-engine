@@ -81,7 +81,7 @@ def evidence_build(
         )
         return report.to_dict()
     except Exception as e:
-        logger.error("Evidence build failed: %s", e)
+        logger.exception("Evidence build failed: %s", e)
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 

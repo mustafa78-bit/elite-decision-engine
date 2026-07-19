@@ -58,7 +58,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
   const displayBriefing = mode === "briefing" && briefing
 
   return (
-    <div className="flex flex-col items-center justify-center py-10">
+    <div className="flex flex-col items-center justify-center py-4 sm:py-10">
       {/* OLLO Orb — calm, breathing, volumetric */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}

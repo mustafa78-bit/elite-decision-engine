@@ -35,32 +35,26 @@ function Node({ node }: { node: FlowNode }) {
   }, [node.active])
 
   return (
-    <div className="flex flex-col items-center gap-1" style={{ minWidth: 44 }}>
+    <div className="flex flex-col items-center gap-1 min-w-[34px] sm:min-w-[44px]">
       <div
-        className="flex items-center justify-center"
+        className="flex items-center justify-center rounded-full transition-all duration-300"
         style={{
-          width: 22,
-          height: 22,
-          borderRadius: "50%",
+          width: "18px",
+          height: "18px",
           backgroundColor: node.active ? `${node.color}12` : "transparent",
           border: `0.5px solid ${node.active ? node.color : "var(--border-subtle)"}`,
           color: node.active ? node.color : "var(--text-muted)",
           opacity: node.active ? 1 : 0.3,
-          transition: "all 0.3s ease",
           animation: pulse ? "node-pulse 0.6s ease-out" : undefined,
         }}
       >
-        <span style={{ fontSize: 7 }}>{icon}</span>
+        <span className="text-[6px] sm:text-[7px]">{icon}</span>
       </div>
       <span
+        className="text-[6px] sm:text-[7px] font-semibold uppercase tracking-wider transition-all duration-300"
         style={{
-          fontSize: 7,
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
           color: node.active ? node.color : "var(--text-muted)",
           opacity: node.active ? 1 : 0.3,
-          transition: "all 0.3s ease",
         }}
       >
         {node.label}
@@ -77,19 +71,16 @@ export default function MissionFlow({ nodes }: Props) {
   return (
     <div>
       <div className="hq-section-label">Mission Flow</div>
-      <div className="flex items-center justify-center gap-0">
+      <div className="flex items-center justify-center gap-0 overflow-x-hidden px-1">
         {nodes.map((node, i) => (
           <div key={node.label} className="flex items-center">
             <Node node={node} />
             {i < nodes.length - 1 && (
               <div
-                className="shrink-0"
+                className="shrink-0 h-[1px] mx-0.5 transition-all duration-300 w-[6px] sm:w-[16px]"
                 style={{
-                  width: 16,
-                  height: 1,
-                  backgroundColor: node.active ? "var(--border-subtle)" : "var(--border-subtle)",
+                  backgroundColor: "var(--border-subtle)",
                   opacity: node.active ? 0.4 : 0.15,
-                  margin: "0 2px",
                 }}
               />
             )}
