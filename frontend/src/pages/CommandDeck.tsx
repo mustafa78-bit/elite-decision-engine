@@ -146,7 +146,7 @@ export default function CommandDeck() {
             borderBottom: "1px solid var(--border-subtle)",
           }}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <span
               className="text-[8px] font-semibold uppercase tracking-[0.22em]"
               style={{ color: "var(--text-primary)" }}
@@ -154,16 +154,16 @@ export default function CommandDeck() {
               COMMAND HEADQUARTERS
             </span>
             <span
-              className="text-[7px] font-mono uppercase tracking-[0.15em]"
+              className="text-[7px] font-mono uppercase tracking-[0.15em] hidden sm:inline"
               style={{ color: "var(--text-muted)" }}
             >
               · Founder Alpha
             </span>
             {currentMission && (
               <>
-                <span className="text-[7px]" style={{ color: "var(--border-subtle)" }}>·</span>
+                <span className="text-[7px] hidden sm:inline" style={{ color: "var(--border-subtle)" }}>·</span>
                 <span
-                  className="text-[7px] font-mono uppercase tracking-[0.1em]"
+                  className="text-[7px] font-mono uppercase tracking-[0.1em] hidden sm:inline"
                   style={{ color: missionColor }}
                 >
                   {currentMission}
@@ -172,8 +172,8 @@ export default function CommandDeck() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1">
               <span
                 className="w-1 h-1 rounded-full"
                 style={{ backgroundColor: missionColor, boxShadow: `0 0 4px ${missionColor}40` }}
@@ -186,10 +186,10 @@ export default function CommandDeck() {
               </span>
             </div>
 
-            <span className="text-[6px]" style={{ color: "var(--border-subtle)" }}>|</span>
+            <span className="text-[6px] hidden sm:inline" style={{ color: "var(--border-subtle)" }}>|</span>
 
             <span
-              className="text-[8px] font-mono tabular-nums"
+              className="text-[8px] font-mono tabular-nums hidden sm:inline"
               style={{ color: "var(--text-muted)" }}
             >
               {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}
@@ -206,7 +206,7 @@ export default function CommandDeck() {
             </div>
 
             {warnings.length > 0 && (
-              <span className="text-[7px] font-mono" style={{ color: "#FFB547" }}>
+              <span className="text-[7px] font-mono hidden sm:inline" style={{ color: "#FFB547" }}>
                 {warnings.length} alert{warnings.length > 1 ? "s" : ""}
               </span>
             )}
@@ -216,7 +216,7 @@ export default function CommandDeck() {
         {/* ====== CONTENT — unified vertical flow ====== */}
         <div className="flex-1 overflow-y-auto">
           {/* 1 + 2: OLLO + Mission Ring */}
-          <div className="hq-section flex flex-col items-center py-10">
+          <div className="hq-section flex flex-col items-center py-5 sm:py-10">
             <div className="relative flex flex-col items-center">
               <OLLOCommander
                 greeting={ollo.greeting}

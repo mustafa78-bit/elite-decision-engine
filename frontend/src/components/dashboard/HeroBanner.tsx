@@ -153,8 +153,7 @@ export default function HeroBanner() {
       <div className="h-[3px] w-full" style={{ background: `linear-gradient(to right, ${style.color}cc, transparent)` }} />
 
       {/* ===== BRIEFING ===== */}
-      {true && (
-        <div className="p-10 space-y-7" style={{ animation: "fadeIn 0.45s ease-out" }}>
+      <div className="p-10 space-y-7" style={{ animation: "fadeIn 0.45s ease-out" }}>
           {/* Row 1: ELIAS identity */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
@@ -328,7 +327,6 @@ export default function HeroBanner() {
             )}
           </div>
         </div>
-      )}
     </div>
   );
 }

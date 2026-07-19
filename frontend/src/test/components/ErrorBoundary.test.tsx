@@ -2,9 +2,8 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "../test-utils";
 import { ErrorBoundary } from "../../components/layout/ErrorBoundary";
 
-function Bomb() {
+function Bomb(): any {
   throw new Error("💥");
-  return null;
 }
 
 describe("ErrorBoundary", () => {

@@ -17,6 +17,7 @@ import type {
 import Header from "./Header.tsx";
 import IntelligencePanel from "../IntelligencePanel.tsx";
 import Sidebar from "./Sidebar.tsx";
+import MobileNav from "./MobileNav.tsx";
 
 export interface LayoutContext {
   notifications: TradeNotification[];
@@ -59,11 +60,15 @@ export default function Layout({ wsRooms, context }: Props) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--bg-base)] text-[var(--text-primary)] font-mono text-sm">
-      <Header wsRooms={wsRooms} />
+    <div className="h-screen flex flex-col bg-[var(--bg-base)] text-[var(--text-primary)] font-mono text-sm relative">
+      <div className="hidden md:block shrink-0">
+        <Header wsRooms={wsRooms} />
+      </div>
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto p-4">
+        <div className="hidden md:block h-full shrink-0">
+          <Sidebar />
+        </div>
+        <main className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4">
           <Room>
             <AnimatePresence mode="wait">
               <motion.div
@@ -131,6 +136,7 @@ export default function Layout({ wsRooms, context }: Props) {
           </div>
         </aside>
       </div>
+      <MobileNav />
     </div>
   );
 }
