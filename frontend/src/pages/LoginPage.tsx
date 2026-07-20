@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { addGlobalToast } from "../components/layout/toast-provider";
-import { apiFetch } from "../api/client";
+import { useAuth } from "../components/auth/AuthProvider";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,11 +16,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await apiFetch<{ token: string }>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-      });
-      localStorage.setItem("auth_token", res.token);
+      await login(username, password);
       addGlobalToast("Logged in successfully", "success");
       navigate("/dashboard");
     } catch {
