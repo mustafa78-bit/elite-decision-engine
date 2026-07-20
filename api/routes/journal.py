@@ -101,7 +101,7 @@ def update_journal(entry_id: int, body: JournalUpdate):
     try:
         entry = session.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
         if not entry:
-            return {"error": "not found"}
+            raise HTTPException(status_code=404, detail="Entry not found")
 
         if body.exit_price is not None:
             entry.exit_price = body.exit_price
@@ -116,6 +116,8 @@ def update_journal(entry_id: int, body: JournalUpdate):
 
         session.commit()
         return {"status": "updated"}
+    except HTTPException:
+        raise
     except Exception as e:
         session.rollback()
         logger.error("Failed to update journal entry %s: %s", entry_id, e)
@@ -130,11 +132,13 @@ def delete_journal(entry_id: int):
     try:
         entry = session.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
         if not entry:
-            return {"error": "not found"}
+            raise HTTPException(status_code=404, detail="Entry not found")
 
         session.delete(entry)
         session.commit()
         return {"status": "deleted"}
+    except HTTPException:
+        raise
     except Exception as e:
         session.rollback()
         logger.error("Failed to delete journal entry %s: %s", entry_id, e)

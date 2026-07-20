@@ -41,25 +41,13 @@ class _SensitiveDataFilter(logging.Filter):
             for pattern, replacement in _SENSITIVE_PATTERNS:
                 record.msg = pattern.sub(replacement, record.msg)
         if record.args:
-            if isinstance(record.args, dict):
-                cleaned_dict = {}
-                for k, v in record.args.items():
-                    if isinstance(v, str):
-                        for pattern, replacement in _SENSITIVE_PATTERNS:
-                            v = pattern.sub(replacement, v)
-                    cleaned_dict[k] = v
-                record.args = cleaned_dict
-            elif isinstance(record.args, (list, tuple)):
-                cleaned = []
-                for arg in record.args:
-                    if isinstance(arg, str):
-                        s = arg
-                        for pattern, replacement in _SENSITIVE_PATTERNS:
-                            s = pattern.sub(replacement, s)
-                        cleaned.append(s)
-                    else:
-                        cleaned.append(arg)
-                record.args = tuple(cleaned) if isinstance(record.args, tuple) else cleaned
+            cleaned = []
+            for arg in record.args:
+                s = str(arg)
+                for pattern, replacement in _SENSITIVE_PATTERNS:
+                    s = pattern.sub(replacement, s)
+                cleaned.append(s)
+            record.args = tuple(cleaned)
         return True
 
 
