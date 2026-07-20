@@ -325,8 +325,28 @@ TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 # HELPERS
 # ------------------------------------------------------------------
 
+from contextlib import contextmanager
+
 def get_session():
     return SessionLocal()
+
+
+@contextmanager
+def session_scope():
+    """Transactional context manager.
+
+    Manages transactions, auto-committing on success and rolling back/closing
+    connections on error.
+    """
+    session = get_session()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def create_tables():
