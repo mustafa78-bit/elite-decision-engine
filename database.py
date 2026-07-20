@@ -325,12 +325,51 @@ TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 # HELPERS
 # ------------------------------------------------------------------
 
+from contextlib import contextmanager
+
 def get_session():
     return SessionLocal()
 
 
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = get_session()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def seed_default_user():
+    session = get_session()
+    try:
+        user_count = session.query(User).count()
+        if user_count == 0:
+            import bcrypt
+            hashed = bcrypt.hashpw(b"admin123", bcrypt.gensalt()).decode()
+            admin_user = User(
+                username="admin",
+                email="admin@test.com",
+                hashed_password=hashed,
+            )
+            session.add(admin_user)
+            session.commit()
+            logger.info("Default admin user seeded successfully.")
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to seed default admin user: %s", e)
+    finally:
+        session.close()
+
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
+    seed_default_user()
 
 
 # ------------------------------------------------------------------
