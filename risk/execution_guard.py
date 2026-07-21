@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from config import ACCOUNT_EQUITY, RISK_PER_TRADE_PERCENT
-from database import get_session
+import database
 from exchange.base import ExchangeAdapter
 from exchange.exceptions import ExchangeError
 from risk.models import (
@@ -45,12 +45,12 @@ class ExecutionGuard:
         self,
         exchange: Optional[ExchangeAdapter] = None,
         regime_engine: Optional["RegimeAI"] = None,
-        session_factory: Callable[[], Any] = get_session,
+        session_factory: Optional[Callable[[], Any]] = None,
         market_service: Optional[Any] = None,
     ) -> None:
         self.exchange = exchange
         self.regime_engine = regime_engine or get_regime_ai()
-        self.session_factory = session_factory
+        self.session_factory = session_factory or database.get_session
         self.market_service = market_service
 
     def set_exchange(self, exchange: ExchangeAdapter) -> None:

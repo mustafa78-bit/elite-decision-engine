@@ -44,13 +44,13 @@ def get_risk():
 
     today_start = datetime.now(timezone.utc).replace(
         hour=0, minute=0, second=0, microsecond=0
-    )
+    ).replace(tzinfo=None)
     daily_loss = sum(
         t.pnl or 0
         for t in closed_trades
         if t.pnl is not None and t.pnl < 0
         and t.closed_at is not None
-        and t.closed_at >= today_start
+        and (t.closed_at.replace(tzinfo=None) if t.closed_at.tzinfo else t.closed_at) >= today_start
     )
 
     risk_engine = RiskEngine()

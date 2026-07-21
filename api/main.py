@@ -37,6 +37,7 @@ from api.routes.market_live import router as market_live_router
 from api.routes.open_interest import router as open_interest_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
+from api.routes.paper import router as paper_router
 from api.routes.paper_trading import router as paper_trading_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
@@ -47,6 +48,9 @@ from api.routes.signals_ranking import router as signals_ranking_router
 from api.routes.trading_control import router as trading_control_router
 from api.routes.users import router as users_router
 from api.routes.explanation import router as explanation_router
+from api.routes.ollo import router as ollo_router
+from api.routes.council import router as council_router
+from api.routes.whale import router as whale_router
 from api.routes.analytics import router as analytics_router
 from api.routes.kpi import router as kpi_router
 from api.routes.coordination import router as coordination_router
@@ -168,6 +172,7 @@ app.include_router(market_live_router)
 app.include_router(open_interest_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
+app.include_router(paper_router)
 app.include_router(paper_trading_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
@@ -178,6 +183,9 @@ app.include_router(signals_ranking_router)
 app.include_router(trading_control_router)
 app.include_router(users_router)
 app.include_router(explanation_router)
+app.include_router(ollo_router)
+app.include_router(council_router)
+app.include_router(whale_router)
 app.include_router(analytics_router)
 app.include_router(kpi_router)
 app.include_router(coordination_router)

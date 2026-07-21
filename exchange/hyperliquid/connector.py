@@ -89,8 +89,9 @@ class HyperliquidExchange(ExchangeAdapter):
 
     def positions(self, symbol: Optional[str] = None) -> list[Position]:
         if self.paper_mode:
-            from database import Trade, get_session
-            session = get_session()
+            import database
+            from database import Trade
+            session = database.get_session()
             try:
                 query = session.query(Trade).filter(Trade.status == "OPEN")
                 if symbol:
