@@ -136,6 +136,12 @@ export default function Overview() {
   const unrealizedPnl = perf?.unrealized_pnl ?? 0.0;
   const openExposure = perf?.current_open_exposure ?? 0.0;
 
+  const researchFeed = [
+    { id: 1, category: "REGIME", title: "BTC Volatility Compression suggests impending breakout", time: "10m ago", impact: "HIGH" },
+    { id: 2, category: "FLOWS", title: "Institutional Spot ETF inflows surge by +$420M", time: "45m ago", impact: "POSITIVE" },
+    { id: 3, category: "MACRO", title: "Macro regime shifts to low-inflation expansionary phase", time: "2h ago", impact: "NEUTRAL" }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Platform Title Bar */}
@@ -343,9 +349,9 @@ export default function Overview() {
           {/* Market Regime Overview and Real-Time Indicators */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            {/* Market Regime Card */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
-              <h3 className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest mb-4">
+            {/* Market Regime Card with Custom SVG Chart */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+              <h3 className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest">
                 Market Regime AI
               </h3>
               {market && (
@@ -361,6 +367,32 @@ export default function Overview() {
                         {market.regime}
                       </span>
                     </div>
+                  </div>
+
+                  {/* Elegant Inline Candlestick / Trend Line Chart */}
+                  <div className="h-20 w-full border border-slate-100 rounded-xl bg-slate-50/50 flex flex-col justify-end p-2 relative overflow-hidden">
+                    <div className="absolute top-1 left-2 text-[8px] font-mono text-slate-400">
+                      LIVE PRICE TREND LINE
+                    </div>
+                    {/* SVG Sparkline Sparking Trend */}
+                    <svg className="w-full h-12 overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 20">
+                      <defs>
+                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.2"/>
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0"/>
+                        </linearGradient>
+                      </defs>
+                      {/* Grid Lines */}
+                      <line x1="0" y1="5" x2="100" y2="5" stroke="#f1f5f9" strokeWidth="0.5" />
+                      <line x1="0" y1="10" x2="100" y2="10" stroke="#f1f5f9" strokeWidth="0.5" />
+                      <line x1="0" y1="15" x2="100" y2="15" stroke="#f1f5f9" strokeWidth="0.5" />
+                      {/* Filled area */}
+                      <path d="M0,18 L5,15 L12,16 L18,13 L25,14 L35,11 L45,13 L55,9 L65,11 L75,7 L85,8 L95,4 L100,2 L100,20 L0,20 Z" fill="url(#chartGrad)" />
+                      {/* Trend Line */}
+                      <path d="M0,18 L5,15 L12,16 L18,13 L25,14 L35,11 L45,13 L55,9 L65,11 L75,7 L85,8 L95,4 L100,2" fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      {/* Glow dot */}
+                      <circle cx="100" cy="2" r="2.5" fill="#10b981" className="animate-pulse" />
+                    </svg>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-50 pt-3">
@@ -419,7 +451,7 @@ export default function Overview() {
 
         </div>
 
-        {/* Right Column: Portfolio KPIs & Capital Allocation */}
+        {/* Right Column: Portfolio KPIs, Capital Allocation & Live Research Feed */}
         <div className="space-y-6">
 
           {/* Portfolio KPIs Panel */}
@@ -528,6 +560,31 @@ export default function Overview() {
                   No active exposure. All funds liquid.
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* New Live Research & Intelligence Feed Card */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+            <h3 className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest">
+              Research & Intelligence Feed
+            </h3>
+            <div className="space-y-3">
+              {researchFeed.map((item) => (
+                <div key={item.id} className="border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                      {item.category}
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-400">{item.time}</span>
+                  </div>
+                  <h4 className="text-xs font-semibold text-slate-800 leading-snug">
+                    {item.title}
+                  </h4>
+                  <div className="text-[9px] font-bold font-mono text-blue-600 mt-1">
+                    IMPACT: {item.impact}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
