@@ -57,6 +57,14 @@ export function CommandPalette() {
     if (commandPaletteOpen) setCommandPaletteOpen(false);
   });
 
+  const handleAction = useCallback((cmd: Command) => {
+    if (cmd.action === "toggle-sidebar") { toggleSidebar(); return; }
+    if (cmd.action === "focus-mode") { toggleFocusMode(); return; }
+    if (cmd.action === "fullscreen") { toggleFullscreen(); return; }
+    if (cmd.action === "refresh") { window.location.reload(); return; }
+    if (cmd.action === "new-trade") { navigate("/trades"); return; }
+  }, [toggleSidebar, toggleFocusMode, toggleFullscreen, navigate]);
+
   useEffect(() => {
     if (commandPaletteOpen) {
       setQuery("");
@@ -84,14 +92,6 @@ export function CommandPalette() {
         category: cat,
         commands: flatCommands.filter((c) => c.category === cat),
       }));
-
-  const handleAction = useCallback((cmd: Command) => {
-    if (cmd.action === "toggle-sidebar") { toggleSidebar(); return; }
-    if (cmd.action === "focus-mode") { toggleFocusMode(); return; }
-    if (cmd.action === "fullscreen") { toggleFullscreen(); return; }
-    if (cmd.action === "refresh") { window.location.reload(); return; }
-    if (cmd.action === "new-trade") { navigate("/trades"); return; }
-  }, [toggleSidebar, toggleFocusMode, toggleFullscreen, navigate]);
 
   const handleSelect = (cmd: Command) => {
     addCommand(cmd.label);

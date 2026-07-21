@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Optional
 
-from database import JournalEntry, get_session, update_signal_status
+import database
+from database import JournalEntry, update_signal_status
 from exchange.base import ExchangeAdapter
 from execution.pipeline import DecisionPipeline, TradingSignal
 from orders.order_manager import OrderManager
@@ -164,7 +165,7 @@ class ShadowEngine:
         entry_price: Optional[float] = None,
         order_id: Optional[str] = None,
     ) -> Optional[int]:
-        session = get_session()
+        session = database.get_session()
         try:
             entry = JournalEntry(
                 symbol=signal.symbol,

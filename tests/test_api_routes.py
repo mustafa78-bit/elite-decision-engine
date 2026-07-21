@@ -701,6 +701,10 @@ def test_health_response_has_dependencies(api_client):
 
 
 def test_errors_is_null_when_no_failures(api_client):
+    # Reset tracking state to prevent leakage from other tests
+    from monitoring.health import _INTERNAL_ERRORS, _LAST_SUCCESS
+    _INTERNAL_ERRORS.clear()
+    _LAST_SUCCESS.clear()
     resp = api_client.get("/monitoring")
     assert resp.status_code == 200
     errs = resp.json().get("errors")

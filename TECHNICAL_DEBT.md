@@ -1,92 +1,116 @@
-# Technical Debt & Known Issues
+# CTO Architecture Review: Technical Debt & Architectural Gaps
 
-## Recently Resolved (Founder Beta Sprint)
-
-### Production Readiness
-
-| ID | Issue | Status |
-|----|-------|--------|
-| P1 | `HealthService.execution()` crashes on ExecutionLoop init failure | ✅ Fixed — graceful degradation |
-| P2 | No `LOG_LEVEL` env var support | ✅ Fixed — `config.py` reads `LOG_LEVEL`, `logging_config.py` uses it |
-| P3 | No sensitive data scrubbing in logs | ✅ Fixed — `_SensitiveDataFilter` redacts secrets in log output |
-| P4 | No `Content-Security-Policy` header | ✅ Fixed — added to security headers middleware |
-| P5 | No `/ready` and `/live` health endpoints | ✅ Fixed — added k8s-style readiness/liveness probes |
-| P6 | No 404 exception handler | ✅ Fixed — returns JSON with path info |
-| P7 | `ENCRYPTION_KEY`, `HL_API_KEY`, `HL_SECRET`, `TELEGRAM_TOKEN` not exported from config | ✅ Fixed — exported as module constants |
-| P8 | `.env.example` incomplete | ✅ Fixed — documented all configurable env vars |
-
-### Performance
-
-| ID | Issue | Status |
-|----|-------|--------|
-| P9 | All pages eagerly imported (large initial bundle) | ✅ Fixed — `React.lazy()` + `Suspense` for 35 routes |
-| P10 | Unused `status` state in AppRoutes causes TS warning | ✅ Fixed — removed dead state |
-
-### Security
-
-| ID | Issue | Status |
-|----|-------|--------|
-| P11 | Duplicate `useAuth` in `AuthGuard.tsx` bypasses `AuthProvider` context | ✅ Fixed — `AuthGuard` now uses context-based `useAuth` |
-
-### Code Cleanup
-
-| ID | Issue | Status |
-|----|-------|--------|
-| P12 | Unused `Base` import in `startup.py` | ✅ Removed |
-| P13 | Unused `RiskManager` import in `monitoring/health.py` | ✅ Removed |
-| P14 | Unused `HealthComponent` dataclass in `monitoring/health.py` | ✅ Removed |
-| P15 | Dead fields `change_24h`, `volume_change` in `api/events.py` | ✅ Removed |
-| P16 | Unused `updateLayout` import in `PreferencesPage.tsx` | ✅ Removed |
-| P17 | `ActionCenter.tsx` passing object to `fetchNotifications(limit: number)` | ✅ Fixed |
+> **Author**: Chief Technology Officer (CTO), Elite Decision Engine Project
+> **Date**: July 2026
+> **Version**: 1.0.0
+> **Target Audience**: Engineering Lead, Product Managers, Development Team
 
 ---
 
-## Remaining Technical Debt
+## Executive Summary
 
-### Critical (Pre-Production Blockers)
+Technical debt is the interest a software project pays for making short-term implementation choices over long-term architectural stability. This report catalogues the accrued technical debt, design shortcuts, and known structural issues within the Elite Decision Engine.
 
-| ID | Issue | Location | Impact |
-|----|-------|----------|--------|
-| BP2 | `ConfidenceEngine` double-scaling: `confidence * 100` then compared to 0–100 threshold | `core/confidence_engine.py` | Every signal approved as STRONG_APPROVE |
-| BP3 | `ATRr_14` typo in indicator column name | `market_data/indicators.py:25` | All indicator data = 0 |
-| AF1 | `pandas_ta` missing from `requirements.txt` | `requirements.txt` | Runtime crash on import |
-
-### High Priority
-
-| ID | Issue | Location | Impact |
-|----|-------|----------|--------|
-| MC5 | No integrated signal source / no live data path | `scanner/` | Scanner operates on empty data |
-| DP1 | Confidence hardcoded to 0.0 in DecisionPipeline | `execution/pipeline.py` | All signals rejected before threshold check |
-| DP2 | Scores never saved to Signal record | `execution/pipeline.py` | Signal history unusable |
-| DP4 | No filter chain wired into pipeline | `execution/pipeline.py` | All signals pass through unfiltered |
-
-### Medium Priority
-
-| ID | Issue | Location | Impact |
-|----|-------|----------|--------|
-| DB1 | No ForeignKey constraint on `Trade.signal_id` | `database.py` | Orphaned trades possible |
-| DB4 | `update_signal_status()` defined twice | `database.py` | Duplicate function definition |
-| RL1 | No per-route rate limiting | `api/rate_limit.py` | Only global 200/min limit |
-| HT1 | httpx2 incompatible with Python 3.14 logging | `httpx2` library | Test log format failure |
-| JW1 | JWT key 30 bytes (< 32 recommended) | `.env` | Security warning |
-| UT1 | `datetime.utcnow()` usage (32 occurrences) | Multiple files | Deprecation in Python 3.14+ |
-
-### Low Priority
-
-| ID | Issue | Location | Impact |
-|----|-------|----------|--------|
-| LC1 | 24 empty `__init__.py` files | Multiple dirs | Minor maintenance |
-| LC2 | Legacy test files with zero assertions | `tests/` | False sense of coverage |
+We classify this debt into four severities: **Critical (Blockers)**, **High**, **Medium**, and **Low**. Addressing these items is essential before we can approve the system for its first public beta release.
 
 ---
 
-## Summary
+## 1. Accrued Technical Debt & Architectural Gaps
 
-| Severity | Count | Status |
-|----------|-------|--------|
-| Critical (resolved) | 0 | ✅ All critical items fixed |
-| Critical (remaining) | 3 | BP2, BP3, AF1 — pre-existing, requires refactor |
-| High | 3 | MC5, DP1-2, DP4 — pre-existing architectural gaps |
-| Medium | 5 | DB1, DB4, RL1, HT1, JW1, UT1 |
-| Low | 2 | LC1, LC2 |
-| **Founder Beta Resolved** | **17** | ✅ P1–P17 |
+### 1.1 Critical / Pre-Production Blockers
+
+#### BP1: Logging-Induced Type Crashes under Python 3.13+ (RESOLVED)
+* **Location**: `logging_config.py` (`_SensitiveDataFilter.filter`)
+* **Impact**: The filter iterated through `record.args` and forcefully stringified every argument to perform sensitive information scrubbing. When standard library loggers (such as `httpx` or FastAPI's internal access loggers) issued statements with format placeholders requiring specific types (e.g., `"%d"` for HTTP status codes), they received a stringified argument instead of an integer. This threw a terminal `TypeError: %d format: a real number is required, not str` on almost every HTTP interaction, failing 195+ automated tests and causing runtime crashes in production.
+* **Resolution**: Modified the filter to only apply string scrubbing if the argument is a string, preserving original types (especially integers) otherwise.
+
+#### BP2: Double-Scaling of Signal Confidence
+* **Location**: `core/confidence_engine.py`
+* **Impact**: The `ConfidenceEngine` multiplies its inner confidence calculation by 100 to yield a percentage but subsequently compares it to a threshold defined on a 0–100 scale, leading to arithmetic double-scaling. As a result, almost every analyzed trading signal is approved as `STRONG_APPROVE`, completely bypassing our signal quality guardrails.
+* **Refactor Plan**: Standardize confidence scaling to a single 0.0–1.0 float boundary before performing threshold comparisons.
+
+#### BP3: Indicator TYPO (`ATRr_14`)
+* **Location**: `market_data/indicators.py`
+* **Impact**: Column lookup uses the string `"ATRr_14"` instead of `"NATR_14"` or `"ATR_14"`. Because of this minor typo, all technical indicators default to 0, which breaks take-profit and stop-loss calculations in downstream engines.
+* **Refactor Plan**: Fix the string mapping to correctly align with the output columns generated by `pandas_ta`.
+
+---
+
+### 1.2 High Priority Debt
+
+#### HC5: Lack of an Integrated Live Data Path
+* **Location**: `scanner/` and `market_data/`
+* **Impact**: The scanning module is architecturally complete but operates on static mock arrays rather than active WebSocket streams or pooled HTTP tickers. The scanner has no active feed, making it a "dashboard ornament" in production unless a continuous ingestion pipeline is wired.
+* **Refactor Plan**: Wire the `LiveEngine` websocket subscriber to feed real-time ticker quotes directly into the `OpportunityScanner`.
+
+#### DP1: Hardcoded Zero Confidence in Decision Pipeline
+* **Location**: `execution/pipeline.py`
+* **Impact**: The `DecisionPipeline` hardcodes signal confidence to `0.0`. Under strict conditions, every evaluated signal is automatically rejected before it can reach the risk manager.
+* **Refactor Plan**: Replace the hardcoded `0.0` with the actual value computed by the `ConfidenceEngine`.
+
+#### DP4: Unwired Filter Chain
+* **Location**: `execution/pipeline.py`
+* **Impact**: The filter chain is defined as a protocol but is never actively instantiated or executed inside the pipeline. All signals pass through unfiltered, wasting downstream CPU and database resources on garbage signals.
+* **Refactor Plan**: Instantiate the default `BTCHealthFilter` and execute it as an obligatory initial gate in the `evaluate` method.
+
+---
+
+### 1.3 Medium Priority Debt
+
+#### DB1: Missing Relational Constraints
+* **Location**: `database.py` (specifically `Trade` schema)
+* **Impact**: There are no database-level foreign key constraints linking `Trade.signal_id` to the `Signal.id` column. This makes orphan trade records highly likely if a signal is deleted or retried.
+* **Refactor Plan**: Add declarative `ForeignKey("signals.id")` to the `Trade` model.
+
+#### DB4: Duplicate Function Declarations
+* **Location**: `database.py`
+* **Impact**: The function `update_signal_status()` is defined twice with slightly different signatures. This creates maintainability confusion and can cause non-deterministic behavior depending on import order.
+* **Refactor Plan**: Delete the duplicate function and ensure the remaining one is fully unit-tested.
+
+#### RL1: Coarse Global Rate Limiting
+* **Location**: `api/rate_limit.py`
+* **Impact**: The API applies a single global rate limit of 200 requests per minute across all endpoints. High-frequency websocket handshakes or user actions can trigger a `429 Too Many Requests` block on essential paths.
+* **Refactor Plan**: Implement fine-grained, route-specific decorators (e.g., 5/min on login, 1000/min on telemetry streams).
+
+---
+
+### 1.4 Low Priority Debt
+
+#### LC1: Superfluous Packages & Packages Absent from Requirements
+* **Location**: Root directory / `pyproject.toml`
+* **Impact**: `pandas_ta` is required by our technical indicators engine but was missing from the default `requirements.txt` file, causing immediate environment startup failures.
+* **Refactor Plan**: Align `pyproject.toml`, `requirements.txt`, and Poetry locks perfectly.
+
+#### LC2: Empty Package Files (`__init__.py`)
+* **Location**: Codebase-wide
+* **Impact**: There are over 24 completely empty `__init__.py` files across nested directories. While Python 3 namespaces do not strictly require them, they are kept for compatibility but should be audited to prevent dead namespace issues.
+* **Refactor Plan**: Clean up directories where implicit namespace packaging is preferred.
+
+---
+
+## 2. Accrued Technical Debt Matrix
+
+| ID | Module / Component | Technical Debt Description | Severity | Remediation Effort |
+|----|--------------------|----------------------------|----------|--------------------|
+| **BP1** | Logging / Filter | `_SensitiveDataFilter` causes string conversion `TypeError` under Python 3.13 | Resolved | — (Fixed) |
+| **BP2** | Scoring / Confidence | Double-scaling of confidence leads to `STRONG_APPROVE` bypass | Critical | Low (2 hours) |
+| **BP3** | Market Data / Indicators | Typo in indicator lookup column defaults data to zero | Critical | Low (1 hour) |
+| **HC5** | Scanner / Live | Scanner operates on mock arrays without a live data path | High | Medium (2 days) |
+| **DP1** | Pipeline | Hardcoded 0.0 confidence blocks all signals | High | Low (1 hour) |
+| **DP4** | Pipeline | Filter chain is not wired; signals bypass initial health gate | High | Low (4 hours) |
+| **DB1** | Database | Missing foreign key on `Trade.signal_id` allows orphans | Medium | Medium (1 day) |
+| **DB4** | Database | Duplicate declaration of `update_signal_status` | Medium | Low (1 hour) |
+| **RL1** | API Limit | Global rate limit of 200/min across all endpoints | Medium | Low (4 hours) |
+| **LC1** | Packaging | Discrepancies between requirements and code dependencies | Low | Low (1 hour) |
+
+---
+
+## 3. Debt Retirement Strategy
+
+To retire this debt systematically without slowing down feature development, we will adopt a **"Two-Stream" engineering model**:
+1. **Stabilization Sprint (Stream A)**: A dedicated 3-day sprint focusing exclusively on retiring Critical (**BP1–BP3**) and High (**DP1, DP4**) priority items. This is a non-negotiable prerequisite for our Alpha deployment.
+2. **Refactoring Allocation (Stream B)**: For all future feature-focused sprints, 20% of engineering bandwidth will be allocated to resolving Medium and Low priority technical debt (specifically relational constraints and modular consolidation).
+
+---
+
+*End of TECHNICAL_DEBT.md*
