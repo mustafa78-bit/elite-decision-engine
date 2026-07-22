@@ -135,13 +135,17 @@ export default function Overview() {
   };
 
   const formatCurrency = (val: number | undefined | null) => {
-    if (val === undefined || val === null) return "$0.00";
+    if (val === undefined || val === null || isNaN(val)) return "$0.00";
     return `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const safeToFixed = (val: number | undefined | null, decimals: number = 1, fallback: string = "--") => {
+    if (val === undefined || val === null || isNaN(val)) return fallback;
+    return val.toFixed(decimals);
+  };
+
   const formatPercent = (val: number | undefined | null) => {
-    if (val === undefined || val === null) return "0.0%";
-    return `${val.toFixed(1)}%`;
+    return `${safeToFixed(val, 1, "0.0")}%`;
   };
 
   return (
@@ -243,7 +247,7 @@ export default function Overview() {
                         <div className="flex-1 h-2 rounded bg-slate-100 overflow-hidden">
                           <div
                             className="h-full bg-blue-600 rounded"
-                            style={{ width: `${heroDecision.confidence || 0}%` }}
+                            style={{ width: `${safeToFixed(heroDecision.confidence, 0, "0")}%` }}
                           />
                         </div>
                       </div>
@@ -268,10 +272,10 @@ export default function Overview() {
                           Trend Bias: {heroDecision.market_regime || "TRENDING"}
                         </span>
                         <span className="px-2.5 py-1 text-xs font-semibold font-mono rounded-md bg-slate-50 border border-slate-200 text-slate-600">
-                          Risk Score: {heroDecision.risk || 0.0}
+                          Risk Score: {safeToFixed(heroDecision.risk, 2, "0.00")}
                         </span>
                         <span className="px-2.5 py-1 text-xs font-semibold font-mono rounded-md bg-slate-50 border border-slate-200 text-slate-600">
-                          Target RR: {heroDecision.rr || 0.0}:1
+                          Target RR: {safeToFixed(heroDecision.rr, 2, "0.00")}:1
                         </span>
                       </div>
                     </div>
@@ -294,7 +298,7 @@ export default function Overview() {
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-500 font-medium">Risk Allocation:</span>
-                        <span className="font-bold font-mono text-slate-900">{formatPercent((heroDecision.risk || 0) * 100)}</span>
+                        <span className="font-bold font-mono text-slate-900">{formatPercent(heroDecision.risk ? heroDecision.risk * 100 : 0)}</span>
                       </div>
                     </div>
 
@@ -366,7 +370,7 @@ export default function Overview() {
                         <span className="text-[10px] text-slate-400">Match</span>
                       </div>
                       <div className="h-1.5 rounded bg-slate-100 overflow-hidden">
-                        <div className={`h-full ${factor.color}`} style={{ width: `${factor.val}%` }} />
+                        <div className={`h-full ${factor.color}`} style={{ width: `${safeToFixed(factor.val, 0, "0")}%` }} />
                       </div>
                     </div>
                   </div>
@@ -585,9 +589,11 @@ export default function Overview() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="font-bold text-slate-900 font-mono">{(opp.probability * 100).toFixed(0)}% Conv</span>
+                      <span className="font-bold text-slate-900 font-mono">
+                        {safeToFixed(opp.probability ? opp.probability * 100 : null, 0, "0")}% Conv
+                      </span>
                       <span className="text-[10px] text-slate-400 leading-none mt-0.5 font-mono">
-                        Score: {opp.score}
+                        Score: {safeToFixed(opp.score, 1, "0.0")}
                       </span>
                     </div>
                   </div>
