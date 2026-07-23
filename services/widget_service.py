@@ -39,7 +39,7 @@ class WidgetService:
             "notifications": self._notifications_widget(),
         }
 
-    def _kpi_widget(self) -> dict[str, Any]:
+    def _kpi_widget(self, **kwargs) -> dict[str, Any]:
         from services.kpi_service import KPIService
         kpi_svc = KPIService(session_factory=self.session_factory)
         kpis = kpi_svc.get_kpis()
@@ -48,7 +48,7 @@ class WidgetService:
             period="all",
         ).to_dict()
 
-    def _portfolio_widget(self) -> dict[str, Any]:
+    def _portfolio_widget(self, **kwargs) -> dict[str, Any]:
         session = self.session_factory()
         try:
             trades = session.query(Trade).all()
@@ -68,7 +68,7 @@ class WidgetService:
         finally:
             session.close()
 
-    def _monitoring_widget(self) -> dict[str, Any]:
+    def _monitoring_widget(self, **kwargs) -> dict[str, Any]:
         from monitoring.health import HealthService
         session = self.session_factory()
         try:

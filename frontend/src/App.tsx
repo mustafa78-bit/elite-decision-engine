@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/layout/Layout";
 import { LoadingScreen } from "./components/layout/LoadingScreen";
+import { OLLOPanel } from "./components/ai/ollo-panel";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { AuthGuard } from "./components/auth/AuthGuard";
@@ -201,6 +202,7 @@ function AppRoutes() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <OLLOPanel />
       </Suspense>
     </BrowserRouter>
   );
