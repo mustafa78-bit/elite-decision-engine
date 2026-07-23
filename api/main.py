@@ -48,6 +48,7 @@ from api.routes.trading_control import router as trading_control_router
 from api.routes.users import router as users_router
 from api.routes.explanation import router as explanation_router
 from api.routes.analytics import router as analytics_router
+from api.routes.paper import router as paper_router
 from api.routes.kpi import router as kpi_router
 from api.routes.coordination import router as coordination_router
 from api.routes.dashboard import router as dashboard_router
@@ -178,6 +179,7 @@ app.include_router(signals_ranking_router)
 app.include_router(trading_control_router)
 app.include_router(users_router)
 app.include_router(explanation_router)
+app.include_router(paper_router)
 app.include_router(analytics_router)
 app.include_router(kpi_router)
 app.include_router(coordination_router)
