@@ -20,7 +20,7 @@ export function LiveIndicator({ active = false }: LiveIndicatorProps) {
           active ? "bg-green-500" : "bg-gray-700"
         } ${pulse ? "opacity-100" : "opacity-50"}`}
       />
-      <span className="text-[9px] font-mono uppercase tracking-widest text-gray-600">
+      <span className="text-[9px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
         {active ? "Live" : "Offline"}
       </span>
     </div>

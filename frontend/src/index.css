@@ -17,10 +17,10 @@
   --accent-cyan: #89D6FF;
   --accent-purple: #8B5CF6;
   --accent-orange: #F97316;
-  --text-primary: #FCFDFF;
-  --text-secondary: #EEF4FF;
-  --text-muted: #D3E0F5;
-  --text-disabled: #A3B4CC;
+  --text-primary: #FEFEFF;
+  --text-secondary: #F4F7FF;
+  --text-muted: #E6EEFB;
+  --text-disabled: #B9C8DD;
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
   --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.4);
   --radius-card: 20px;
@@ -80,7 +80,6 @@ body {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-muted);
 }
 .glass-content {
   padding: 18px 22px 22px 22px;
@@ -96,7 +95,6 @@ body {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--text-muted);
   margin-bottom: 10px;
 }
 
@@ -112,7 +110,6 @@ body {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-muted);
   margin-bottom: 10px;
   padding-left: 2px;
 }
@@ -261,10 +258,37 @@ body {
 
 /* ====== PROFESSIONAL TYPOGRAPHY HIERARCHY OVERRIDES ====== */
 
-/* 1. All Card and Section Titles to font-weight 700, opacity 1 */
+/* Remove unnecessary opacity fades from text labels explicitly and safely */
 .glass-header-label,
 .hq-section-label,
 .section-title,
+.widget-header span,
+.glass-header span,
+.sidebar-title,
+.sidebar-section-title,
+.sidebar-subtitle,
+.sidebar-menu-item {
+  opacity: 1 !important;
+}
+
+/* Card labels use the Secondary color instead of Muted */
+.glass-header-label,
+.hq-section-label,
+.section-title,
+.card-label,
+.widget-header-label,
+thead th {
+  font-weight: 700 !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Sidebar section titles use Primary color */
+.sidebar-section-title {
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+}
+
+/* Card titles use Primary color */
 .widget-header span,
 .widget-header h2,
 .widget-header h3,
@@ -272,14 +296,31 @@ body {
 .glass-header span,
 .glass-header h2,
 .glass-header h3,
-[class*="widget-header"] span,
-[class*="widget-header"] h2,
-[class*="widget-header"] h3 {
+.widget-title,
+.card-title,
+.sidebar-title {
   font-weight: 700 !important;
-  opacity: 1 !important;
+  color: var(--text-primary) !important;
 }
 
-/* 2. Overriding letter spacing to reduce excessive spacing for tighter scanning */
+/* Menu items use Secondary color */
+.sidebar-menu-item,
+.tab-button,
+[role="tab"],
+.menu-item {
+  font-weight: 600 !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Small metadata should use Muted color */
+.sidebar-subtitle,
+.metadata,
+p.text-\[11px\],
+p.text-\[10px\] {
+  color: var(--text-muted) !important;
+}
+
+/* Overriding letter spacing to reduce excessive spacing for tighter scanning */
 .tracking-widest,
 [class*="tracking-widest"] {
   letter-spacing: 0.04em !important;
@@ -289,7 +330,7 @@ body {
   letter-spacing: 0.02em !important;
 }
 
-/* 3. Dashboard Metric Values increased by approximately 8% */
+/* Dashboard Metric Values increased by approximately 8% */
 .text-lg, [class*="text-lg"] {
   font-size: 1.215rem !important; /* Standard 1.125rem * 1.08 */
 }
@@ -307,13 +348,4 @@ body {
 }
 .terminal-stat {
   font-size: 1.08em !important; /* Boost metrics by exactly 8% */
-}
-
-/* 4. Increase menu item and tab button font-weight to 600 */
-a[class*="NavLink"],
-button[class*="tab"],
-.tab-button,
-.menu-item,
-[role="tab"] {
-  font-weight: 600 !important;
 }
