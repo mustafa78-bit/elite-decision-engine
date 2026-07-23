@@ -38,6 +38,10 @@ from api.routes.open_interest import router as open_interest_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
 from api.routes.paper_trading import router as paper_trading_router
+from api.routes.paper import router as paper_router
+from api.routes.ollo import router as ollo_router
+from api.routes.council import router as council_router
+from api.routes.whale import router as whale_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.regime import router as regime_router
@@ -169,6 +173,10 @@ app.include_router(open_interest_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
 app.include_router(paper_trading_router)
+app.include_router(paper_router)
+app.include_router(ollo_router)
+app.include_router(council_router)
+app.include_router(whale_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
 app.include_router(regime_router)
