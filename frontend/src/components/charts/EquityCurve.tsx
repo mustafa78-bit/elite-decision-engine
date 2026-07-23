@@ -30,7 +30,7 @@ export default function EquityCurve({ data, height = 200 }: Props) {
     });
 
     const series = chart.addSeries(LineSeries, {
-      color: "#3b82f6",
+      color: "var(--accent-blue)",
       lineWidth: 2,
       crosshairMarkerVisible: false,
       priceLineVisible: false,
@@ -44,7 +44,7 @@ export default function EquityCurve({ data, height = 200 }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="text-gray-500 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-muted)] text-xs p-4 border border-dashed border-gray-800 rounded text-center">
         No equity data
       </div>
     );

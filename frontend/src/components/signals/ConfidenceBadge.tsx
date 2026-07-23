@@ -11,7 +11,7 @@ export default function ConfidenceBadge({ confidence, decision }: Props) {
         ? "bg-blue-900 text-blue-300 border-blue-700"
         : decision === "WATCH"
           ? "bg-yellow-900 text-yellow-300 border-yellow-700"
-          : "bg-gray-800 text-gray-400 border-gray-700";
+          : "bg-gray-800 text-[var(--text-secondary)] border-gray-700";
 
   return (
     <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-medium ${color}`}>

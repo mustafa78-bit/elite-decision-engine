@@ -206,7 +206,7 @@ export default function CommandDeck() {
             </div>
 
             {warnings.length > 0 && (
-              <span className="text-[7px] font-mono" style={{ color: "#FFB547" }}>
+              <span className="text-[7px] font-mono" style={{ color: "var(--accent-yellow)" }}>
                 {warnings.length} alert{warnings.length > 1 ? "s" : ""}
               </span>
             )}
@@ -271,17 +271,17 @@ export default function CommandDeck() {
                   <div className="flex items-center gap-4 mt-3">
                     {supportingCount !== null && (
                       <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#3EDC97" }}>{supportingCount}</span> supporting
+                        <span style={{ color: "var(--accent-green)" }}>{supportingCount}</span> supporting
                       </span>
                     )}
                     {conflictCount !== null && conflictCount > 0 && (
                       <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#FF5D73" }}>{conflictCount}</span> conflicting
+                        <span style={{ color: "var(--accent-red)" }}>{conflictCount}</span> conflicting
                       </span>
                     )}
                     {warningCount !== null && warningCount > 0 && (
                       <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#FFB547" }}>{warningCount}</span> warnings
+                        <span style={{ color: "var(--accent-yellow)" }}>{warningCount}</span> warnings
                       </span>
                     )}
                   </div>

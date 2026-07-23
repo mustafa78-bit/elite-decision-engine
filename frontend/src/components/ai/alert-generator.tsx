@@ -58,7 +58,7 @@ export function AlertGenerator({
           <Button variant="primary" className="h-7 text-[10px] whitespace-nowrap" onClick={createAlert}>+ New</Button>
         </div>
         {filtered.map((a) => (
-          <div key={a.id} className={`p-2 rounded-lg border text-[10px] font-mono ${a.triggered ? "bg-[var(--bg-base)] border-[var(--border-subtle)]" : "bg-[var(--bg-hover)]/50 border-[var(--border-subtle)] opacity-60"}`}>
+          <div key={a.id} className={`p-2 rounded-lg border text-[10px] font-mono ${a.triggered ? "bg-[var(--bg-base)] border-[var(--border-subtle)]" : "bg-[var(--bg-hover)]/50 border-[var(--border-subtle)] "}`}>
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${a.severity === "high" ? "bg-[var(--accent-red)]" : a.severity === "medium" ? "bg-[var(--accent-yellow)]" : "bg-[var(--accent-blue)]"}`} />

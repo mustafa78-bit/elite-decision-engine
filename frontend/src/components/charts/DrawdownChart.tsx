@@ -45,7 +45,7 @@ export default function DrawdownChart({ equityCurve, height = 150 }: Props) {
     });
 
     const series = chart.addSeries(AreaSeries, {
-      lineColor: "#ef4444",
+      linecolor: "var(--accent-red)",
       topColor: "rgba(239, 68, 68, 0.3)",
       bottomColor: "rgba(239, 68, 68, 0.05)",
       lineWidth: 2,
@@ -60,7 +60,7 @@ export default function DrawdownChart({ equityCurve, height = 150 }: Props) {
 
   if (drawdownData.length === 0) {
     return (
-      <div className="text-gray-500 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-muted)] text-xs p-4 border border-dashed border-gray-800 rounded text-center">
         No drawdown data
       </div>
     );

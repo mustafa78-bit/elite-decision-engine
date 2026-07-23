@@ -85,7 +85,7 @@ const ROOMS: Record<string, RoomDefinition> = {
     accentGlow: 'rgba(139, 92, 246, 0.12)',
     gradient: 'radial-gradient(ellipse at 40% 20%, #1A0A30 0%, transparent 60%), radial-gradient(ellipse at 60% 80%, #0F0A1A 0%, transparent 55%), radial-gradient(ellipse at 50% 50%, #150A24 0%, transparent 65%)',
     lighting: {
-      ambientColor: '#8B5CF6',
+      ambientcolor: "var(--accent-purple)",
       ambientIntensity: 0.07,
       vignetteColor: '#0F0A1A',
       vignetteOpacity: 0.55,
@@ -127,7 +127,7 @@ const ROOMS: Record<string, RoomDefinition> = {
     accentGlow: 'rgba(59, 130, 246, 0.12)',
     gradient: 'radial-gradient(ellipse at 40% 10%, #112244 0%, transparent 60%), radial-gradient(ellipse at 70% 90%, #0A0F1A 0%, transparent 55%), radial-gradient(ellipse at 20% 50%, #0E1A2E 0%, transparent 60%)',
     lighting: {
-      ambientColor: '#3B82F6',
+      ambientcolor: "var(--accent-blue)",
       ambientIntensity: 0.06,
       vignetteColor: '#0A0F1A',
       vignetteOpacity: 0.5,

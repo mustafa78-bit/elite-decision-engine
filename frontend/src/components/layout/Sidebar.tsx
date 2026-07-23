@@ -159,7 +159,7 @@ export default function Sidebar() {
                   <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.12em] leading-tight">
                     {section.title}
                   </div>
-                  <div className="text-[7px] text-[var(--text-muted)] font-mono uppercase tracking-[0.08em] opacity-50">
+                  <div className="text-[7px] text-[var(--text-muted)] font-mono uppercase tracking-[0.08em] ">
                     {section.subtitle}
                   </div>
                 </div>

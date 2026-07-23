@@ -34,7 +34,7 @@ function DecisionDetail({ intel, timestamp }: { intel: TradeIntelligence; timest
       <DetailRow label="MTF" value={intel.mtf_score.toFixed(1)} />
       <DetailRow label="Risk" value={intel.risk_score.toFixed(1)} />
       <DetailRow label="RSI" value={intel.rsi.toFixed(0)} />
-      <div className="text-[9px] text-[var(--text-muted)] opacity-50 pt-0.5">{time}</div>
+      <div className="text-[9px] text-[var(--text-muted)]  pt-0.5">{time}</div>
     </div>
   );
 }
@@ -87,7 +87,7 @@ export default function AIDecisionTimeline({ notifications }: Props) {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[var(--text-muted)]">{(intel.confidence * 100).toFixed(0)}%</span>
-                  <span className="text-[var(--text-muted)] opacity-50">{time}</span>
+                  <span className="text-[var(--text-muted)] ">{time}</span>
                 </div>
               </button>
               {open && <DecisionDetail intel={intel} timestamp={n.timestamp} />}

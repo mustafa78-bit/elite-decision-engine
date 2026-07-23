@@ -48,7 +48,7 @@ export function MonitoringStatus() {
             <Button variant="ghost" size="sm" onClick={load}>Retry</Button>
           </div>
         ) : !data ? (
-          <p className="text-[10px] text-gray-600 font-mono">No status data</p>
+          <p className="text-[10px] text-[var(--text-muted)] font-mono">No status data</p>
         ) : (
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
@@ -58,7 +58,7 @@ export function MonitoringStatus() {
             </div>
             {data.services && Object.entries(data.services).map(([name, s]) => (
               <div key={name} className="flex items-center justify-between py-0.5">
-                <span className="text-[10px] font-mono text-gray-400 uppercase">{name}</span>
+                <span className="text-[10px] font-mono text-[var(--text-secondary)] uppercase">{name}</span>
                 <Badge variant={serviceBadge(s)}>{s}</Badge>
               </div>
             ))}

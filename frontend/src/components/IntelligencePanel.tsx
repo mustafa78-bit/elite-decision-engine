@@ -7,7 +7,7 @@ interface Props {
 export default function IntelligencePanel({ intelligence }: Props) {
   return (
     <div className="border border-gray-800 rounded bg-gray-900/50 px-3 py-2">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">
+      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-2">
         Intelligence
       </h3>
       {intelligence ? (
@@ -70,7 +70,7 @@ export default function IntelligencePanel({ intelligence }: Props) {
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <span className="text-[20px] opacity-20 mb-2">◈</span>
           <p className="text-[11px] text-[var(--text-muted)] font-mono">No intelligence available yet</p>
-          <p className="text-[9px] text-[var(--text-muted)] opacity-50 mt-1 max-w-[180px]">
+          <p className="text-[9px] text-[var(--text-muted)]  mt-1 max-w-[180px]">
             AI insights will appear after the first completed analysis
           </p>
         </div>

@@ -21,7 +21,7 @@ const decisionColors: Record<string, string> = {
 export default function SignalTimeline({ signals }: Props) {
   if (signals.length === 0) {
     return (
-      <div className="text-gray-600 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-muted)] text-xs p-4 border border-dashed border-gray-800 rounded text-center">
         No signal history
       </div>
     );
@@ -31,7 +31,7 @@ export default function SignalTimeline({ signals }: Props) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
+      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
         Signal Timeline
       </h3>
       <div className="space-y-1">
@@ -40,7 +40,7 @@ export default function SignalTimeline({ signals }: Props) {
           return (
             <div key={s.id} className="flex items-center gap-2 text-xs">
               <span className={`inline-block w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-              <span className="text-gray-300 font-medium w-14">{s.symbol}</span>
+              <span className="text-[var(--text-secondary)] font-medium w-14">{s.symbol}</span>
               <span className={s.side === "LONG" ? "text-green-400 w-8" : "text-red-400 w-8"}>
                 {s.side}
               </span>
@@ -53,7 +53,7 @@ export default function SignalTimeline({ signals }: Props) {
               }`}>
                 {(s.confidence).toFixed(0)}%
               </span>
-              <span className="text-gray-500 flex-1 text-right">
+              <span className="text-[var(--text-muted)] flex-1 text-right">
                 {s.created_at ? new Date(s.created_at).toLocaleTimeString() : ""}
               </span>
             </div>

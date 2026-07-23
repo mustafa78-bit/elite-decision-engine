@@ -13,15 +13,15 @@ export default function ExecutionTimeline({ approved, rejected, pending }: Props
   if (total === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded p-4">
-        <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">Signal Flow</h3>
-        <p className="text-gray-600 text-xs text-center py-4">No signal data</p>
+        <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">Signal Flow</h3>
+        <p className="text-[var(--text-muted)] text-xs text-center py-4">No signal data</p>
       </div>
     );
   }
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">Signal Flow</h3>
+      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">Signal Flow</h3>
       <div className="h-6 bg-gray-950 rounded-full overflow-hidden flex">
         <div className="bg-green-600 h-full transition-all" style={{ width: `${approvedPct}%` }} title={`Approved: ${approved}`} />
         <div className="bg-red-600 h-full transition-all" style={{ width: `${rejectedPct}%` }} title={`Rejected: ${rejected}`} />
@@ -30,15 +30,15 @@ export default function ExecutionTimeline({ approved, rejected, pending }: Props
       <div className="flex gap-4 mt-2 text-[10px]">
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-green-600" />
-          <span className="text-gray-400">{approved} approved</span>
+          <span className="text-[var(--text-secondary)]">{approved} approved</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-red-600" />
-          <span className="text-gray-400">{rejected} rejected</span>
+          <span className="text-[var(--text-secondary)]">{rejected} rejected</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-yellow-600" />
-          <span className="text-gray-400">{pending} pending</span>
+          <span className="text-[var(--text-secondary)]">{pending} pending</span>
         </div>
       </div>
     </div>

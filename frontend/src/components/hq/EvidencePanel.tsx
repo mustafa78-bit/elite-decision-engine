@@ -198,8 +198,8 @@ export default function EvidencePanel({ report, loading, error }: Props) {
         <div className="bg-[var(--bg-deep)] rounded-lg p-2.5">
           <div className="text-[8px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Warnings</div>
           <div className="flex items-center gap-1 mt-0.5">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: report.warnings.length > 0 ? "#F97316" : "#22C55E" }} />
-            <span className="text-[10px] font-mono" style={{ color: report.warnings.length > 0 ? "#F97316" : "#22C55E" }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: report.warnings.length > 0 ? "var(--accent-orange)" : "var(--accent-green)" }} />
+            <span className="text-[10px] font-mono" style={{ color: report.warnings.length > 0 ? "var(--accent-orange)" : "var(--accent-green)" }}>
               {report.warnings.length}
             </span>
           </div>

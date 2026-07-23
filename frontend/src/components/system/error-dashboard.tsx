@@ -41,7 +41,7 @@ export function ErrorDashboard({
       </CardHeader>
       <CardContent className="space-y-1.5 max-h-64 overflow-y-auto">
         {errors.map((e) => (
-          <div key={e.id} className={`p-2 rounded-lg border text-[9px] font-mono ${e.resolved ? "bg-[var(--bg-base)]/50 border-[var(--border-subtle)] opacity-50" : "bg-[var(--bg-base)] border-[var(--border-subtle)]"}`}>
+          <div key={e.id} className={`p-2 rounded-lg border text-[9px] font-mono ${e.resolved ? "bg-[var(--bg-base)]/50 border-[var(--border-subtle)] " : "bg-[var(--bg-base)] border-[var(--border-subtle)]"}`}>
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${e.severity === "critical" ? "bg-[var(--accent-red)]" : e.severity === "error" ? "bg-red-400" : "bg-[var(--accent-yellow)]"}`} />

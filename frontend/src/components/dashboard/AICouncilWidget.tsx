@@ -78,7 +78,7 @@ export default function AICouncilWidget({ intelligence, symbol = "BTCUSDT" }: Pr
           <span className="glass-header-label">AI COUNCIL</span>
         </div>
         <div className="p-6 text-center">
-          <span className="text-[10px] font-mono" style={{ color: "#64748B" }}>
+          <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
             {error || "No council data yet"}
           </span>
         </div>
@@ -98,12 +98,12 @@ export default function AICouncilWidget({ intelligence, symbol = "BTCUSDT" }: Pr
         </div>
         <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono" style={{ color: "#94A3B8" }}>Decision</span>
+            <span className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>Decision</span>
             <span className="text-[11px] font-mono font-semibold" style={{ color: dirColor }}>{intelligence.decision}</span>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-mono" style={{ color: "#94A3B8" }}>Confidence</span>
+              <span className="text-[9px] font-mono" style={{ color: "var(--text-secondary)" }}>Confidence</span>
               <span className="text-[10px] font-mono" style={{ color: dirColor }}>{(intelligence.confidence * 100).toFixed(0)}%</span>
             </div>
             <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "#0D1320" }}>
@@ -126,7 +126,7 @@ export default function AICouncilWidget({ intelligence, symbol = "BTCUSDT" }: Pr
             ].map((m) => (
               <div key={m.label} className="space-y-0.5">
                 <div className="flex items-center justify-between text-[9px] font-mono">
-                  <span style={{ color: "#94A3B8" }}>{m.label}</span>
+                  <span style={{ color: "var(--text-secondary)" }}>{m.label}</span>
                   <span style={{ color: m.color }}>{(m.value * 100).toFixed(0)}%</span>
                 </div>
                 <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: "#0D1320" }}>
@@ -162,7 +162,7 @@ export default function AICouncilWidget({ intelligence, symbol = "BTCUSDT" }: Pr
       <div className="p-4 space-y-3">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-mono" style={{ color: "#94A3B8" }}>Consensus</span>
+            <span className="text-[9px] font-mono" style={{ color: "var(--text-secondary)" }}>Consensus</span>
             <span className="text-[10px] font-mono font-semibold" style={{ color: consensusColor }}>
               {activeData.consensus_direction}
             </span>
@@ -179,17 +179,17 @@ export default function AICouncilWidget({ intelligence, symbol = "BTCUSDT" }: Pr
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[8px] font-mono" style={{ color: "#475569" }}>
+            <span className="text-[8px] font-mono" style={{ color: "var(--text-disabled)" }}>
               Confidence: {(activeData.consensus_score * 100).toFixed(0)}%
             </span>
-            <span className="text-[8px] font-mono" style={{ color: "#475569" }}>
+            <span className="text-[8px] font-mono" style={{ color: "var(--text-disabled)" }}>
               Agreement: {activeData.agreement_level}
             </span>
           </div>
         </div>
 
         <div className="space-y-1.5 pt-1 border-t" style={{ borderColor: "#243244" }}>
-          <span className="text-[8px] font-medium tracking-[0.08em]" style={{ color: "#64748B" }}>MEMBERS</span>
+          <span className="text-[8px] font-medium tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>MEMBERS</span>
           {activeData.agent_reports.map((agent: AgentReportData) => {
             const agentColor = MEMBER_COLORS[agent.agent_name] ?? "#64748B";
             const dirColor = DIRECTION_COLORS[agent.direction] ?? "#64748B";
@@ -198,7 +198,7 @@ export default function AICouncilWidget({ intelligence, symbol = "BTCUSDT" }: Pr
                 <div className="flex items-center justify-between text-[10px] font-mono">
                   <div className="flex items-center gap-1.5">
                     <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: agentColor }} />
-                    <span style={{ color: "#94A3B8" }}>{agent.agent_name}</span>
+                    <span style={{ color: "var(--text-secondary)" }}>{agent.agent_name}</span>
                   </div>
                   <span style={{ color: dirColor }}>
                     {agent.direction} ({(agent.confidence * 100).toFixed(0)}%)
@@ -219,10 +219,10 @@ export default function AICouncilWidget({ intelligence, symbol = "BTCUSDT" }: Pr
         </div>
 
         <div className="flex items-center justify-between pt-1 border-t" style={{ borderColor: "#243244" }}>
-          <span className="text-[8px] font-mono" style={{ color: "#475569" }}>
+          <span className="text-[8px] font-mono" style={{ color: "var(--text-disabled)" }}>
             {activeData.sources_agreeing}/{activeData.agent_count} agreeing
           </span>
-          <span className="text-[8px] font-mono" style={{ color: "#475569" }}>
+          <span className="text-[8px] font-mono" style={{ color: "var(--text-disabled)" }}>
             {(activeData.consensus_score * 100).toFixed(0)}% score
           </span>
         </div>

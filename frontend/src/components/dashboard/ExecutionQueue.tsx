@@ -52,7 +52,7 @@ export default function ExecutionQueue() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[var(--text-muted)]">{(s.confidence * 100).toFixed(0)}%</span>
-                  <span className="text-[var(--text-muted)] opacity-50">{timeAgo(s.created_at)}</span>
+                  <span className="text-[var(--text-muted)] ">{timeAgo(s.created_at)}</span>
                 </div>
               </div>
             ))}

@@ -22,14 +22,14 @@ export default function ExposureCard({
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-3">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
+      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
         Exposure
       </h3>
 
       <div className="mb-3">
         <div className="flex justify-between text-xs mb-1">
-          <span className="text-gray-500">Portfolio</span>
-          <span className={`tabular-nums ${portPct > 80 ? "text-red-400" : "text-gray-200"}`}>
+          <span className="text-[var(--text-muted)]">Portfolio</span>
+          <span className={`tabular-nums ${portPct > 80 ? "text-red-400" : "text-[var(--text-primary)]"}`}>
             ${portfolioExposure.toFixed(2)} / ${maxPortfolioExposure.toFixed(2)}
           </span>
         </div>
@@ -43,7 +43,7 @@ export default function ExposureCard({
 
       {Object.entries(symbolExposure).length > 0 && (
         <div className="space-y-2">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider">By Symbol</div>
+          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">By Symbol</div>
           {Object.entries(symbolExposure).map(([sym, val]) => {
             const pct = maxSymbolExposure > 0
               ? Math.min((val / maxSymbolExposure) * 100, 100)
@@ -51,8 +51,8 @@ export default function ExposureCard({
             return (
               <div key={sym}>
                 <div className="flex justify-between text-xs mb-0.5">
-                  <span className="text-gray-300">{sym}</span>
-                  <span className={`tabular-nums ${pct > 80 ? "text-red-400" : "text-gray-200"}`}>
+                  <span className="text-[var(--text-secondary)]">{sym}</span>
+                  <span className={`tabular-nums ${pct > 80 ? "text-red-400" : "text-[var(--text-primary)]"}`}>
                     ${val.toFixed(2)}
                   </span>
                 </div>
@@ -69,7 +69,7 @@ export default function ExposureCard({
       )}
 
       {Object.entries(symbolExposure).length === 0 && (
-        <div className="text-gray-600 text-xs text-center py-2">No open exposure</div>
+        <div className="text-[var(--text-muted)] text-xs text-center py-2">No open exposure</div>
       )}
     </div>
   );

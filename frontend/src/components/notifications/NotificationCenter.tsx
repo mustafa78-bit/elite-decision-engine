@@ -39,7 +39,7 @@ export default function NotificationCenter() {
 
   if (loading) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-muted)] text-xs p-6 border border-dashed border-gray-800 rounded text-center">
         Loading notifications...
       </div>
     );
@@ -49,7 +49,7 @@ export default function NotificationCenter() {
     return (
       <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 rounded">
         {error}
-        <button onClick={load} className="ml-2 underline text-gray-400 hover:text-gray-200">
+        <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
           Retry
         </button>
       </div>
@@ -58,7 +58,7 @@ export default function NotificationCenter() {
 
   if (notifications.length === 0) {
     return (
-      <div className="text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-muted)] text-xs p-6 border border-dashed border-gray-800 rounded text-center">
         No notifications yet
       </div>
     );
@@ -67,7 +67,7 @@ export default function NotificationCenter() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-gray-500">
+        <span className="text-[10px] text-[var(--text-muted)]">
           {unreadCount > 0 ? `${unreadCount} unread` : "All read"}
         </span>
       </div>
