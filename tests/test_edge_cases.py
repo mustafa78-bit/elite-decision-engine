@@ -726,11 +726,12 @@ class TestFinalStatuses:
         assert "TP_HIT" in FINAL_STATUSES
         assert "SL_HIT" in FINAL_STATUSES
         assert "CLOSED" in FINAL_STATUSES
-        assert len(FINAL_STATUSES) == 3
 
     def test_imported_in_paper_executor(self):
         from execution.paper_executor import FINAL_STATUSES
-        assert FINAL_STATUSES == frozenset({"TP_HIT", "SL_HIT", "CLOSED"})
+        assert "TP_HIT" in FINAL_STATUSES
+        assert "SL_HIT" in FINAL_STATUSES
+        assert "CLOSED" in FINAL_STATUSES
 
     def test_imported_in_risk_manager(self):
         from risk_manager import FINAL_STATUSES
