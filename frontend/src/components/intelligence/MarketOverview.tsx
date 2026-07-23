@@ -11,36 +11,36 @@ export default function MarketOverview({ price, regime, btcHealth, volatility, r
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">Market Status</h3>
+      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">Market Status</h3>
       <div className="grid grid-cols-2 gap-3 text-xs">
         {price != null && (
           <div>
-            <div className="text-gray-500 text-[9px] uppercase tracking-wider">Price</div>
-            <div className="text-gray-200 font-semibold tabular-nums">${price.toLocaleString()}</div>
+            <div className="text-[var(--text-muted)] text-[9px] uppercase tracking-wider">Price</div>
+            <div className="text-[var(--text-primary)] font-semibold tabular-nums">${price.toLocaleString()}</div>
           </div>
         )}
         {regime && (
           <div>
-            <div className="text-gray-500 text-[9px] uppercase tracking-wider">Regime</div>
+            <div className="text-[var(--text-muted)] text-[9px] uppercase tracking-wider">Regime</div>
             <div className={`font-semibold ${regimeColor}`}>{regime}</div>
           </div>
         )}
         {btcHealth != null && (
           <div>
-            <div className="text-gray-500 text-[9px] uppercase tracking-wider">BTC Health</div>
-            <div className="text-gray-200 font-semibold tabular-nums">{(btcHealth * 100).toFixed(0)}%</div>
+            <div className="text-[var(--text-muted)] text-[9px] uppercase tracking-wider">BTC Health</div>
+            <div className="text-[var(--text-primary)] font-semibold tabular-nums">{(btcHealth * 100).toFixed(0)}%</div>
           </div>
         )}
         {volatility != null && (
           <div>
-            <div className="text-gray-500 text-[9px] uppercase tracking-wider">Volatility</div>
-            <div className="text-gray-200 font-semibold tabular-nums">{(volatility * 100).toFixed(2)}%</div>
+            <div className="text-[var(--text-muted)] text-[9px] uppercase tracking-wider">Volatility</div>
+            <div className="text-[var(--text-primary)] font-semibold tabular-nums">{(volatility * 100).toFixed(2)}%</div>
           </div>
         )}
         {rsi != null && (
           <div>
-            <div className="text-gray-500 text-[9px] uppercase tracking-wider">RSI</div>
-            <div className="text-gray-200 font-semibold tabular-nums">{rsi}</div>
+            <div className="text-[var(--text-muted)] text-[9px] uppercase tracking-wider">RSI</div>
+            <div className="text-[var(--text-primary)] font-semibold tabular-nums">{rsi}</div>
           </div>
         )}
       </div>

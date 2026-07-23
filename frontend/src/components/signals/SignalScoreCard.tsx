@@ -14,7 +14,7 @@ function Bar({ value, label, color }: { value: number; label: string; color: str
   return (
     <div className="mb-2">
       <div className="flex justify-between text-[10px] mb-0.5">
-        <span className="text-gray-500 uppercase">{label}</span>
+        <span className="text-[var(--text-muted)] uppercase">{label}</span>
         <span className={`tabular-nums ${color}`}>{(value * 100).toFixed(0)}%</span>
       </div>
       <div className="h-1.5 bg-gray-950 rounded-full overflow-hidden">
@@ -35,12 +35,12 @@ export default function SignalScoreCard({ symbol, side, confidence, decision, fi
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-sm font-semibold text-gray-100">{symbol}</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">{symbol}</h3>
           <span className={side === "LONG" ? "text-green-400 text-xs" : "text-red-400 text-xs"}>{side}</span>
         </div>
         <div className="text-right">
           <div className={`text-sm font-bold ${decisionColor}`}>{decision.replace("_", " ")}</div>
-          <div className="text-[10px] text-gray-500">{confidence.toFixed(0)}% confidence</div>
+          <div className="text-[10px] text-[var(--text-muted)]">{confidence.toFixed(0)}% confidence</div>
         </div>
       </div>
 

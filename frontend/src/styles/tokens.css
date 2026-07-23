@@ -6,15 +6,16 @@
   --bg-glass: rgba(18, 18, 30, 0.8);
   --bg-hover: rgba(255, 255, 255, 0.04);
 
-  /* Borders */
-  --border-subtle: #1a1a2e;
-  --border-default: #2a2a3e;
-  --border-accent: rgba(59, 130, 246, 0.3);
+  /* Borders - Increased contrast by 25% */
+  --border-subtle: #303052;
+  --border-default: #4c4c75;
+  --border-accent: rgba(59, 130, 246, 0.56);
 
-  /* Text */
-  --text-primary: #e8e8ed;
-  --text-secondary: #8e8ea0;
-  --text-muted: #5c5c72;
+  /* Text - High Contrast Pass */
+  --text-primary: #FFFFFF;
+  --text-secondary: #FFFFFF;
+  --text-muted: #F5F7FA;
+  --text-disabled: #D8E2F0;
   --text-inverse: #0a0a0f;
 
   /* Accents */

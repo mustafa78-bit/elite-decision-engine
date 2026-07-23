@@ -48,7 +48,7 @@ export default function PerformanceChart({ equityCurve, height = 200 }: Props) {
 
   if (equityCurve.length === 0) {
     return (
-      <div className="text-gray-500 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-muted)] text-xs p-4 border border-dashed border-gray-800 rounded text-center">
         No performance data
       </div>
     );

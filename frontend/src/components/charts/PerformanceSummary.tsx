@@ -35,14 +35,14 @@ export default function PerformanceSummary({
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
+      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
         Performance Summary
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
         {items.map((item) => (
           <div key={item.label}>
-            <div className="text-[9px] text-gray-600 uppercase tracking-wider">{item.label}</div>
-            <div className={`text-sm font-semibold tabular-nums ${item.color || "text-gray-200"}`}>
+            <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">{item.label}</div>
+            <div className={`text-sm font-semibold tabular-nums ${item.color || "text-[var(--text-primary)]"}`}>
               {item.value}
             </div>
           </div>
