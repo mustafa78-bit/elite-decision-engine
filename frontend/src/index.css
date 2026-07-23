@@ -17,10 +17,10 @@
   --accent-cyan: #89D6FF;
   --accent-purple: #8B5CF6;
   --accent-orange: #F97316;
-  --text-primary: #FEFEFF;
-  --text-secondary: #F4F7FF;
-  --text-muted: #E6EEFB;
-  --text-disabled: #B9C8DD;
+  --text-primary: #FFFFFF;
+  --text-secondary: #FFFFFF;
+  --text-muted: #F5F7FA;
+  --text-disabled: #D8E2F0;
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
   --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.4);
   --radius-card: 20px;
@@ -271,24 +271,14 @@ body {
   opacity: 1 !important;
 }
 
-/* Card labels use the Secondary color instead of Muted */
+/* Every card label, section title, metric label, sidebar item, menu item must be white (#FFFFFF) */
 .glass-header-label,
 .hq-section-label,
 .section-title,
 .card-label,
 .widget-header-label,
-thead th {
-  font-weight: 700 !important;
-  color: var(--text-secondary) !important;
-}
-
-/* Sidebar section titles use Primary color */
-.sidebar-section-title {
-  font-weight: 700 !important;
-  color: var(--text-primary) !important;
-}
-
-/* Card titles use Primary color */
+thead th,
+.sidebar-section-title,
 .widget-header span,
 .widget-header h2,
 .widget-header h3,
@@ -298,18 +288,15 @@ thead th {
 .glass-header h3,
 .widget-title,
 .card-title,
-.sidebar-title {
-  font-weight: 700 !important;
-  color: var(--text-primary) !important;
-}
-
-/* Menu items use Secondary color */
+.sidebar-title,
 .sidebar-menu-item,
 .tab-button,
 [role="tab"],
-.menu-item {
-  font-weight: 600 !important;
-  color: var(--text-secondary) !important;
+.menu-item,
+[class*="text-[var(--text-secondary)]"],
+[class*="text-[var(--text-muted)]"] {
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
 }
 
 /* Small metadata should use Muted color */
@@ -318,6 +305,7 @@ thead th {
 p.text-\[11px\],
 p.text-\[10px\] {
   color: var(--text-muted) !important;
+  font-weight: 500 !important;
 }
 
 /* Overriding letter spacing to reduce excessive spacing for tighter scanning */

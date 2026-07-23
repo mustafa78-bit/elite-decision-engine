@@ -12,10 +12,10 @@
   --border-accent: rgba(59, 130, 246, 0.56);
 
   /* Text - High Contrast Pass */
-  --text-primary: #FEFEFF;
-  --text-secondary: #F4F7FF;
-  --text-muted: #E6EEFB;
-  --text-disabled: #B9C8DD;
+  --text-primary: #FFFFFF;
+  --text-secondary: #FFFFFF;
+  --text-muted: #F5F7FA;
+  --text-disabled: #D8E2F0;
   --text-inverse: #0a0a0f;
 
   /* Accents */
