@@ -133,11 +133,11 @@ export default function Sidebar() {
               boxShadow: `0 0 8px ${activeRoomColor}`,
             }}
           />
-          <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+          <span className="text-sm font-bold text-[var(--text-primary)] tracking-tight">
             Elite HQ
           </span>
         </div>
-        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.1em]">
+        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.05em] font-bold">
           Decision Intelligence
         </p>
       </div>
@@ -156,10 +156,10 @@ export default function Sidebar() {
                   }}
                 />
                 <div className="min-w-0">
-                  <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.12em] leading-tight">
+                  <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.05em] leading-tight">
                     {section.title}
                   </div>
-                  <div className="text-[7px] text-[var(--text-muted)] font-mono uppercase tracking-[0.08em] opacity-50">
+                  <div className="text-[7px] text-[var(--text-muted)] font-mono uppercase tracking-[0.04em] opacity-80 font-bold">
                     {section.subtitle}
                   </div>
                 </div>
@@ -173,7 +173,7 @@ export default function Sidebar() {
                     key={item.path}
                     to={item.path}
                     className={cn(
-                      "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                      "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
                       isActive
                         ? "text-[var(--text-primary)]"
                         : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
@@ -210,7 +210,7 @@ export default function Sidebar() {
               animation: 'sidebar-pulse 2s ease-in-out infinite',
             }}
           />
-          <span className="text-[10px] text-[var(--text-muted)] font-mono">
+          <span className="text-[10px] text-[var(--text-muted)] font-mono font-bold">
             System Online
           </span>
         </div>
