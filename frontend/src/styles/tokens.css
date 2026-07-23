@@ -7,14 +7,15 @@
   --bg-hover: rgba(255, 255, 255, 0.04);
 
   /* Borders */
-  --border-subtle: #1a1a2e;
-  --border-default: #2a2a3e;
-  --border-accent: rgba(59, 130, 246, 0.3);
+  --border-subtle: #24243e;
+  --border-default: #3b3b5c;
+  --border-accent: rgba(59, 130, 246, 0.45);
 
   /* Text */
-  --text-primary: #e8e8ed;
-  --text-secondary: #8e8ea0;
-  --text-muted: #5c5c72;
+  --text-primary: #F7FAFF;
+  --text-secondary: #D8E3F5;
+  --text-muted: #9DB0C9;
+  --text-disabled: #5F708A;
   --text-inverse: #0a0a0f;
 
   /* Accents */
