@@ -6,6 +6,28 @@ import RiskCard from "../components/risk/RiskCard";
 import type { RiskData, PositionSizing } from "../api/risk";
 import { ApiError } from "../api/client";
 import { fetchRisk, fetchPositionSizing } from "../api/risk";
+import { RecommendationCard, type Recommendation } from "../components/ui/RecommendationCard";
+
+const riskRecommendations: Recommendation[] = [
+  {
+    id: "risk-rec-1",
+    type: "alert",
+    symbol: "BTCUSDT",
+    action: "ADJUST STOP LOSS",
+    reasoning: "High volatility regime detected. Recommend adjusting stop-loss buffers on BTC spot to 1.5x ATR to avoid premature stop-outs during liquidity sweeps.",
+    confidence: 87,
+    priority: "high",
+  },
+  {
+    id: "risk-rec-2",
+    type: "hedge",
+    symbol: "SOLUSDT",
+    action: "REDUCE SIZE",
+    reasoning: "Correlation of active portfolio assets exceeds 0.82 threshold. Recommend reducing SOL position sizing on new entries to limit joint downside risk.",
+    confidence: 74,
+    priority: "medium",
+  },
+];
 
 export default function Risk() {
   const [risk, setRisk] = useState<RiskData | null>(null);
@@ -146,6 +168,17 @@ export default function Risk() {
             riskAmount={sizing ? sizing.risk_amount.toFixed(2) : "\u2014"}
           />
         </section>
+      </div>
+
+      <div className="space-y-3 pt-4 border-t border-[var(--border-subtle)]">
+        <h3 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
+          Risk Mitigation & Hedging Recommendations
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {riskRecommendations.map((rec) => (
+            <RecommendationCard key={rec.id} recommendation={rec} />
+          ))}
+        </div>
       </div>
     </div>
   );

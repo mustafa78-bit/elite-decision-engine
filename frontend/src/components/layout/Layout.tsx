@@ -17,6 +17,7 @@ import type {
 import Header from "./Header.tsx";
 import IntelligencePanel from "../IntelligencePanel.tsx";
 import Sidebar from "./Sidebar.tsx";
+import WorkflowNav from "./WorkflowNav.tsx";
 
 export interface LayoutContext {
   notifications: TradeNotification[];
@@ -73,6 +74,9 @@ export default function Layout({ wsRooms, context }: Props) {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
+                {["/overview", "/intelligence", "/signals", "/portfolio", "/risk", "/ai-experience"].includes(pathname) && (
+                  <WorkflowNav />
+                )}
                 <Outlet context={context} />
               </motion.div>
             </AnimatePresence>

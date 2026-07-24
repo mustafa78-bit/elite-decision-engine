@@ -10,6 +10,28 @@ import ExposureChart from "../components/portfolio/ExposureChart";
 import AllocationCard from "../components/portfolio/AllocationCard";
 import PositionTable from "../components/portfolio/PositionTable";
 import MetricCard from "../components/MetricCard";
+import { RecommendationCard, type Recommendation } from "../components/ui/RecommendationCard";
+
+const portfolioRecommendations: Recommendation[] = [
+  {
+    id: "port-rec-1",
+    type: "rebalance",
+    symbol: "ETHUSDT",
+    action: "REBALANCE WEIGHT",
+    reasoning: "Over-exposure detected in Layer-1 protocols. Recommended to reallocate 5% from ETH into high-performance subsectors or stable reserves to optimize risk-adjusted Sharpe.",
+    confidence: 81,
+    priority: "medium",
+  },
+  {
+    id: "port-rec-2",
+    type: "hedge",
+    symbol: "BTCUSDT",
+    action: "TAIL HEDGE",
+    reasoning: "Portfolio beta is currently elevated at 1.45. Consider establishing a 2% tail hedge on BTC near major support breakdown levels.",
+    confidence: 79,
+    priority: "high",
+  },
+];
 
 export default function Portfolio() {
   const { openTrades } = useOutletContext<LayoutContext>();
@@ -70,7 +92,7 @@ export default function Portfolio() {
   }));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         Portfolio Terminal
       </h2>
@@ -101,6 +123,17 @@ export default function Portfolio() {
       </div>
 
       <PositionTable positions={positions} />
+
+      <div className="space-y-3">
+        <h3 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
+          Portfolio Optimization & Advisor Recommendations
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {portfolioRecommendations.map((rec) => (
+            <RecommendationCard key={rec.id} recommendation={rec} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

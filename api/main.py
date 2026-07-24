@@ -59,6 +59,10 @@ from api.routes.scanner import router as scanner_router
 from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
+from api.routes.paper import router as paper_router
+from api.routes.ollo import router as ollo_router
+from api.routes.council import router as council_router
+from api.routes.whale import router as whale_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -190,6 +194,10 @@ app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
+app.include_router(paper_router)
+app.include_router(ollo_router)
+app.include_router(council_router)
+app.include_router(whale_router)
 
 manager = WebSocketManager()
 
@@ -304,6 +312,18 @@ try:
 except Exception as e:
     _evidence_engine = None
     logger.warning("Evidence engine initialization failed: %s", e)
+
+_ollo_service: Optional = None
+
+try:
+    from services.ai.ai_service import AIService
+    from services.ollo.ollo_service import OLLOService
+    _ai_service = AIService()
+    _ollo_service = OLLOService(ai_service=_ai_service)
+    logger.info("OLLO service initialized in main")
+except Exception as e:
+    _ollo_service = None
+    logger.warning("OLLO service initialization failed in main: %s", e)
 
 _mip_service: Optional[MarketDataService] = None
 

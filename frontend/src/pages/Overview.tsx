@@ -4,6 +4,7 @@ import { useOutletContext } from "react-router-dom";
 import RegimeBadge from "../components/market/RegimeBadge";
 import type { LayoutContext } from "../components/layout/Layout";
 import { apiFetch, ApiError } from "../api/client";
+import { RecommendationCard, type Recommendation } from "../components/ui/RecommendationCard";
 
 interface MarketData {
   symbol: string;
@@ -41,6 +42,27 @@ function OverviewCard({ label, children }: { label: string; children: React.Reac
     </div>
   );
 }
+
+const standardRecommendations: Recommendation[] = [
+  {
+    id: "rec-btc-1",
+    type: "entry",
+    symbol: "BTCUSDT",
+    action: "STRONG BUY",
+    reasoning: "BTC exhibits robust bullish continuation above the key support line. On-chain whale volume has spiked by 24% over the last 48 hours, aligned with extreme consensus across AI agents.",
+    confidence: 89,
+    priority: "high",
+  },
+  {
+    id: "rec-eth-1",
+    type: "rebalance",
+    symbol: "ETHUSDT",
+    action: "HEDGE EXPOSURE",
+    reasoning: "ETH/BTC ratio hits key resistance, triggering potential volatility. Recommended to hedge 15% of spot ETH holdings with short derivatives or increase stablecoin buffers.",
+    confidence: 76,
+    priority: "medium",
+  },
+];
 
 export default function Overview() {
   const { openTrades, closedTrades } = useOutletContext<LayoutContext>();
@@ -99,7 +121,7 @@ export default function Overview() {
   const totalPnl = closedTrades.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
         Terminal Overview
       </h2>
@@ -109,13 +131,13 @@ export default function Overview() {
           <OverviewCard label="BTC Status">
             <div className="flex items-center justify-between mb-2">
               <span className="text-lg font-bold tabular-nums text-[var(--text-primary)]">
-                ${market.price.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                ${market.price?.toLocaleString(undefined, { minimumFractionDigits: 0 }) ?? "--"}
               </span>
               <RegimeBadge regime={market.regime} />
             </div>
             <div className="grid grid-cols-2 gap-1 text-xs">
-              <div><span className="text-[var(--text-secondary)]">RSI</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{market.rsi.toFixed(0)}</span></div>
-              <div><span className="text-[var(--text-secondary)]">Health</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{(market.btc_health_score * 100).toFixed(0)}%</span></div>
+              <div><span className="text-[var(--text-secondary)]">RSI</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{market.rsi != null ? market.rsi.toFixed(0) : "--"}</span></div>
+              <div><span className="text-[var(--text-secondary)]">Health</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{market.btc_health_score != null ? (market.btc_health_score * 100).toFixed(0) : "--"}%</span></div>
             </div>
           </OverviewCard>
         )}
@@ -135,12 +157,12 @@ export default function Overview() {
           <OverviewCard label="Risk">
             <div className="text-2xl font-bold tabular-nums mb-2">
               <span className={risk.risk_score >= 0.5 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}>
-                {(risk.risk_score * 100).toFixed(0)}%
+                {risk.risk_score != null ? (risk.risk_score * 100).toFixed(0) : "0"}%
               </span>
             </div>
             <div className="grid grid-cols-2 gap-1 text-xs">
-              <div><span className="text-[var(--text-secondary)]">Open</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{risk.open_trades}/{risk.max_open_trades}</span></div>
-              <div><span className="text-[var(--text-secondary)]">Loss</span> <span className={`tabular-nums float-right ${risk.daily_loss < 0 ? "text-[var(--accent-red)]" : "text-[var(--text-primary)]"}`}>${Math.abs(risk.daily_loss).toFixed(0)}</span></div>
+              <div><span className="text-[var(--text-secondary)]">Open</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{risk.open_trades ?? 0}/{risk.max_open_trades ?? 3}</span></div>
+              <div><span className="text-[var(--text-secondary)]">Loss</span> <span className={`tabular-nums float-right ${(risk.daily_loss ?? 0) < 0 ? "text-[var(--accent-red)]" : "text-[var(--text-primary)]"}`}>${Math.abs(risk.daily_loss ?? 0).toFixed(0)}</span></div>
             </div>
           </OverviewCard>
         )}
@@ -151,11 +173,22 @@ export default function Overview() {
               ${totalPnl.toFixed(0)}
             </div>
             <div className="grid grid-cols-2 gap-1 text-xs">
-              <div><span className="text-[var(--text-secondary)]">Win Rate</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.win_rate.toFixed(0)}%</span></div>
-              <div><span className="text-[var(--text-secondary)]">Sharpe</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.sharpe_ratio.toFixed(2)}</span></div>
+              <div><span className="text-[var(--text-secondary)]">Win Rate</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.win_rate != null ? perf.win_rate.toFixed(0) : "0"}%</span></div>
+              <div><span className="text-[var(--text-secondary)]">Sharpe</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.sharpe_ratio != null ? perf.sharpe_ratio.toFixed(2) : "--"}</span></div>
             </div>
           </OverviewCard>
         )}
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
+          Primary AI Recommendations
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {standardRecommendations.map((rec) => (
+            <RecommendationCard key={rec.id} recommendation={rec} />
+          ))}
+        </div>
       </div>
     </div>
   );

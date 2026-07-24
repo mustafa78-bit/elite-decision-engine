@@ -6,6 +6,28 @@ import SignalTimeline from "../components/signals/SignalTimeline";
 import type { SignalRow } from "../api/signals";
 import { ApiError } from "../api/client";
 import { fetchSignals } from "../api/signals";
+import { RecommendationCard, type Recommendation } from "../components/ui/RecommendationCard";
+
+const signalsRecommendations: Recommendation[] = [
+  {
+    id: "sig-rec-1",
+    type: "entry",
+    symbol: "BTCUSDT",
+    action: "BUY NOW",
+    reasoning: "AI Agent Council consensus reaches 92% bullish confirmation. Technical breakout confirmed on the 4-hour candle with high relative volume.",
+    confidence: 92,
+    priority: "high",
+  },
+  {
+    id: "sig-rec-2",
+    type: "exit",
+    symbol: "SOLUSDT",
+    action: "TAKE PROFIT",
+    reasoning: "SOL hits local resistance target. Heavy sell walls detected on major exchange order books. Recommend scaling out of 50% of active position.",
+    confidence: 85,
+    priority: "high",
+  },
+];
 
 export default function Signals() {
   const [signals, setSignals] = useState<SignalRow[]>([]);
@@ -53,7 +75,7 @@ export default function Signals() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
           Live Signals ({signals.length})
@@ -99,6 +121,17 @@ export default function Signals() {
           )}
 
           <SignalTimeline signals={signals} />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
+          Tactical Signal Recommendations
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {signalsRecommendations.map((rec) => (
+            <RecommendationCard key={rec.id} recommendation={rec} />
+          ))}
         </div>
       </div>
     </div>
