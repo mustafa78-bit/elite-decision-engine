@@ -17,6 +17,7 @@ import type {
 import Header from "./Header.tsx";
 import IntelligencePanel from "../IntelligencePanel.tsx";
 import Sidebar from "./Sidebar.tsx";
+import { OLLOPanel } from "../ai/ollo-panel";
 
 export interface LayoutContext {
   notifications: TradeNotification[];
@@ -131,6 +132,7 @@ export default function Layout({ wsRooms, context }: Props) {
           </div>
         </aside>
       </div>
+      <OLLOPanel />
     </div>
   );
 }

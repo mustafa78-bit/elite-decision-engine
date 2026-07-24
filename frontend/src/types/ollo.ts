@@ -42,3 +42,33 @@ export interface OLLOStatus {
   memory: Record<string, unknown>
   available_rooms: string[]
 }
+
+// Rich OLLO Message Architecture (Sprint 2A)
+export interface OLLOAction {
+  id: string
+  label: string
+  type: "navigate" | "execute_trade" | "dismiss" | "custom"
+  payload?: Record<string, any>
+}
+
+export interface RichOLLOMessage {
+  id: string
+  sender: "user" | "ollo"
+  timestamp: string
+
+  // Rich details
+  title?: string
+  summary?: string
+  reasoning?: string[]
+  evidence?: {
+    type: "technical" | "whale" | "macro" | "funding" | "news" | "portfolio" | "historical"
+    description: string
+    confidence?: number
+  }[]
+  confidence?: number // 0 - 100
+  risk?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL"
+  actions?: OLLOAction[]
+
+  // Plain text fallback / conversation text
+  text?: string
+}

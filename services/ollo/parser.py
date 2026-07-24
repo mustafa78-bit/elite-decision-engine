@@ -142,6 +142,7 @@ def _extract_sections(text: str) -> list[dict]:
                 sections.append({
                     "heading": current_section,
                     "bullets": list(current_bullets),
+                    "content": "\n".join(f"- {b}" for b in current_bullets),
                 })
                 current_bullets = []
             current_section = heading_match.group(2).strip()
@@ -155,6 +156,7 @@ def _extract_sections(text: str) -> list[dict]:
         sections.append({
             "heading": current_section,
             "bullets": list(current_bullets),
+            "content": "\n".join(f"- {b}" for b in current_bullets),
         })
 
     return sections
