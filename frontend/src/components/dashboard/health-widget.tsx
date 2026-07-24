@@ -43,7 +43,7 @@ export function HealthWidget({
           <div className="space-y-2">
             {metrics.map((m) => (
               <div key={m.label}>
-                <div className="flex justify-between text-[11px] mb-0.5">
+                <div className="flex justify-between text-[13px] mb-0.5">
                   <span className="text-[var(--text-secondary)]">
                     {m.label}
                   </span>

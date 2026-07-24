@@ -167,12 +167,12 @@ export default function HeroDashboard() {
         <div className="text-center space-y-4 p-8">
           <div className="text-3xl opacity-30">⚠</div>
           <p className="text-xs text-[var(--text-muted)] font-mono">Unable to load dashboard data</p>
-          <p className="text-[10px] text-[var(--text-secondary)] max-w-md">
+          <p className="text-[12px] text-[var(--text-secondary)] max-w-md">
             Check that the backend is running and accessible at the configured API URL.
           </p>
           <button
             onClick={load}
-            className="px-3 py-1.5 rounded-lg bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] text-[10px] font-mono hover:bg-[var(--accent-blue)]/20 transition-all"
+            className="px-3 py-1.5 rounded-lg bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] text-[12px] font-mono hover:bg-[var(--accent-blue)]/20 transition-all"
           >
             Retry
           </button>

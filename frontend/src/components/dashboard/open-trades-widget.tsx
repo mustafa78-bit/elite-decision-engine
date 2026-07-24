@@ -21,7 +21,7 @@ export function OpenTradesWidget({ trades = [] }: OpenTradesWidgetProps) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Open Trades</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {trades.length} positions
         </span>
       </CardHeader>
@@ -60,7 +60,7 @@ export function OpenTradesWidget({ trades = [] }: OpenTradesWidgetProps) {
                     {formatUSD(t.pnl)}
                   </div>
                 </div>
-                <div className="flex justify-between text-[10px] font-mono text-[var(--text-muted)]">
+                <div className="flex justify-between text-[12px] font-mono text-[var(--text-muted)]">
                   <span>
                     {t.size} @ {formatUSD(t.entry_price)}
                   </span>

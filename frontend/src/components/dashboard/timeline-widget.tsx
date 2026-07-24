@@ -39,13 +39,13 @@ export function TimelineWidget({ events = [] }: TimelineWidgetProps) {
                 <span
                   className={`absolute -left-[17px] top-1 w-2 h-2 rounded-full ${typeDot[evt.type] || "bg-[var(--text-muted)]"} ring-2 ring-[var(--bg-base)]`}
                 />
-                <div className="text-[10px] font-mono text-[var(--text-muted)]">
+                <div className="text-[12px] font-mono text-[var(--text-muted)]">
                   {formatTime(evt.time)}
                 </div>
-                <div className="text-[11px] font-medium text-[var(--text-primary)] mt-0.5">
+                <div className="text-[13px] font-medium text-[var(--text-primary)] mt-0.5">
                   {evt.title}
                 </div>
-                <div className="text-[10px] text-[var(--text-secondary)] line-clamp-1">
+                <div className="text-[12px] text-[var(--text-secondary)] line-clamp-1">
                   {evt.description}
                 </div>
               </div>

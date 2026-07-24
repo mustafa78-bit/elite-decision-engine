@@ -39,18 +39,18 @@ export function APIKeyManager() {
           <div key={k.id} className="p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">{k.exchange}</span>
-                <span className="text-[9px] font-mono text-[var(--text-muted)]">{k.label}</span>
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">{k.exchange}</span>
+                <span className="text-[12px] font-mono text-[var(--text-muted)]">{k.label}</span>
               </div>
-              <Badge variant={k.status === "active" ? "success" : k.status === "disabled" ? "warning" : "danger"} className="text-[8px] capitalize">{k.status}</Badge>
+              <Badge variant={k.status === "active" ? "success" : k.status === "disabled" ? "warning" : "danger"} className="text-[11px] capitalize">{k.status}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <div className="text-[8px] font-mono text-[var(--text-muted)]">
+              <div className="text-[11px] font-mono text-[var(--text-muted)]">
                 Perms: {k.permissions.join(", ")} · Last: {k.lastUsed}
               </div>
               <Button
                 variant={k.status === "active" ? "ghost" : "primary"}
-                className="h-5 text-[8px]"
+                className="h-5 text-[11px]"
                 onClick={() => toggleStatus(k.id)}
               >
                 {k.status === "active" ? "Disable" : "Enable"}
@@ -58,7 +58,7 @@ export function APIKeyManager() {
             </div>
           </div>
         ))}
-        <Button variant="primary" className="w-full h-7 text-[10px]">+ Add API Key</Button>
+        <Button variant="primary" className="w-full h-7 text-[12px]">+ Add API Key</Button>
       </CardContent>
     </Card>
   );

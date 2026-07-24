@@ -42,7 +42,7 @@ export default function TimelinePage() {
         <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
           Timeline
         </h2>
-        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+        <span className="text-[12px] text-[var(--text-muted)] font-mono">
           {total} events
         </span>
       </div>
@@ -76,7 +76,7 @@ export default function TimelinePage() {
                     {e.data?.symbol as string || e.data?.event_type as string || `#${e.id}`}
                   </span>
                 </div>
-                <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                <span className="text-[12px] text-[var(--text-muted)] font-mono">
                   {e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : ""}
                 </span>
               </div>

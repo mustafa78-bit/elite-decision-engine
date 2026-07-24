@@ -51,23 +51,23 @@ export function AlertGenerator({
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex gap-2">
-          <FormSelect value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="flex-1 h-7 text-[10px]">
+          <FormSelect value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="flex-1 h-7 text-[12px]">
             <option value="all">All Types</option>
             {types.map((t) => <option key={t} value={t}>{t}</option>)}
           </FormSelect>
-          <Button variant="primary" className="h-7 text-[10px] whitespace-nowrap" onClick={createAlert}>+ New</Button>
+          <Button variant="primary" className="h-7 text-[12px] whitespace-nowrap" onClick={createAlert}>+ New</Button>
         </div>
         {filtered.map((a) => (
-          <div key={a.id} className={`p-2 rounded-lg border text-[10px] font-mono ${a.triggered ? "bg-[var(--bg-base)] border-[var(--border-subtle)]" : "bg-[var(--bg-hover)]/50 border-[var(--border-subtle)] opacity-60"}`}>
+          <div key={a.id} className={`p-2 rounded-lg border text-[12px] font-mono ${a.triggered ? "bg-[var(--bg-base)] border-[var(--border-subtle)]" : "bg-[var(--bg-hover)]/50 border-[var(--border-subtle)] "}`}>
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${a.severity === "high" ? "bg-[var(--accent-red)]" : a.severity === "medium" ? "bg-[var(--accent-yellow)]" : "bg-[var(--accent-blue)]"}`} />
                 <span className="text-[var(--text-secondary)]">{a.title}</span>
-                <Badge variant={a.severity === "high" ? "danger" : a.severity === "medium" ? "warning" : "info"} className="text-[8px]">{a.severity}</Badge>
+                <Badge variant={a.severity === "high" ? "danger" : a.severity === "medium" ? "warning" : "info"} className="text-[11px]">{a.severity}</Badge>
               </div>
-              <span className="text-[8px] text-[var(--text-muted)]">{a.time}</span>
+              <span className="text-[11px] text-[var(--text-muted)]">{a.time}</span>
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">{a.description}</div>
+            <div className="text-[12px] text-[var(--text-muted)]">{a.description}</div>
           </div>
         ))}
       </CardContent>

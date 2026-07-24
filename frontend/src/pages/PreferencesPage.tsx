@@ -135,7 +135,7 @@ export default function PreferencesPage() {
                   <button
                     key={f}
                     onClick={() => setTimeFormat(f)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
+                    className={`px-2 py-0.5 rounded text-[12px] font-mono border ${
                       timeFormat === f
                         ? "bg-[var(--accent-blue)]/20 border-[var(--accent-blue)] text-[var(--accent-blue)]"
                         : "bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-muted)]"
@@ -153,7 +153,7 @@ export default function PreferencesPage() {
                   <button
                     key={f}
                     onClick={() => setNumberFormat(f)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono border capitalize ${
+                    className={`px-2 py-0.5 rounded text-[12px] font-mono border capitalize ${
                       numberFormat === f
                         ? "bg-[var(--accent-blue)]/20 border-[var(--accent-blue)] text-[var(--accent-blue)]"
                         : "bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-muted)]"
@@ -169,7 +169,7 @@ export default function PreferencesPage() {
               <select
                 value={refreshInterval}
                 onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                className="bg-[var(--bg-base)] border border-[var(--border-subtle)] rounded px-2 py-0.5 text-[10px] font-mono text-[var(--text-primary)]"
+                className="bg-[var(--bg-base)] border border-[var(--border-subtle)] rounded px-2 py-0.5 text-[12px] font-mono text-[var(--text-primary)]"
               >
                 <option value={5000}>5s</option>
                 <option value={10000}>10s</option>
@@ -184,7 +184,7 @@ export default function PreferencesPage() {
                 type="text"
                 value={defaultSymbol}
                 onChange={(e) => setDefaultSymbol(e.target.value.toUpperCase())}
-                className="bg-[var(--bg-base)] border border-[var(--border-subtle)] rounded px-2 py-0.5 text-[10px] font-mono text-[var(--text-primary)] w-28 text-right"
+                className="bg-[var(--bg-base)] border border-[var(--border-subtle)] rounded px-2 py-0.5 text-[12px] font-mono text-[var(--text-primary)] w-28 text-right"
               />
             </div>
           </CardContent>

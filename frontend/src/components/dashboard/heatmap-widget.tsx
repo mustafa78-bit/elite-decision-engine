@@ -57,11 +57,11 @@ export function HeatmapWidget({ cells = [] }: HeatmapWidgetProps) {
                   }`,
                 }}
               >
-                <div className="text-[9px] font-mono font-medium text-[var(--text-primary)]">
+                <div className="text-[12px] font-mono font-medium text-[var(--text-primary)]">
                   {cell.symbol}
                 </div>
                 <div
-                  className={`text-[9px] font-mono tabular-nums ${
+                  className={`text-[12px] font-mono tabular-nums ${
                     isPositive
                       ? "text-[var(--accent-green)]"
                       : "text-[var(--accent-red)]"

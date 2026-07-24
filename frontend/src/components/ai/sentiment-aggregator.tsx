@@ -43,14 +43,14 @@ export function SentimentAggregator({
           <div key={s.source}>
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1.5">
-                <span className={`text-[10px] ${s.direction === "positive" ? "text-[var(--accent-green)]" : s.direction === "negative" ? "text-[var(--accent-red)]" : "text-[var(--accent-yellow)]"}`}>
+                <span className={`text-[12px] ${s.direction === "positive" ? "text-[var(--accent-green)]" : s.direction === "negative" ? "text-[var(--accent-red)]" : "text-[var(--accent-yellow)]"}`}>
                   {s.direction === "positive" ? "▲" : s.direction === "negative" ? "▼" : "◆"}
                 </span>
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">{s.source}</span>
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">{s.source}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono text-[var(--text-muted)]">{(s.volume / 1000).toFixed(1)}K</span>
-                <span className={`text-[10px] font-mono tabular-nums ${s.score >= 60 ? "text-[var(--accent-green)]" : s.score >= 40 ? "text-[var(--accent-yellow)]" : "text-[var(--accent-red)]"}`}>
+                <span className="text-[12px] font-mono text-[var(--text-muted)]">{(s.volume / 1000).toFixed(1)}K</span>
+                <span className={`text-[12px] font-mono tabular-nums ${s.score >= 60 ? "text-[var(--accent-green)]" : s.score >= 40 ? "text-[var(--accent-yellow)]" : "text-[var(--accent-red)]"}`}>
                   {s.score}%
                 </span>
               </div>

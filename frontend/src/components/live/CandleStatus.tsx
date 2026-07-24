@@ -11,31 +11,31 @@ export default function CandleStatus({ open, high, low, close, volume }: Props) 
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-2">
         Latest Candle
       </h3>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
         <div>
-          <span className="text-gray-500">Open</span>
-          <span className="float-right tabular-nums text-gray-300">${open.toFixed(2)}</span>
+          <span className="text-[var(--text-muted)]">Open</span>
+          <span className="float-right tabular-nums text-[var(--text-secondary)]">${open.toFixed(2)}</span>
         </div>
         <div>
-          <span className="text-gray-500">Close</span>
+          <span className="text-[var(--text-muted)]">Close</span>
           <span className={`float-right tabular-nums ${isGreen ? "text-green-400" : "text-red-400"}`}>
             ${close.toFixed(2)}
           </span>
         </div>
         <div>
-          <span className="text-gray-500">High</span>
-          <span className="float-right tabular-nums text-gray-300">${high.toFixed(2)}</span>
+          <span className="text-[var(--text-muted)]">High</span>
+          <span className="float-right tabular-nums text-[var(--text-secondary)]">${high.toFixed(2)}</span>
         </div>
         <div>
-          <span className="text-gray-500">Low</span>
-          <span className="float-right tabular-nums text-gray-300">${low.toFixed(2)}</span>
+          <span className="text-[var(--text-muted)]">Low</span>
+          <span className="float-right tabular-nums text-[var(--text-secondary)]">${low.toFixed(2)}</span>
         </div>
         <div className="col-span-2">
-          <span className="text-gray-500">Volume</span>
-          <span className="float-right tabular-nums text-gray-300">
+          <span className="text-[var(--text-muted)]">Volume</span>
+          <span className="float-right tabular-nums text-[var(--text-secondary)]">
             {volume >= 1_000_000
               ? `${(volume / 1_000_000).toFixed(2)}M`
               : volume.toFixed(2)}

@@ -51,21 +51,21 @@ export function OrderBook({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Order Book</CardTitle>
-          <span className="text-[9px] font-mono text-[var(--text-muted)]">
+          <span className="text-[12px] font-mono text-[var(--text-muted)]">
             Spread: ${spread.toFixed(1)} ({spreadPct.toFixed(3)}%)
           </span>
         </div>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">{symbol}</span>
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">{symbol}</span>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
           <span className="flex-[2]">Price</span>
           <span className="flex-[1] text-right">Size</span>
           <span className="flex-[2] text-right">Total</span>
         </div>
         <div className="max-h-48 overflow-y-auto">
           {asks.reverse().map((a) => (
-            <div key={a.price} className="relative flex items-center px-3 py-0.5 text-[10px] font-mono hover:bg-[var(--bg-hover)]">
+            <div key={a.price} className="relative flex items-center px-3 py-0.5 text-[12px] font-mono hover:bg-[var(--bg-hover)]">
               <div
                 className="absolute right-0 top-0 bottom-0 bg-[var(--accent-red)]/10"
                 style={{ width: `${(a.total / maxAskTotal) * 100}%` }}
@@ -76,12 +76,12 @@ export function OrderBook({
             </div>
           ))}
         </div>
-        <div className="px-3 py-1 border-y border-[var(--border-subtle)] bg-[var(--bg-base)] text-center text-[10px] font-mono font-medium text-[var(--text-primary)] tabular-nums">
+        <div className="px-3 py-1 border-y border-[var(--border-subtle)] bg-[var(--bg-base)] text-center text-[12px] font-mono font-medium text-[var(--text-primary)] tabular-nums">
           {bids[0]?.price.toFixed(1)} — {asks[0]?.price.toFixed(1)}
         </div>
         <div className="max-h-48 overflow-y-auto">
           {bids.map((b) => (
-            <div key={b.price} className="relative flex items-center px-3 py-0.5 text-[10px] font-mono hover:bg-[var(--bg-hover)]">
+            <div key={b.price} className="relative flex items-center px-3 py-0.5 text-[12px] font-mono hover:bg-[var(--bg-hover)]">
               <div
                 className="absolute right-0 top-0 bottom-0 bg-[var(--accent-green)]/10"
                 style={{ width: `${(b.total / maxBidTotal) * 100}%` }}

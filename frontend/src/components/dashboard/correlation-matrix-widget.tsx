@@ -16,7 +16,7 @@ export function CorrelationMatrixWidget({
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full text-[10px] font-mono">
+          <table className="w-full text-[12px] font-mono">
             <thead>
               <tr>
                 <th className="p-1 text-left text-[var(--text-muted)]" />

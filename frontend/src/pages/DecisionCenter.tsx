@@ -229,10 +229,10 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
               <span className="text-sm font-semibold text-[var(--text-primary)]">
                 {item.symbol}
               </span>
-              <Badge variant={getSideBadge(item.side)} className="text-[9px]">
+              <Badge variant={getSideBadge(item.side)} className="text-[12px]">
                 {item.side}
               </Badge>
-              <Badge variant={decision.variant} className="text-[9px]">
+              <Badge variant={decision.variant} className="text-[12px]">
                 {decision.label}
               </Badge>
             </div>
@@ -244,12 +244,12 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
           {Object.entries(EVIDENCE_SECTIONS).map(([key, section]) => (
             <div key={key} className="widget-card">
               <div className="widget-header">
-                <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+                <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                   {section.label}
                 </span>
               </div>
               <div className="widget-body">
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
                   {section.generate(item)}
                 </p>
               </div>
@@ -258,7 +258,7 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
 
           <div className="widget-card">
             <div className="widget-header">
-              <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+              <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                 Elite Score
               </span>
               <span className={cn("text-xs font-mono tabular-nums", getScoreColor(item.eliteScore))}>
@@ -277,7 +277,7 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
                   style={{ width: `${item.eliteScore}%` }}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[10px]">
+              <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div className="flex justify-between">
                   <span className="text-[var(--text-muted)]">Confidence</span>
                   <span className={cn("font-mono tabular-nums", getConfidenceColor(item.confidence))}>
@@ -292,7 +292,7 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--text-muted)]">Outcome</span>
-                  <Badge variant={getOutcomeBadge(item.outcome).variant} className="text-[8px]">
+                  <Badge variant={getOutcomeBadge(item.outcome).variant} className="text-[11px]">
                     {getOutcomeBadge(item.outcome).label}
                   </Badge>
                 </div>
@@ -561,7 +561,7 @@ export default function DecisionCenter() {
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.label}
-              <span className="ml-1.5 text-[10px] text-[var(--text-muted)]">
+              <span className="ml-1.5 text-[12px] text-[var(--text-muted)]">
                 {tabCounts[tab.id]}
               </span>
             </Button>
@@ -630,7 +630,7 @@ export default function DecisionCenter() {
                             </span>
                           </TableCell>
                           <TableCell className="w-16">
-                            <Badge variant={getSideBadge(item.side)} className="text-[9px]">
+                            <Badge variant={getSideBadge(item.side)} className="text-[12px]">
                               {item.side}
                             </Badge>
                           </TableCell>
@@ -647,33 +647,33 @@ export default function DecisionCenter() {
                                   style={{ width: `${item.eliteScore}%` }}
                                 />
                               </div>
-                              <span className={cn("text-[11px] font-mono tabular-nums", getScoreColor(item.eliteScore))}>
+                              <span className={cn("text-[13px] font-mono tabular-nums", getScoreColor(item.eliteScore))}>
                                 {item.eliteScore.toFixed(0)}
                               </span>
                             </div>
                           </TableCell>
                           <TableCell className="w-14">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getConfidenceColor(item.confidence))}>
+                            <span className={cn("text-[13px] font-mono tabular-nums", getConfidenceColor(item.confidence))}>
                               {item.confidence}%
                             </span>
                           </TableCell>
                           <TableCell className="w-24">
-                            <Badge variant={decision.variant} className="text-[9px]">
+                            <Badge variant={decision.variant} className="text-[12px]">
                               {decision.label}
                             </Badge>
                           </TableCell>
                           <TableCell className="w-20">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getRiskColor(item.risk))}>
+                            <span className={cn("text-[13px] font-mono tabular-nums", getRiskColor(item.risk))}>
                               {item.risk.toFixed(2)}
                             </span>
                           </TableCell>
                           <TableCell className="w-24">
-                            <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                            <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                               {formatTimestamp(item.timestamp)}
                             </span>
                           </TableCell>
                           <TableCell className="w-18">
-                            <Badge variant={outcome.variant} className="text-[8px]">
+                            <Badge variant={outcome.variant} className="text-[11px]">
                               {outcome.label}
                             </Badge>
                           </TableCell>
@@ -693,7 +693,7 @@ export default function DecisionCenter() {
                 </table>
               </div>
               <div className="px-3 py-2 border-t border-[var(--border-subtle)]">
-                <p className="text-[10px] text-[var(--text-muted)] font-mono">
+                <p className="text-[12px] text-[var(--text-muted)] font-mono">
                   {filtered.length} decision{filtered.length !== 1 ? "s" : ""}
                 </p>
               </div>

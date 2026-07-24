@@ -10,7 +10,7 @@ export default function Profile() {
         </div>
         <div>
           <h1 className="text-sm font-semibold text-[var(--text-primary)]">Commander</h1>
-          <p className="text-[10px] font-mono text-[var(--text-muted)]">Unavailable</p>
+          <p className="text-[12px] font-mono text-[var(--text-muted)]">Unavailable</p>
         </div>
       </div>
 
@@ -37,9 +37,9 @@ export default function Profile() {
           <CardHeader><CardTitle>API Keys</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             <div className="p-2 rounded bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-between">
-              <span className="text-[10px] font-mono text-[var(--text-muted)]">Unavailable</span>
+              <span className="text-[12px] font-mono text-[var(--text-muted)]">Unavailable</span>
             </div>
-            <Button size="sm" variant="secondary" className="w-full text-[10px]" disabled>
+            <Button size="sm" variant="secondary" className="w-full text-[12px]" disabled>
               Generate New Key
             </Button>
           </CardContent>
@@ -66,7 +66,7 @@ export default function Profile() {
         <Card>
           <CardHeader><CardTitle>Recent Activity</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <div className="text-[10px] text-[var(--text-muted)] font-mono py-1">
+            <div className="text-[12px] text-[var(--text-muted)] font-mono py-1">
               Unavailable
             </div>
           </CardContent>

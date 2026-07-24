@@ -32,41 +32,41 @@ export function SmartStopLoss({ symbol = "BTC/USDT" }: SmartStopLossProps) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Smart Stop-Loss</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">{symbol}</span>
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">{symbol}</span>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Entry</label>
-            <FormInput value={entryPrice} onChange={(e) => setEntryPrice(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Entry</label>
+            <FormInput value={entryPrice} onChange={(e) => setEntryPrice(e.target.value)} className="h-7 text-[12px]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Current</label>
-            <FormInput value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Current</label>
+            <FormInput value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} className="h-7 text-[12px]" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Side</label>
-            <FormSelect value={positionSide} onChange={(e) => setPositionSide(e.target.value)} className="h-7 text-[10px]">
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Side</label>
+            <FormSelect value={positionSide} onChange={(e) => setPositionSide(e.target.value)} className="h-7 text-[12px]">
               <option value="long">Long</option>
               <option value="short">Short</option>
             </FormSelect>
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">ATR ($)</label>
-            <FormInput value={volatility} onChange={(e) => setVolatility(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">ATR ($)</label>
+            <FormInput value={volatility} onChange={(e) => setVolatility(e.target.value)} className="h-7 text-[12px]" />
           </div>
         </div>
         {recommendations.map((r) => (
-          <div key={r.name} className="flex items-center justify-between px-2 py-1 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] text-[10px] font-mono">
+          <div key={r.name} className="flex items-center justify-between px-2 py-1 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] text-[12px] font-mono">
             <div className="flex items-center gap-2">
               <span className="text-[var(--text-secondary)]">{r.name}</span>
-              <span className={`text-[9px] ${r.risk === "Low" ? "text-[var(--accent-green)]" : "text-[var(--accent-yellow)]"}`}>{r.risk}</span>
+              <span className={`text-[12px] ${r.risk === "Low" ? "text-[var(--accent-green)]" : "text-[var(--accent-yellow)]"}`}>{r.risk}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="tabular-nums">${r.stop.toFixed(1)}</span>
-              <Badge variant="default" className="text-[8px]">{r.distance}</Badge>
+              <Badge variant="default" className="text-[11px]">{r.distance}</Badge>
             </div>
           </div>
         ))}

@@ -24,7 +24,7 @@ export function AISummaryCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle>AI Summary</CardTitle>
-            <span className="text-[9px] font-mono text-[var(--text-muted)]">
+            <span className="text-[12px] font-mono text-[var(--text-muted)]">
               {symbol} · {timeframe}
             </span>
           </div>
@@ -34,32 +34,32 @@ export function AISummaryCard({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+        <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
           {summary}
         </p>
         {keyLevels && (
           <div className="flex gap-4 mt-3 pt-3 border-t border-[var(--border-subtle)]">
             <div>
-              <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+              <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
                 Support
               </div>
-              <div className="text-[11px] font-mono text-[var(--accent-green)] tabular-nums">
+              <div className="text-[13px] font-mono text-[var(--accent-green)] tabular-nums">
                 ${keyLevels.support.toLocaleString()}
               </div>
             </div>
             <div>
-              <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+              <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
                 Resistance
               </div>
-              <div className="text-[11px] font-mono text-[var(--accent-red)] tabular-nums">
+              <div className="text-[13px] font-mono text-[var(--accent-red)] tabular-nums">
                 ${keyLevels.resistance.toLocaleString()}
               </div>
             </div>
             <div>
-              <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+              <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
                 Confidence
               </div>
-              <div className="text-[11px] font-mono text-[var(--accent-blue)]">
+              <div className="text-[13px] font-mono text-[var(--accent-blue)]">
                 {confidence}/100
               </div>
             </div>

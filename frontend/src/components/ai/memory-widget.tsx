@@ -35,7 +35,7 @@ export function MemoryWidget({ entries = [] }: MemoryWidgetProps) {
       <CardHeader>
         <CardTitle>
           AI Memory
-          <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">
+          <span className="text-[12px] font-mono text-[var(--text-muted)] ml-2">
             {entries.length} entries
           </span>
         </CardTitle>
@@ -53,16 +53,16 @@ export function MemoryWidget({ entries = [] }: MemoryWidgetProps) {
                     {e.type}
                   </Badge>
                   {e.symbol && (
-                    <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                    <span className="text-[12px] font-mono text-[var(--text-muted)]">
                       {e.symbol}
                     </span>
                   )}
                 </div>
-                <span className="text-[8px] font-mono text-[var(--text-muted)]">
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">
                   {e.timestamp}
                 </span>
               </div>
-              <p className="text-[10px] text-[var(--text-secondary)]">
+              <p className="text-[12px] text-[var(--text-secondary)]">
                 {e.content}
               </p>
             </div>

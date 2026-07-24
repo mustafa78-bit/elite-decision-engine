@@ -55,7 +55,7 @@ export function KPIWidget() {
         >
           <Card className="hover:border-[var(--border-default)] transition-all">
             <CardContent className="p-3">
-              <div className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-1.5">
+              <div className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-1.5">
                 {kpi.name}
               </div>
               <div className="flex items-baseline gap-1.5">
@@ -80,7 +80,7 @@ export function KPIWidget() {
               </div>
               {kpi.change_pct !== undefined && kpi.change_pct !== 0 && (
                 <div
-                  className={`text-[10px] font-mono mt-0.5 ${
+                  className={`text-[12px] font-mono mt-0.5 ${
                     kpi.change_pct > 0
                       ? "text-[var(--accent-green)]"
                       : "text-[var(--accent-red)]"

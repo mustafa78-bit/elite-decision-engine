@@ -35,7 +35,7 @@ export function FundingWidget({ rates = [] }: FundingWidgetProps) {
       <CardHeader>
         <CardTitle>
           Funding Rates
-          <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">
+          <span className="text-[12px] font-mono text-[var(--text-muted)] ml-2">
             8h avg
           </span>
         </CardTitle>
@@ -45,11 +45,11 @@ export function FundingWidget({ rates = [] }: FundingWidgetProps) {
           {rates.map((r) => (
             <div key={r.symbol}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                   {r.symbol}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-[10px] font-mono tabular-nums ${r.rate >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
+                  <span className={`text-[12px] font-mono tabular-nums ${r.rate >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                     {(r.rate * 100).toFixed(4)}%
                   </span>
                   <Badge variant={r.sentiment === "bullish" ? "success" : r.sentiment === "bearish" ? "danger" : "warning"}>
@@ -57,7 +57,7 @@ export function FundingWidget({ rates = [] }: FundingWidgetProps) {
                   </Badge>
                 </div>
               </div>
-              <div className="flex items-center justify-between text-[9px] font-mono text-[var(--text-muted)]">
+              <div className="flex items-center justify-between text-[12px] font-mono text-[var(--text-muted)]">
                 <span>APR: {r.apr.toFixed(1)}%</span>
                 <span>Settlement: {r.timeToSettlement}</span>
               </div>

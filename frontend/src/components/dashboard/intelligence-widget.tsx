@@ -34,7 +34,7 @@ export function IntelligenceWidget({ items = [] }: IntelligenceWidgetProps) {
                 className="p-2 rounded-lg bg-[var(--bg-elevated)]/50 border border-[var(--border-subtle)]"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="text-[11px] font-medium text-[var(--text-primary)] leading-tight">
+                  <div className="text-[13px] font-medium text-[var(--text-primary)] leading-tight">
                     {item.title}
                   </div>
                   {item.relevance !== undefined && (
@@ -43,14 +43,14 @@ export function IntelligenceWidget({ items = [] }: IntelligenceWidgetProps) {
                     </Badge>
                   )}
                 </div>
-                <div className="text-[10px] text-[var(--text-secondary)] mt-1 line-clamp-2">
+                <div className="text-[12px] text-[var(--text-secondary)] mt-1 line-clamp-2">
                   {item.summary}
                 </div>
                 <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-[9px] text-[var(--text-muted)]">
+                  <span className="text-[12px] text-[var(--text-muted)]">
                     {item.source}
                   </span>
-                  <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                  <span className="text-[12px] font-mono text-[var(--text-muted)]">
                     {formatTime(item.timestamp)}
                   </span>
                 </div>

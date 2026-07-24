@@ -39,7 +39,7 @@ export default function LoginPage() {
           <h1 className="text-sm font-semibold tracking-wide text-[var(--text-primary)]">
             Elite Terminal
           </h1>
-          <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest mt-1">
+          <p className="text-[12px] text-[var(--text-muted)] uppercase tracking-widest mt-1">
             Sign in to continue
           </p>
         </div>

@@ -39,7 +39,7 @@ export function OnboardingWizard() {
           <div className="text-center py-8">
             <div className="text-lg font-mono text-[var(--accent-green)] mb-2">✓</div>
             <div className="text-sm font-mono text-[var(--text-primary)] mb-1">Setup Complete!</div>
-            <div className="text-[10px] font-mono text-[var(--text-muted)]">You're ready to start trading</div>
+            <div className="text-[12px] font-mono text-[var(--text-muted)]">You're ready to start trading</div>
           </div>
         </CardContent>
       </Card>
@@ -58,12 +58,12 @@ export function OnboardingWizard() {
         <Progress value={progress} indicatorClassName="h-full rounded-full bg-[var(--accent-blue)]" className="h-1" />
         <div className="text-center">
           <div className="text-sm font-mono text-[var(--text-primary)] mb-1">{step?.title}</div>
-          <div className="text-[10px] font-mono text-[var(--text-muted)]">{step?.description}</div>
+          <div className="text-[12px] font-mono text-[var(--text-muted)]">{step?.description}</div>
         </div>
         <div className="flex justify-between gap-2">
           <Button
             variant="ghost"
-            className="h-7 text-[10px]"
+            className="h-7 text-[12px]"
             onClick={prev}
             disabled={currentStep === 1}
           >
@@ -71,7 +71,7 @@ export function OnboardingWizard() {
           </Button>
           <Button
             variant="primary"
-            className="h-7 text-[10px]"
+            className="h-7 text-[12px]"
             onClick={next}
           >
             {currentStep === STEPS.length ? "Finish" : "Next"}

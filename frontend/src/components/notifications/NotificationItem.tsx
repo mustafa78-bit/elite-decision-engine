@@ -34,7 +34,7 @@ function previewPayload(payload: Record<string, unknown>): string {
 
 export default function NotificationItem({ notification, onMarkRead }: Props) {
   const label = EVENT_LABELS[notification.event_type] || notification.event_type;
-  const color = EVENT_COLORS[notification.event_type] || "text-gray-400";
+  const color = EVENT_COLORS[notification.event_type] || "text-[var(--text-secondary)]";
 
   return (
     <div
@@ -44,22 +44,22 @@ export default function NotificationItem({ notification, onMarkRead }: Props) {
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-semibold uppercase tracking-wider ${color}`}>
+          <span className={`text-[12px] font-semibold uppercase tracking-wider ${color}`}>
             {label}
           </span>
           {!notification.read && (
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
           )}
         </div>
-        <p className="text-[11px] text-gray-400 truncate mt-0.5">
+        <p className="text-[13px] text-[var(--text-secondary)] truncate mt-0.5">
           {previewPayload(notification.payload)}
         </p>
-        <p className="text-[9px] text-gray-600 mt-0.5">{formatTime(notification.created_at)}</p>
+        <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{formatTime(notification.created_at)}</p>
       </div>
       {!notification.read && (
         <button
           onClick={() => onMarkRead(notification.id)}
-          className="text-[9px] text-gray-600 hover:text-gray-300 uppercase tracking-wider shrink-0 mt-1"
+          className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] uppercase tracking-wider shrink-0 mt-1"
         >
           Read
         </button>

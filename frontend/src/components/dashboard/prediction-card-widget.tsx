@@ -39,12 +39,12 @@ export function PredictionCardWidget({ predictions = [] }: PredictionCardWidgetP
                   {p.direction}
                 </Badge>
               </div>
-              <div className="flex items-center gap-2 text-[10px] font-mono text-[var(--text-muted)]">
+              <div className="flex items-center gap-2 text-[12px] font-mono text-[var(--text-muted)]">
                 <span>Target: ${p.target.toLocaleString()}</span>
                 <span>Current: ${p.current.toLocaleString()}</span>
               </div>
               <div className="mt-1.5">
-                <div className="flex justify-between text-[9px] font-mono text-[var(--text-muted)] mb-0.5">
+                <div className="flex justify-between text-[12px] font-mono text-[var(--text-muted)] mb-0.5">
                   <span>Confidence</span>
                   <span>{p.confidence.toFixed(0)}%</span>
                 </div>

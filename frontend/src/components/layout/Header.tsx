@@ -12,7 +12,7 @@ export default function Header({ wsRooms }: Props) {
         <h1 className="text-sm font-semibold tracking-wide text-[var(--text-primary)]">
           Elite Terminal
         </h1>
-        <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest">
+        <p className="text-[12px] text-[var(--text-muted)] uppercase tracking-widest">
           Decision Engine v1
         </p>
       </div>

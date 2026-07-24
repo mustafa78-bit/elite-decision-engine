@@ -45,7 +45,7 @@ function StatusDot({ status, label }: { status: string; label: string }) {
       <span
         className="font-mono"
         style={{
-          fontSize: 8,
+          fontSize: 11,
           color: "var(--text-muted)",
           letterSpacing: "0.05em",
         }}
@@ -55,7 +55,7 @@ function StatusDot({ status, label }: { status: string; label: string }) {
       <span
         className="font-mono"
         style={{
-          fontSize: 6,
+          fontSize: 11,
           color: color,
           opacity: 0.4,
           textTransform: "uppercase" as const,
@@ -95,7 +95,7 @@ export default function SubsystemHealthBar({
       </div>
       <span
         className="font-mono tabular-nums shrink-0"
-        style={{ fontSize: 7, color: "var(--text-muted)" }}
+        style={{ fontSize: 11, color: "var(--text-muted)" }}
       >
         {onlineCount}/{totalCount}
       </span>

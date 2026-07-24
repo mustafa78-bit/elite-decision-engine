@@ -76,13 +76,13 @@ export default function HQLoadingScreen() {
       {/* Title */}
       <div className="text-center mb-12">
         <div
-          className="text-[11px] font-semibold uppercase tracking-[0.25em]"
+          className="text-[13px] font-semibold uppercase tracking-[0.25em]"
           style={{ color: "var(--text-muted)" }}
         >
           ELITE
         </div>
         <div
-          className="text-[13px] font-semibold uppercase tracking-[0.3em] mt-2"
+          className="text-[14px] font-semibold uppercase tracking-[0.3em] mt-2"
           style={{ color: "var(--text-primary)" }}
         >
           COMMAND HEADQUARTERS
@@ -117,7 +117,7 @@ export default function HQLoadingScreen() {
               <span
                 className="font-mono"
                 style={{
-                  fontSize: 9,
+                  fontSize: 12,
                   color:
                     step.status === "done" ? "var(--text-secondary)" :
                     step.status === "syncing" ? "var(--accent-blue)" :
@@ -132,7 +132,7 @@ export default function HQLoadingScreen() {
             <span
               className="font-mono"
               style={{
-                fontSize: 7,
+                fontSize: 11,
                 color:
                   step.status === "done" ? "#3EDC97" :
                   step.status === "syncing" ? "#4F8CFF" :

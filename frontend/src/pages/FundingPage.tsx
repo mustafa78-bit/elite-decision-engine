@@ -64,7 +64,7 @@ export default function FundingPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-1 text-[10px] font-mono">
+                <div className="space-y-1 text-[12px] font-mono">
                   <div className="flex justify-between text-[var(--text-secondary)]">
                     <span>Predicted</span>
                     <span className={item.predicted_rate > 0 ? "text-[var(--accent-red)]" : "text-[var(--accent-green)]"}>

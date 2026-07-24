@@ -24,7 +24,7 @@ export function OrderPanel() {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Order</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {symbol}
         </span>
       </CardHeader>
@@ -54,7 +54,7 @@ export function OrderPanel() {
               key={t}
               onClick={() => setOrderType(t)}
               className={cn(
-                "flex-1 py-1 text-[10px] font-mono rounded-md transition-all",
+                "flex-1 py-1 text-[12px] font-mono rounded-md transition-all",
                 orderType === t
                   ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
@@ -66,7 +66,7 @@ export function OrderPanel() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+          <label className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
             Price (USDT)
           </label>
           <FormInput
@@ -77,7 +77,7 @@ export function OrderPanel() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+          <label className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
             Amount ({symbol.split("/")[0]})
           </label>
           <FormInput
@@ -87,7 +87,7 @@ export function OrderPanel() {
           />
         </div>
 
-        <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)]">
+        <div className="flex items-center justify-between text-[13px] font-mono text-[var(--text-secondary)]">
           <span>Total</span>
           <span className="tabular-nums">
             {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
@@ -101,7 +101,7 @@ export function OrderPanel() {
             onChange={(e) => setReduceOnly(e.target.checked)}
             className="rounded border-[var(--border-default)] bg-[var(--bg-base)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]/30"
           />
-          <span className="text-[10px] text-[var(--text-muted)]">Reduce Only</span>
+          <span className="text-[12px] text-[var(--text-muted)]">Reduce Only</span>
         </label>
 
         <motion.div whileTap={{ scale: 0.98 }}>

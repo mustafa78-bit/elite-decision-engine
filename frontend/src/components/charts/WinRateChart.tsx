@@ -8,7 +8,7 @@ export default function WinRateChart({ winRate, totalTrades }: Props) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
         Win / Loss Rate
       </h3>
       <div className="flex items-center gap-4">
@@ -27,15 +27,15 @@ export default function WinRateChart({ winRate, totalTrades }: Props) {
         <div className="text-xs space-y-1 shrink-0">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-600" />
-            <span className="text-gray-300">{winRate.toFixed(1)}%</span>
+            <span className="text-[var(--text-secondary)]">{winRate.toFixed(1)}%</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-600" />
-            <span className="text-gray-300">{lossRate.toFixed(1)}%</span>
+            <span className="text-[var(--text-secondary)]">{lossRate.toFixed(1)}%</span>
           </div>
         </div>
       </div>
-      <p className="text-[10px] text-gray-600 mt-2">Based on {totalTrades} closed trades</p>
+      <p className="text-[12px] text-[var(--text-muted)] mt-2">Based on {totalTrades} closed trades</p>
     </div>
   );
 }

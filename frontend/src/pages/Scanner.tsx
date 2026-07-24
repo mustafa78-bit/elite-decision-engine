@@ -178,10 +178,10 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
               <span className="text-sm font-semibold text-[var(--text-primary)]">
                 {result.symbol}
               </span>
-              <Badge variant={result.side === "LONG" ? "success" : "danger"} className="text-[9px]">
+              <Badge variant={result.side === "LONG" ? "success" : "danger"} className="text-[12px]">
                 {result.side}
               </Badge>
-              <Badge variant={decision.variant} className="text-[9px]">
+              <Badge variant={decision.variant} className="text-[12px]">
                 {decision.label}
               </Badge>
             </div>
@@ -192,12 +192,12 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
 
           <div className="widget-card">
             <div className="widget-header">
-              <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+              <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                 AI Summary
               </span>
             </div>
             <div className="widget-body">
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
                 {result.explanation?.summary ?? "No summary available"}
               </p>
             </div>
@@ -205,7 +205,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
 
           <div className="widget-card">
             <div className="widget-header">
-              <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+              <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                 Elite Score
               </span>
               <span className={cn("text-xs font-mono tabular-nums", getScoreColor(result.elite_score))}>
@@ -224,7 +224,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
                   style={{ width: `${result.elite_score}%` }}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[10px]">
+              <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div className="flex justify-between">
                   <span className="text-[var(--text-muted)]">Confidence</span>
                   <span className={cn("font-mono tabular-nums", getConfidenceColor(result.confidence))}>
@@ -256,12 +256,12 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
           {result.explanation?.trend_analysis && (
             <div className="widget-card">
               <div className="widget-header">
-                <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+                <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                   Trend Analysis
                 </span>
               </div>
               <div className="widget-body">
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
                   {result.explanation.trend_analysis}
                 </p>
               </div>
@@ -271,13 +271,13 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
           {result.explanation?.key_levels && result.explanation.key_levels.length > 0 && (
             <div className="widget-card">
               <div className="widget-header">
-                <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+                <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                   Key Levels
                 </span>
               </div>
               <div className="widget-body space-y-1">
                 {result.explanation.key_levels.map((kl, i) => (
-                  <div key={i} className="flex justify-between text-[11px]">
+                  <div key={i} className="flex justify-between text-[13px]">
                     <span className={cn(
                       "font-mono",
                       kl.type === "SUPPORT" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]",
@@ -296,17 +296,17 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
           {result.explanation?.signals && result.explanation.signals.length > 0 && (
             <div className="widget-card">
               <div className="widget-header">
-                <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+                <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                   Signals
                 </span>
               </div>
               <div className="widget-body space-y-2">
                 {result.explanation.signals.map((s, i) => (
-                  <div key={i} className="text-[11px]">
+                  <div key={i} className="text-[13px]">
                     <div className="flex items-center gap-2">
                       <Badge
                         variant={s.status === "ACTIVE" ? "success" : "default"}
-                        className="text-[8px]"
+                        className="text-[11px]"
                       >
                         {s.status}
                       </Badge>
@@ -326,12 +326,12 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
           {result.explanation?.risk_assessment && (
             <div className="widget-card">
               <div className="widget-header">
-                <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+                <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                   Risk Assessment
                 </span>
               </div>
               <div className="widget-body">
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
                   {result.explanation.risk_assessment}
                 </p>
               </div>
@@ -341,12 +341,12 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
           {result.explanation?.volume_analysis && (
             <div className="widget-card">
               <div className="widget-header">
-                <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+                <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                   Volume Analysis
                 </span>
               </div>
               <div className="widget-body">
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
                   {result.explanation.volume_analysis}
                 </p>
               </div>
@@ -355,11 +355,11 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
 
           <div className="widget-card">
             <div className="widget-header">
-              <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
+              <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                 Market Data
               </span>
             </div>
-            <div className="widget-body space-y-1.5 text-[11px]">
+            <div className="widget-body space-y-1.5 text-[13px]">
               <div className="flex justify-between">
                 <span className="text-[var(--text-muted)]">Price</span>
                 <span className="font-mono tabular-nums text-[var(--text-primary)]">
@@ -380,7 +380,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-[var(--text-muted)]">Liquidity</span>
-                <Badge variant={getLiquidityBadge(result.liquidity).variant} className="text-[8px]">
+                <Badge variant={getLiquidityBadge(result.liquidity).variant} className="text-[11px]">
                   {getLiquidityBadge(result.liquidity).label}
                 </Badge>
               </div>
@@ -395,12 +395,12 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
                   <span className="text-[var(--text-muted)]">Signal Badges</span>
                   <div className="flex gap-1 flex-wrap justify-end">
                     {result.signals.slice(0, 3).map((s) => (
-                      <Badge key={s} variant="default" className="text-[8px]">
+                      <Badge key={s} variant="default" className="text-[11px]">
                         {s}
                       </Badge>
                     ))}
                     {result.signals.length > 3 && (
-                      <span className="text-[8px] text-[var(--text-muted)] font-mono">
+                      <span className="text-[11px] text-[var(--text-muted)] font-mono">
                         +{result.signals.length - 3}
                       </span>
                     )}
@@ -550,7 +550,7 @@ export default function Scanner() {
                   {activeFilter
                     ? savedFilters.find((f) => f.id === activeFilter)?.name ?? "Saved Filters"
                     : "Saved Filters"}
-                  <span className="ml-1.5 text-[10px] text-[var(--text-muted)]">
+                  <span className="ml-1.5 text-[12px] text-[var(--text-muted)]">
                     ▼
                   </span>
                 </Button>
@@ -567,7 +567,7 @@ export default function Scanner() {
                             {f.name}
                           </button>
                           <button
-                            className="text-[9px] text-[var(--text-muted)] opacity-0 group-hover:opacity-100 hover:text-[var(--accent-red)]"
+                            className="text-[12px] text-[var(--text-muted)] opacity-0 group-hover:opacity-100 hover:text-[var(--accent-red)]"
                             onClick={(e) => { e.stopPropagation(); deleteFilter(f.id); }}
                           >
                             ✕
@@ -699,7 +699,7 @@ export default function Scanner() {
                           }}
                           className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)]/50 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)]"
                         >
-                          <TableCell className="w-8 text-[11px]">
+                          <TableCell className="w-8 text-[13px]">
                             #{result.rank}
                           </TableCell>
                           <TableCell className="w-24">
@@ -710,13 +710,13 @@ export default function Scanner() {
                           <TableCell className="w-14">
                             <Badge
                               variant={result.side === "LONG" ? "success" : "danger"}
-                              className="text-[9px]"
+                              className="text-[12px]"
                             >
                               {result.side}
                             </Badge>
                           </TableCell>
                           <TableCell className="w-24">
-                            <span className="text-[10px] font-mono text-[var(--text-secondary)] uppercase">
+                            <span className="text-[12px] font-mono text-[var(--text-secondary)] uppercase">
                               {result.strategy}
                             </span>
                           </TableCell>
@@ -733,43 +733,43 @@ export default function Scanner() {
                                   style={{ width: `${result.elite_score}%` }}
                                 />
                               </div>
-                              <span className={cn("text-[11px] font-mono tabular-nums", getScoreColor(result.elite_score))}>
+                              <span className={cn("text-[13px] font-mono tabular-nums", getScoreColor(result.elite_score))}>
                                 {result.elite_score.toFixed(1)}
                               </span>
                             </div>
                           </TableCell>
                           <TableCell className="w-24">
-                            <Badge variant={decision.variant} className="text-[9px]">
+                            <Badge variant={decision.variant} className="text-[12px]">
                               {decision.label}
                             </Badge>
                           </TableCell>
                           <TableCell className="w-18">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getConfidenceColor(result.confidence))}>
+                            <span className={cn("text-[13px] font-mono tabular-nums", getConfidenceColor(result.confidence))}>
                               {result.confidence.toFixed(0)}%
                             </span>
                           </TableCell>
                           <TableCell className="w-14">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getRiskColor(result.risk))}>
+                            <span className={cn("text-[13px] font-mono tabular-nums", getRiskColor(result.risk))}>
                               {result.risk.toFixed(2)}
                             </span>
                           </TableCell>
                           <TableCell className="w-20">
-                            <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
+                            <span className="text-[13px] font-mono tabular-nums text-[var(--text-secondary)]">
                               {formatCompact(result.volume)}
                             </span>
                           </TableCell>
                           <TableCell className="w-18">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getFundingColor(result.funding))}>
+                            <span className={cn("text-[13px] font-mono tabular-nums", getFundingColor(result.funding))}>
                               {result.funding >= 0 ? "+" : ""}{result.funding.toFixed(4)}%
                             </span>
                           </TableCell>
                           <TableCell className="w-18">
-                            <Badge variant={liq.variant} className="text-[8px]">
+                            <Badge variant={liq.variant} className="text-[11px]">
                               {liq.label}
                             </Badge>
                           </TableCell>
                           <TableCell className="w-20">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getCorrelationColor(result.btc_correlation))}>
+                            <span className={cn("text-[13px] font-mono tabular-nums", getCorrelationColor(result.btc_correlation))}>
                               {result.btc_correlation >= 0 ? "+" : ""}{result.btc_correlation.toFixed(2)}
                             </span>
                           </TableCell>
@@ -784,7 +784,7 @@ export default function Scanner() {
         )}
 
         {!loading && filtered.length > 0 && (
-          <p className="text-[10px] text-[var(--text-muted)] font-mono text-right">
+          <p className="text-[12px] text-[var(--text-muted)] font-mono text-right">
             {filtered.length} result{filtered.length !== 1 ? "s" : ""} — click to explain, double-click to navigate
           </p>
         )}

@@ -39,13 +39,13 @@ export function CandlestickPatterns({
       </CardHeader>
       <CardContent className="space-y-1">
         {patterns.map((p) => (
-          <div key={`${p.name}-${p.symbol}`} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] text-[10px] font-mono">
+          <div key={`${p.name}-${p.symbol}`} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] text-[12px] font-mono">
             <div className="flex items-center gap-1.5">
-              <span className={`text-[10px] ${p.direction === "bullish" ? "text-[var(--accent-green)]" : p.direction === "bearish" ? "text-[var(--accent-red)]" : "text-[var(--accent-yellow)]"}`}>
+              <span className={`text-[12px] ${p.direction === "bullish" ? "text-[var(--accent-green)]" : p.direction === "bearish" ? "text-[var(--accent-red)]" : "text-[var(--accent-yellow)]"}`}>
                 {p.direction === "bullish" ? "▲" : p.direction === "bearish" ? "▼" : "◆"}
               </span>
               <span className="text-[var(--text-primary)]">{p.name}</span>
-              <Badge variant={p.direction === "bullish" ? "success" : p.direction === "bearish" ? "danger" : "warning"} className="text-[8px]">{p.direction}</Badge>
+              <Badge variant={p.direction === "bullish" ? "success" : p.direction === "bearish" ? "danger" : "warning"} className="text-[11px]">{p.direction}</Badge>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[var(--text-muted)]">{p.symbol}</span>

@@ -42,12 +42,12 @@ export function TVComparisonMode({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           placeholder="Add symbol..."
-          className="flex-1 bg-[var(--bg-base)] rounded-lg px-2 py-1 text-[10px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] border border-[var(--border-default)] focus:outline-none focus:border-[var(--accent-blue)]"
+          className="flex-1 bg-[var(--bg-base)] rounded-lg px-2 py-1 text-[12px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] border border-[var(--border-default)] focus:outline-none focus:border-[var(--accent-blue)]"
         />
         <button
           onClick={handleAdd}
           disabled={!input.trim()}
-          className="px-2 py-1 rounded-lg bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] text-[10px] font-mono hover:bg-[var(--accent-blue)]/20 disabled:opacity-40 transition-all"
+          className="px-2 py-1 rounded-lg bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] text-[12px] font-mono hover:bg-[var(--accent-blue)]/20 disabled:opacity-40 transition-all"
         >
           + Add
         </button>
@@ -63,12 +63,12 @@ export function TVComparisonMode({
                 className="w-1.5 h-1.5 rounded-full"
                 style={{ backgroundColor: s.color || symbolColors[i % symbolColors.length] }}
               />
-              <span className="text-[9px] font-mono text-[var(--text-secondary)]">
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                 {s.symbol}
               </span>
               <button
                 onClick={() => onRemove?.(s.symbol)}
-                className="text-[var(--text-muted)] hover:text-[var(--accent-red)] text-[9px] ml-0.5"
+                className="text-[var(--text-muted)] hover:text-[var(--accent-red)] text-[12px] ml-0.5"
               >
                 ✕
               </button>

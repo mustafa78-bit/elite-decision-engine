@@ -47,17 +47,17 @@ export function CorrelationMatrix({
         <div className="grid gap-0.5" style={{ gridTemplateColumns: `60px repeat(${assets.length}, 1fr)` }}>
           <div />
           {assets.map((a) => (
-            <div key={a} className="text-[8px] font-mono text-[var(--text-muted)] text-center py-1">{a}</div>
+            <div key={a} className="text-[11px] font-mono text-[var(--text-muted)] text-center py-1">{a}</div>
           ))}
           {assets.map((a) => (
             <>
-              <div key={`label-${a}`} className="text-[8px] font-mono text-[var(--text-muted)] flex items-center">{a}</div>
+              <div key={`label-${a}`} className="text-[11px] font-mono text-[var(--text-muted)] flex items-center">{a}</div>
               {assets.map((b) => {
                 const corr = getCorrelation(a, b);
                 return (
                   <div
                     key={`${a}-${b}`}
-                    className={`text-[9px] font-mono tabular-nums text-center py-1.5 rounded ${corr ? getColor(corr.value) : "bg-[var(--bg-base)]"}`}
+                    className={`text-[12px] font-mono tabular-nums text-center py-1.5 rounded ${corr ? getColor(corr.value) : "bg-[var(--bg-base)]"}`}
                   >
                     {corr ? corr.value.toFixed(2) : "—"}
                   </div>

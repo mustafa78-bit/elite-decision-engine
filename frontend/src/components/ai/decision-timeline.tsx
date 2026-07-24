@@ -62,19 +62,19 @@ export function DecisionTimeline({ events = [] }: DecisionTimelineProps) {
                 <div className="absolute left-[2px] top-[4px] w-[8px] h-[8px] rounded-full border-2 border-[var(--accent-blue)] bg-[var(--bg-base)]" />
                 <div className="flex items-center justify-between mb-0.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px]">{config.icon}</span>
-                    <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                    <span className="text-[12px]">{config.icon}</span>
+                    <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                       {e.symbol} · {e.action}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-[8px] font-mono text-[var(--text-muted)]">
+                    <span className="text-[11px] font-mono text-[var(--text-muted)]">
                       {e.time}
                     </span>
                     <Badge variant={outcome.badge}>{outcome.label}</Badge>
                   </div>
                 </div>
-                <div className="flex gap-2 text-[9px] font-mono text-[var(--text-muted)]">
+                <div className="flex gap-2 text-[12px] font-mono text-[var(--text-muted)]">
                   <span>Confidence: {e.confidence}%</span>
                 </div>
               </div>

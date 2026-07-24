@@ -79,7 +79,7 @@ export function MultiChartLayout() {
                   key={l}
                   onClick={() => setLayout(l)}
                   className={cn(
-                    "px-1.5 py-1 text-[9px] font-mono rounded-md transition-all",
+                    "px-1.5 py-1 text-[12px] font-mono rounded-md transition-all",
                     layout === l
                       ? "bg-[var(--accent-blue)]/15 text-[var(--accent-blue)]"
                       : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
@@ -89,7 +89,7 @@ export function MultiChartLayout() {
                 </button>
               ))}
             </div>
-            <label className="flex items-center gap-1 text-[9px] font-mono text-[var(--text-muted)] cursor-pointer">
+            <label className="flex items-center gap-1 text-[12px] font-mono text-[var(--text-muted)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={linkCharts}
@@ -98,7 +98,7 @@ export function MultiChartLayout() {
               />
               Link
             </label>
-            <Button variant="glass" size="sm" onClick={addChart} disabled={charts.length >= 4} className="text-[10px]">
+            <Button variant="glass" size="sm" onClick={addChart} disabled={charts.length >= 4} className="text-[12px]">
               + Chart
             </Button>
           </div>
@@ -134,10 +134,10 @@ export function MultiChartLayout() {
           {charts.slice(0, layout === "quad" ? 4 : layout === "dual" ? 2 : 1).map((chart) => (
             <div key={chart.id} className="relative rounded-lg overflow-hidden border border-[var(--border-subtle)]">
               <div className="absolute top-1 left-2 z-10 flex items-center gap-2">
-                <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                <span className="text-[12px] font-mono text-[var(--text-muted)]">
                   {chart.symbol}
                 </span>
-                <span className="text-[8px] font-mono text-[var(--text-muted)]">
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">
                   {chart.timeframe}
                 </span>
               </div>
@@ -145,7 +145,7 @@ export function MultiChartLayout() {
               {charts.length > 1 && (
                 <button
                   onClick={() => removeChart(chart.id)}
-                  className="absolute top-1 right-2 z-10 w-3.5 h-3.5 rounded-full bg-[var(--bg-base)] border border-[var(--border-subtle)] flex items-center justify-center text-[7px] text-[var(--text-muted)] hover:text-[var(--accent-red)]"
+                  className="absolute top-1 right-2 z-10 w-3.5 h-3.5 rounded-full bg-[var(--bg-base)] border border-[var(--border-subtle)] flex items-center justify-center text-[11px] text-[var(--text-muted)] hover:text-[var(--accent-red)]"
                 >
                   ✕
                 </button>

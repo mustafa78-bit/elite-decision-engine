@@ -62,7 +62,7 @@ export default function RoomDoor({ room, prevRoom, onComplete }: Props) {
           >
             {/* Classified header */}
             <div
-              className="text-[9px] font-mono uppercase tracking-[0.3em] mb-4"
+              className="text-[12px] font-mono uppercase tracking-[0.3em] mb-4"
               style={{ color: room.accent, opacity: 0.5 }}
             >
               Accessing Classified Sector
@@ -106,7 +106,7 @@ export default function RoomDoor({ room, prevRoom, onComplete }: Props) {
                   style={{ backgroundColor: prevRoom.accent }}
                 />
                 <span
-                  className="text-[10px] font-mono"
+                  className="text-[12px] font-mono"
                   style={{ color: prevRoom.accent }}
                 >
                   {prevRoom.name}
@@ -117,7 +117,7 @@ export default function RoomDoor({ room, prevRoom, onComplete }: Props) {
                   style={{ backgroundColor: room.accent }}
                 />
                 <span
-                  className="text-[10px] font-mono"
+                  className="text-[12px] font-mono"
                   style={{ color: room.accent }}
                 >
                   {room.name}

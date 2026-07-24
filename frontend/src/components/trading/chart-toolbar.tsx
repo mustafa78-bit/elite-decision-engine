@@ -63,7 +63,7 @@ function ToolbarButton({
     <button
       onClick={onClick}
       className={cn(
-        "px-1.5 py-1 rounded-md text-[9px] font-mono transition-all flex items-center gap-1",
+        "px-1.5 py-1 rounded-md text-[12px] font-mono transition-all flex items-center gap-1",
         active
           ? "bg-[var(--accent-blue)]/15 text-[var(--accent-blue)]"
           : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-base)]",

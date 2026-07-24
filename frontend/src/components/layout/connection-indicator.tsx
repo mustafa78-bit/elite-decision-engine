@@ -31,7 +31,7 @@ export function ConnectionIndicator({
         )}
         style={{ backgroundColor: config.color }}
       />
-      <span className="text-[9px] font-mono text-[var(--text-muted)]">
+      <span className="text-[12px] font-mono text-[var(--text-muted)]">
         {label || config.defaultLabel}
       </span>
     </div>

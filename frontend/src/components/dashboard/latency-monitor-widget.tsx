@@ -25,7 +25,7 @@ export function LatencyMonitorWidget({
       <CardHeader>
         <CardTitle>Latency</CardTitle>
         <span
-          className={`text-[10px] font-mono ${
+          className={`text-[12px] font-mono ${
             currentLatency < 50
               ? "text-[var(--accent-green)]"
               : currentLatency < 200
@@ -42,19 +42,19 @@ export function LatencyMonitorWidget({
             <div className="text-sm font-mono tabular-nums text-[var(--text-primary)]">
               {avgLatency.toFixed(0)}ms
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">Avg</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Avg</div>
           </div>
           <div className="text-center">
             <div className="text-sm font-mono tabular-nums text-[var(--text-primary)]">
               {maxLatency.toFixed(0)}ms
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">Max</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Max</div>
           </div>
           <div className="text-center">
             <div className="text-sm font-mono tabular-nums text-[var(--text-primary)]">
               {currentLatency.toFixed(0)}ms
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">Now</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Now</div>
           </div>
         </div>
         {history.length > 0 && (

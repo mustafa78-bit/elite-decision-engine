@@ -52,7 +52,7 @@ export function RecentActivityWidget({
                     {a.description}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                <span className="text-[12px] font-mono text-[var(--text-muted)]">
                   {formatTime(a.timestamp)}
                 </span>
               </div>

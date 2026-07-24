@@ -9,10 +9,10 @@ export default function LivePriceCard({ symbol, price, change24h }: Props) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-2">
         {symbol} / USD
       </h3>
-      <div className="text-2xl font-bold tabular-nums text-gray-100">
+      <div className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">
         ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </div>
       {change24h != null && (

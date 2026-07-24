@@ -87,7 +87,7 @@ export function PerformanceWidget({
               key={m.label}
               className="p-2 rounded-lg bg-[var(--bg-elevated)]/50"
             >
-              <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">
+              <div className="text-[12px] text-[var(--text-muted)] uppercase tracking-wider">
                 {m.label}
               </div>
               <div className={`text-xs font-mono font-medium tabular-nums ${m.color}`}>

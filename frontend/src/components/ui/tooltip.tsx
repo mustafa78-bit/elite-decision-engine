@@ -33,7 +33,7 @@ export function Tooltip({ content, children, side = "top" }: TooltipProps) {
       {show && (
         <div
           className={cn(
-            "absolute z-50 px-2 py-1 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[10px] font-mono text-[var(--text-secondary)] whitespace-nowrap shadow-lg pointer-events-none",
+            "absolute z-50 px-2 py-1 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[12px] font-mono text-[var(--text-secondary)] whitespace-nowrap shadow-lg pointer-events-none",
             sideStyles[side],
           )}
         >

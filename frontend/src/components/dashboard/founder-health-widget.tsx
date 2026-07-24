@@ -144,7 +144,7 @@ export function FounderHealthWidget() {
                     className="w-2 h-2 rounded-full shrink-0"
                     style={{ backgroundColor: statusDot[s.status] }}
                   />
-                  <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                  <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                     {s.label}
                   </span>
                 </div>

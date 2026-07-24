@@ -47,7 +47,7 @@ export function ConfidenceBreakdown({
             <div className="text-xs font-medium text-[var(--text-primary)]">
               Overall Confidence
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">
+            <div className="text-[12px] text-[var(--text-muted)]">
               Weighted across {metrics.length} factors
             </div>
           </div>
@@ -56,12 +56,12 @@ export function ConfidenceBreakdown({
         {metrics.map((m) => (
           <div key={m.label}>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                 {m.label}
               </span>
-              <span className="text-[10px] font-mono tabular-nums text-[var(--text-muted)]">
+              <span className="text-[12px] font-mono tabular-nums text-[var(--text-muted)]">
                 {m.value}%
-                <span className="text-[8px] ml-1">
+                <span className="text-[11px] ml-1">
                   ({(m.weight * 100).toFixed(0)}%)
                 </span>
               </span>

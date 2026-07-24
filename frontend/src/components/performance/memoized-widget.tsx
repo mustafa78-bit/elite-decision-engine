@@ -15,7 +15,7 @@ export const MemoizedWidget = memo(function MemoizedWidget({
   return (
     <Card className={className}>
       <CardContent className="p-4">
-        <div className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
+        <div className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
           {title}
         </div>
         {children}

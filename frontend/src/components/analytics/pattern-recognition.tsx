@@ -42,15 +42,15 @@ export function PatternRecognition({
           <div key={`${p.name}-${p.symbol}`} className="p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]">
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1.5">
-                <span className={`text-[10px] ${p.direction === "bullish" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
+                <span className={`text-[12px] ${p.direction === "bullish" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                   {p.direction === "bullish" ? "▲" : "▼"}
                 </span>
-                <span className="text-[10px] font-mono font-medium text-[var(--text-primary)]">{p.name}</span>
-                <Badge variant={p.direction === "bullish" ? "success" : "danger"} className="text-[8px]">{p.direction}</Badge>
+                <span className="text-[12px] font-mono font-medium text-[var(--text-primary)]">{p.name}</span>
+                <Badge variant={p.direction === "bullish" ? "success" : "danger"} className="text-[11px]">{p.direction}</Badge>
               </div>
-              <span className="text-[9px] font-mono text-[var(--text-muted)]">{p.reliability}% · {p.timeframe}</span>
+              <span className="text-[12px] font-mono text-[var(--text-muted)]">{p.reliability}% · {p.timeframe}</span>
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">{p.description}</div>
+            <div className="text-[12px] text-[var(--text-muted)]">{p.description}</div>
           </div>
         ))}
       </CardContent>

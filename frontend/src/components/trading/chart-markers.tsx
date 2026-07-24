@@ -45,7 +45,7 @@ export function ChartMarkers({ markers = [] }: ChartMarkersProps) {
       <CardHeader>
         <CardTitle>
           Markers
-          <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">
+          <span className="text-[12px] font-mono text-[var(--text-muted)] ml-2">
             {markers.length}
           </span>
         </CardTitle>
@@ -62,17 +62,17 @@ export function ChartMarkers({ markers = [] }: ChartMarkersProps) {
                 <div className="flex items-center gap-2">
                   <span style={{ color: config.color }}>{config.icon}</span>
                   <div>
-                    <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                    <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                       {m.label}
                     </span>
-                    <span className="text-[9px] font-mono text-[var(--text-muted)] ml-1">
+                    <span className="text-[12px] font-mono text-[var(--text-muted)] ml-1">
                       @ {m.price}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {m.type === "ai" && m.confidence && (
-                    <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                    <span className="text-[12px] font-mono text-[var(--text-muted)]">
                       {m.confidence}%
                     </span>
                   )}

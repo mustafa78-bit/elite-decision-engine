@@ -101,7 +101,7 @@ export function WorkspacePresets() {
         variant="glass"
         size="sm"
         onClick={() => setOpen(!open)}
-        className="text-[10px]"
+        className="text-[12px]"
       >
         Presets
       </Button>
@@ -113,7 +113,7 @@ export function WorkspacePresets() {
             exit={{ opacity: 0, y: -4 }}
             className="absolute top-full left-0 mt-1 w-72 z-50 rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] backdrop-blur-xl shadow-2xl p-2"
           >
-            <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider px-1 mb-2">
+            <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider px-1 mb-2">
               Workspace Presets
             </div>
             <div className="space-y-1">
@@ -125,10 +125,10 @@ export function WorkspacePresets() {
                 >
                   <span className="text-sm mt-0.5">{preset.icon}</span>
                   <div>
-                    <div className="text-[10px] font-mono font-medium text-[var(--text-primary)]">
+                    <div className="text-[12px] font-mono font-medium text-[var(--text-primary)]">
                       {preset.name}
                     </div>
-                    <div className="text-[9px] text-[var(--text-muted)]">
+                    <div className="text-[12px] text-[var(--text-muted)]">
                       {preset.description} · {preset.panels.length} panels
                     </div>
                   </div>

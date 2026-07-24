@@ -36,7 +36,7 @@ export function ChartOverlays() {
         variant="glass"
         size="sm"
         onClick={() => setOpen(!open)}
-        className="text-[10px]"
+        className="text-[12px]"
       >
         Overlays ({overlays.filter((o) => o.enabled).length})
       </Button>
@@ -48,7 +48,7 @@ export function ChartOverlays() {
             exit={{ opacity: 0, y: -4 }}
             className="absolute top-full right-0 mt-1 w-56 z-50 rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] backdrop-blur-xl shadow-2xl p-2"
           >
-            <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider px-1 mb-2">
+            <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider px-1 mb-2">
               Chart Overlays
             </div>
             {categories.map((cat) => {
@@ -56,7 +56,7 @@ export function ChartOverlays() {
               if (catOverlays.length === 0) return null;
               return (
                 <div key={cat} className="mb-2 last:mb-0">
-                  <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider px-1 mb-1">
+                  <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider px-1 mb-1">
                     {cat}
                   </div>
                   {catOverlays.map((o) => (
@@ -70,8 +70,8 @@ export function ChartOverlays() {
                         onChange={() => toggleOverlay(o.id)}
                         className="rounded border-[var(--border-default)] bg-[var(--bg-base)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]/30"
                       />
-                      <span className="text-[10px]">{o.icon}</span>
-                      <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                      <span className="text-[12px]">{o.icon}</span>
+                      <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                         {o.name}
                       </span>
                     </label>

@@ -19,7 +19,7 @@ function StatCard({ label, value, color }: { label: string; value: string; color
   return (
     <Card>
       <CardContent className="p-3">
-        <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-1">{label}</p>
+        <p className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-1">{label}</p>
         <p className={`text-sm font-semibold font-mono tabular-nums ${color || "text-[var(--text-primary)]"}`}>{value}</p>
       </CardContent>
     </Card>

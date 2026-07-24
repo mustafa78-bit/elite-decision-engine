@@ -23,8 +23,8 @@ export default function ExecutionQueue() {
     <Card>
       <CardContent className="p-3">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Execution Queue</p>
-          {!loading && <span className="text-[10px] font-mono text-[var(--text-muted)]">{queue.length} pending</span>}
+          <p className="text-[12px] uppercase tracking-widest text-[var(--text-muted)]">Execution Queue</p>
+          {!loading && <span className="text-[12px] font-mono text-[var(--text-muted)]">{queue.length} pending</span>}
         </div>
 
         {loading ? (
@@ -35,15 +35,15 @@ export default function ExecutionQueue() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center gap-2 py-2">
-            <p className="text-[10px] text-[var(--accent-red)] font-mono">Failed to load queue</p>
+            <p className="text-[12px] text-[var(--accent-red)] font-mono">Failed to load queue</p>
             <Button variant="ghost" size="sm" onClick={refetch}>Retry</Button>
           </div>
         ) : queue.length === 0 ? (
-          <p className="text-[10px] text-[var(--text-muted)] font-mono text-center py-3">No pending signals in queue</p>
+          <p className="text-[12px] text-[var(--text-muted)] font-mono text-center py-3">No pending signals in queue</p>
         ) : (
           <div className="space-y-1">
             {queue.slice(0, 5).map((s) => (
-              <div key={s.id} className="flex items-center justify-between text-[10px] font-mono py-1 border-b border-[var(--border-subtle)] last:border-0">
+              <div key={s.id} className="flex items-center justify-between text-[12px] font-mono py-1 border-b border-[var(--border-subtle)] last:border-0">
                 <div className="flex items-center gap-2">
                   <span className={s.side === "LONG" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}>
                     {s.side === "LONG" ? "▲" : "▼"}
@@ -52,12 +52,12 @@ export default function ExecutionQueue() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[var(--text-muted)]">{(s.confidence * 100).toFixed(0)}%</span>
-                  <span className="text-[var(--text-muted)] opacity-50">{timeAgo(s.created_at)}</span>
+                  <span className="text-[var(--text-muted)] ">{timeAgo(s.created_at)}</span>
                 </div>
               </div>
             ))}
             {queue.length > 5 && (
-              <p className="text-[9px] text-[var(--text-muted)] text-center pt-1">+{queue.length - 5} more</p>
+              <p className="text-[12px] text-[var(--text-muted)] text-center pt-1">+{queue.length - 5} more</p>
             )}
           </div>
         )}

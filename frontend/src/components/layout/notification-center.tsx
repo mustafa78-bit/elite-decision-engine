@@ -69,11 +69,11 @@ export function NotificationCenter() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative px-2 py-1 rounded-lg text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all"
+        className="relative px-2 py-1 rounded-lg text-[12px] font-mono text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all"
       >
         🔔 Notifications
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[var(--accent-red)] text-white text-[7px] font-mono flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[var(--accent-red)] text-white text-[11px] font-mono flex items-center justify-center">
             {unread}
           </span>
         )}
@@ -100,7 +100,7 @@ export function NotificationCenter() {
                 {unread > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="text-[9px] font-mono text-[var(--accent-blue)] hover:underline"
+                    className="text-[12px] font-mono text-[var(--accent-blue)] hover:underline"
                   >
                     Mark all read
                   </button>
@@ -112,7 +112,7 @@ export function NotificationCenter() {
                     key={cat}
                     onClick={() => setFilter(cat)}
                     className={cn(
-                      "px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider transition-all",
+                      "px-1.5 py-0.5 rounded text-[11px] font-mono uppercase tracking-wider transition-all",
                       filter === cat
                         ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)]"
                         : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
@@ -139,21 +139,21 @@ export function NotificationCenter() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-medium text-[var(--text-primary)]">
+                        <span className="text-[12px] font-mono font-medium text-[var(--text-primary)]">
                           {n.title}
                         </span>
-                        <span className="text-[8px] font-mono text-[var(--text-muted)]">
+                        <span className="text-[11px] font-mono text-[var(--text-muted)]">
                           {n.time}
                         </span>
                       </div>
-                      <p className="text-[9px] text-[var(--text-secondary)] mt-0.5">
+                      <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
                         {n.message}
                       </p>
                       <div className="flex gap-1 mt-1">
-                        <span className={cn("text-[8px] font-mono uppercase tracking-wider px-1 rounded", typeStyles[n.type])}>
+                        <span className={cn("text-[11px] font-mono uppercase tracking-wider px-1 rounded", typeStyles[n.type])}>
                           {n.type}
                         </span>
-                        <span className="text-[8px] font-mono text-[var(--text-muted)]">
+                        <span className="text-[11px] font-mono text-[var(--text-muted)]">
                           {n.category}
                         </span>
                       </div>
@@ -162,7 +162,7 @@ export function NotificationCenter() {
                 </div>
               ))}
               {filtered.length === 0 && (
-                <div className="px-3 py-8 text-center text-[10px] text-[var(--text-muted)]">
+                <div className="px-3 py-8 text-center text-[12px] text-[var(--text-muted)]">
                   No {filter} notifications
                 </div>
               )}

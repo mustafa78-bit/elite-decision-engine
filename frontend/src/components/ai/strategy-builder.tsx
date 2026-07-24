@@ -56,18 +56,18 @@ export function StrategyBuilder({ onSave }: StrategyBuilderProps) {
           <input
             value={strategyName}
             onChange={(e) => setStrategyName(e.target.value)}
-            className="flex-1 bg-[var(--bg-base)] border border-[var(--border-subtle)] rounded px-2 h-7 text-[10px] font-mono text-[var(--text-primary)]"
+            className="flex-1 bg-[var(--bg-base)] border border-[var(--border-subtle)] rounded px-2 h-7 text-[12px] font-mono text-[var(--text-primary)]"
           />
-          <Button variant="primary" className="h-7 text-[10px]" onClick={() => onSave?.(strategyName)}>Save</Button>
+          <Button variant="primary" className="h-7 text-[12px]" onClick={() => onSave?.(strategyName)}>Save</Button>
         </div>
         <div>
-          <div className="text-[9px] font-mono text-[var(--text-muted)] mb-1 uppercase">Conditions (All Must Match)</div>
+          <div className="text-[12px] font-mono text-[var(--text-muted)] mb-1 uppercase">Conditions (All Must Match)</div>
           <div className="flex flex-wrap gap-1">
             {Object.entries(CONDITION_LABELS).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => toggleCondition(key)}
-                className={`px-1.5 py-0.5 rounded text-[9px] font-mono border transition-colors ${
+                className={`px-1.5 py-0.5 rounded text-[12px] font-mono border transition-colors ${
                   conditions.includes(key)
                     ? "bg-[var(--accent-blue)]/20 border-[var(--accent-blue)] text-[var(--accent-blue)]"
                     : "bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-muted)]"
@@ -79,13 +79,13 @@ export function StrategyBuilder({ onSave }: StrategyBuilderProps) {
           </div>
         </div>
         <div>
-          <div className="text-[9px] font-mono text-[var(--text-muted)] mb-1 uppercase">Actions (Executed In Order)</div>
+          <div className="text-[12px] font-mono text-[var(--text-muted)] mb-1 uppercase">Actions (Executed In Order)</div>
           <div className="flex flex-wrap gap-1">
             {Object.entries(ACTION_LABELS).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => toggleAction(key)}
-                className={`px-1.5 py-0.5 rounded text-[9px] font-mono border transition-colors ${
+                className={`px-1.5 py-0.5 rounded text-[12px] font-mono border transition-colors ${
                   actions.includes(key)
                     ? "bg-[var(--accent-green)]/20 border-[var(--accent-green)] text-[var(--accent-green)]"
                     : "bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-muted)]"

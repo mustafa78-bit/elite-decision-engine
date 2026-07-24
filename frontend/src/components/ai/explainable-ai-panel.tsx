@@ -31,12 +31,12 @@ export function ExplainableAIPanel({
             {prediction} {confidence}%
           </Badge>
         </div>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {symbol}
         </span>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+        <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
           Factor Contributions
         </div>
         {factors.map((f) => (
@@ -44,16 +44,16 @@ export function ExplainableAIPanel({
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`text-[9px] ${f.direction === "positive" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}
+                  className={`text-[12px] ${f.direction === "positive" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}
                 >
                   {f.direction === "positive" ? "▲" : "▼"}
                 </span>
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                   {f.factor}
                 </span>
               </div>
               <span
-                className={`text-[10px] font-mono tabular-nums ${
+                className={`text-[12px] font-mono tabular-nums ${
                   f.direction === "positive" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"
                 }`}
               >
@@ -67,7 +67,7 @@ export function ExplainableAIPanel({
               }`}
               className="h-1.5"
             />
-            <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+            <div className="text-[12px] text-[var(--text-muted)] mt-0.5">
               {f.description}
             </div>
           </div>

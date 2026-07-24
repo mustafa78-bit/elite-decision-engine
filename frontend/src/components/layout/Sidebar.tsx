@@ -137,7 +137,7 @@ export default function Sidebar() {
             Elite HQ
           </span>
         </div>
-        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.1em]">
+        <p className="text-[12px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.1em]">
           Decision Intelligence
         </p>
       </div>
@@ -156,10 +156,10 @@ export default function Sidebar() {
                   }}
                 />
                 <div className="min-w-0">
-                  <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.12em] leading-tight">
+                  <div className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.12em] leading-tight">
                     {section.title}
                   </div>
-                  <div className="text-[7px] text-[var(--text-muted)] font-mono uppercase tracking-[0.08em] opacity-50">
+                  <div className="text-[11px] text-[var(--text-muted)] font-mono uppercase tracking-[0.08em] ">
                     {section.subtitle}
                   </div>
                 </div>
@@ -186,7 +186,7 @@ export default function Sidebar() {
                     aria-current={isActive ? "page" : undefined}
                   >
                     <span
-                      className="w-4 text-center text-[11px] transition-colors duration-300"
+                      className="w-4 text-center text-[13px] transition-colors duration-300"
                       style={{ color: isActive ? itemColor : undefined }}
                     >
                       {item.icon}
@@ -210,7 +210,7 @@ export default function Sidebar() {
               animation: 'sidebar-pulse 2s ease-in-out infinite',
             }}
           />
-          <span className="text-[10px] text-[var(--text-muted)] font-mono">
+          <span className="text-[12px] text-[var(--text-muted)] font-mono">
             System Online
           </span>
         </div>

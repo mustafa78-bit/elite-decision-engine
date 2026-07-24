@@ -93,7 +93,7 @@ export function AIChat() {
                       : "bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)]"
                   }`}
                 >
-                  <p className="text-[11px] leading-relaxed whitespace-pre-wrap">
+                  <p className="text-[13px] leading-relaxed whitespace-pre-wrap">
                     {msg.content}
                   </p>
                 </div>
@@ -120,7 +120,7 @@ export function AIChat() {
 
         {messages.length === 1 && (
           <div className="px-4 pb-3">
-            <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            <div className="text-[12px] text-[var(--text-muted)] uppercase tracking-wider mb-2">
               Suggestions
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -128,7 +128,7 @@ export function AIChat() {
                 <button
                   key={s}
                   onClick={() => handleSend(s)}
-                  className="px-2 py-1 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border-default)] transition-all"
+                  className="px-2 py-1 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border-default)] transition-all"
                 >
                   {s}
                 </button>

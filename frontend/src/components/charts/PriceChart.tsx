@@ -23,7 +23,7 @@ export default function PriceChart({ data, color = "#22c55e", height = 200 }: Pr
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#6b7280",
-        fontSize: 10,
+        fontSize: 12,
       },
       grid: {
         vertLines: { color: "#1f2937" },
@@ -50,7 +50,7 @@ export default function PriceChart({ data, color = "#22c55e", height = 200 }: Pr
 
   if (data.length === 0) {
     return (
-      <div className="text-gray-500 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-muted)] text-xs p-4 border border-dashed border-gray-800 rounded text-center">
         No chart data
       </div>
     );

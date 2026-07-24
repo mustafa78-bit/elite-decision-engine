@@ -39,13 +39,13 @@ export function DrawdownWidget({
           </div>
           <div className="space-y-1">
             <div>
-              <div className="text-[10px] text-[var(--text-muted)]">Current</div>
+              <div className="text-[12px] text-[var(--text-muted)]">Current</div>
               <div className="text-sm font-mono tabular-nums text-[var(--accent-red)]">
                 {formatUSD(Math.abs(currentDrawdown))}
               </div>
             </div>
             <div>
-              <div className="text-[10px] text-[var(--text-muted)]">Max</div>
+              <div className="text-[12px] text-[var(--text-muted)]">Max</div>
               <div className="text-sm font-mono tabular-nums text-[var(--accent-red)]">
                 {Math.abs(maxDrawdown).toFixed(1)}%
               </div>

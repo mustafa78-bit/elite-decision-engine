@@ -14,26 +14,26 @@ export default function PositionSizeCard({
 }: Props) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-3">
-      <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
         Position Size Calculator
       </h3>
       <div className="space-y-2 mb-3">
         <div>
-          <label className="text-[10px] text-gray-500 block mb-0.5">Entry Price</label>
+          <label className="text-[12px] text-[var(--text-muted)] block mb-0.5">Entry Price</label>
           <input
             type="number"
             value={entry}
             onChange={(e) => onEntryChange(Number(e.target.value))}
-            className="w-full bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 tabular-nums"
+            className="w-full bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-[var(--text-primary)] tabular-nums"
           />
         </div>
         <div>
-          <label className="text-[10px] text-gray-500 block mb-0.5">ATR</label>
+          <label className="text-[12px] text-[var(--text-muted)] block mb-0.5">ATR</label>
           <input
             type="number"
             value={atr}
             onChange={(e) => onAtrChange(Number(e.target.value))}
-            className="w-full bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 tabular-nums"
+            className="w-full bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-[var(--text-primary)] tabular-nums"
           />
         </div>
       </div>
@@ -49,8 +49,8 @@ export default function PositionSizeCard({
 function Row({ label, value, negative }: { label: string; value: string; negative?: boolean }) {
   return (
     <div className="flex justify-between text-xs">
-      <span className="text-gray-500">{label}</span>
-      <span className={`tabular-nums ${negative ? "text-red-400" : "text-gray-200"}`}>{value}</span>
+      <span className="text-[var(--text-muted)]">{label}</span>
+      <span className={`tabular-nums ${negative ? "text-red-400" : "text-[var(--text-primary)]"}`}>{value}</span>
     </div>
   );
 }

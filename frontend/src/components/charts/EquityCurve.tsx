@@ -22,7 +22,7 @@ export default function EquityCurve({ data, height = 200 }: Props) {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#6b7280",
-        fontSize: 10,
+        fontSize: 12,
       },
       grid: { vertLines: { color: "#1f2937" }, horzLines: { color: "#1f2937" } },
       rightPriceScale: { borderColor: "#374151" },
@@ -30,7 +30,7 @@ export default function EquityCurve({ data, height = 200 }: Props) {
     });
 
     const series = chart.addSeries(LineSeries, {
-      color: "#3b82f6",
+      color: "var(--accent-blue)",
       lineWidth: 2,
       crosshairMarkerVisible: false,
       priceLineVisible: false,
@@ -44,7 +44,7 @@ export default function EquityCurve({ data, height = 200 }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="text-gray-500 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
+      <div className="text-[var(--text-muted)] text-xs p-4 border border-dashed border-gray-800 rounded text-center">
         No equity data
       </div>
     );

@@ -50,7 +50,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
         >
           <span className="text-lg" style={{ color: "rgba(255, 93, 115, 0.4)" }}>◉</span>
         </div>
-        <p className="mt-3 text-[10px] font-mono" style={{ color: "rgba(255, 93, 115, 0.6)" }}>{error}</p>
+        <p className="mt-3 text-[12px] font-mono" style={{ color: "rgba(255, 93, 115, 0.6)" }}>{error}</p>
       </div>
     )
   }
@@ -90,7 +90,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
             style={{ maxWidth: 340 }}
           >
             <div
-              className="text-[7px] font-medium uppercase tracking-[0.18em] mb-2"
+              className="text-[11px] font-medium uppercase tracking-[0.18em] mb-2"
               style={{ color: "var(--accent-blue)" }}
             >
               {briefing!.kind} Briefing
@@ -98,10 +98,10 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
             <h3 className="text-sm font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
               {briefing!.title}
             </h3>
-            <p className="text-[11px] mt-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
               {briefing!.text}
             </p>
-            <div className="mt-3 text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+            <div className="mt-3 text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
               {briefing!.provider} · {briefing!.model}
             </div>
           </motion.div>
@@ -122,21 +122,21 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
               <div className="space-y-2 text-left mt-3">
                 {greeting!.sections.map((section, i) => (
                   <div key={i}>
-                    <div className="text-[7px] font-medium uppercase tracking-[0.12em] mb-0.5" style={{ color: "var(--accent-blue)" }}>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.12em] mb-0.5" style={{ color: "var(--accent-blue)" }}>
                       {section.heading}
                     </div>
-                    <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                       {section.content}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[11px] mt-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                 {greeting!.text}
               </p>
             )}
-            <div className="mt-3 text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+            <div className="mt-3 text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
               {greeting!.provider} · {greeting!.model} · {(greeting!.duration_ms / 1000).toFixed(1)}s
             </div>
           </motion.div>
@@ -147,7 +147,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
             animate={{ opacity: 1 }}
             className="text-center mt-4"
           >
-            <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
               Awaiting OLLO connection...
             </p>
           </motion.div>

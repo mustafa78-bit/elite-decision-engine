@@ -25,7 +25,7 @@ export function TradeDistributionWidget({
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Trade Distribution</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {total} total trades
         </span>
       </CardHeader>
@@ -40,7 +40,7 @@ export function TradeDistributionWidget({
             style={{ width: `${lossPct}%` }}
           />
         </div>
-        <div className="flex justify-between text-[10px] font-mono">
+        <div className="flex justify-between text-[12px] font-mono">
           <div className="text-center">
             <div className="text-[var(--accent-green)] font-medium">{wins}</div>
             <div className="text-[var(--text-muted)]">Wins</div>

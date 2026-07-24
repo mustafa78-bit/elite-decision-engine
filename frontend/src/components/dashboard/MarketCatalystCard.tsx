@@ -44,7 +44,7 @@ export default function MarketCatalystCard() {
   return (
     <Card>
       <CardContent className="p-3">
-        <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Market Catalysts</p>
+        <p className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Market Catalysts</p>
 
         {loading ? (
           <div className="space-y-2">
@@ -54,22 +54,22 @@ export default function MarketCatalystCard() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center gap-2 py-2">
-            <p className="text-[10px] text-[var(--accent-red)] font-mono">Failed to load</p>
+            <p className="text-[12px] text-[var(--accent-red)] font-mono">Failed to load</p>
             <Button variant="ghost" size="sm" onClick={refetch}>Retry</Button>
           </div>
         ) : !dash || (dash.top_signals.length === 0 && dash.top_opportunities.length === 0) ? (
-          <p className="text-[10px] text-[var(--text-muted)] font-mono text-center py-3">No catalyst signals detected</p>
+          <p className="text-[12px] text-[var(--text-muted)] font-mono text-center py-3">No catalyst signals detected</p>
         ) : (
           <div className="space-y-1">
             {dash.top_signals.slice(0, 4).map((s) => (
-              <div key={s} className="flex items-center gap-2 text-[10px] font-mono py-1 border-b border-[var(--border-subtle)] last:border-0">
-                <span className="text-[11px]">{catalystIcon(s)}</span>
+              <div key={s} className="flex items-center gap-2 text-[12px] font-mono py-1 border-b border-[var(--border-subtle)] last:border-0">
+                <span className="text-[13px]">{catalystIcon(s)}</span>
                 <span className="text-[var(--text-primary)]">{shortLabel(s)}</span>
               </div>
             ))}
 
             {dash.top_signals.length === 0 && dash.top_opportunities.length > 0 && (
-              <div className="text-[10px] text-[var(--text-muted)] font-mono text-center py-1">
+              <div className="text-[12px] text-[var(--text-muted)] font-mono text-center py-1">
                 {dash.opportunities_found} opportunities found • {dash.symbols_scanned} symbols scanned
               </div>
             )}

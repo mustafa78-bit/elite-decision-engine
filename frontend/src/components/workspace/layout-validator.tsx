@@ -53,10 +53,10 @@ export function LayoutValidator() {
 
   return (
     <div className="px-2 py-1.5">
-      <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider mb-1">
+      <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider mb-1">
         Layout
       </div>
-      <div className="flex items-center gap-2 text-[9px] font-mono">
+      <div className="flex items-center gap-2 text-[12px] font-mono">
         <span className={result.valid ? "text-[var(--accent-green)]" : "text-[var(--accent-yellow)]"}>
           {result.panelCount} panels
         </span>

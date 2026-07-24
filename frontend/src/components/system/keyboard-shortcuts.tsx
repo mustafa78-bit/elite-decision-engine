@@ -49,16 +49,16 @@ export function KeyboardShortcuts() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filter shortcuts..."
-            className="w-full bg-[var(--bg-base)] rounded-lg px-3 py-1.5 text-[10px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] border border-[var(--border-subtle)] focus:outline-none focus:border-[var(--accent-blue)]"
+            className="w-full bg-[var(--bg-base)] rounded-lg px-3 py-1.5 text-[12px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] border border-[var(--border-subtle)] focus:outline-none focus:border-[var(--accent-blue)]"
           />
         </div>
         {categories.map(({ category, shortcuts }) => (
           <div key={category} className="px-3">
-            <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase py-1 border-b border-[var(--border-subtle)]">{category}</div>
+            <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase py-1 border-b border-[var(--border-subtle)]">{category}</div>
             {shortcuts.map((s) => (
-              <div key={s.key + s.description} className="flex items-center justify-between py-1 text-[10px] font-mono border-b border-[var(--border-subtle)] last:border-b-0">
+              <div key={s.key + s.description} className="flex items-center justify-between py-1 text-[12px] font-mono border-b border-[var(--border-subtle)] last:border-b-0">
                 <span className="text-[var(--text-secondary)]">{s.description}</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-base)] border border-[var(--border-subtle)] text-[9px] text-[var(--accent-blue)] font-mono">
+                <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-base)] border border-[var(--border-subtle)] text-[12px] text-[var(--accent-blue)] font-mono">
                   {s.key}
                 </kbd>
               </div>
@@ -66,7 +66,7 @@ export function KeyboardShortcuts() {
           </div>
         ))}
         {categories.length === 0 && (
-          <div className="px-3 py-4 text-center text-[10px] text-[var(--text-muted)]">
+          <div className="px-3 py-4 text-center text-[12px] text-[var(--text-muted)]">
             No shortcuts match "{search}"
           </div>
         )}

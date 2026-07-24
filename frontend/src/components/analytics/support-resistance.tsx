@@ -30,22 +30,22 @@ export function SupportResistance({
     <Card className="h-full">
       <CardHeader>
         <CardTitle>S/R Levels</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">{symbol}</span>
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">{symbol}</span>
       </CardHeader>
       <CardContent className="space-y-1">
         {levels.sort((a, b) => b.price - a.price).map((l) => (
           <div
             key={`${l.type}-${l.price}`}
-            className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-mono border ${strengthColor[l.strength]}`}
+            className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-[12px] font-mono border ${strengthColor[l.strength]}`}
           >
             <div className="flex items-center gap-1.5">
               <span className={`w-1 h-4 rounded-full ${l.type === "support" ? "bg-[var(--accent-green)]" : "bg-[var(--accent-red)]"}`} />
               <span className="text-[var(--text-primary)] tabular-nums">${l.price.toLocaleString()}</span>
-              <Badge variant={l.type === "support" ? "success" : "danger"} className="text-[8px]">{l.type}</Badge>
+              <Badge variant={l.type === "support" ? "success" : "danger"} className="text-[11px]">{l.type}</Badge>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[9px] ${l.strength === "strong" ? "text-[var(--accent-blue)]" : "text-[var(--text-muted)]"}`}>{l.strength}</span>
-              <span className="text-[9px] text-[var(--text-muted)]">{l.touches}t</span>
+              <span className={`text-[12px] ${l.strength === "strong" ? "text-[var(--accent-blue)]" : "text-[var(--text-muted)]"}`}>{l.strength}</span>
+              <span className="text-[12px] text-[var(--text-muted)]">{l.touches}t</span>
             </div>
           </div>
         ))}

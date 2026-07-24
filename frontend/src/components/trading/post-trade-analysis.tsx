@@ -32,8 +32,8 @@ export function PostTradeAnalysis({
         {metrics.map((m) => (
           <div key={m.label}>
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">{m.label}</span>
-              <span className={`text-[10px] font-mono tabular-nums ${m.positive ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">{m.label}</span>
+              <span className={`text-[12px] font-mono tabular-nums ${m.positive ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                 {m.value}
               </span>
             </div>

@@ -33,7 +33,7 @@ export function LiquidityWidget({
             Score: {overallScore}
           </Badge>
         </div>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {symbol}
         </span>
       </CardHeader>
@@ -42,10 +42,10 @@ export function LiquidityWidget({
           {levels.map((l) => (
             <div key={l.price}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                   @ ${l.price.toLocaleString()}
                 </span>
-                <span className="text-[10px] font-mono tabular-nums text-[var(--text-muted)]">
+                <span className="text-[12px] font-mono tabular-nums text-[var(--text-muted)]">
                   Ratio: {l.ratio.toFixed(2)}
                 </span>
               </div>
@@ -63,7 +63,7 @@ export function LiquidityWidget({
                   />
                 </div>
               </div>
-              <div className="flex justify-between text-[8px] font-mono text-[var(--text-muted)] mt-0.5">
+              <div className="flex justify-between text-[11px] font-mono text-[var(--text-muted)] mt-0.5">
                 <span>Bid ${l.bidLiquidity}M</span>
                 <span>Ask ${l.askLiquidity}M</span>
               </div>
@@ -71,7 +71,7 @@ export function LiquidityWidget({
           ))}
         </div>
         <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-          <div className="flex items-center justify-between text-[9px] font-mono text-[var(--text-muted)]">
+          <div className="flex items-center justify-between text-[12px] font-mono text-[var(--text-muted)]">
             <span>Overall Liquidity Score</span>
             <span className="text-[var(--accent-blue)]">{overallScore}/100</span>
           </div>

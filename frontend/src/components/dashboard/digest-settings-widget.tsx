@@ -35,11 +35,11 @@ export function DigestSettingsWidget({
                 className="flex items-center justify-between py-1.5"
               >
                 <div>
-                  <div className="text-[11px] font-mono text-[var(--text-secondary)]">
+                  <div className="text-[13px] font-mono text-[var(--text-secondary)]">
                     {s.label}
                   </div>
                   {s.frequency && (
-                    <div className="text-[9px] text-[var(--text-muted)]">
+                    <div className="text-[12px] text-[var(--text-muted)]">
                       {s.frequency}
                     </div>
                   )}

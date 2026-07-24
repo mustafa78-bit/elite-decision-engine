@@ -7,7 +7,7 @@ interface Props {
 
 function DetailRow({ label, value, suffix }: { label: string; value: number | string; suffix?: string }) {
   return (
-    <div className="flex justify-between py-0.5 text-[10px]">
+    <div className="flex justify-between py-0.5 text-[12px]">
       <span className="text-[var(--text-muted)]">{label}</span>
       <span className="font-mono tabular-nums text-[var(--text-primary)]">
         {value}{suffix && <span className="text-[var(--text-muted)] ml-0.5">{suffix}</span>}
@@ -34,7 +34,7 @@ function DecisionDetail({ intel, timestamp }: { intel: TradeIntelligence; timest
       <DetailRow label="MTF" value={intel.mtf_score.toFixed(1)} />
       <DetailRow label="Risk" value={intel.risk_score.toFixed(1)} />
       <DetailRow label="RSI" value={intel.rsi.toFixed(0)} />
-      <div className="text-[9px] text-[var(--text-muted)] opacity-50 pt-0.5">{time}</div>
+      <div className="text-[12px] text-[var(--text-muted)]  pt-0.5">{time}</div>
     </div>
   );
 }
@@ -50,14 +50,14 @@ export default function AIDecisionTimeline({ notifications }: Props) {
   if (decisions.length === 0) {
     return (
       <div className="border border-dashed border-[var(--border-subtle)] rounded px-3 py-4 text-center">
-        <p className="text-[10px] text-[var(--text-muted)] font-mono">No decisions yet</p>
+        <p className="text-[12px] text-[var(--text-muted)] font-mono">No decisions yet</p>
       </div>
     );
   }
 
   return (
     <div className="border border-[var(--border-subtle)] rounded px-3 py-2">
-      <h3 className="text-[9px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Decision Timeline</h3>
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Decision Timeline</h3>
       <div className="space-y-0.5">
         {decisions.map((n, i) => {
           const intel = n.payload.intelligence!;
@@ -69,7 +69,7 @@ export default function AIDecisionTimeline({ notifications }: Props) {
             <div key={i}>
               <button
                 onClick={() => setSelectedIdx(open ? null : i)}
-                className="w-full flex items-center justify-between text-[10px] font-mono hover:bg-[var(--bg-elevated)] rounded px-1 py-1 transition-colors text-left"
+                className="w-full flex items-center justify-between text-[12px] font-mono hover:bg-[var(--bg-elevated)] rounded px-1 py-1 transition-colors text-left"
               >
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -87,7 +87,7 @@ export default function AIDecisionTimeline({ notifications }: Props) {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[var(--text-muted)]">{(intel.confidence * 100).toFixed(0)}%</span>
-                  <span className="text-[var(--text-muted)] opacity-50">{time}</span>
+                  <span className="text-[var(--text-muted)] ">{time}</span>
                 </div>
               </button>
               {open && <DecisionDetail intel={intel} timestamp={n.timestamp} />}

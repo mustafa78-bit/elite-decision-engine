@@ -23,13 +23,13 @@ function getStatusFromQuality(quality: string, warnings: number): MissionStatus 
 
 const statusConfig: Record<MissionStatus, { color: string; bg: string; glow: string; label: string }> = {
   ACTIVE: {
-    color: "#22C55E",
+    color: "var(--accent-green)",
     bg: "rgba(34, 197, 94, 0.06)",
     glow: "rgba(34, 197, 94, 0.15)",
     label: "All systems nominal. Mission proceeding.",
   },
   MONITORING: {
-    color: "#3B82F6",
+    color: "var(--accent-blue)",
     bg: "rgba(59, 130, 246, 0.06)",
     glow: "rgba(59, 130, 246, 0.15)",
     label: "Monitoring conditions. No immediate action required.",
@@ -41,7 +41,7 @@ const statusConfig: Record<MissionStatus, { color: string; bg: string; glow: str
     label: "Caution warranted. Review evidence before proceeding.",
   },
   CRITICAL: {
-    color: "#EF4444",
+    color: "var(--accent-red)",
     bg: "rgba(239, 68, 68, 0.06)",
     glow: "rgba(239, 68, 68, 0.15)",
     label: "Critical conditions. Immediate attention required.",
@@ -68,7 +68,7 @@ export default function MissionStatusBar({
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="h-9 flex items-center justify-between px-4 text-[10px] font-mono border-b shrink-0"
+      className="h-9 flex items-center justify-between px-4 text-[12px] font-mono border-b shrink-0"
       style={{
         backgroundColor: config.bg,
         borderColor: `${config.color}20`,
@@ -129,7 +129,7 @@ export default function MissionStatusBar({
 
         {/* Evidence */}
         <span className="text-[var(--text-muted)] hidden sm:inline">
-          Evidence: <span style={{ color: "#3B82F6" }}>{(evidenceStrength * 100).toFixed(0)}%</span>
+          Evidence: <span style={{ color: "var(--accent-blue)" }}>{(evidenceStrength * 100).toFixed(0)}%</span>
         </span>
 
         {/* Quality */}

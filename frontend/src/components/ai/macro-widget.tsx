@@ -37,15 +37,15 @@ export function MacroWidget({
               className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]"
             >
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                   {ind.name}
                 </span>
-                <span className="text-[10px] font-mono tabular-nums text-[var(--text-primary)]">
+                <span className="text-[12px] font-mono tabular-nums text-[var(--text-primary)]">
                   {ind.value}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={`text-[10px] font-mono tabular-nums ${ind.change >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
+                <span className={`text-[12px] font-mono tabular-nums ${ind.change >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                   {ind.change >= 0 ? "+" : ""}{ind.change}%
                 </span>
                 <Badge variant={ind.status === "bullish" ? "success" : ind.status === "bearish" ? "danger" : "warning"}>

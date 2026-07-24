@@ -29,14 +29,14 @@ export function PerformanceProfiler({
       <CardContent className="grid grid-cols-2 gap-1.5">
         {metrics.map((m, i) => (
           <div key={i} className="p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]">
-            <div className="text-[8px] font-mono text-[var(--text-muted)] uppercase mb-0.5">{m.label}</div>
+            <div className="text-[11px] font-mono text-[var(--text-muted)] uppercase mb-0.5">{m.label}</div>
             <div className="flex items-center justify-between">
-              <span className="text-[12px] font-mono font-bold tabular-nums">{m.value}</span>
+              <span className="text-[14px] font-mono font-bold tabular-nums">{m.value}</span>
               <div className="flex items-center gap-1">
-                <span className={`text-[9px] font-mono tabular-nums ${m.direction === "up" ? "text-[var(--accent-red)]" : m.direction === "down" ? "text-[var(--accent-green)]" : "text-[var(--text-muted)]"}`}>
+                <span className={`text-[12px] font-mono tabular-nums ${m.direction === "up" ? "text-[var(--accent-red)]" : m.direction === "down" ? "text-[var(--accent-green)]" : "text-[var(--text-muted)]"}`}>
                   {m.change}
                 </span>
-                <Badge variant={m.status === "good" ? "success" : m.status === "warn" ? "warning" : "danger"} className="text-[7px] w-6 text-center">{m.status === "good" ? "OK" : m.status === "warn" ? "!" : "!!"}</Badge>
+                <Badge variant={m.status === "good" ? "success" : m.status === "warn" ? "warning" : "danger"} className="text-[11px] w-6 text-center">{m.status === "good" ? "OK" : m.status === "warn" ? "!" : "!!"}</Badge>
               </div>
             </div>
           </div>

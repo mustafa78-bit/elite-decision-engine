@@ -45,7 +45,7 @@ export function DashboardBuilder() {
         variant="glass"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="text-[10px]"
+        className="text-[12px]"
       >
         {isOpen ? "Close Builder" : "Dashboard Builder"}
       </Button>
@@ -91,7 +91,7 @@ export function DashboardBuilder() {
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "px-2 py-1 rounded-lg text-[9px] font-mono uppercase tracking-wider transition-all",
+                        "px-2 py-1 rounded-lg text-[12px] font-mono uppercase tracking-wider transition-all",
                         selectedCategory === cat
                           ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] border border-[var(--accent-blue)]/20"
                           : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent",
@@ -113,17 +113,17 @@ export function DashboardBuilder() {
                       className="p-3 rounded-xl bg-[var(--bg-base)] border border-[var(--border-subtle)] hover:border-[var(--accent-blue)]/30 transition-all cursor-pointer"
                       onClick={() => handleAddWidget(widget)}
                     >
-                      <div className="text-[10px] font-mono font-medium text-[var(--text-primary)]">
+                      <div className="text-[12px] font-mono font-medium text-[var(--text-primary)]">
                         {widget.name}
                       </div>
-                      <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+                      <div className="text-[12px] text-[var(--text-muted)] mt-0.5">
                         {widget.description}
                       </div>
                       <div className="flex gap-1 mt-1.5">
-                        <span className="text-[8px] font-mono uppercase tracking-wider text-[var(--accent-blue)]/60">
+                        <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--accent-blue)]/60">
                           {widget.category}
                         </span>
-                        <span className="text-[8px] font-mono text-[var(--text-muted)]">
+                        <span className="text-[11px] font-mono text-[var(--text-muted)]">
                           {widget.defaultWidth}x{widget.defaultHeight}
                         </span>
                       </div>

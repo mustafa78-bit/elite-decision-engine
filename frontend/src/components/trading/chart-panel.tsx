@@ -32,7 +32,7 @@ export function ChartPanel({ data = [] }: ChartPanelProps) {
           layout: {
             background: { type: ColorType.Solid, color: "transparent" },
             textColor: "rgba(255,255,255,0.4)",
-            fontSize: 10,
+            fontSize: 12,
             fontFamily: "JetBrains Mono, monospace",
           },
           grid: {

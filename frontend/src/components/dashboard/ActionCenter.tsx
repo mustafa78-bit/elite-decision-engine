@@ -42,7 +42,7 @@ export default function ActionCenter() {
   return (
     <Card>
       <CardContent className="p-3">
-        <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Action Center</p>
+        <p className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Action Center</p>
 
         {loading ? (
           <div className="grid grid-cols-2 gap-2">
@@ -61,7 +61,7 @@ export default function ActionCenter() {
                 <span className="text-lg font-mono font-bold" style={{ color: item.color }}>
                   {item.value}
                 </span>
-                <span className="text-[9px] font-mono text-[var(--text-muted)] leading-tight text-center">
+                <span className="text-[12px] font-mono text-[var(--text-muted)] leading-tight text-center">
                   {item.label}
                 </span>
               </button>

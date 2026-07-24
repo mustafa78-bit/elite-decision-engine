@@ -44,8 +44,8 @@ export function RegimeProbabilities({
         {regimes.map((r) => (
           <div key={r.name}>
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">{r.name}</span>
-              <span className="text-[10px] font-mono tabular-nums text-[var(--accent-blue)]">{r.probability}%</span>
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">{r.name}</span>
+              <span className="text-[12px] font-mono tabular-nums text-[var(--accent-blue)]">{r.probability}%</span>
             </div>
             <Progress
               value={r.probability}
