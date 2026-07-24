@@ -11,7 +11,6 @@ import {
 
 import { evaluateSymbol, type CouncilReportData } from "../api/council";
 import { fetchGlobalTimeline } from "../api/timeline";
-import { fetchMarket, type MarketData } from "../api/market";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Progress } from "../components/ui/progress";
@@ -80,6 +79,15 @@ const FALLBACK_TIMELINE = [
   { time: "Yesterday", label: "BTC Reclaimed Key Structure", description: "Successful close above the 50-day exponential moving average band." },
 ];
 
+const CATEGORY_ICONS: Record<string, any> = {
+  "Technical": TrendingUp,
+  "Whale Intelligence": Coins,
+  "Macro": Globe,
+  "News": Newspaper,
+  "Liquidity": Activity,
+  "Market Structure": TrendingUp,
+};
+
 function getStatusBg(status: string): "success" | "danger" | "warning" | "default" | "info" {
   const normalized = status.toUpperCase();
   if (normalized === "POSITIVE" || normalized === "BULLISH" || normalized === "BUY" || normalized === "STRONG_BUY") {
@@ -97,16 +105,14 @@ export default function Intelligence() {
 
   // Real-time states
   const [councilReport, setCouncilReport] = useState<CouncilReportData | null>(null);
-  const [marketData, setMarketData] = useState<MarketData | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
 
   const loadAll = useCallback(async (sym: string) => {
     try {
       setLoading(true);
 
-      const [report, mkt, timeline] = await Promise.all([
+      const [report, timeline] = await Promise.all([
         evaluateSymbol(sym, "LONG", "1h").catch(() => null),
-        fetchMarket().catch(() => null),
         fetchGlobalTimeline({ limit: 10 }).catch(() => null),
       ]);
 
@@ -114,10 +120,6 @@ export default function Intelligence() {
         setCouncilReport(report.council_report);
       } else {
         setCouncilReport(null);
-      }
-
-      if (mkt) {
-        setMarketData(mkt);
       }
 
       if (timeline && timeline.events) {
@@ -134,15 +136,16 @@ export default function Intelligence() {
     loadAll(symbol);
   }, [symbol, loadAll]);
 
-  // Derived calculations
-  const rec = councilReport?.consensus_direction || (marketData ? "BULLISH" : "BULLISH");
-  const conviction = councilReport ? Math.round(councilReport.consensus_score * 100) : 92;
+  // Derived calculations (fully mapped to live backend intelligence endpoints)
+  const rec = councilReport?.recommendation || councilReport?.consensus_direction || "BULLISH";
+  const conviction = councilReport?.conviction ?? (councilReport ? Math.round(councilReport.consensus_score * 100) : 92);
   const agreementRatio = councilReport
     ? `${councilReport.sources_agreeing} / ${councilReport.agent_count}`
     : "9 / 10";
 
   const coordinator_reasons = (councilReport?.coordinator_report as any)?.reasons;
-  const executiveSummary = (Array.isArray(coordinator_reasons) && coordinator_reasons[0]) ||
+  const executiveSummary = councilReport?.executive_summary ||
+    (Array.isArray(coordinator_reasons) && coordinator_reasons[0]) ||
     "Strong macro alignment, whale spot accumulation, and a healthy trend structure support long biased entries.";
 
   return (
@@ -208,7 +211,7 @@ export default function Intelligence() {
                   <span className="text-xs text-[var(--text-secondary)]">•</span>
                   <span className="text-xs text-[var(--text-muted)] font-mono">Primary Risk:</span>
                   <Badge variant="warning" className="text-xs">
-                    Funding Rate Spike
+                  {councilReport?.primary_risk || "Funding Rate Spike"}
                   </Badge>
                 </div>
               </div>
@@ -237,7 +240,9 @@ export default function Intelligence() {
               <div className="grid grid-cols-2 gap-4 pt-1">
                 <div>
                   <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Confidence</div>
-                  <div className="text-sm font-bold text-white mt-1">Very High</div>
+                  <div className="text-sm font-bold text-white mt-1">
+                    {councilReport?.confidence || "Very High"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">AI Consensus</div>
@@ -253,8 +258,8 @@ export default function Intelligence() {
       <div className="space-y-3">
         <h3 className="section-title">Evidence Layer</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FALLBACK_EVIDENCE.map((item) => {
-            const IconComponent = item.icon;
+          {(councilReport?.evidence || FALLBACK_EVIDENCE).map((item: any) => {
+            const IconComponent = item.icon || CATEGORY_ICONS[item.category] || TrendingUp;
             return (
               <Card key={item.category} className="border border-[var(--border-subtle)] bg-[var(--bg-elevated)] hover:border-white/10 transition-all duration-200">
                 <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
@@ -296,7 +301,7 @@ export default function Intelligence() {
           </CardHeader>
           <CardContent className="p-4">
             <p className="text-xs text-[var(--text-secondary)] leading-relaxed italic">
-              {FALLBACK_NARRATIVE}
+              {councilReport?.market_narrative || FALLBACK_NARRATIVE}
             </p>
           </CardContent>
         </Card>

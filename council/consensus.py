@@ -39,6 +39,18 @@ class CouncilReport:
     sources_agreeing: int = 0
     sources_disagreeing: int = 0
 
+    # Structured intelligence payload fields (single source of truth for frontend rendering)
+    recommendation: Optional[str] = None
+    confidence: Optional[str] = None
+    conviction: Optional[int] = None
+    executive_summary: Optional[str] = None
+    evidence: Optional[list[dict[str, Any]]] = None
+    risks: Optional[list[str]] = None
+    opportunities: Optional[list[str]] = None
+    supporting_metrics: Optional[dict[str, Any]] = None
+    market_narrative: Optional[str] = None
+    primary_risk: Optional[str] = None
+
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["agent_reports"] = [r.to_dict() for r in self.agent_reports]

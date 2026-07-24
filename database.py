@@ -345,8 +345,31 @@ def session_scope():
         session.close()
 
 
+def seed_default_user():
+    """Automatically seeds a default admin account when the users table is detected as empty."""
+    session = get_session()
+    try:
+        user_count = session.query(User).count()
+        if user_count == 0:
+            from auth.service import hash_password
+            admin = User(
+                username="admin",
+                email="admin@test.com",
+                hashed_password=hash_password("admin123"),
+            )
+            session.add(admin)
+            session.commit()
+            logger.info("Default admin user seeded successfully.")
+    except Exception as e:
+        logger.error("Failed to seed default user: %s", e)
+        session.rollback()
+    finally:
+        session.close()
+
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
+    seed_default_user()
 
 
 # ------------------------------------------------------------------

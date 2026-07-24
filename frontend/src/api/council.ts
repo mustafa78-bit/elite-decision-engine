@@ -23,6 +23,18 @@ export interface CouncilReportData {
   agent_count: number;
   sources_agreeing: number;
   sources_disagreeing: number;
+
+  // New backend-generated structured intelligence properties
+  recommendation?: string;
+  confidence?: string;
+  conviction?: number;
+  executive_summary?: string;
+  evidence?: any[];
+  risks?: string[];
+  opportunities?: string[];
+  supporting_metrics?: Record<string, any>;
+  market_narrative?: string;
+  primary_risk?: string;
 }
 
 export interface CouncilStatusData {
