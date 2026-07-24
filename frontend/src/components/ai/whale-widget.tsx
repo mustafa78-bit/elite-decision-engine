@@ -35,7 +35,7 @@ export function WhaleWidget({ activities = [] }: WhaleWidgetProps) {
       <CardHeader>
         <CardTitle>
           Whale Activity
-          <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">
+          <span className="text-[12px] font-mono text-[var(--text-muted)] ml-2">
             Last 24h
           </span>
         </CardTitle>
@@ -48,20 +48,20 @@ export function WhaleWidget({ activities = [] }: WhaleWidgetProps) {
               className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]"
             >
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] ${a.type === "buy" ? "text-[var(--accent-green)]" : a.type === "sell" ? "text-[var(--accent-red)]" : "text-[var(--accent-yellow)]"}`}>
+                <span className={`text-[12px] ${a.type === "buy" ? "text-[var(--accent-green)]" : a.type === "sell" ? "text-[var(--accent-red)]" : "text-[var(--accent-yellow)]"}`}>
                   {a.type === "buy" ? "▲" : a.type === "sell" ? "▼" : "◆"}
                 </span>
                 <div>
-                  <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                  <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                     {a.symbol}
                   </span>
-                  <span className="text-[9px] font-mono text-[var(--text-muted)] ml-1">
+                  <span className="text-[12px] font-mono text-[var(--text-muted)] ml-1">
                     {a.exchange}
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono tabular-nums text-[var(--text-primary)]">
+                <span className="text-[12px] font-mono tabular-nums text-[var(--text-primary)]">
                   ${(a.usdValue / 1_000_000).toFixed(1)}M
                 </span>
                 <Badge variant={a.type === "buy" ? "success" : a.type === "sell" ? "danger" : "warning"}>

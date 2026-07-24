@@ -31,7 +31,7 @@ export default function SignalTimeline({ signals }: Props) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
         Signal Timeline
       </h3>
       <div className="space-y-1">

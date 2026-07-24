@@ -22,7 +22,7 @@ export default function PerformanceChart({ equityCurve, height = 200 }: Props) {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#6b7280",
-        fontSize: 10,
+        fontSize: 12,
       },
       grid: {
         vertLines: { color: "#1f2937" },

@@ -60,13 +60,13 @@ export default function OpenInterestPage() {
                   <div className="text-lg font-mono text-[var(--text-primary)]">
                     {formatUSD(item.open_interest)}
                   </div>
-                  <div className="flex justify-between text-[10px] font-mono">
+                  <div className="flex justify-between text-[12px] font-mono">
                     <span className="text-[var(--text-secondary)]">24h Change</span>
                     <span className={item.change_24h >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}>
                       {item.change_24h >= 0 ? "+" : ""}{item.change_24h}%
                     </span>
                   </div>
-                  <div className="flex justify-between text-[10px] font-mono">
+                  <div className="flex justify-between text-[12px] font-mono">
                     <span className="text-[var(--text-secondary)]">Volume</span>
                     <span className="text-[var(--text-secondary)]">{formatUSD(item.volume)}</span>
                   </div>

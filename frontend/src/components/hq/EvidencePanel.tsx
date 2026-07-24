@@ -39,7 +39,7 @@ function GaugeBar({ value, label, color }: { value: number; label: string; color
   const pct = Math.min(Math.max(value * 100, 0), 100)
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-[10px] font-mono">
+      <div className="flex justify-between text-[12px] font-mono">
         <span className="text-[var(--text-muted)]">{label}</span>
         <span style={{ color }}>{pct.toFixed(0)}%</span>
       </div>
@@ -65,22 +65,22 @@ function EvidenceItemRow({ item }: { item: EvidenceItem }) {
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-medium text-[var(--text-primary)] truncate">
+          <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">
             {item.title}
           </span>
-          <span className="text-[8px] font-mono shrink-0 px-1 py-0.5 rounded" style={{ backgroundColor: `${severityColor(item.severity)}15`, color: severityColor(item.severity) }}>
+          <span className="text-[11px] font-mono shrink-0 px-1 py-0.5 rounded" style={{ backgroundColor: `${severityColor(item.severity)}15`, color: severityColor(item.severity) }}>
             {item.severity}
           </span>
         </div>
         {item.description && (
-          <p className="text-[9px] text-[var(--text-muted)] mt-0.5 leading-relaxed">{item.description}</p>
+          <p className="text-[12px] text-[var(--text-muted)] mt-0.5 leading-relaxed">{item.description}</p>
         )}
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[8px] text-[var(--text-muted)] font-mono">{item.engine}</span>
-          <span className="text-[8px] text-[var(--text-muted)]">·</span>
-          <span className="text-[8px] text-[var(--text-muted)] font-mono">{item.category}</span>
-          <span className="text-[8px] text-[var(--text-muted)]">·</span>
-          <span className="text-[8px] text-[var(--text-muted)] font-mono">{(item.confidence * 100).toFixed(0)}%</span>
+          <span className="text-[11px] text-[var(--text-muted)] font-mono">{item.engine}</span>
+          <span className="text-[11px] text-[var(--text-muted)]">·</span>
+          <span className="text-[11px] text-[var(--text-muted)] font-mono">{item.category}</span>
+          <span className="text-[11px] text-[var(--text-muted)]">·</span>
+          <span className="text-[11px] text-[var(--text-muted)] font-mono">{(item.confidence * 100).toFixed(0)}%</span>
         </div>
       </div>
     </div>
@@ -89,7 +89,7 @@ function EvidenceItemRow({ item }: { item: EvidenceItem }) {
 
 function SourceRow({ source }: { source: SourceTrace }) {
   return (
-    <div className="flex items-start gap-2 py-1 text-[9px] font-mono">
+    <div className="flex items-start gap-2 py-1 text-[12px] font-mono">
       <span className="w-1 h-1 rounded-full mt-1 bg-[var(--text-muted)] shrink-0" />
       <div>
         <span className="text-[var(--text-secondary)]">{source.module} v{source.module_version}</span>
@@ -125,9 +125,9 @@ export default function EvidencePanel({ report, loading, error }: Props) {
       <div className="glass-card p-5">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-red)]" />
-          <span className="text-[10px] font-medium text-[var(--accent-red)] uppercase tracking-[0.1em]">Evidence Offline</span>
+          <span className="text-[12px] font-medium text-[var(--accent-red)] uppercase tracking-[0.1em]">Evidence Offline</span>
         </div>
-        <p className="text-[11px] text-[var(--text-muted)]">{error}</p>
+        <p className="text-[13px] text-[var(--text-muted)]">{error}</p>
       </div>
     )
   }
@@ -137,9 +137,9 @@ export default function EvidencePanel({ report, loading, error }: Props) {
       <div className="glass-card p-5">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]" />
-          <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">No Evidence Available</span>
+          <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">No Evidence Available</span>
         </div>
-        <p className="text-[11px] text-[var(--text-muted)]">Awaiting first evidence briefing from the engines.</p>
+        <p className="text-[13px] text-[var(--text-muted)]">Awaiting first evidence briefing from the engines.</p>
       </div>
     )
   }
@@ -155,18 +155,18 @@ export default function EvidencePanel({ report, loading, error }: Props) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: qualityColor(report.decision_quality) }} />
-          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: qualityColor(report.decision_quality) }}>
+          <span className="text-[12px] font-medium uppercase tracking-[0.1em]" style={{ color: qualityColor(report.decision_quality) }}>
             {qualityLabel(report.decision_quality)}
           </span>
         </div>
-        <span className="text-[9px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           ID: {report.decision_id.slice(0, 8)}
         </span>
       </div>
 
       {/* Recommendation */}
       <div>
-        <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Decision</div>
+        <div className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Decision</div>
         <p className="text-sm font-semibold text-[var(--text-primary)] leading-snug">{report.recommendation || "No active recommendation"}</p>
       </div>
 
@@ -180,30 +180,30 @@ export default function EvidencePanel({ report, loading, error }: Props) {
       {/* Conflict + Evidence counts */}
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-[var(--bg-deep)] rounded-lg p-2.5">
-          <div className="text-[8px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Conflict</div>
+          <div className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Conflict</div>
           <div className="flex items-center gap-1 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: conflictColor }} />
-            <span className="text-[10px] font-mono" style={{ color: conflictColor }}>{conflictLevel}</span>
+            <span className="text-[12px] font-mono" style={{ color: conflictColor }}>{conflictLevel}</span>
           </div>
-          <div className="text-[8px] text-[var(--text-muted)]">{conflicts} item{conflicts !== 1 ? 's' : ''}</div>
+          <div className="text-[11px] text-[var(--text-muted)]">{conflicts} item{conflicts !== 1 ? 's' : ''}</div>
         </div>
         <div className="bg-[var(--bg-deep)] rounded-lg p-2.5">
-          <div className="text-[8px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Supporting</div>
+          <div className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Supporting</div>
           <div className="flex items-center gap-1 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-            <span className="text-[10px] font-mono text-[#22C55E]">{supporting}</span>
+            <span className="text-[12px] font-mono text-[#22C55E]">{supporting}</span>
           </div>
-          <div className="text-[8px] text-[var(--text-muted)]">evidence items</div>
+          <div className="text-[11px] text-[var(--text-muted)]">evidence items</div>
         </div>
         <div className="bg-[var(--bg-deep)] rounded-lg p-2.5">
-          <div className="text-[8px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Warnings</div>
+          <div className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Warnings</div>
           <div className="flex items-center gap-1 mt-0.5">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: report.warnings.length > 0 ? "var(--accent-orange)" : "var(--accent-green)" }} />
-            <span className="text-[10px] font-mono" style={{ color: report.warnings.length > 0 ? "var(--accent-orange)" : "var(--accent-green)" }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: report.warnings.length > 0 ? "#F97316" : "#22C55E" }} />
+            <span className="text-[12px] font-mono" style={{ color: report.warnings.length > 0 ? "#F97316" : "#22C55E" }}>
               {report.warnings.length}
             </span>
           </div>
-          <div className="text-[8px] text-[var(--text-muted)]">mission alerts</div>
+          <div className="text-[11px] text-[var(--text-muted)]">mission alerts</div>
         </div>
       </div>
 
@@ -216,10 +216,10 @@ export default function EvidencePanel({ report, loading, error }: Props) {
             aria-expanded={showContradicting}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
-            <span className="text-[9px] font-medium text-[#EF4444] uppercase tracking-[0.1em]">
+            <span className="text-[12px] font-medium text-[#EF4444] uppercase tracking-[0.1em]">
               Contradicting Evidence ({conflicts})
             </span>
-            <span className="ml-auto text-[var(--text-muted)] text-[9px]">{showContradicting ? "▲" : "▼"}</span>
+            <span className="ml-auto text-[var(--text-muted)] text-[12px]">{showContradicting ? "▲" : "▼"}</span>
           </button>
           <AnimatePresence initial={false}>
             {showContradicting && (
@@ -244,8 +244,8 @@ export default function EvidencePanel({ report, loading, error }: Props) {
       {/* Summary */}
       {report.summary && (
         <div>
-          <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Summary</div>
-          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{report.summary}</p>
+          <div className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Summary</div>
+          <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{report.summary}</p>
         </div>
       )}
 
@@ -257,10 +257,10 @@ export default function EvidencePanel({ report, loading, error }: Props) {
             className="flex items-center gap-2 w-full text-left"
             aria-expanded={showReasoning}
           >
-            <span className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">
+            <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">
               Reasoning ({report.reasoning.length})
             </span>
-            <span className="ml-auto text-[var(--text-muted)] text-[9px]">{showReasoning ? "▲" : "▼"}</span>
+            <span className="ml-auto text-[var(--text-muted)] text-[12px]">{showReasoning ? "▲" : "▼"}</span>
           </button>
           <AnimatePresence initial={false}>
             {showReasoning && (
@@ -273,7 +273,7 @@ export default function EvidencePanel({ report, loading, error }: Props) {
               >
                 <ul className="mt-2 space-y-1">
                   {report.reasoning.map((r, i) => (
-                    <li key={i} className="text-[10px] text-[var(--text-secondary)] leading-relaxed flex items-start gap-1.5">
+                    <li key={i} className="text-[12px] text-[var(--text-secondary)] leading-relaxed flex items-start gap-1.5">
                       <span className="text-[var(--accent-blue)] mt-0.5 shrink-0">{i + 1}.</span>
                       {r}
                     </li>
@@ -293,10 +293,10 @@ export default function EvidencePanel({ report, loading, error }: Props) {
             className="flex items-center gap-2 w-full text-left"
             aria-expanded={showSupporting}
           >
-            <span className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">
+            <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">
               Supporting Evidence ({supporting})
             </span>
-            <span className="ml-auto text-[var(--text-muted)] text-[9px]">{showSupporting ? "▲" : "▼"}</span>
+            <span className="ml-auto text-[var(--text-muted)] text-[12px]">{showSupporting ? "▲" : "▼"}</span>
           </button>
           <AnimatePresence initial={false}>
             {showSupporting && (
@@ -321,19 +321,19 @@ export default function EvidencePanel({ report, loading, error }: Props) {
       {/* Timeline */}
       {report.timeline.length > 0 && (
         <div>
-          <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-2">Timeline</div>
+          <div className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-2">Timeline</div>
           <div className="space-y-1 max-h-[140px] overflow-y-auto">
             {report.timeline.slice(-6).map((item) => (
-              <div key={item.id} className="flex items-start gap-2 text-[10px]">
+              <div key={item.id} className="flex items-start gap-2 text-[12px]">
                 <span
                   className="w-1 h-1 rounded-full mt-1 shrink-0"
                   style={{ backgroundColor: item.supports_decision ? "#22C55E" : "#EF4444" }}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="text-[var(--text-primary)] truncate">{item.title}</div>
-                  <div className="text-[var(--text-muted)] text-[9px]">{item.engine} · {item.category}</div>
+                  <div className="text-[var(--text-muted)] text-[12px]">{item.engine} · {item.category}</div>
                 </div>
-                <span className="text-[8px] font-mono shrink-0 px-1 rounded" style={{ backgroundColor: `${severityColor(item.severity)}15`, color: severityColor(item.severity) }}>
+                <span className="text-[11px] font-mono shrink-0 px-1 rounded" style={{ backgroundColor: `${severityColor(item.severity)}15`, color: severityColor(item.severity) }}>
                   {item.severity}
                 </span>
               </div>
@@ -350,10 +350,10 @@ export default function EvidencePanel({ report, loading, error }: Props) {
             className="flex items-center gap-2 w-full text-left"
             aria-expanded={showSources}
           >
-            <span className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">
+            <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">
               Sources ({report.sources.length})
             </span>
-            <span className="ml-auto text-[var(--text-muted)] text-[9px]">{showSources ? "▲" : "▼"}</span>
+            <span className="ml-auto text-[var(--text-muted)] text-[12px]">{showSources ? "▲" : "▼"}</span>
           </button>
           <AnimatePresence initial={false}>
             {showSources && (
@@ -376,7 +376,7 @@ export default function EvidencePanel({ report, loading, error }: Props) {
       )}
 
       {/* Timestamp */}
-      <div className="text-[8px] text-[var(--text-muted)] font-mono text-right">
+      <div className="text-[11px] text-[var(--text-muted)] font-mono text-right">
         {new Date(report.created_at).toLocaleString()}
       </div>
     </div>

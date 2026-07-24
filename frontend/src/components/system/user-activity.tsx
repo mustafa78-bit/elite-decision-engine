@@ -32,15 +32,15 @@ export function UserActivity({
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${s.status === "active" ? "bg-[var(--accent-green)]" : s.status === "idle" ? "bg-[var(--accent-yellow)]" : "bg-[var(--text-muted)]"}`} />
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">{s.user}</span>
-                <Badge variant="default" className="text-[8px]">{s.role}</Badge>
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">{s.user}</span>
+                <Badge variant="default" className="text-[11px]">{s.role}</Badge>
               </div>
-              <span className="text-[8px] text-[var(--text-muted)]">{s.loginTime}</span>
+              <span className="text-[11px] text-[var(--text-muted)]">{s.loginTime}</span>
             </div>
-            <div className="text-[9px] font-mono text-[var(--text-muted)] mb-1">{s.currentPage}</div>
+            <div className="text-[12px] font-mono text-[var(--text-muted)] mb-1">{s.currentPage}</div>
             <div className="flex items-center gap-2">
               <Progress value={s.activity} indicatorClassName="h-full rounded-full bg-[var(--accent-blue)]" className="flex-1 h-1" />
-              <span className="text-[8px] font-mono text-[var(--text-muted)]">{s.activity}%</span>
+              <span className="text-[11px] font-mono text-[var(--text-muted)]">{s.activity}%</span>
             </div>
           </div>
         ))}

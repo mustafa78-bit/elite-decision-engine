@@ -67,7 +67,7 @@ export default function NotificationCenter() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-[var(--text-muted)]">
+        <span className="text-[12px] text-[var(--text-muted)]">
           {unreadCount > 0 ? `${unreadCount} unread` : "All read"}
         </span>
       </div>

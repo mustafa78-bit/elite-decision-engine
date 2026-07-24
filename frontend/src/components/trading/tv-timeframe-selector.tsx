@@ -28,7 +28,7 @@ export function TVTimeframeSelector({
           key={tf}
           onClick={() => handleSelect(tf)}
           className={cn(
-            "px-2 py-1 text-[10px] font-mono rounded-md transition-all",
+            "px-2 py-1 text-[12px] font-mono rounded-md transition-all",
             active === tf
               ? "bg-[var(--accent-blue)]/15 text-[var(--accent-blue)] border border-[var(--accent-blue)]/20"
               : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",

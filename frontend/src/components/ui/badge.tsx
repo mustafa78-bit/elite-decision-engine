@@ -32,7 +32,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium font-mono rounded-md",
+        "inline-flex items-center gap-1 px-2 py-0.5 text-[13px] font-medium font-mono rounded-md",
         variants[variant],
         className,
       )}

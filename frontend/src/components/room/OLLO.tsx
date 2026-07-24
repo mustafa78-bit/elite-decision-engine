@@ -47,7 +47,7 @@ export default function OLLO({ room, isDoorOpen }: Props) {
             className="max-w-[240px]"
           >
             <div
-              className="relative px-4 py-2.5 rounded-xl text-[11px] leading-relaxed font-mono tracking-tight"
+              className="relative px-4 py-2.5 rounded-xl text-[13px] leading-relaxed font-mono tracking-tight"
               style={{
                 backgroundColor: `${room.accentDim}dd`,
                 border: `1px solid ${room.accent}44`,
@@ -57,7 +57,7 @@ export default function OLLO({ room, isDoorOpen }: Props) {
               }}
             >
               {showWelcome && (
-                <div className="text-[9px] uppercase tracking-[0.15em] mb-1.5" style={{ opacity: 0.5 }}>
+                <div className="text-[12px] uppercase tracking-[0.15em] mb-1.5" style={{ opacity: 0.5 }}>
                   OLLO Guide
                 </div>
               )}

@@ -68,7 +68,7 @@ export default function MissionStatusBar({
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="h-9 flex items-center justify-between px-4 text-[10px] font-mono border-b shrink-0"
+      className="h-9 flex items-center justify-between px-4 text-[12px] font-mono border-b shrink-0"
       style={{
         backgroundColor: config.bg,
         borderColor: `${config.color}20`,
@@ -121,7 +121,7 @@ export default function MissionStatusBar({
         {unreadAlerts !== undefined && (
           <span
             className="text-[var(--text-muted)]"
-            style={unreadAlerts > 0 ? { color: "var(--accent-orange)" } : undefined}
+            style={unreadAlerts > 0 ? { color: "#F97316" } : undefined}
           >
             {unreadAlerts > 0 ? `${unreadAlerts} mission alert${unreadAlerts > 1 ? 's' : ''}` : "0 mission alerts"}
           </span>

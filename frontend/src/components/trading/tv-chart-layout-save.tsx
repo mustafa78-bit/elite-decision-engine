@@ -74,7 +74,7 @@ export function TVChartLayoutSave({
           variant="glass"
           size="sm"
           onClick={() => setShowSave(!showSave)}
-          className="text-[10px]"
+          className="text-[12px]"
         >
           Save Layout
         </Button>
@@ -87,14 +87,14 @@ export function TVChartLayoutSave({
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
             placeholder="Layout name..."
-            className="flex-1 bg-[var(--bg-base)] rounded-lg px-2 py-1 text-[10px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] border border-[var(--border-default)] focus:outline-none focus:border-[var(--accent-blue)]"
+            className="flex-1 bg-[var(--bg-base)] rounded-lg px-2 py-1 text-[12px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] border border-[var(--border-default)] focus:outline-none focus:border-[var(--accent-blue)]"
           />
           <Button
             variant="primary"
             size="sm"
             onClick={handleSave}
             disabled={!name.trim()}
-            className="text-[10px]"
+            className="text-[12px]"
           >
             Save
           </Button>
@@ -107,19 +107,19 @@ export function TVChartLayoutSave({
               key={layout.id}
               className="flex items-center justify-between px-2 py-1 rounded-lg bg-[var(--bg-elevated)]/50 border border-[var(--border-subtle)]"
             >
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                 {layout.name}
               </span>
               <div className="flex gap-1">
                 <button
                   onClick={() => handleLoad(layout)}
-                  className="text-[9px] font-mono text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80"
+                  className="text-[12px] font-mono text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80"
                 >
                   Load
                 </button>
                 <button
                   onClick={() => handleDelete(layout.id)}
-                  className="text-[9px] font-mono text-[var(--accent-red)] hover:text-[var(--accent-red)]/80"
+                  className="text-[12px] font-mono text-[var(--accent-red)] hover:text-[var(--accent-red)]/80"
                 >
                   Del
                 </button>

@@ -9,7 +9,7 @@ export default function RiskMonitor({ openTrades, maxOpenTrades }: Props) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">Risk Monitor</h3>
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-3">Risk Monitor</h3>
       <div className="text-xs">
         <div className="flex justify-between mb-1">
           <span className="text-[var(--text-muted)]">Open Positions</span>
@@ -23,7 +23,7 @@ export default function RiskMonitor({ openTrades, maxOpenTrades }: Props) {
             style={{ width: `${Math.min(pct, 100)}%` }}
           />
         </div>
-        <div className="text-[9px] text-[var(--text-muted)] mt-1">{pct.toFixed(0)}% capacity used</div>
+        <div className="text-[12px] text-[var(--text-muted)] mt-1">{pct.toFixed(0)}% capacity used</div>
       </div>
     </div>
   );

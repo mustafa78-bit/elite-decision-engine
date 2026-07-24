@@ -11,7 +11,7 @@ interface Props {
 export default function BTCHealthCard({ btcHealthScore, ema20, ema50, ema200, volatility, regimeScore }: Props) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
         BTC Health
       </h3>
       <div className="grid grid-cols-2 gap-3">

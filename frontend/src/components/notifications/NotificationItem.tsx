@@ -44,22 +44,22 @@ export default function NotificationItem({ notification, onMarkRead }: Props) {
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-semibold uppercase tracking-wider ${color}`}>
+          <span className={`text-[12px] font-semibold uppercase tracking-wider ${color}`}>
             {label}
           </span>
           {!notification.read && (
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
           )}
         </div>
-        <p className="text-[11px] text-[var(--text-secondary)] truncate mt-0.5">
+        <p className="text-[13px] text-[var(--text-secondary)] truncate mt-0.5">
           {previewPayload(notification.payload)}
         </p>
-        <p className="text-[9px] text-[var(--text-muted)] mt-0.5">{formatTime(notification.created_at)}</p>
+        <p className="text-[12px] text-[var(--text-muted)] mt-0.5">{formatTime(notification.created_at)}</p>
       </div>
       {!notification.read && (
         <button
           onClick={() => onMarkRead(notification.id)}
-          className="text-[9px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] uppercase tracking-wider shrink-0 mt-1"
+          className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] uppercase tracking-wider shrink-0 mt-1"
         >
           Read
         </button>

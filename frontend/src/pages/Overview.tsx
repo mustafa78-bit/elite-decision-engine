@@ -34,7 +34,7 @@ interface PerfSummary {
 function OverviewCard({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">
         {label}
       </h3>
       {children}

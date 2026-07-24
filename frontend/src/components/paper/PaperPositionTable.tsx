@@ -9,7 +9,7 @@ export default function PaperPositionTable({ trades, title }: Props) {
   if (trades.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded p-4">
-        <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">{title}</h3>
+        <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-3">{title}</h3>
         <p className="text-[var(--text-muted)] text-xs text-center py-4">No {title.toLowerCase()}</p>
       </div>
     );
@@ -17,12 +17,12 @@ export default function PaperPositionTable({ trades, title }: Props) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
-      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-2">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-2">
         {title} ({trades.length})
       </h3>
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-t border-b border-gray-800 text-[var(--text-muted)] text-[10px] uppercase tracking-wider">
+          <tr className="border-t border-b border-gray-800 text-[var(--text-muted)] text-[12px] uppercase tracking-wider">
             <th className="text-left px-3 py-1.5 font-medium">Symbol</th>
             <th className="text-left px-3 py-1.5 font-medium">Side</th>
             <th className="text-right px-3 py-1.5 font-medium">Entry</th>

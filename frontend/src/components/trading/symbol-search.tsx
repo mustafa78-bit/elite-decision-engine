@@ -113,7 +113,7 @@ export function SymbolSearch() {
               {displaySymbols.map((item, i) => {
                 if (item.name === "recent-divider") {
                   return (
-                    <div key="divider" className="px-2 py-1 text-[9px] text-[var(--text-muted)] uppercase tracking-wider">
+                    <div key="divider" className="px-2 py-1 text-[12px] text-[var(--text-muted)] uppercase tracking-wider">
                       Recent
                     </div>
                   );
@@ -130,7 +130,7 @@ export function SymbolSearch() {
                     )}
                   >
                     <span className="font-mono">{item.symbol}</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">{item.name}</span>
+                    <span className="text-[12px] text-[var(--text-muted)]">{item.name}</span>
                   </button>
                 );
               })}

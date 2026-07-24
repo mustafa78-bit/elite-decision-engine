@@ -39,7 +39,7 @@ export function AnomalyDetection({
       <CardHeader>
         <CardTitle>
           Anomaly Detection
-          <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">{anomalies.length} alerts</span>
+          <span className="text-[12px] font-mono text-[var(--text-muted)] ml-2">{anomalies.length} alerts</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-1.5">
@@ -48,13 +48,13 @@ export function AnomalyDetection({
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${a.severity === "high" ? "bg-[var(--accent-red)]" : a.severity === "medium" ? "bg-[var(--accent-yellow)]" : "bg-[var(--accent-blue)]"}`} />
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">{a.type}</span>
-                <Badge variant={a.severity === "high" ? "danger" : a.severity === "medium" ? "warning" : "info"} className="text-[8px]">{a.severity}</Badge>
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">{a.type}</span>
+                <Badge variant={a.severity === "high" ? "danger" : a.severity === "medium" ? "warning" : "info"} className="text-[11px]">{a.severity}</Badge>
               </div>
-              <span className="text-[8px] font-mono text-[var(--text-muted)]">{a.time}</span>
+              <span className="text-[11px] font-mono text-[var(--text-muted)]">{a.time}</span>
             </div>
-            <div className="text-[9px] text-[var(--text-muted)] mb-0.5">{a.description}</div>
-            <div className="flex gap-2 text-[9px] font-mono">
+            <div className="text-[12px] text-[var(--text-muted)] mb-0.5">{a.description}</div>
+            <div className="flex gap-2 text-[12px] font-mono">
               <span className="text-[var(--accent-red)]">Actual: {a.value}</span>
               <span className="text-[var(--text-muted)]">Expected: {a.expected}</span>
             </div>

@@ -50,7 +50,7 @@ export function UptimeTrackerWidget({
           )}
           <div className="space-y-1">
             <div>
-              <div className="text-[9px] text-[var(--text-muted)]">Current Streak</div>
+              <div className="text-[12px] text-[var(--text-muted)]">Current Streak</div>
               <div className="text-sm font-mono tabular-nums text-[var(--text-primary)]">
                 {currentStreak > 24
                   ? `${(currentStreak / 24).toFixed(0)}d`
@@ -58,7 +58,7 @@ export function UptimeTrackerWidget({
               </div>
             </div>
             <div>
-              <div className="text-[9px] text-[var(--text-muted)]">Longest Streak</div>
+              <div className="text-[12px] text-[var(--text-muted)]">Longest Streak</div>
               <div className="text-sm font-mono tabular-nums text-[var(--text-primary)]">
                 {longestStreak > 24
                   ? `${(longestStreak / 24).toFixed(0)}d`

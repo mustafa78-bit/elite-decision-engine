@@ -24,7 +24,7 @@ export function AIConfidenceWidget({
   return (
     <Card className="h-full">
       <CardContent className="p-4">
-        <div className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
+        <div className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
           AI Confidence
         </div>
         <div className="flex items-center gap-4">
@@ -70,7 +70,7 @@ export function AIConfidenceWidget({
             >
               {decision}
             </Badge>
-            <div className="text-[11px] font-mono text-[var(--text-muted)]">
+            <div className="text-[13px] font-mono text-[var(--text-muted)]">
               Score: {score.toFixed(1)}
             </div>
           </div>

@@ -21,7 +21,7 @@ export function ConnectionStatusBadge({ wsRooms }: ConnectionStatusProps) {
   return (
     <div className="flex items-center gap-2" title={`WS: ${Object.entries(wsRooms).map(([k, v]) => `${k}=${v}`).join(", ")}`}>
       <span className={`inline-block w-2 h-2 rounded-full ${statusColors[overall] || "bg-[var(--text-muted)]"}`} />
-      <span className="text-[9px] text-[var(--text-muted)] uppercase font-mono">
+      <span className="text-[12px] text-[var(--text-muted)] uppercase font-mono">
         {statusLabels[overall] || overall}
       </span>
     </div>

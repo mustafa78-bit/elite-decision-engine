@@ -139,14 +139,14 @@ export function CommandPalette() {
             placeholder="Search commands..."
             className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
-          <span className="text-[10px] text-[var(--text-muted)] font-mono border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
+          <span className="text-[12px] text-[var(--text-muted)] font-mono border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
             ESC
           </span>
         </div>
         <div className="max-h-72 overflow-y-auto p-2">
           {grouped.map((group) => (
             <div key={group.category}>
-              <div className="px-2 py-1.5 text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+              <div className="px-2 py-1.5 text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
                 {group.category}
               </div>
               {group.commands.map((cmd) => {
@@ -165,10 +165,10 @@ export function CommandPalette() {
                       <div className={`text-sm ${focusedIdx === flatIdx ? "text-[var(--accent-blue)]" : "text-[var(--text-primary)]"}`}>
                         {cmd.label}
                       </div>
-                      <div className="text-[11px] text-[var(--text-muted)]">{cmd.description}</div>
+                      <div className="text-[13px] text-[var(--text-muted)]">{cmd.description}</div>
                     </div>
                     {cmd.shortcut && (
-                      <span className="text-[9px] text-[var(--text-muted)] font-mono border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
+                      <span className="text-[12px] text-[var(--text-muted)] font-mono border border-[var(--border-subtle)] rounded px-1.5 py-0.5">
                         {cmd.shortcut}
                       </span>
                     )}

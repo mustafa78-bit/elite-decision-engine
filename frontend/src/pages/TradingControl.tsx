@@ -49,7 +49,7 @@ export default function TradingControl() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded p-4">
-          <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Exchanges</h3>
+          <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Exchanges</h3>
           <div className="space-y-2">
             {data.exchanges.map((ex) => (
               <div key={ex.name} className="flex items-center justify-between text-xs">
@@ -66,36 +66,36 @@ export default function TradingControl() {
         </div>
 
         <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded p-4">
-          <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Signals</h3>
+          <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Signals</h3>
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
-              <div className="text-[var(--text-secondary)] text-[9px]">Total</div>
+              <div className="text-[var(--text-secondary)] text-[12px]">Total</div>
               <div className="text-[var(--text-primary)] tabular-nums">{data.signals.total}</div>
             </div>
             <div>
-              <div className="text-[var(--text-secondary)] text-[9px]">Open</div>
+              <div className="text-[var(--text-secondary)] text-[12px]">Open</div>
               <div className="text-[var(--accent-yellow)] tabular-nums">{data.signals.open}</div>
             </div>
             <div>
-              <div className="text-[var(--text-secondary)] text-[9px]">Approved</div>
+              <div className="text-[var(--text-secondary)] text-[12px]">Approved</div>
               <div className="text-[var(--accent-green)] tabular-nums">{data.signals.approved}</div>
             </div>
           </div>
         </div>
 
         <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded p-4">
-          <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Trades</h3>
+          <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Trades</h3>
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
-              <div className="text-[var(--text-secondary)] text-[9px]">Total</div>
+              <div className="text-[var(--text-secondary)] text-[12px]">Total</div>
               <div className="text-[var(--text-primary)] tabular-nums">{data.trades.total}</div>
             </div>
             <div>
-              <div className="text-[var(--text-secondary)] text-[9px]">Open</div>
+              <div className="text-[var(--text-secondary)] text-[12px]">Open</div>
               <div className="text-[var(--accent-blue)] tabular-nums">{data.trades.open}</div>
             </div>
             <div>
-              <div className="text-[var(--text-secondary)] text-[9px]">Closed</div>
+              <div className="text-[var(--text-secondary)] text-[12px]">Closed</div>
               <div className="text-[var(--text-secondary)] tabular-nums">{data.trades.closed}</div>
             </div>
           </div>
@@ -104,7 +104,7 @@ export default function TradingControl() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded p-4">
-          <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Shadow Trading</h3>
+          <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Shadow Trading</h3>
           <div className="text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-[var(--text-secondary)]">Mode</span>
@@ -118,7 +118,7 @@ export default function TradingControl() {
         </div>
 
         <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded p-4">
-          <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Risk Limits</h3>
+          <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-secondary)] mb-3">Risk Limits</h3>
           <div className="text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-[var(--text-secondary)]">Max Open Trades</span>

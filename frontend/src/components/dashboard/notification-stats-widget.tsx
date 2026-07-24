@@ -24,29 +24,29 @@ export function NotificationStatsWidget({
             <div className="text-lg font-mono font-bold tabular-nums text-[var(--text-primary)]">
               {total}
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">Total</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Total</div>
           </div>
           <div className="text-center p-2 rounded-lg bg-[var(--bg-elevated)]/50">
             <div className="text-lg font-mono font-bold tabular-nums text-[var(--accent-blue)]">
               {unread}
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">Unread</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Unread</div>
           </div>
           <div className="text-center p-2 rounded-lg bg-[var(--bg-elevated)]/50">
             <div className="text-lg font-mono font-bold tabular-nums text-[var(--accent-green)]">
               {today}
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">Today</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Today</div>
           </div>
         </div>
         {Object.keys(byType).length > 0 && (
           <div className="space-y-1">
             {Object.entries(byType).map(([type, count]) => (
               <div key={type} className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-[var(--text-secondary)] uppercase">
+                <span className="text-[12px] font-mono text-[var(--text-secondary)] uppercase">
                   {type}
                 </span>
-                <span className="text-[10px] font-mono tabular-nums text-[var(--text-primary)]">
+                <span className="text-[12px] font-mono tabular-nums text-[var(--text-primary)]">
                   {count}
                 </span>
               </div>

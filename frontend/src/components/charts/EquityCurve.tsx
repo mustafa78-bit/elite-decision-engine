@@ -22,7 +22,7 @@ export default function EquityCurve({ data, height = 200 }: Props) {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#6b7280",
-        fontSize: 10,
+        fontSize: 12,
       },
       grid: { vertLines: { color: "#1f2937" }, horzLines: { color: "#1f2937" } },
       rightPriceScale: { borderColor: "#374151" },

@@ -32,10 +32,10 @@ export function MarketBreadth({
         {metrics.map((m) => (
           <div key={m.name}>
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">{m.name}</span>
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">{m.name}</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono tabular-nums text-[var(--text-primary)]">{m.value}%</span>
-                <span className={`text-[9px] font-mono ${m.change >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
+                <span className="text-[12px] font-mono tabular-nums text-[var(--text-primary)]">{m.value}%</span>
+                <span className={`text-[12px] font-mono ${m.change >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                   {m.change >= 0 ? "+" : ""}{m.change}
                 </span>
               </div>
@@ -47,7 +47,7 @@ export function MarketBreadth({
             />
           </div>
         ))}
-        <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono">
+        <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[12px] font-mono">
           <span className="text-[var(--text-muted)]">Breadth Score</span>
           <Badge variant={metrics.filter((m) => m.sentiment === "positive").length > metrics.length / 2 ? "success" : "danger"}>
             {metrics.filter((m) => m.sentiment === "positive").length}/{metrics.length} positive

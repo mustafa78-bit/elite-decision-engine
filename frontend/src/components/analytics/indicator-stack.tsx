@@ -41,14 +41,14 @@ export function IndicatorStack({
         <div className="flex items-center justify-between">
           <CardTitle>
             Indicators
-            <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">{buys}B / {sells}S</span>
+            <span className="text-[12px] font-mono text-[var(--text-muted)] ml-2">{buys}B / {sells}S</span>
           </CardTitle>
           <div className="flex gap-1">
-            <button onClick={() => setCategoryFilter("all")} className={cn("px-1.5 py-0.5 rounded text-[8px] font-mono transition-all", categoryFilter === "all" ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)]" : "text-[var(--text-muted)]")}>
+            <button onClick={() => setCategoryFilter("all")} className={cn("px-1.5 py-0.5 rounded text-[11px] font-mono transition-all", categoryFilter === "all" ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)]" : "text-[var(--text-muted)]")}>
               All
             </button>
             {categories.map((c) => (
-              <button key={c} onClick={() => setCategoryFilter(c)} className={cn("px-1.5 py-0.5 rounded text-[8px] font-mono transition-all", categoryFilter === c ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)]" : "text-[var(--text-muted)]")}>
+              <button key={c} onClick={() => setCategoryFilter(c)} className={cn("px-1.5 py-0.5 rounded text-[11px] font-mono transition-all", categoryFilter === c ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)]" : "text-[var(--text-muted)]")}>
                 {c}
               </button>
             ))}
@@ -57,12 +57,12 @@ export function IndicatorStack({
       </CardHeader>
       <CardContent className="space-y-0.5">
         {filtered.map((ind) => (
-          <div key={ind.name} className="flex items-center justify-between px-2 py-1 rounded-lg text-[10px] font-mono hover:bg-[var(--bg-hover)]">
+          <div key={ind.name} className="flex items-center justify-between px-2 py-1 rounded-lg text-[12px] font-mono hover:bg-[var(--bg-hover)]">
             <span className="text-[var(--text-secondary)]">{ind.name}</span>
             <div className="flex items-center gap-2">
               <span className="text-[var(--text-primary)] tabular-nums">{ind.value}</span>
               <span className={cn(
-                "text-[9px] font-mono",
+                "text-[12px] font-mono",
                 ind.signal === "buy" ? "text-[var(--accent-green)]" : ind.signal === "sell" ? "text-[var(--accent-red)]" : "text-[var(--text-muted)]",
               )}>
                 {ind.signal === "buy" ? "▲" : ind.signal === "sell" ? "▼" : "—"}

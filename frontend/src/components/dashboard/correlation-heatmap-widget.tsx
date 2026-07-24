@@ -31,12 +31,12 @@ export function CorrelationHeatmapWidget({
         }}>
           <div />
           {symbols.map((s) => (
-            <div key={s} className="text-[8px] font-mono text-[var(--text-muted)] text-center p-1">
+            <div key={s} className="text-[11px] font-mono text-[var(--text-muted)] text-center p-1">
               {s}
             </div>
           ))}
           {symbols.map((row) => [
-            <div key={`label-${row}`} className="text-[8px] font-mono text-[var(--text-muted)] p-1">
+            <div key={`label-${row}`} className="text-[11px] font-mono text-[var(--text-muted)] p-1">
               {row}
             </div>,
             ...symbols.map((col) => {
@@ -46,7 +46,7 @@ export function CorrelationHeatmapWidget({
               return (
                 <div
                   key={`${row}-${col}`}
-                  className="text-[9px] font-mono tabular-nums text-center p-1.5 rounded"
+                  className="text-[12px] font-mono tabular-nums text-center p-1.5 rounded"
                   style={{
                     backgroundColor: row === col
                       ? "transparent"

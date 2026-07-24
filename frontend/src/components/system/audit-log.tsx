@@ -29,12 +29,12 @@ export function AuditLog({
       <CardHeader><CardTitle>Audit Log</CardTitle></CardHeader>
       <CardContent className="max-h-64 overflow-y-auto space-y-1">
         {logs.map((l) => (
-          <div key={l.id} className="p-1.5 rounded bg-[var(--bg-base)] border border-[var(--border-subtle)] text-[9px] font-mono">
+          <div key={l.id} className="p-1.5 rounded bg-[var(--bg-base)] border border-[var(--border-subtle)] text-[12px] font-mono">
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1">
                 <span className={`w-1 h-1 rounded-full ${l.severity === "error" ? "bg-[var(--accent-red)]" : l.severity === "warning" ? "bg-[var(--accent-yellow)]" : "bg-[var(--accent-blue)]"}`} />
                 <span className="text-[var(--text-secondary)]">{l.action}</span>
-                <Badge variant={l.severity === "error" ? "danger" : l.severity === "warning" ? "warning" : "info"} className="text-[7px]">{l.severity}</Badge>
+                <Badge variant={l.severity === "error" ? "danger" : l.severity === "warning" ? "warning" : "info"} className="text-[11px]">{l.severity}</Badge>
               </div>
               <span className="text-[var(--text-muted)]">{l.timestamp}</span>
             </div>

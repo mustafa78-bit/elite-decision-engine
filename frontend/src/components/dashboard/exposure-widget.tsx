@@ -24,20 +24,20 @@ export function ExposureWidget({
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2 rounded-lg bg-[var(--accent-green)]/5 border border-[var(--accent-green)]/10">
-            <div className="text-[10px] text-[var(--text-muted)]">Long</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Long</div>
             <div className="text-sm font-mono tabular-nums text-[var(--accent-green)]">
               {formatUSD(longExposure)}
             </div>
           </div>
           <div className="p-2 rounded-lg bg-[var(--accent-red)]/5 border border-[var(--accent-red)]/10">
-            <div className="text-[10px] text-[var(--text-muted)]">Short</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Short</div>
             <div className="text-sm font-mono tabular-nums text-[var(--accent-red)]">
               {formatUSD(shortExposure)}
             </div>
           </div>
         </div>
         <div>
-          <div className="flex justify-between text-[10px] text-[var(--text-muted)] mb-1">
+          <div className="flex justify-between text-[12px] text-[var(--text-muted)] mb-1">
             <span>Usage</span>
             <span className="font-mono">{usagePct.toFixed(0)}%</span>
           </div>
@@ -48,7 +48,7 @@ export function ExposureWidget({
             />
           </div>
         </div>
-        <div className="flex justify-between text-[10px]">
+        <div className="flex justify-between text-[12px]">
           <span className="text-[var(--text-muted)]">Buying Power</span>
           <span className="font-mono text-[var(--text-secondary)]">
             {formatUSD(buyingPower)}

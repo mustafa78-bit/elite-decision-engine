@@ -12,7 +12,7 @@ const colors: Record<string, string> = {
 export default function RegimeBadge({ regime }: Props) {
   const cls = colors[regime] ?? "bg-gray-800 text-[var(--text-secondary)] border-gray-700";
   return (
-    <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-medium ${cls}`}>
+    <span className={`inline-block px-2 py-0.5 rounded border text-[12px] font-medium ${cls}`}>
       {regime}
     </span>
   );

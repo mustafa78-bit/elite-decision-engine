@@ -58,7 +58,7 @@ export function PnLTrendWidget({ data = [], totalPnL = 0 }: PnLTrendWidgetProps)
                     opacity: 0.7 + pct * 0.3,
                   }}
                 />
-                <span className="text-[7px] font-mono text-[var(--text-muted)]">
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">
                   {d.label}
                 </span>
               </div>

@@ -17,7 +17,7 @@ export function PriorityInboxWidget({ items = [] }: PriorityInboxWidgetProps) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Priority Inbox</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {items.filter((i) => i.priority === "HIGH").length} high
         </span>
       </CardHeader>
@@ -43,7 +43,7 @@ export function PriorityInboxWidget({ items = [] }: PriorityInboxWidgetProps) {
                           : "bg-[var(--accent-green)]"
                     }`}
                   />
-                  <span className="text-[10px] text-[var(--text-secondary)]">
+                  <span className="text-[12px] text-[var(--text-secondary)]">
                     {item.title}
                   </span>
                 </div>

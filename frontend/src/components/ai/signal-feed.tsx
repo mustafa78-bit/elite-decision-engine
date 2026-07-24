@@ -28,7 +28,7 @@ export function SignalFeed({ signals = [] }: SignalFeedProps) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Signal Feed</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {signals.length} signals
         </span>
       </CardHeader>
@@ -62,11 +62,11 @@ export function SignalFeed({ signals = [] }: SignalFeedProps) {
                       />
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                  <span className="text-[12px] font-mono text-[var(--text-muted)]">
                     {formatTime(s.timestamp)}
                   </span>
                 </div>
-                <div className="flex justify-between text-[10px] font-mono text-[var(--text-muted)]">
+                <div className="flex justify-between text-[12px] font-mono text-[var(--text-muted)]">
                   <span>{s.strategy}</span>
                   <span>
                     {formatCompact(s.price)} | {s.strength.toFixed(1)}/10

@@ -23,7 +23,7 @@ export default function PriceChart({ data, color = "#22c55e", height = 200 }: Pr
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#6b7280",
-        fontSize: 10,
+        fontSize: 12,
       },
       grid: {
         vertLines: { color: "#1f2937" },

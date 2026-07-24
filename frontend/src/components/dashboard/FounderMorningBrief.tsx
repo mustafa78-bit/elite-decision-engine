@@ -40,7 +40,7 @@ export default function FounderMorningBrief() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col items-center gap-3 py-2">
-            <p className="text-[11px] text-[var(--accent-red)] font-mono">Failed to load morning brief</p>
+            <p className="text-[13px] text-[var(--accent-red)] font-mono">Failed to load morning brief</p>
             <Button variant="ghost" size="sm" onClick={refetch}>Retry</Button>
           </div>
         </CardContent>
@@ -59,10 +59,10 @@ export default function FounderMorningBrief() {
   return (
     <Card>
       <CardContent className="p-3">
-        <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Morning Brief</p>
+        <p className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Morning Brief</p>
         <div className="space-y-1">
           {lines.map((line, i) => (
-            <p key={i} className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{line}</p>
+            <p key={i} className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{line}</p>
           ))}
         </div>
       </CardContent>

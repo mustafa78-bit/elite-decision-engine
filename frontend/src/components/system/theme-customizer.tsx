@@ -40,7 +40,7 @@ export function ThemeCustomizer() {
       <CardHeader><CardTitle>Theme Customizer</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <div>
-          <div className="text-[9px] font-mono text-[var(--text-muted)] mb-1 uppercase">Presets</div>
+          <div className="text-[12px] font-mono text-[var(--text-muted)] mb-1 uppercase">Presets</div>
           <div className="flex gap-1.5">
             {themes.map((t) => (
               <button
@@ -56,19 +56,19 @@ export function ThemeCustomizer() {
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.accent }} />
                   <div className="w-2 h-2 rounded-full bg-[var(--text-muted)]" />
                 </div>
-                <div className="text-[9px] font-mono text-center">{t.name}</div>
+                <div className="text-[12px] font-mono text-center">{t.name}</div>
               </button>
             ))}
           </div>
         </div>
         <div>
-          <div className="text-[9px] font-mono text-[var(--text-muted)] mb-1 uppercase">Density</div>
+          <div className="text-[12px] font-mono text-[var(--text-muted)] mb-1 uppercase">Density</div>
           <div className="flex gap-1">
             {(["compact", "comfortable", "spacious"] as const).map((d) => (
               <button
                 key={d}
                 onClick={() => setDensity(d)}
-                className={`flex-1 py-1 rounded text-[9px] font-mono border capitalize ${
+                className={`flex-1 py-1 rounded text-[12px] font-mono border capitalize ${
                   density === d
                     ? "bg-[var(--accent-blue)]/20 border-[var(--accent-blue)] text-[var(--accent-blue)]"
                     : "bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-muted)]"
@@ -80,13 +80,13 @@ export function ThemeCustomizer() {
           </div>
         </div>
         <div>
-          <div className="text-[9px] font-mono text-[var(--text-muted)] mb-1 uppercase">Contrast</div>
+          <div className="text-[12px] font-mono text-[var(--text-muted)] mb-1 uppercase">Contrast</div>
           <div className="flex gap-1">
             {(["normal", "high"] as const).map((c) => (
               <button
                 key={c}
                 onClick={() => setContrast(c)}
-                className={`flex-1 py-1 rounded text-[9px] font-mono border capitalize ${
+                className={`flex-1 py-1 rounded text-[12px] font-mono border capitalize ${
                   contrast === c
                     ? "bg-[var(--accent-blue)]/20 border-[var(--accent-blue)] text-[var(--accent-blue)]"
                     : "bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-muted)]"
@@ -98,13 +98,13 @@ export function ThemeCustomizer() {
           </div>
         </div>
         <div>
-          <div className="text-[9px] font-mono text-[var(--text-muted)] mb-1 uppercase">Font Size</div>
+          <div className="text-[12px] font-mono text-[var(--text-muted)] mb-1 uppercase">Font Size</div>
           <div className="flex gap-1">
             {(["small", "medium", "large"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setFontSize(s)}
-                className={`flex-1 py-1 rounded text-[9px] font-mono border capitalize ${
+                className={`flex-1 py-1 rounded text-[12px] font-mono border capitalize ${
                   fontSize === s
                     ? "bg-[var(--accent-blue)]/20 border-[var(--accent-blue)] text-[var(--accent-blue)]"
                     : "bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-muted)]"
@@ -116,7 +116,7 @@ export function ThemeCustomizer() {
           </div>
         </div>
         <div>
-          <div className="text-[9px] font-mono text-[var(--text-muted)] mb-1 uppercase">Glow Intensity</div>
+          <div className="text-[12px] font-mono text-[var(--text-muted)] mb-1 uppercase">Glow Intensity</div>
           <div className="flex items-center gap-2">
             <input
               type="range"
@@ -126,7 +126,7 @@ export function ThemeCustomizer() {
               onChange={(e) => setGlowIntensity(Number(e.target.value))}
               className="flex-1 h-1 accent-[var(--accent-blue)]"
             />
-            <span className="text-[10px] font-mono w-8 text-right">{glowIntensity}%</span>
+            <span className="text-[12px] font-mono w-8 text-right">{glowIntensity}%</span>
           </div>
         </div>
       </CardContent>

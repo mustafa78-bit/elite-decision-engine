@@ -45,8 +45,8 @@ function formatUSD(v: number): string {
 function Cell({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[9px] font-medium tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span className="text-[13px] font-semibold font-mono tabular-nums" style={color ? { color } : { color: "var(--text-primary)" }}>
+      <span className="text-[12px] font-medium tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>{label}</span>
+      <span className="text-[14px] font-semibold font-mono tabular-nums" style={color ? { color } : { color: "var(--text-primary)" }}>
         {value}
       </span>
     </div>
@@ -89,11 +89,11 @@ export default function HeroBanner() {
         <div className="p-10 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <AIAvatar size={32} />
-            <span className="text-[12px] font-mono" style={{ color: "var(--accent-red)" }}>{error}</span>
+            <span className="text-[14px] font-mono" style={{ color: "var(--accent-red)" }}>{error}</span>
           </div>
           <button
             onClick={refetch}
-            className="text-[10px] font-mono px-3 py-1.5 rounded-lg transition-all"
+            className="text-[12px] font-mono px-3 py-1.5 rounded-lg transition-all"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #243244", color: "var(--text-muted)", cursor: "pointer" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#F1F5F9"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#64748B"; }}
@@ -113,10 +113,10 @@ export default function HeroBanner() {
           <AIAvatar size={56} />
           <div className="space-y-3">
             <div className="text-[16px] font-bold font-mono tracking-wider" style={{ color: "var(--accent-purple)" }}>ELIAS ONLINE</div>
-            <div className="text-[14px] font-medium leading-relaxed max-w-md" style={{ color: "var(--text-secondary)" }}>
+            <div className="text-[15px] font-medium leading-relaxed max-w-md" style={{ color: "var(--text-secondary)" }}>
               No high-probability opportunity exists at the moment.
             </div>
-            <div className="text-[12px] font-mono" style={{ color: "var(--text-disabled)" }}>
+            <div className="text-[14px] font-mono" style={{ color: "var(--text-disabled)" }}>
               ELIAS is monitoring the market.
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function HeroBanner() {
                   ELIAS
                 </span>
                 <span
-                  className="text-[9px] font-mono px-2.5 py-0.5 rounded-full"
+                  className="text-[12px] font-mono px-2.5 py-0.5 rounded-full"
                   style={{ background: "rgba(139,92,246,0.08)", color: "var(--accent-purple)", border: "1px solid rgba(139,92,246,0.2)" }}
                 >
                   AI CHIEF INVESTMENT OFFICER
@@ -173,12 +173,12 @@ export default function HeroBanner() {
             </div>
             <div className="flex items-center gap-3">
               <span
-                className="text-[9px] font-mono font-medium px-2.5 py-0.5 rounded-lg"
+                className="text-[12px] font-mono font-medium px-2.5 py-0.5 rounded-lg"
                 style={{ color: regColor, border: `1px solid ${regColor}44`, background: `${regColor}0d` }}
               >
                 {regLabel}
               </span>
-              <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>{data.symbol}</span>
+              <span className="text-[12px] font-mono" style={{ color: "var(--text-muted)" }}>{data.symbol}</span>
             </div>
           </div>
 
@@ -193,7 +193,7 @@ export default function HeroBanner() {
           <div className="space-y-4">
             <div className="flex items-end gap-8">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-semibold tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>DECISION</span>
+                <span className="text-[12px] font-semibold tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>DECISION</span>
                 <span
                   className="text-[80px] font-extrabold font-mono tracking-tight leading-none"
                   style={{
@@ -206,7 +206,7 @@ export default function HeroBanner() {
                 </span>
               </div>
               <div className="flex flex-col gap-1.5 pb-2 flex-1 max-w-md">
-                <span className="text-[9px] font-semibold tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>CONFIDENCE</span>
+                <span className="text-[12px] font-semibold tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>CONFIDENCE</span>
                 <div className="flex items-center gap-4">
                   <span
                     className="text-[36px] font-bold font-mono tabular-nums"
@@ -236,7 +236,7 @@ export default function HeroBanner() {
               {brief.map((line, i) => (
                 <p
                   key={i}
-                  className="text-[13px] font-mono leading-relaxed"
+                  className="text-[14px] font-mono leading-relaxed"
                   style={{ color: "var(--text-secondary)", animation: `fadeSlideUp 0.35s ease-out ${0.2 + i * 0.08}s both` }}
                 >
                   {line}
@@ -248,12 +248,12 @@ export default function HeroBanner() {
           {/* Row 5: Action plan */}
           {actionPlan.length > 0 && (
             <div className="space-y-2.5">
-              <span className="text-[9px] font-semibold tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>ACTION PLAN</span>
+              <span className="text-[12px] font-semibold tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>ACTION PLAN</span>
               <div className="flex flex-wrap gap-x-8 gap-y-2">
                 {actionPlan.map((step, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2.5 text-[13px] font-mono"
+                    className="flex items-center gap-2.5 text-[14px] font-mono"
                     style={{ color: "var(--text-secondary)", animation: `fadeSlideUp 0.3s ease-out ${0.35 + i * 0.06}s both` }}
                   >
                     <span className="w-[6px] h-[6px] rounded-full shrink-0" style={{ background: style.color, boxShadow: `0 0 6px ${style.glow}` }} />
@@ -279,10 +279,10 @@ export default function HeroBanner() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-1" style={{ animation: "fadeUp 0.4s ease-out 0.6s both" }}>
             {data.reasons.length > 0 && (
               <div className="space-y-2.5">
-                <span className="text-[9px] font-semibold tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>KEY REASONS</span>
+                <span className="text-[12px] font-semibold tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>KEY REASONS</span>
                 <div className="space-y-1.5">
                   {data.reasons.map((r, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-[12px] font-mono leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    <div key={i} className="flex items-start gap-2.5 text-[14px] font-mono leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                       <span className="shrink-0 mt-0.5" style={{ color: style.color }}>→</span>
                       {r}
                     </div>
@@ -292,16 +292,16 @@ export default function HeroBanner() {
             )}
             {(data.warnings.length > 0 || data.risk_notes.length > 0) && (
               <div className="space-y-2.5">
-                <span className="text-[9px] font-semibold tracking-[0.1em]" style={{ color: "var(--accent-orange)" }}>INVALIDATION</span>
+                <span className="text-[12px] font-semibold tracking-[0.1em]" style={{ color: "#F97316" }}>INVALIDATION</span>
                 <div className="space-y-1.5">
                   {data.warnings.map((w, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-[12px] font-mono leading-relaxed" style={{ color: "var(--accent-yellow)" }}>
-                      <span className="shrink-0 mt-0.5" style={{ color: "var(--accent-orange)" }}>⚠</span>
+                    <div key={i} className="flex items-start gap-2.5 text-[14px] font-mono leading-relaxed" style={{ color: "var(--accent-yellow)" }}>
+                      <span className="shrink-0 mt-0.5" style={{ color: "#F97316" }}>⚠</span>
                       {w}
                     </div>
                   ))}
                   {data.risk_notes.map((r, i) => (
-                    <div key={`risk-${i}`} className="flex items-start gap-2.5 text-[12px] font-mono leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                    <div key={`risk-${i}`} className="flex items-start gap-2.5 text-[14px] font-mono leading-relaxed" style={{ color: "var(--text-muted)" }}>
                       <span className="shrink-0 mt-0.5 opacity-50">•</span>
                       {r}
                     </div>
@@ -313,16 +313,16 @@ export default function HeroBanner() {
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid #243244", animation: "fadeUp 0.4s ease-out 0.7s both" }}>
-            <span className="text-[9px] font-mono" style={{ color: "var(--text-disabled)" }}>
+            <span className="text-[12px] font-mono" style={{ color: "var(--text-disabled)" }}>
               Last updated {data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : "--"}
             </span>
             {data.supporting_signals.length > 0 && (
-              <span className="text-[9px] font-mono" style={{ color: "var(--text-disabled)" }}>
+              <span className="text-[12px] font-mono" style={{ color: "var(--text-disabled)" }}>
                 {data.supporting_signals.length} signal{data.supporting_signals.length > 1 ? "s" : ""}
               </span>
             )}
             {data.signal_id > 0 && (
-              <span className="text-[9px] font-mono" style={{ color: "var(--text-disabled)" }}>
+              <span className="text-[12px] font-mono" style={{ color: "var(--text-disabled)" }}>
                 #{data.signal_id}
               </span>
             )}

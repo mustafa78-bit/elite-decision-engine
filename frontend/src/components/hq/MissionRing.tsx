@@ -66,7 +66,7 @@ function Sector({ label, status }: { label: string; status: SubsystemStatus }) {
       <div className="flex flex-col">
         <span
           style={{
-            fontSize: 8,
+            fontSize: 11,
             fontWeight: 600,
             letterSpacing: "0.1em",
             textTransform: "uppercase",
@@ -78,7 +78,7 @@ function Sector({ label, status }: { label: string; status: SubsystemStatus }) {
         </span>
         <span
           style={{
-            fontSize: 6,
+            fontSize: 11,
             fontWeight: 500,
             color: color,
             opacity: 0.5,

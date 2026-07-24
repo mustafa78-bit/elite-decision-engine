@@ -35,7 +35,7 @@ export function MarketSentimentWidget({
             {overall}
           </Badge>
         ) : (
-          <span className="text-[10px] font-mono text-[var(--text-muted)]">--</span>
+          <span className="text-[12px] font-mono text-[var(--text-muted)]">--</span>
         )}
       </CardHeader>
       <CardContent className="space-y-3">
@@ -54,10 +54,10 @@ export function MarketSentimentWidget({
           <div className="space-y-1">
             {sources.map((s) => (
               <div key={s.source} className="flex items-center justify-between py-1">
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                   {s.source}
                 </span>
-                <span className="text-[10px] font-mono tabular-nums text-[var(--text-primary)]">
+                <span className="text-[12px] font-mono tabular-nums text-[var(--text-primary)]">
                   {s.label}
                 </span>
               </div>

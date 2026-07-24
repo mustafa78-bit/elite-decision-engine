@@ -31,21 +31,21 @@ export function RiskReward({ symbol = "BTC/USDT" }: RiskRewardProps) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Risk / Reward</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">{symbol}</span>
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">{symbol}</span>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="grid grid-cols-3 gap-2">
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">Entry</label>
-            <FormInput value={entry} onChange={(e) => setEntry(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">Entry</label>
+            <FormInput value={entry} onChange={(e) => setEntry(e.target.value)} className="h-7 text-[12px]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">Stop Loss</label>
-            <FormInput value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">Stop Loss</label>
+            <FormInput value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} className="h-7 text-[12px]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">Take Profit</label>
-            <FormInput value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">Take Profit</label>
+            <FormInput value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} className="h-7 text-[12px]" />
           </div>
         </div>
 
@@ -64,28 +64,28 @@ export function RiskReward({ symbol = "BTC/USDT" }: RiskRewardProps) {
               width: `${Math.min(result.rrRatio > 0 ? (result.rrRatio / (1 + result.rrRatio)) * 100 : 50, 80)}%`,
             }}
           />
-          <div className="absolute inset-0 flex items-center justify-center text-[9px] font-mono text-[var(--text-muted)]">
+          <div className="absolute inset-0 flex items-center justify-center text-[12px] font-mono text-[var(--text-muted)]">
             1 : {result.rrRatio.toFixed(2)}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2 rounded-lg bg-red-950/30 border border-red-800/30">
-            <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase">Risk</div>
-            <div className="text-[11px] font-mono text-[var(--accent-red)] tabular-nums">
+            <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase">Risk</div>
+            <div className="text-[13px] font-mono text-[var(--accent-red)] tabular-nums">
               ${Math.abs(result.riskAmt).toFixed(1)} ({result.riskPct.toFixed(2)}%)
             </div>
           </div>
           <div className="p-2 rounded-lg bg-green-950/30 border border-green-800/30">
-            <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase">Reward</div>
-            <div className="text-[11px] font-mono text-[var(--accent-green)] tabular-nums">
+            <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase">Reward</div>
+            <div className="text-[13px] font-mono text-[var(--accent-green)] tabular-nums">
               ${result.rewardAmt.toFixed(1)} ({result.rewardPct.toFixed(2)}%)
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-mono text-[var(--text-muted)]">Min Win Rate Needed</span>
+          <span className="text-[12px] font-mono text-[var(--text-muted)]">Min Win Rate Needed</span>
           <Badge variant={result.winRateNeeded <= 0.5 ? "success" : result.winRateNeeded <= 0.6 ? "warning" : "danger"}>
             {(result.winRateNeeded * 100).toFixed(1)}%
           </Badge>

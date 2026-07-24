@@ -33,7 +33,7 @@ function ProgressLine({ value, label, color }: { value: number; label: string; c
     <div className="flex items-center gap-3">
       <span
         className="font-mono shrink-0 text-right"
-        style={{ fontSize: 8, color: "var(--text-muted)", width: 90, letterSpacing: "0.05em" }}
+        style={{ fontSize: 11, color: "var(--text-muted)", width: 90, letterSpacing: "0.05em" }}
       >
         {label}
       </span>
@@ -51,7 +51,7 @@ function ProgressLine({ value, label, color }: { value: number; label: string; c
       </div>
       <span
         className="font-mono tabular-nums shrink-0"
-        style={{ fontSize: 8, color, width: 28, textAlign: "right" as const }}
+        style={{ fontSize: 11, color, width: 28, textAlign: "right" as const }}
       >
         {pct.toFixed(0)}%
       </span>
@@ -148,22 +148,22 @@ export default function CommandDeck() {
         >
           <div className="flex items-center gap-3">
             <span
-              className="text-[8px] font-semibold uppercase tracking-[0.22em]"
+              className="text-[11px] font-semibold uppercase tracking-[0.22em]"
               style={{ color: "var(--text-primary)" }}
             >
               COMMAND HEADQUARTERS
             </span>
             <span
-              className="text-[7px] font-mono uppercase tracking-[0.15em]"
+              className="text-[11px] font-mono uppercase tracking-[0.15em]"
               style={{ color: "var(--text-muted)" }}
             >
               · Founder Alpha
             </span>
             {currentMission && (
               <>
-                <span className="text-[7px]" style={{ color: "var(--border-subtle)" }}>·</span>
+                <span className="text-[11px]" style={{ color: "var(--border-subtle)" }}>·</span>
                 <span
-                  className="text-[7px] font-mono uppercase tracking-[0.1em]"
+                  className="text-[11px] font-mono uppercase tracking-[0.1em]"
                   style={{ color: missionColor }}
                 >
                   {currentMission}
@@ -179,17 +179,17 @@ export default function CommandDeck() {
                 style={{ backgroundColor: missionColor, boxShadow: `0 0 4px ${missionColor}40` }}
               />
               <span
-                className="text-[8px] font-semibold uppercase tracking-[0.12em]"
+                className="text-[11px] font-semibold uppercase tracking-[0.12em]"
                 style={{ color: missionColor }}
               >
                 {missionStatus}
               </span>
             </div>
 
-            <span className="text-[6px]" style={{ color: "var(--border-subtle)" }}>|</span>
+            <span className="text-[11px]" style={{ color: "var(--border-subtle)" }}>|</span>
 
             <span
-              className="text-[8px] font-mono tabular-nums"
+              className="text-[11px] font-mono tabular-nums"
               style={{ color: "var(--text-muted)" }}
             >
               {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}
@@ -200,13 +200,13 @@ export default function CommandDeck() {
                 className="w-1 h-1 rounded-full"
                 style={{ backgroundColor: aiConnected !== false ? "#3EDC97" : "#FF5D73" }}
               />
-              <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+              <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
                 AI {aiConnected !== false ? (aiLatency ? `${aiLatency.toFixed(0)}ms` : "OK") : "ERR"}
               </span>
             </div>
 
             {warnings.length > 0 && (
-              <span className="text-[7px] font-mono" style={{ color: "var(--accent-yellow)" }}>
+              <span className="text-[11px] font-mono" style={{ color: "var(--accent-yellow)" }}>
                 {warnings.length} alert{warnings.length > 1 ? "s" : ""}
               </span>
             )}
@@ -270,17 +270,17 @@ export default function CommandDeck() {
                 {(supportingCount !== null || conflictCount !== null || warningCount !== null) && (
                   <div className="flex items-center gap-4 mt-3">
                     {supportingCount !== null && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                      <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
                         <span style={{ color: "var(--accent-green)" }}>{supportingCount}</span> supporting
                       </span>
                     )}
                     {conflictCount !== null && conflictCount > 0 && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                      <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
                         <span style={{ color: "var(--accent-red)" }}>{conflictCount}</span> conflicting
                       </span>
                     )}
                     {warningCount !== null && warningCount > 0 && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                      <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
                         <span style={{ color: "var(--accent-yellow)" }}>{warningCount}</span> warnings
                       </span>
                     )}

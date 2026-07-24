@@ -20,7 +20,7 @@ export function NewsWidget({ items = [] }: NewsWidgetProps) {
       <CardHeader>
         <CardTitle>
           Market News
-          <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">
+          <span className="text-[12px] font-mono text-[var(--text-muted)] ml-2">
             AI-curated
           </span>
         </CardTitle>
@@ -38,7 +38,7 @@ export function NewsWidget({ items = [] }: NewsWidgetProps) {
                 className="px-2 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+                  <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
                     {item.title}
                   </p>
                   <Badge
@@ -48,7 +48,7 @@ export function NewsWidget({ items = [] }: NewsWidgetProps) {
                     {item.sentiment}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2 mt-1 text-[8px] font-mono text-[var(--text-muted)]">
+                <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-[var(--text-muted)]">
                   <span>{item.source}</span>
                   <span>{item.time}</span>
                 </div>

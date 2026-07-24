@@ -36,11 +36,11 @@ export function PortfolioRebalancer({
         {allocations.map((a) => (
           <div key={a.symbol}>
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">{a.symbol}</span>
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">{a.symbol}</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono text-[var(--text-muted)]">C:{a.current}%</span>
-                <span className="text-[9px] font-mono text-[var(--text-muted)]">T:{a.target}%</span>
-                <span className={`text-[9px] font-mono tabular-nums ${a.diff > 0 ? "text-[var(--accent-red)]" : a.diff < 0 ? "text-[var(--accent-green)]" : "text-[var(--text-muted)]"}`}>
+                <span className="text-[12px] font-mono text-[var(--text-muted)]">C:{a.current}%</span>
+                <span className="text-[12px] font-mono text-[var(--text-muted)]">T:{a.target}%</span>
+                <span className={`text-[12px] font-mono tabular-nums ${a.diff > 0 ? "text-[var(--accent-red)]" : a.diff < 0 ? "text-[var(--accent-green)]" : "text-[var(--text-muted)]"}`}>
                   {a.diff > 0 ? "+" : ""}{a.diff}%
                 </span>
               </div>
@@ -54,7 +54,7 @@ export function PortfolioRebalancer({
           </div>
         ))}
         {hasRebalance && (
-          <Button variant="primary" className="w-full h-7 text-[10px] mt-2">Execute Rebalance</Button>
+          <Button variant="primary" className="w-full h-7 text-[12px] mt-2">Execute Rebalance</Button>
         )}
       </CardContent>
     </Card>

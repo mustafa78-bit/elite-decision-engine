@@ -35,7 +35,7 @@ export default function SignalTable({ signals }: Props) {
     <div className="overflow-x-auto">
       <table className="w-full text-xs text-[var(--text-secondary)] border-collapse">
         <thead>
-          <tr className="text-[10px] uppercase text-[var(--text-muted)] border-b border-gray-800">
+          <tr className="text-[12px] uppercase text-[var(--text-muted)] border-b border-gray-800">
             <th className="text-left px-2 py-1.5 font-medium">Symbol</th>
             <th className="text-left px-2 py-1.5 font-medium">Side</th>
             <th className="text-left px-2 py-1.5 font-medium">TF</th>

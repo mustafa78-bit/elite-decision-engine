@@ -27,7 +27,7 @@ export function ModelComparison({
         <CardTitle>Model Comparison</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
           <span className="flex-[1.5]">Model</span>
           <span className="flex-[1] text-right">Acc</span>
           <span className="flex-[1] text-right">Prec</span>
@@ -36,7 +36,7 @@ export function ModelComparison({
           <span className="flex-[1] text-right">Trades</span>
         </div>
         {models.map((m) => (
-          <div key={m.name} className="flex items-center px-3 py-1.5 text-[10px] font-mono border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)]">
+          <div key={m.name} className="flex items-center px-3 py-1.5 text-[12px] font-mono border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)]">
             <span className="flex-[1.5] text-[var(--text-secondary)]">{m.name}</span>
             <span className="flex-[1] text-right tabular-nums">{m.accuracy.toFixed(1)}%</span>
             <span className="flex-[1] text-right tabular-nums">{m.precision.toFixed(1)}%</span>

@@ -13,7 +13,7 @@ interface Props {
 function Bar({ value, label, color }: { value: number; label: string; color: string }) {
   return (
     <div className="mb-2">
-      <div className="flex justify-between text-[10px] mb-0.5">
+      <div className="flex justify-between text-[12px] mb-0.5">
         <span className="text-[var(--text-muted)] uppercase">{label}</span>
         <span className={`tabular-nums ${color}`}>{(value * 100).toFixed(0)}%</span>
       </div>
@@ -40,7 +40,7 @@ export default function SignalScoreCard({ symbol, side, confidence, decision, fi
         </div>
         <div className="text-right">
           <div className={`text-sm font-bold ${decisionColor}`}>{decision.replace("_", " ")}</div>
-          <div className="text-[10px] text-[var(--text-muted)]">{confidence.toFixed(0)}% confidence</div>
+          <div className="text-[12px] text-[var(--text-muted)]">{confidence.toFixed(0)}% confidence</div>
         </div>
       </div>
 

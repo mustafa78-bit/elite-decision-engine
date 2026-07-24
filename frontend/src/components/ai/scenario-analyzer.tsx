@@ -30,33 +30,33 @@ export function ScenarioAnalyzer({ symbol = "BTC/USDT" }: ScenarioAnalyzerProps)
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Scenario Analyzer</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">{symbol}</span>
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">{symbol}</span>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Current Price</label>
-            <FormInput value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Current Price</label>
+            <FormInput value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} className="h-7 text-[12px]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Position Size</label>
-            <FormInput value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Position Size</label>
+            <FormInput value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="h-7 text-[12px]" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Bear Case (%)</label>
-            <FormInput value={scenarioDown} onChange={(e) => setScenarioDown(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Bear Case (%)</label>
+            <FormInput value={scenarioDown} onChange={(e) => setScenarioDown(e.target.value)} className="h-7 text-[12px]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Bull Case (%)</label>
-            <FormInput value={scenarioUp} onChange={(e) => setScenarioUp(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Bull Case (%)</label>
+            <FormInput value={scenarioUp} onChange={(e) => setScenarioUp(e.target.value)} className="h-7 text-[12px]" />
           </div>
         </div>
         {scenarios.map((s) => (
           <div
             key={s.name}
-            className={`p-2 rounded-lg border text-[10px] font-mono ${
+            className={`p-2 rounded-lg border text-[12px] font-mono ${
               s.change === 0
                 ? "bg-[var(--bg-base)] border-[var(--border-subtle)]"
                 : s.change > 0
@@ -67,7 +67,7 @@ export function ScenarioAnalyzer({ symbol = "BTC/USDT" }: ScenarioAnalyzerProps)
             <div className="flex items-center justify-between">
               <span className="text-[var(--text-secondary)]">{s.name}</span>
               <div className="flex items-center gap-2">
-                <Badge variant={s.change > 0 ? "success" : s.change < 0 ? "danger" : "default"} className="text-[8px]">
+                <Badge variant={s.change > 0 ? "success" : s.change < 0 ? "danger" : "default"} className="text-[11px]">
                   {s.change > 0 ? "+" : ""}{s.change}%
                 </Badge>
                 <span className="tabular-nums text-[var(--text-primary)]">${s.price.toFixed(1)}</span>

@@ -16,11 +16,11 @@ export default function LiquidityPage() {
             <p className="text-xs text-[var(--text-muted)] font-mono uppercase tracking-widest mb-2">
               Liquidity Heatmap
             </p>
-            <p className="text-[10px] text-[var(--text-muted)] max-w-md">
+            <p className="text-[12px] text-[var(--text-muted)] max-w-md">
               Order book depth analysis, liquidity clustering, and support/resistance
               detection across all tracked symbols.
             </p>
-            <span className="mt-4 px-2 py-0.5 border border-[var(--border-subtle)] rounded text-[9px] text-[var(--text-muted)] uppercase tracking-wider font-mono">
+            <span className="mt-4 px-2 py-0.5 border border-[var(--border-subtle)] rounded text-[12px] text-[var(--text-muted)] uppercase tracking-wider font-mono">
               Coming in Batch 5
             </span>
           </div>

@@ -55,7 +55,7 @@ export function OrderHistory({ orders = [] }: OrderHistoryProps) {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={cn(
-                  "px-1.5 py-0.5 rounded text-[8px] font-mono uppercase transition-all",
+                  "px-1.5 py-0.5 rounded text-[11px] font-mono uppercase transition-all",
                   filter === f
                     ? "bg-[var(--accent-blue)]/10 text-[var(--accent-blue)]"
                     : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
@@ -68,7 +68,7 @@ export function OrderHistory({ orders = [] }: OrderHistoryProps) {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
           <span className="flex-[2]">Symbol</span>
           <span className="flex-[1]">Type</span>
           <span className="flex-[1] text-right">Price</span>
@@ -76,7 +76,7 @@ export function OrderHistory({ orders = [] }: OrderHistoryProps) {
           <span className="flex-[1] text-right">Status</span>
         </div>
         {filtered.map((o) => (
-          <div key={o.id} className="flex items-center px-3 py-1.5 text-[10px] font-mono border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)]">
+          <div key={o.id} className="flex items-center px-3 py-1.5 text-[12px] font-mono border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)]">
             <div className="flex-[2] flex items-center gap-1.5">
               <span className={o.side === "BUY" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}>
                 {o.side === "BUY" ? "▲" : "▼"}
@@ -87,7 +87,7 @@ export function OrderHistory({ orders = [] }: OrderHistoryProps) {
             <span className="flex-[1] text-right text-[var(--text-primary)] tabular-nums">${o.price.toFixed(1)}</span>
             <span className="flex-[1] text-right text-[var(--text-muted)] tabular-nums">{((o.filled / o.amount) * 100).toFixed(0)}%</span>
             <span className="flex-[1] text-right">
-              <Badge variant={statusColors[o.status]} className="text-[8px]">{o.status}</Badge>
+              <Badge variant={statusColors[o.status]} className="text-[11px]">{o.status}</Badge>
             </span>
           </div>
         ))}

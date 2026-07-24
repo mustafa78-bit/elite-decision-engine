@@ -39,10 +39,10 @@ export function MultiTimeframeView({
             {consensus} {bullishCount}/{bearishCount}
           </Badge>
         </div>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">{symbol}</span>
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">{symbol}</span>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
           <span className="flex-[1.5]">TF</span>
           <span className="flex-[1.5]">Trend</span>
           <span className="flex-[1] text-right">Str</span>
@@ -50,7 +50,7 @@ export function MultiTimeframeView({
           <span className="flex-[1] text-right">Vol</span>
         </div>
         {views.map((v) => (
-          <div key={v.timeframe} className="flex items-center px-3 py-1 text-[10px] font-mono border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)]">
+          <div key={v.timeframe} className="flex items-center px-3 py-1 text-[12px] font-mono border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)]">
             <span className="flex-[1.5] text-[var(--text-primary)]">{v.timeframe}</span>
             <span className={`flex-[1.5] ${v.trend === "bullish" ? "text-[var(--accent-green)]" : v.trend === "bearish" ? "text-[var(--accent-red)]" : "text-[var(--accent-yellow)]"}`}>
               {v.trend === "bullish" ? "▲" : v.trend === "bearish" ? "▼" : "◆"} {v.trend}

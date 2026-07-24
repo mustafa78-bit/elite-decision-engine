@@ -39,7 +39,7 @@ export function HealthCheckWidget({
             {overallStatus}
           </Badge>
         ) : (
-          <span className="text-[10px] font-mono text-[var(--text-muted)]">--</span>
+          <span className="text-[12px] font-mono text-[var(--text-muted)]">--</span>
         )}
       </CardHeader>
       <CardContent>
@@ -65,7 +65,7 @@ export function HealthCheckWidget({
                             : "var(--accent-yellow)",
                     }}
                   />
-                  <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                  <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                     {c.name}
                   </span>
                 </div>

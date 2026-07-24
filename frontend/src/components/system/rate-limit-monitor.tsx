@@ -29,15 +29,15 @@ export function RateLimitMonitor() {
           return (
             <div key={i} className="p-1.5 rounded bg-[var(--bg-base)] border border-[var(--border-subtle)]">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] font-mono text-[var(--text-secondary)]">{ep.endpoint}</span>
-                <Badge variant={ep.status === "critical" ? "danger" : ep.status === "warn" ? "warning" : "success"} className="text-[7px]">{ep.remaining} left</Badge>
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">{ep.endpoint}</span>
+                <Badge variant={ep.status === "critical" ? "danger" : ep.status === "warn" ? "warning" : "success"} className="text-[11px]">{ep.remaining} left</Badge>
               </div>
               <Progress
                 value={usage}
                 indicatorClassName={`h-full rounded-full ${usage > 90 ? "bg-[var(--accent-red)]" : usage > 70 ? "bg-[var(--accent-yellow)]" : "bg-[var(--accent-blue)]"}`}
                 className="h-1"
               />
-              <div className="flex justify-between text-[8px] font-mono text-[var(--text-muted)] mt-0.5">
+              <div className="flex justify-between text-[11px] font-mono text-[var(--text-muted)] mt-0.5">
                 <span>{ep.used}/{ep.limit}</span>
                 <span>Reset: {ep.resetIn}</span>
               </div>

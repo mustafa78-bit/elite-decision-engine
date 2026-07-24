@@ -63,7 +63,7 @@ export function DailyPnLWidget({
           </div>
         </div>
         <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+          <div className="text-[12px] text-[var(--text-muted)] uppercase tracking-wider">
             Total P&L
           </div>
           <div

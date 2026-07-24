@@ -33,7 +33,7 @@ export function DashboardAnalytics({ compact = false }: DashboardAnalyticsProps)
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3 text-[10px] font-mono text-[var(--text-muted)]">
+      <div className="flex items-center gap-3 text-[12px] font-mono text-[var(--text-muted)]">
         <span>{allWidgets.length} widgets</span>
         <span>{totalPanels} active</span>
       </div>
@@ -47,7 +47,7 @@ export function DashboardAnalytics({ compact = false }: DashboardAnalyticsProps)
     <Card>
       <CardHeader>
         <CardTitle>Dashboard Analytics</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {totalWidgets} widgets · {totalPanels} active panels
         </span>
       </CardHeader>
@@ -57,7 +57,7 @@ export function DashboardAnalytics({ compact = false }: DashboardAnalyticsProps)
             const pct = (count / totalWidgets) * 100;
             return (
               <div key={cat}>
-                <div className="flex justify-between text-[10px] mb-0.5">
+                <div className="flex justify-between text-[12px] mb-0.5">
                   <span className="font-mono text-[var(--text-secondary)] uppercase tracking-wider">
                     {cat}
                   </span>

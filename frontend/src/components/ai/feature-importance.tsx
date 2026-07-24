@@ -35,10 +35,10 @@ export function FeatureImportance({
         {features.map((f) => (
           <div key={f.name}>
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">{f.name}</span>
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">{f.name}</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono text-[var(--text-muted)]">{f.category}</span>
-                <span className="text-[10px] font-mono tabular-nums text-[var(--accent-blue)]">{f.importance}%</span>
+                <span className="text-[12px] font-mono text-[var(--text-muted)]">{f.category}</span>
+                <span className="text-[12px] font-mono tabular-nums text-[var(--accent-blue)]">{f.importance}%</span>
               </div>
             </div>
             <Progress

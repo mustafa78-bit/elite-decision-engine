@@ -48,7 +48,7 @@ export function TradeJournal() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Trade Journal</CardTitle>
-          <Button variant="glass" size="sm" onClick={() => setShowAdd(!showAdd)} className="text-[10px]">
+          <Button variant="glass" size="sm" onClick={() => setShowAdd(!showAdd)} className="text-[12px]">
             + Add Note
           </Button>
         </div>
@@ -63,10 +63,10 @@ export function TradeJournal() {
               className="h-8 text-xs"
             />
             <div className="flex gap-1">
-              <Button variant="primary" size="sm" onClick={addNote} disabled={!newNote.trim()} className="text-[10px]">
+              <Button variant="primary" size="sm" onClick={addNote} disabled={!newNote.trim()} className="text-[12px]">
                 Save
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)} className="text-[10px]">
+              <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)} className="text-[12px]">
                 Cancel
               </Button>
             </div>
@@ -79,22 +79,22 @@ export function TradeJournal() {
             <div key={e.id} className="p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1.5">
-                  <Badge variant={e.side === "long" ? "success" : "danger"} className="text-[8px]">{e.side}</Badge>
-                  <span className="text-[10px] font-mono text-[var(--text-secondary)]">{e.symbol}</span>
-                  <span className="text-[9px] font-mono text-[var(--text-muted)]">${e.entryPrice} → ${e.exitPrice}</span>
+                  <Badge variant={e.side === "long" ? "success" : "danger"} className="text-[11px]">{e.side}</Badge>
+                  <span className="text-[12px] font-mono text-[var(--text-secondary)]">{e.symbol}</span>
+                  <span className="text-[12px] font-mono text-[var(--text-muted)]">${e.entryPrice} → ${e.exitPrice}</span>
                 </div>
-                <span className={`text-[10px] font-mono tabular-nums ${e.pnl >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
+                <span className={`text-[12px] font-mono tabular-nums ${e.pnl >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                   {e.pnl >= 0 ? "+" : ""}${e.pnl.toFixed(2)}
                 </span>
               </div>
-              <p className="text-[10px] text-[var(--text-secondary)] mb-1">{e.notes}</p>
+              <p className="text-[12px] text-[var(--text-secondary)] mb-1">{e.notes}</p>
               <div className="flex items-center gap-1">
                 {e.tags.map((t) => (
-                  <span key={t} className="px-1 py-0.5 rounded bg-[var(--bg-elevated)] text-[8px] font-mono text-[var(--text-muted)]">
+                  <span key={t} className="px-1 py-0.5 rounded bg-[var(--bg-elevated)] text-[11px] font-mono text-[var(--text-muted)]">
                     #{t}
                   </span>
                 ))}
-                <span className="text-[9px] text-[var(--accent-yellow)] ml-auto">
+                <span className="text-[12px] text-[var(--accent-yellow)] ml-auto">
                   {"★".repeat(e.rating)}{"☆".repeat(5 - e.rating)}
                 </span>
               </div>

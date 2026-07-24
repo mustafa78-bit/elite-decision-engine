@@ -50,7 +50,7 @@ export default function Topbar({ status = "disconnected" }: { status?: Connectio
             <button
               key={s}
               onClick={() => setSymbol(s)}
-              className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium transition-all ${
+              className={`px-2 py-0.5 rounded text-[12px] font-mono font-medium transition-all ${
                 symbol === s
                    ? "text-[var(--accent-blue)] bg-[var(--accent-blue)]/10 border border-[var(--accent-blue)]/20"
                   : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent"
@@ -69,7 +69,7 @@ export default function Topbar({ status = "disconnected" }: { status?: Connectio
         <NotificationCenter />
         <ConnectionIndicator status={status} />
 
-        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+        <span className="text-[12px] text-[var(--text-muted)] font-mono">
           {new Date().toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",

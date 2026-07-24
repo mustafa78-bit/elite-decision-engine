@@ -34,13 +34,13 @@ export function ErrorRateWidget({
       <CardContent className="space-y-2">
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <div className="text-[9px] text-[var(--text-muted)]">Total Errors</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Total Errors</div>
             <div className="text-sm font-mono tabular-nums text-[var(--accent-red)]">
               {totalErrors}
             </div>
           </div>
           <div>
-            <div className="text-[9px] text-[var(--text-muted)]">Total Requests</div>
+            <div className="text-[12px] text-[var(--text-muted)]">Total Requests</div>
             <div className="text-sm font-mono tabular-nums text-[var(--text-primary)]">
               {totalRequests}
             </div>
@@ -48,12 +48,12 @@ export function ErrorRateWidget({
         </div>
         {lastError && (
           <div className="p-2 rounded-lg bg-[var(--accent-red)]/5 border border-[var(--accent-red)]/10">
-            <div className="text-[9px] text-[var(--text-muted)]">Last Error</div>
-            <div className="text-[10px] font-mono text-[var(--accent-red)] truncate">
+            <div className="text-[12px] text-[var(--text-muted)]">Last Error</div>
+            <div className="text-[12px] font-mono text-[var(--accent-red)] truncate">
               {lastError}
             </div>
             {lastErrorTime && (
-              <div className="text-[9px] font-mono text-[var(--text-muted)] mt-0.5">
+              <div className="text-[12px] font-mono text-[var(--text-muted)] mt-0.5">
                 {lastErrorTime}
               </div>
             )}

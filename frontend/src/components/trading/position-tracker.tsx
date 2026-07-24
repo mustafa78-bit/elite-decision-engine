@@ -33,7 +33,7 @@ export function PositionTracker({ positions = [] }: PositionTrackerProps) {
         <CardTitle>Positions ({positions.length})</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+        <div className="px-3 py-1 border-b border-[var(--border-subtle)] flex text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
           <span className="flex-[2]">Symbol</span>
           <span className="flex-[1] text-right">Size</span>
           <span className="flex-[2] text-right">Entry</span>
@@ -41,9 +41,9 @@ export function PositionTracker({ positions = [] }: PositionTrackerProps) {
           <span className="flex-[2] text-right">PnL</span>
         </div>
         {positions.map((p) => (
-          <div key={p.symbol} className="flex items-center px-3 py-1.5 text-[10px] font-mono border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)]">
+          <div key={p.symbol} className="flex items-center px-3 py-1.5 text-[12px] font-mono border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-hover)]">
             <div className="flex-[2] flex items-center gap-1.5">
-              <Badge variant={p.side === "long" ? "success" : "danger"} className="text-[8px] px-1 py-0">
+              <Badge variant={p.side === "long" ? "success" : "danger"} className="text-[11px] px-1 py-0">
                 {p.side === "long" ? "L" : "S"}
               </Badge>
               <span className="text-[var(--text-secondary)]">{p.symbol}</span>

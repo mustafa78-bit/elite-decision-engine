@@ -25,7 +25,7 @@ export function MarketRegimeWidget() {
   return (
     <Card className="h-full">
       <CardContent className="p-4">
-        <div className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
+        <div className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
           Market Regime
         </div>
         <div className="flex items-center gap-2 mb-3">
@@ -44,19 +44,19 @@ export function MarketRegimeWidget() {
             {data.trend}
           </Badge>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-[11px] font-mono tabular-nums">
+        <div className="grid grid-cols-3 gap-2 text-[13px] font-mono tabular-nums">
           <div>
-            <div className="text-[var(--text-muted)] text-[10px]">Vol</div>
+            <div className="text-[var(--text-muted)] text-[12px]">Vol</div>
             <div className="text-[var(--text-primary)]">
               {(data.volatility * 100).toFixed(1)}%
             </div>
           </div>
           <div>
-            <div className="text-[var(--text-muted)] text-[10px]">RSI</div>
+            <div className="text-[var(--text-muted)] text-[12px]">RSI</div>
             <div className="text-[var(--text-primary)]">{data.rsi}</div>
           </div>
           <div>
-            <div className="text-[var(--text-muted)] text-[10px]">BTC</div>
+            <div className="text-[var(--text-muted)] text-[12px]">BTC</div>
             <div className="text-[var(--text-primary)]">
               {(data.btc_health * 100).toFixed(0)}%
             </div>

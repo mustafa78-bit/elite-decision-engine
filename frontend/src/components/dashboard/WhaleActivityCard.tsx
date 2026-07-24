@@ -11,11 +11,11 @@ export default function WhaleActivityCard() {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[9px] font-semibold tracking-[0.1em] uppercase" style={{ color: "var(--text-muted)" }}>
+          <span className="text-[12px] font-semibold tracking-[0.1em] uppercase" style={{ color: "var(--text-muted)" }}>
             Whale Intelligence
           </span>
           {!loading && !error && (
-            <span className="text-[8px] font-mono" style={{ color: "var(--text-disabled)" }}>
+            <span className="text-[11px] font-mono" style={{ color: "var(--text-disabled)" }}>
               {activities && activities.length > 0 ? `${activities.length} signal${activities.length > 1 ? "s" : ""}` : "None"}
             </span>
           )}
@@ -28,11 +28,11 @@ export default function WhaleActivityCard() {
           </div>
         ) : error ? (
           <div className="flex items-center justify-between gap-3 py-1">
-            <p className="text-[10px] font-mono" style={{ color: "var(--accent-red)" }}>Failed to load</p>
+            <p className="text-[12px] font-mono" style={{ color: "var(--accent-red)" }}>Failed to load</p>
             <Button variant="ghost" size="sm" onClick={refetch}>Retry</Button>
           </div>
         ) : !activities || activities.length === 0 ? (
-          <p className="text-[11px] font-mono text-center py-4" style={{ color: "var(--text-disabled)" }}>
+          <p className="text-[13px] font-mono text-center py-4" style={{ color: "var(--text-disabled)" }}>
             No whale activity detected
           </p>
         ) : (
@@ -40,7 +40,7 @@ export default function WhaleActivityCard() {
             {activities.slice(0, 3).map((a, i) => (
               <div
                 key={`${a.symbol}-${i}`}
-                className="flex items-center justify-between py-1.5 border-b text-[10px] font-mono"
+                className="flex items-center justify-between py-1.5 border-b text-[12px] font-mono"
                 style={{
                   borderColor: "#243244",
                   animation: `fadeSlideUp 0.3s ease-out ${i * 0.06}s both`,
@@ -56,7 +56,7 @@ export default function WhaleActivityCard() {
                   />
                   <span style={{ color: "var(--text-primary)" }}>{a.symbol}</span>
                   <span
-                    className="text-[8px] px-1.5 py-0.5 rounded-md"
+                    className="text-[11px] px-1.5 py-0.5 rounded-md"
                     style={{
                       background: a.severity === "high" ? "rgba(239,68,68,0.1)" : "rgba(6,182,212,0.1)",
                       color: a.severity === "high" ? "#EF4444" : "#06B6D4",
@@ -73,7 +73,7 @@ export default function WhaleActivityCard() {
               </div>
             ))}
             {activities.length > 3 && (
-              <p className="text-[9px] font-mono text-center pt-1" style={{ color: "var(--text-disabled)" }}>
+              <p className="text-[12px] font-mono text-center pt-1" style={{ color: "var(--text-disabled)" }}>
                 +{activities.length - 3} more
               </p>
             )}

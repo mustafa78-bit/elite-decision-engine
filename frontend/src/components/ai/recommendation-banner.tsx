@@ -46,15 +46,15 @@ export function RecommendationBanner({ recommendation, onDismiss }: Recommendati
                 {recommendation.priority.toUpperCase()}
               </Badge>
               <Badge variant="info">{recommendation.type}</Badge>
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">
                 {recommendation.symbol} · {recommendation.action}
               </span>
             </div>
-            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+            <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
               {recommendation.reasoning}
             </p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[9px] font-mono text-[var(--text-muted)]">
+              <span className="text-[12px] font-mono text-[var(--text-muted)]">
                 AI Confidence: {recommendation.confidence}%
               </span>
             </div>

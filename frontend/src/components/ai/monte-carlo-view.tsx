@@ -30,16 +30,16 @@ export function MonteCarloView({
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Monte Carlo Simulation</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">{symbol} · 10,000 iterations</span>
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">{symbol} · 10,000 iterations</span>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] text-center">
-            <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase">Expected Return</div>
+            <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase">Expected Return</div>
             <div className="text-sm font-mono font-bold text-[var(--accent-green)] tabular-nums">+{expectedReturn.toFixed(1)}%</div>
           </div>
           <div className="p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] text-center">
-            <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase">Risk of Ruin</div>
+            <div className="text-[12px] font-mono text-[var(--text-muted)] uppercase">Risk of Ruin</div>
             <div className="text-sm font-mono font-bold text-[var(--accent-red)] tabular-nums">{riskOfRuin.toFixed(1)}%</div>
           </div>
         </div>
@@ -56,13 +56,13 @@ export function MonteCarloView({
           </div>
         </div>
         {results.map((r) => (
-          <div key={r.percentile} className="flex items-center justify-between px-2 py-1 text-[10px] font-mono">
+          <div key={r.percentile} className="flex items-center justify-between px-2 py-1 text-[12px] font-mono">
             <span className="text-[var(--text-secondary)]">{r.percentile}</span>
             <div className="flex items-center gap-2">
               <span className={`tabular-nums ${r.value >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                 {r.value >= 0 ? "+" : ""}{r.value.toFixed(1)}%
               </span>
-              <Badge variant="default" className="text-[8px]">{r.prob}% prob</Badge>
+              <Badge variant="default" className="text-[11px]">{r.prob}% prob</Badge>
             </div>
           </div>
         ))}

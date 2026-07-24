@@ -8,7 +8,7 @@ export default function OpenTrades({ trades }: Props) {
   if (trades.length === 0) {
     return (
       <div className="glass-card px-4 py-5 text-center">
-        <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>No open trades</span>
+        <span className="text-[12px] font-mono" style={{ color: "var(--text-muted)" }}>No open trades</span>
       </div>
     );
   }
@@ -16,9 +16,9 @@ export default function OpenTrades({ trades }: Props) {
   return (
     <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-[11px] font-mono" style={{ borderCollapse: "collapse" }}>
+        <table className="w-full text-[13px] font-mono" style={{ borderCollapse: "collapse" }}>
           <thead>
-            <tr className="text-[9px] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)", borderBottom: "1px solid #243244" }}>
+            <tr className="text-[12px] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)", borderBottom: "1px solid #243244" }}>
               <th className="text-left px-4 py-2 font-medium">Symbol</th>
               <th className="text-left px-4 py-2 font-medium">Side</th>
               <th className="text-right px-4 py-2 font-medium">Entry</th>
@@ -38,7 +38,7 @@ export default function OpenTrades({ trades }: Props) {
               >
                 <td className="px-4 py-2 font-medium" style={{ color: "var(--text-primary)" }}>{t.symbol}</td>
                 <td className="px-4 py-2">
-                  <span style={{ color: t.side === "LONG" ? "var(--accent-green)" : "var(--accent-red)" }}>{t.side}</span>
+                  <span style={{ color: t.side === "LONG" ? "#22C55E" : "#EF4444" }}>{t.side}</span>
                 </td>
                 <td className="px-4 py-2 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{t.entry}</td>
                 <td className="px-4 py-2" style={{ color: "var(--text-muted)" }}>{t.status}</td>

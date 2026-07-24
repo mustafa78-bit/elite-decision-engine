@@ -19,7 +19,7 @@ export function WatchlistWidget() {
       <CardHeader>
         <CardTitle>Watchlist</CardTitle>
         {first && (
-          <span className="text-[10px] text-[var(--text-muted)] font-mono">
+          <span className="text-[12px] text-[var(--text-muted)] font-mono">
             {first.name}
           </span>
         )}
@@ -37,7 +37,7 @@ export function WatchlistWidget() {
               <button
                 key={sym}
                 onClick={() => setSymbol(sym)}
-                className="px-2 py-1 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-all"
+                className="px-2 py-1 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[12px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-all"
               >
                 {sym}
               </button>

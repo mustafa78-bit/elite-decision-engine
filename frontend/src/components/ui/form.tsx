@@ -18,13 +18,13 @@ export function FormField({
   return (
     <div className={cn("space-y-1.5", className)}>
       {label && (
-        <label className="text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-[0.06em]">
+        <label className="text-[13px] font-medium text-[var(--text-secondary)] uppercase tracking-[0.06em]">
           {label}
         </label>
       )}
       {children}
       {error && (
-        <p className="text-[10px] font-mono text-[var(--accent-red)]">
+        <p className="text-[12px] font-mono text-[var(--accent-red)]">
           {error.message}
         </p>
       )}

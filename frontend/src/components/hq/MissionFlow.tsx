@@ -50,11 +50,11 @@ function Node({ node }: { node: FlowNode }) {
           animation: pulse ? "node-pulse 0.6s ease-out" : undefined,
         }}
       >
-        <span style={{ fontSize: 7 }}>{icon}</span>
+        <span style={{ fontSize: 11 }}>{icon}</span>
       </div>
       <span
         style={{
-          fontSize: 7,
+          fontSize: 11,
           fontWeight: 600,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
@@ -97,7 +97,7 @@ export default function MissionFlow({ nodes }: Props) {
         ))}
       </div>
       <div
-        className="text-center mt-2 text-[7px] font-mono"
+        className="text-center mt-2 text-[11px] font-mono"
         style={{ color: "var(--text-muted)" }}
       >
         {activeCount}/{nodes.length} online

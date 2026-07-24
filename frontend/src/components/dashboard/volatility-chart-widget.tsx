@@ -30,7 +30,7 @@ export function VolatilityChartWidget({ data = [], currentVol = 0 }: VolatilityC
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Volatility</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           Current: {(currentVol * 100).toFixed(1)}%
         </span>
       </CardHeader>

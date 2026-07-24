@@ -62,9 +62,9 @@ export default function RiskAlerts() {
     <Card>
       <CardContent className="p-3">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">Risk Alerts</p>
+          <p className="text-[12px] uppercase tracking-widest text-[var(--text-muted)]">Risk Alerts</p>
           {!loading && !error && (
-            <span className="text-[10px] font-mono text-[var(--text-muted)]">
+            <span className="text-[12px] font-mono text-[var(--text-muted)]">
               {alerts.length > 0 ? `${alerts.filter(a => a.severity === "high").length} critical` : "All clear"}
             </span>
           )}
@@ -77,15 +77,15 @@ export default function RiskAlerts() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center gap-2 py-2">
-            <p className="text-[10px] text-[var(--accent-red)] font-mono">Failed to load</p>
+            <p className="text-[12px] text-[var(--accent-red)] font-mono">Failed to load</p>
             <Button variant="ghost" size="sm" onClick={refetch}>Retry</Button>
           </div>
         ) : alerts.length === 0 ? (
-          <p className="text-[10px] text-[var(--text-muted)] font-mono text-center py-3">No active alerts</p>
+          <p className="text-[12px] text-[var(--text-muted)] font-mono text-center py-3">No active alerts</p>
         ) : (
           <div className="space-y-1">
             {alerts.slice(0, 4).map((a) => (
-              <div key={a.label} className="flex items-center justify-between text-[10px] font-mono py-1 border-b border-[var(--border-subtle)] last:border-0">
+              <div key={a.label} className="flex items-center justify-between text-[12px] font-mono py-1 border-b border-[var(--border-subtle)] last:border-0">
                 <div className="flex items-center gap-2">
                   <span className={a.severity === "high" ? "text-[var(--accent-red)]" : "text-[var(--accent-yellow)]"}>
                     {a.severity === "high" ? "●" : "○"}
@@ -96,7 +96,7 @@ export default function RiskAlerts() {
               </div>
             ))}
             {alerts.length > 4 && (
-              <p className="text-[9px] text-[var(--text-muted)] text-center pt-1">+{alerts.length - 4} more</p>
+              <p className="text-[12px] text-[var(--text-muted)] text-center pt-1">+{alerts.length - 4} more</p>
             )}
           </div>
         )}

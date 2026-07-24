@@ -33,13 +33,13 @@ export function ExecutionAnalytics({
       <CardContent className="space-y-1.5">
         {metrics.map((m) => (
           <div key={m.label} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]">
-            <span className="text-[10px] font-mono text-[var(--text-secondary)]">{m.label}</span>
+            <span className="text-[12px] font-mono text-[var(--text-secondary)]">{m.label}</span>
             <div className="flex items-center gap-2">
-              <span className={`text-[9px] ${m.trend === "up" ? "text-[var(--accent-green)]" : m.trend === "down" ? "text-[var(--accent-red)]" : "text-[var(--text-muted)]"}`}>
+              <span className={`text-[12px] ${m.trend === "up" ? "text-[var(--accent-green)]" : m.trend === "down" ? "text-[var(--accent-red)]" : "text-[var(--text-muted)]"}`}>
                 {trendIcon[m.trend]}
               </span>
-              <span className="text-[10px] font-mono tabular-nums text-[var(--text-primary)]">{m.value}</span>
-              <Badge variant={statusColor[m.status]} className="text-[8px]">{m.status}</Badge>
+              <span className="text-[12px] font-mono tabular-nums text-[var(--text-primary)]">{m.value}</span>
+              <Badge variant={statusColor[m.status]} className="text-[11px]">{m.status}</Badge>
             </div>
           </div>
         ))}

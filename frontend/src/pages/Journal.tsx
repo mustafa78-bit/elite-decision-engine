@@ -82,7 +82,7 @@ export default function Journal() {
         <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">Trade Journal</h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="text-[10px] uppercase tracking-wider bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] px-3 py-1 rounded"
+          className="text-[12px] uppercase tracking-wider bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] px-3 py-1 rounded"
         >
           {showForm ? "Cancel" : "+ Entry"}
         </button>
@@ -123,7 +123,7 @@ export default function Journal() {
           <button
             onClick={handleCreate}
             disabled={!form.symbol.trim() || form.entry_price <= 0}
-            className="text-[10px] uppercase tracking-wider bg-[var(--accent-green)] hover:bg-[var(--accent-green)]/80 text-[var(--accent-green)] px-3 py-1 rounded disabled:opacity-40"
+            className="text-[12px] uppercase tracking-wider bg-[var(--accent-green)] hover:bg-[var(--accent-green)]/80 text-[var(--accent-green)] px-3 py-1 rounded disabled:opacity-40"
           >
             Save
           </button>
@@ -140,7 +140,7 @@ export default function Journal() {
         <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded overflow-hidden">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">
+              <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)] text-[12px] uppercase tracking-wider">
                 <th className="text-left px-3 py-1.5 font-medium">Date</th>
                 <th className="text-left px-3 py-1.5 font-medium">Symbol</th>
                 <th className="text-left px-3 py-1.5 font-medium">Side</th>
@@ -155,7 +155,7 @@ export default function Journal() {
             <tbody>
               {entries.map((e) => (
                 <tr key={e.id} className="border-t border-[var(--border-subtle)]/50 hover:bg-[var(--bg-hover)]/30">
-                  <td className="px-3 py-1.5 text-[var(--text-secondary)] text-[10px] tabular-nums">
+                  <td className="px-3 py-1.5 text-[var(--text-secondary)] text-[12px] tabular-nums">
                     {e.created_at ? new Date(e.created_at).toLocaleDateString() : ""}
                   </td>
                   <td className="px-3 py-1.5 text-[var(--text-primary)]">{e.symbol}</td>
@@ -180,7 +180,7 @@ export default function Journal() {
                   <td className="px-2 py-1.5 text-right">
                     <button
                       onClick={() => handleDelete(e.id)}
-                      className="text-[var(--text-muted)] hover:text-[var(--accent-red)] text-[10px]"
+                      className="text-[var(--text-muted)] hover:text-[var(--accent-red)] text-[12px]"
                     >
                       x
                     </button>

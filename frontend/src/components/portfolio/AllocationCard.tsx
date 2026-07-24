@@ -9,7 +9,7 @@ export default function AllocationCard({ allocation }: Props) {
   if (entries.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded p-4">
-        <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
+        <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
           Allocation
         </h3>
         <p className="text-[var(--text-muted)] text-xs text-center py-4">No data</p>
@@ -19,7 +19,7 @@ export default function AllocationCard({ allocation }: Props) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-3">
         Allocation
       </h3>
       <div className="space-y-1">

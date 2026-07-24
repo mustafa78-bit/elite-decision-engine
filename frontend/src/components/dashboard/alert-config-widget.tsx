@@ -21,7 +21,7 @@ export function AlertConfigWidget({
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Alert Rules</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">
           {rules.filter((r) => r.enabled).length} active
         </span>
       </CardHeader>
@@ -38,10 +38,10 @@ export function AlertConfigWidget({
                 className="flex items-center justify-between py-2 border-b border-[var(--border-subtle)] last:border-0"
               >
                 <div>
-                  <div className="text-[11px] font-mono text-[var(--text-secondary)]">
+                  <div className="text-[13px] font-mono text-[var(--text-secondary)]">
                     {rule.name}
                   </div>
-                  <div className="text-[9px] text-[var(--text-muted)]">{rule.type}</div>
+                  <div className="text-[12px] text-[var(--text-muted)]">{rule.type}</div>
                 </div>
                 <Switch
                   checked={rule.enabled}

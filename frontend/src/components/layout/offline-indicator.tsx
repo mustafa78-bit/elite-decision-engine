@@ -25,7 +25,7 @@ export function OfflineIndicator() {
           className="fixed top-0 left-0 right-0 z-[200] flex items-center justify-center gap-2 bg-[var(--accent-red)]/10 backdrop-blur-md border-b border-[var(--accent-red)]/20 py-1.5"
         >
           <span className="w-2 h-2 rounded-full bg-[var(--accent-red)] animate-pulse" />
-          <span className="text-[10px] font-mono text-[var(--accent-red)]">
+          <span className="text-[12px] font-mono text-[var(--accent-red)]">
             No internet connection — data may be stale
           </span>
         </motion.div>

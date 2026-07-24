@@ -41,16 +41,16 @@ export function DivergenceDetector({
           <div key={`${d.symbol}-${d.indicator}-${d.direction}`} className="p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)]">
             <div className="flex items-center justify-between mb-0.5">
               <div className="flex items-center gap-1.5">
-                <span className={`text-[10px] ${d.direction === "bullish" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
+                <span className={`text-[12px] ${d.direction === "bullish" ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                   {d.direction === "bullish" ? "▲" : "▼"}
                 </span>
-                <span className="text-[10px] font-mono text-[var(--text-secondary)]">{d.symbol}</span>
-                <Badge variant={d.direction === "bullish" ? "success" : "danger"} className="text-[8px]">{d.direction}</Badge>
-                <Badge variant="info" className="text-[8px]">{d.type}</Badge>
+                <span className="text-[12px] font-mono text-[var(--text-secondary)]">{d.symbol}</span>
+                <Badge variant={d.direction === "bullish" ? "success" : "danger"} className="text-[11px]">{d.direction}</Badge>
+                <Badge variant="info" className="text-[11px]">{d.type}</Badge>
               </div>
-              <span className="text-[9px] font-mono text-[var(--text-muted)]">{d.indicator} · {d.strength}%</span>
+              <span className="text-[12px] font-mono text-[var(--text-muted)]">{d.indicator} · {d.strength}%</span>
             </div>
-            <div className="text-[9px] text-[var(--text-muted)]">{d.description}</div>
+            <div className="text-[12px] text-[var(--text-muted)]">{d.description}</div>
           </div>
         ))}
       </CardContent>

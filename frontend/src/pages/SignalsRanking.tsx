@@ -66,7 +66,7 @@ export default function SignalsRanking() {
       <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">
+            <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)] text-[12px] uppercase tracking-wider">
               <th className="text-left px-3 py-1.5 font-medium w-8">#</th>
               <th className="text-left px-3 py-1.5 font-medium">Symbol</th>
               <th className="text-left px-3 py-1.5 font-medium">Side</th>

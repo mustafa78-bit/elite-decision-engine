@@ -42,10 +42,10 @@ export function AllocationWidget({ allocations = [] }: AllocationWidgetProps) {
                     className="w-2 h-2 rounded-sm shrink-0"
                     style={{ backgroundColor: a.color }}
                   />
-                  <span className="text-[10px] font-mono text-[var(--text-secondary)] flex-1">
+                  <span className="text-[12px] font-mono text-[var(--text-secondary)] flex-1">
                     {a.label}
                   </span>
-                  <span className="text-[10px] font-mono tabular-nums text-[var(--text-primary)]">
+                  <span className="text-[12px] font-mono tabular-nums text-[var(--text-primary)]">
                     {a.value.toFixed(1)}%
                   </span>
                 </div>

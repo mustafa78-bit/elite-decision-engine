@@ -39,7 +39,7 @@ export function RiskWidget({
             {overallRisk}
           </Badge>
         ) : (
-          <span className="text-[10px] font-mono text-[var(--text-muted)]">--</span>
+          <span className="text-[12px] font-mono text-[var(--text-muted)]">--</span>
         )}
       </CardHeader>
       <CardContent>
@@ -51,7 +51,7 @@ export function RiskWidget({
           <div className="space-y-2">
             {riskMetrics.map((m) => (
               <div key={m.label}>
-                <div className="flex justify-between text-[11px] mb-0.5">
+                <div className="flex justify-between text-[13px] mb-0.5">
                   <span className="text-[var(--text-secondary)]">
                     {m.label}
                   </span>

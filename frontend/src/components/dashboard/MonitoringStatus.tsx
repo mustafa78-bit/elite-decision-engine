@@ -44,11 +44,11 @@ export function MonitoringStatus() {
           <Skeleton className="h-20 w-full" />
         ) : error ? (
           <div className="flex flex-col items-center gap-3 py-3">
-            <p className="text-[11px] text-[var(--accent-red)] font-mono text-center">{error}</p>
+            <p className="text-[13px] text-[var(--accent-red)] font-mono text-center">{error}</p>
             <Button variant="ghost" size="sm" onClick={load}>Retry</Button>
           </div>
         ) : !data ? (
-          <p className="text-[10px] text-[var(--text-muted)] font-mono">No status data</p>
+          <p className="text-[12px] text-[var(--text-muted)] font-mono">No status data</p>
         ) : (
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
@@ -58,7 +58,7 @@ export function MonitoringStatus() {
             </div>
             {data.services && Object.entries(data.services).map(([name, s]) => (
               <div key={name} className="flex items-center justify-between py-0.5">
-                <span className="text-[10px] font-mono text-[var(--text-secondary)] uppercase">{name}</span>
+                <span className="text-[12px] font-mono text-[var(--text-secondary)] uppercase">{name}</span>
                 <Badge variant={serviceBadge(s)}>{s}</Badge>
               </div>
             ))}

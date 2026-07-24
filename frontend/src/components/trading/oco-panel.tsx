@@ -16,7 +16,7 @@ export function OCOPanel() {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>OCO Order</CardTitle>
-        <span className="text-[10px] font-mono text-[var(--text-muted)]">One-Cancels-Other</span>
+        <span className="text-[12px] font-mono text-[var(--text-muted)]">One-Cancels-Other</span>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex rounded-lg overflow-hidden border border-[var(--border-default)]">
@@ -37,31 +37,31 @@ export function OCOPanel() {
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Entry Price</label>
-            <FormInput value={entryPrice} onChange={(e) => setEntryPrice(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Entry Price</label>
+            <FormInput value={entryPrice} onChange={(e) => setEntryPrice(e.target.value)} className="h-7 text-[12px]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[9px] font-mono text-[var(--text-muted)]">Amount</label>
-            <FormInput value={amount} onChange={(e) => setAmount(e.target.value)} className="h-7 text-[10px]" />
+            <label className="text-[12px] font-mono text-[var(--text-muted)]">Amount</label>
+            <FormInput value={amount} onChange={(e) => setAmount(e.target.value)} className="h-7 text-[12px]" />
           </div>
         </div>
         <div className="p-2 rounded-lg bg-[var(--bg-base)] border border-[var(--border-subtle)] space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[var(--accent-green)]" />
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">Take Profit</span>
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">Take Profit</span>
             </div>
-            <FormInput value={tpPrice} onChange={(e) => setTpPrice(e.target.value)} className="h-6 w-24 text-[10px]" />
+            <FormInput value={tpPrice} onChange={(e) => setTpPrice(e.target.value)} className="h-6 w-24 text-[12px]" />
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[var(--accent-red)]" />
-              <span className="text-[10px] font-mono text-[var(--text-secondary)]">Stop Loss</span>
+              <span className="text-[12px] font-mono text-[var(--text-secondary)]">Stop Loss</span>
             </div>
-            <FormInput value={slPrice} onChange={(e) => setSlPrice(e.target.value)} className="h-6 w-24 text-[10px]" />
+            <FormInput value={slPrice} onChange={(e) => setSlPrice(e.target.value)} className="h-6 w-24 text-[12px]" />
           </div>
         </div>
-        <div className="flex items-center justify-between text-[10px] font-mono">
+        <div className="flex items-center justify-between text-[12px] font-mono">
           <span className="text-[var(--text-muted)]">Potential R:R</span>
           <Badge variant="info">
             1:{((parseFloat(tpPrice || "0") - parseFloat(entryPrice || "0")) / (parseFloat(entryPrice || "0") - parseFloat(slPrice || "0"))).toFixed(2)}

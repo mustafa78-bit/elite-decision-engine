@@ -176,7 +176,7 @@ export function GlobalSearch() {
               {!query &&
                 searchCategories.map((cat) => (
                   <div key={cat.name}>
-                    <div className="px-2 py-1.5 text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+                    <div className="px-2 py-1.5 text-[12px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
                       {cat.name}
                     </div>
                     {cat.items.map((item) => {
@@ -220,13 +220,13 @@ export function GlobalSearch() {
               )}
             </div>
             <div className="px-3 py-2 border-t border-[var(--border-subtle)] flex gap-3">
-              <span className="text-[9px] text-[var(--text-muted)] font-mono">
+              <span className="text-[12px] text-[var(--text-muted)] font-mono">
                 ↑↓ Navigate
               </span>
-              <span className="text-[9px] text-[var(--text-muted)] font-mono">
+              <span className="text-[12px] text-[var(--text-muted)] font-mono">
                 ↵ Open
               </span>
-              <span className="text-[9px] text-[var(--text-muted)] font-mono">
+              <span className="text-[12px] text-[var(--text-muted)] font-mono">
                 Esc Close
               </span>
             </div>

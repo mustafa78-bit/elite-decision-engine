@@ -11,7 +11,7 @@ export default function CandleStatus({ open, high, low, close, volume }: Props) 
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
-      <h3 className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-2">
+      <h3 className="text-[12px] uppercase tracking-widest text-[var(--text-muted)] mb-2">
         Latest Candle
       </h3>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">

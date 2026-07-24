@@ -37,7 +37,7 @@ export default function DrawdownChart({ equityCurve, height = 150 }: Props) {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#6b7280",
-        fontSize: 10,
+        fontSize: 12,
       },
       grid: { vertLines: { color: "#1f2937" }, horzLines: { color: "#1f2937" } },
       rightPriceScale: { borderColor: "#374151" },
@@ -45,7 +45,7 @@ export default function DrawdownChart({ equityCurve, height = 150 }: Props) {
     });
 
     const series = chart.addSeries(AreaSeries, {
-      linecolor: "var(--accent-red)",
+      lineColor: "#ef4444",
       topColor: "rgba(239, 68, 68, 0.3)",
       bottomColor: "rgba(239, 68, 68, 0.05)",
       lineWidth: 2,

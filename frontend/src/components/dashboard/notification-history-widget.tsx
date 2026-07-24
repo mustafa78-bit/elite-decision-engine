@@ -49,11 +49,11 @@ export function NotificationHistoryWidget({ items = [] }: NotificationHistoryWid
                   <Badge variant={typeBadge[item.type] || "info"}>
                     {item.type}
                   </Badge>
-                  <span className="text-[10px] text-[var(--text-secondary)]">
+                  <span className="text-[12px] text-[var(--text-secondary)]">
                     {item.event}
                   </span>
                 </div>
-                <span className="text-[9px] font-mono text-[var(--text-muted)]">
+                <span className="text-[12px] font-mono text-[var(--text-muted)]">
                   {formatTime(item.timestamp)}
                 </span>
               </div>
