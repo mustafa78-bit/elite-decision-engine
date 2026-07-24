@@ -40,6 +40,13 @@ def portfolio_risk():
     return svc.risk_metrics()
 
 
+@router.get("/portfolio/advisor")
+@cached(ttl=15)
+def portfolio_advisor():
+    svc = _get_portfolio_service()
+    return svc.advisor()
+
+
 @router.get("/portfolio/full")
 @cached(ttl=15)
 def portfolio_full():

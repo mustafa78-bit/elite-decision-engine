@@ -17,6 +17,10 @@ export function fetchPortfolioRisk(): Promise<PortfolioRiskDTO> {
   return apiFetch("/portfolio/risk");
 }
 
+export function fetchPortfolioAdvisor(): Promise<any> {
+  return apiFetch("/portfolio/advisor");
+}
+
 export function fetchPortfolioFull(): Promise<PortfolioFullDTO> {
   return apiFetch("/portfolio/full");
 }
