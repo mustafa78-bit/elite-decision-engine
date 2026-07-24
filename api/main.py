@@ -59,6 +59,10 @@ from api.routes.scanner import router as scanner_router
 from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
+from api.routes.paper import router as paper_router
+from api.routes.ollo import router as ollo_router
+from api.routes.council import router as council_router
+from api.routes.whale import router as whale_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -83,6 +87,12 @@ async def lifespan(app: FastAPI):
     from logging_config import setup_logging
     setup_logging()
     logger.info("Application starting up")
+    from database import create_tables
+    try:
+        create_tables()
+        logger.info("Database tables verified/created on startup")
+    except Exception as e:
+        logger.error("Failed to create database tables on startup: %s", e)
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
     yield
@@ -190,6 +200,21 @@ app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
+app.include_router(paper_router)
+app.include_router(ollo_router)
+app.include_router(council_router)
+app.include_router(whale_router)
+
+_ollo_service = None
+try:
+    from services.ai.provider_factory import create_ai_service
+    from services.ollo.ollo_service import OLLOService
+    _ai_service = create_ai_service()
+    _ollo_service = OLLOService(ai_service=_ai_service)
+    logger.info("OLLO Service successfully initialized in api/main.py")
+except Exception as e:
+    _ollo_service = None
+    logger.warning("Failed to initialize OLLO Service in api/main.py: %s", e)
 
 manager = WebSocketManager()
 
