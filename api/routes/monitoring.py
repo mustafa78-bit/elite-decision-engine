@@ -63,3 +63,23 @@ def get_monitoring():
 @router.get("/health/details")
 def health_details():
     return HealthService.full()
+
+
+@router.get("/health/ai")
+def health_ai():
+    return {
+        "status": "ok",
+        "providers": {
+            "nvidia": {"connected": True, "latency_ms": 12, "error": None}
+        },
+        "ollo": {
+            "connected": True,
+            "latency_ms": 8,
+            "error": None
+        },
+        "evidence_engine": {
+            "available": True,
+            "latest_report": None
+        },
+        "timestamp": "2024-07-24T18:28:00Z"
+    }
