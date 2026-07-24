@@ -8,6 +8,8 @@ import { apiFetch } from "../api/client";
 import { cn, formatCompact, formatPercent } from "../lib/utils";
 import { useTerminalStore } from "../stores/terminal-store";
 import { useNavigate } from "react-router-dom";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
 
 interface SignalExplanation {
   name: string;
@@ -502,32 +504,33 @@ export default function Scanner() {
     navigate(`/asset/${symbol}`);
   }, [setSymbol, addRecentSymbol, navigate]);
 
+  const headerActions = (
+    <div className="flex gap-2 items-center">
+      <Button
+        variant={market === "spot" ? "primary" : "secondary"}
+        size="sm"
+        onClick={() => setMarket("spot")}
+      >
+        Spot
+      </Button>
+      <Button
+        variant={market === "futures" ? "primary" : "secondary"}
+        size="sm"
+        onClick={() => setMarket("futures")}
+      >
+        Futures
+      </Button>
+    </div>
+  );
+
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
-            Market Scanner
-          </h2>
-          <div className="flex items-center gap-2">
-            <div className="flex gap-2 items-center">
-              <Button
-                variant={market === "spot" ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setMarket("spot")}
-              >
-                Spot
-              </Button>
-              <Button
-                variant={market === "futures" ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setMarket("futures")}
-              >
-                Futures
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Market Scanner"
+          subtitle="Real-time multi-factor opportunity scanner and filter"
+          actions={headerActions}
+        />
 
         <Card>
           <CardContent className="p-3">
@@ -619,49 +622,26 @@ export default function Scanner() {
         </div>
 
         {error ? (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-col items-center gap-3 py-4">
-                <p className="text-xs text-[var(--accent-red)] font-mono text-center">{error}</p>
-                <Button variant="ghost" size="sm" onClick={() => loadCategory(activeCategory)}>
-                  Retry
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="No scanner data available"
+            description="The market scanner service is currently unavailable. Reconnect or try again shortly."
+            error={error}
+            actionButton={{
+              label: "Retry connection",
+              onClick: () => loadCategory(activeCategory),
+            }}
+          />
         ) : loading ? (
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-1">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex gap-3 px-4 py-2.5">
-                    <div className="w-6 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-16 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-10 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-16 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="flex-1 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-16 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-8 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-8 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-12 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-12 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-8 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                    <div className="w-12 h-3 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyState
+            loading
+            title="Scanning Opportunities"
+            description="Evaluating real-time indicators across active market symbols..."
+          />
         ) : filtered.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-xs font-mono text-[var(--text-muted)]">
-                {search
-                  ? "No results match your search"
-                  : "No opportunities found for this category"}
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="No opportunities found"
+            description={search ? "No results match your current search query." : "No active opportunities met the threshold for this category."}
+          />
         ) : (
           <Card>
             <CardContent className="p-0">

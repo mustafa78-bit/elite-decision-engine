@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import BTCHealthCard from "../components/market/BTCHealthCard";
 import MarketCard from "../components/market/MarketCard";
 import { apiFetch, ApiError } from "../api/client";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
 
 interface MarketData {
   symbol: string;
@@ -46,8 +48,16 @@ export default function Market() {
 
   if (loading) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading market data...
+      <div className="space-y-4">
+        <PageHeader
+          title="Market Intelligence"
+          subtitle="Comprehensive technical regime, volatility, and asset health"
+        />
+        <EmptyState
+          loading
+          title="Loading market data..."
+          description="Fetching technical indicators and volatility metrics from the streaming feed."
+        />
       </div>
     );
   }
@@ -55,12 +65,19 @@ export default function Market() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 rounded">
-          {error}
-          <button onClick={fetchMarket} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
-          </button>
-        </div>
+        <PageHeader
+          title="Market Intelligence"
+          subtitle="Comprehensive technical regime, volatility, and asset health"
+        />
+        <EmptyState
+          title="No market data available"
+          description="The market intelligence service is currently unavailable. Reconnect or try again shortly."
+          error={error}
+          actionButton={{
+            label: "Retry connection",
+            onClick: fetchMarket,
+          }}
+        />
       </div>
     );
   }
@@ -69,9 +86,10 @@ export default function Market() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-        Market Intelligence
-      </h2>
+      <PageHeader
+        title="Market Intelligence"
+        subtitle="Comprehensive technical regime, volatility, and asset health"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <MarketCard

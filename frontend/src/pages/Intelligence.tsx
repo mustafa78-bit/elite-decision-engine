@@ -7,6 +7,8 @@ import MarketOverview from "../components/intelligence/MarketOverview";
 import SignalFeed from "../components/intelligence/SignalFeed";
 import RiskMonitor from "../components/intelligence/RiskMonitor";
 import TradeMonitor from "../components/intelligence/TradeMonitor";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
 
 export default function Intelligence() {
   const [data, setData] = useState<IntelligenceData | null>(null);
@@ -30,8 +32,16 @@ export default function Intelligence() {
 
   if (loading) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading intelligence dashboard...
+      <div className="space-y-4">
+        <PageHeader
+          title="Live Intelligence Dashboard"
+          subtitle="Aggregated real-time system, market, and signal parameters"
+        />
+        <EmptyState
+          loading
+          title="Loading intelligence parameters..."
+          description="Synthesizing telemetry across core AI consensus layers, portfolios, and risk boundaries."
+        />
       </div>
     );
   }
@@ -39,10 +49,19 @@ export default function Intelligence() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 rounded">
-          {error}
-          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Retry</button>
-        </div>
+        <PageHeader
+          title="Live Intelligence Dashboard"
+          subtitle="Aggregated real-time system, market, and signal parameters"
+        />
+        <EmptyState
+          title="No intelligence telemetry available"
+          description="The aggregated telemetry intelligence engine is currently offline or loading. Reconnect or try again shortly."
+          error={error}
+          actionButton={{
+            label: "Retry connection",
+            onClick: load,
+          }}
+        />
       </div>
     );
   }
@@ -51,7 +70,10 @@ export default function Intelligence() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">Live Intelligence Dashboard</h2>
+      <PageHeader
+        title="Live Intelligence Dashboard"
+        subtitle="Aggregated real-time system, market, and signal parameters"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MarketOverview

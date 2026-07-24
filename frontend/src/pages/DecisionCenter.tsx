@@ -8,6 +8,8 @@ import { cn } from "../lib/utils";
 import { fetchSignals, type SignalRow } from "../api/signals";
 import type { LayoutContext } from "../components/layout/Layout";
 import type { TradeIntelligence } from "../types/trade";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
 
 type DecisionTab = "all" | "approved" | "rejected" | "watch" | "executed" | "closed";
 
@@ -476,11 +478,10 @@ export default function DecisionCenter() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
-            Decision Center
-          </h2>
-        </div>
+        <PageHeader
+          title="Decision Center"
+          subtitle="Consensus signals, historical audit records, and explanations"
+        />
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card>
@@ -569,32 +570,30 @@ export default function DecisionCenter() {
         </div>
 
         {error ? (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-col items-center gap-3 py-4">
-                <p className="text-xs text-[var(--accent-red)] font-mono text-center">{error}</p>
-                <Button variant="ghost" size="sm" onClick={loadSignals}>Retry</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="Decision stream disconnected"
+            description="The AI decision aggregator is currently offline. Reconnect or try again shortly."
+            error={error}
+            actionButton={{
+              label: "Retry connection",
+              onClick: loadSignals,
+            }}
+          />
         ) : loading ? (
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-8 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyState
+            loading
+            title="Awaiting consensus data..."
+            description="Assembling multi-agent historical decisions and audit records..."
+          />
         ) : filtered.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-xs font-mono text-[var(--text-muted)]">
-                No decisions found for this filter
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="Waiting for AI decisions"
+            description={
+              activeTab === "all"
+                ? "No active multi-agent AI consensus signals have been evaluated or processed yet."
+                : "No decisions match the selected status category tab."
+            }
+          />
         ) : (
           <Card>
             <CardContent className="p-0">

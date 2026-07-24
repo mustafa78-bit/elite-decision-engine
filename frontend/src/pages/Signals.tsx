@@ -6,6 +6,8 @@ import SignalTimeline from "../components/signals/SignalTimeline";
 import type { SignalRow } from "../api/signals";
 import { ApiError } from "../api/client";
 import { fetchSignals } from "../api/signals";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
 
 export default function Signals() {
   const [signals, setSignals] = useState<SignalRow[]>([]);
@@ -33,8 +35,16 @@ export default function Signals() {
 
   if (loading) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading signals...
+      <div className="space-y-4">
+        <PageHeader
+          title="Live Signals"
+          subtitle="Tick-by-tick consensus-driven trading signal feed"
+        />
+        <EmptyState
+          loading
+          title="Loading signals..."
+          description="Fetching tick-by-tick consensus signals from the multi-agent decision engine."
+        />
       </div>
     );
   }
@@ -42,23 +52,29 @@ export default function Signals() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
-          {error}
-          <button onClick={loadSignals} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
-          </button>
-        </div>
+        <PageHeader
+          title="Live Signals"
+          subtitle="Tick-by-tick consensus-driven trading signal feed"
+        />
+        <EmptyState
+          title="No signal data available"
+          description="The consensus-driven trading signal service is currently offline or loading. Reconnect or try again shortly."
+          error={error}
+          actionButton={{
+            label: "Retry connection",
+            onClick: loadSignals,
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-          Live Signals ({signals.length})
-        </h2>
-      </div>
+      <PageHeader
+        title="Live Signals"
+        subtitle={`Tick-by-tick consensus-driven trading signal feed (Active: ${signals.length})`}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="lg:col-span-3 space-y-4">
