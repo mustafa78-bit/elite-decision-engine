@@ -6,6 +6,8 @@ import RiskCard from "../components/risk/RiskCard";
 import type { RiskData, PositionSizing } from "../api/risk";
 import { ApiError } from "../api/client";
 import { fetchRisk, fetchPositionSizing } from "../api/risk";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
 
 export default function Risk() {
   const [risk, setRisk] = useState<RiskData | null>(null);
@@ -48,8 +50,16 @@ export default function Risk() {
 
   if (loading) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading risk data...
+      <div className="space-y-4">
+        <PageHeader
+          title="Risk Management"
+          subtitle="Account risk metrics, symbol exposure thresholds, and sizing"
+        />
+        <EmptyState
+          loading
+          title="Loading risk metrics..."
+          description="Evaluating portfolio-wide VaR limits, leverage parameters, and drawdown thresholds."
+        />
       </div>
     );
   }
@@ -57,20 +67,34 @@ export default function Risk() {
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
-          {error}
-          <button onClick={fetchRiskData} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
-          </button>
-        </div>
+        <PageHeader
+          title="Risk Management"
+          subtitle="Account risk metrics, symbol exposure thresholds, and sizing"
+        />
+        <EmptyState
+          title="No risk data available"
+          description="The risk assessment service is currently unavailable. Reconnect or try again shortly."
+          error={error}
+          actionButton={{
+            label: "Retry connection",
+            onClick: fetchRiskData,
+          }}
+        />
       </div>
     );
   }
 
   if (!risk) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        No risk data available
+      <div className="space-y-4">
+        <PageHeader
+          title="Risk Management"
+          subtitle="Account risk metrics, symbol exposure thresholds, and sizing"
+        />
+        <EmptyState
+          title="No risk data available"
+          description="The current user account has no active leverage or portfolio exposure configurations registered."
+        />
       </div>
     );
   }
@@ -84,10 +108,17 @@ export default function Risk() {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="Risk Management"
+        subtitle="Account risk metrics, symbol exposure thresholds, and sizing"
+      />
+
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
-          Risk Overview
-        </h2>
+        <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--border-subtle)]">
+          <h2 className="text-xs uppercase tracking-[0.12em] font-semibold text-[var(--text-primary)]">
+            Risk Overview
+          </h2>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <RiskCard
             label="Risk Score"
@@ -121,9 +152,11 @@ export default function Risk() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
-            Exposure
-          </h2>
+          <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--border-subtle)]">
+            <h2 className="text-xs uppercase tracking-[0.12em] font-semibold text-[var(--text-primary)]">
+              Exposure
+            </h2>
+          </div>
           <ExposureCard
             symbolExposure={risk.symbol_exposure}
             maxSymbolExposure={risk.max_symbol_exposure}
@@ -133,9 +166,11 @@ export default function Risk() {
         </section>
 
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
-            Position Sizing
-          </h2>
+          <div className="flex items-center justify-between pb-2 mb-3 border-b border-[var(--border-subtle)]">
+            <h2 className="text-xs uppercase tracking-[0.12em] font-semibold text-[var(--text-primary)]">
+              Position Sizing
+            </h2>
+          </div>
           <PositionSizeCard
             entry={entry}
             atr={atr}

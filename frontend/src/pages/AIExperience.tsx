@@ -5,6 +5,7 @@ import { SignalFeed } from "../components/ai/signal-feed";
 import { AnalysisDashboard } from "../components/ai/analysis-dashboard";
 import { Skeleton } from "../components/ui/skeleton";
 import { apiFetch } from "../api/client";
+import { PageHeader } from "../components/ui/PageHeader";
 
 interface SignalData {
   id: number;
@@ -72,8 +73,8 @@ export default function AIExperience() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--bg-base)] p-4 md:p-6">
-        <Skeleton className="h-6 w-32 mb-4" />
+      <div className="bg-[var(--bg-base)] p-4 md:p-6 space-y-4">
+        <Skeleton className="h-6 w-32" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Skeleton className="lg:col-span-2 lg:row-span-2 h-[400px] rounded-xl" />
           <Skeleton className="lg:col-span-1 h-[200px] rounded-xl" />
@@ -84,14 +85,11 @@ export default function AIExperience() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] p-4 md:p-6">
-      <motion.h1
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-sm font-medium text-[var(--text-primary)] mb-4"
-      >
-        AI Experience
-      </motion.h1>
+    <div className="bg-[var(--bg-base)] p-4 md:p-6 space-y-4">
+      <PageHeader
+        title="AI Experience"
+        subtitle="Immersive multi-agent conversational workspace and insights"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <motion.div

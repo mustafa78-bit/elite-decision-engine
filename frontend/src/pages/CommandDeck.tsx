@@ -76,6 +76,8 @@ export default function CommandDeck() {
   const offlineCount = [scanner, risk, council, portfolio, whale, market, evidence, ollo.status, aiHealth]
     .filter((s) => s.status === "OFFLINE").length
 
+  const isBackendOffline = offlineCount >= 3;
+
   const missionStatus = useMemo(
     () => computeMissionStatus(riskScore, decisionQuality, aiConnected, offlineCount),
     [riskScore, decisionQuality, aiConnected, offlineCount],
@@ -223,6 +225,7 @@ export default function CommandDeck() {
                 briefing={ollo.briefing}
                 loading={loading && !ollo.greeting}
                 error={ollo.status.error}
+                isBackendOffline={isBackendOffline}
               />
               <div className="mt-6">
                 <MissionRing sectors={sectors} />

@@ -5,6 +5,8 @@ import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
 import { addGlobalToast } from "../components/layout/toast-provider";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
 import {
   fetchWatchlists,
   createWatchlist,
@@ -79,23 +81,27 @@ export default function WatchlistsPage() {
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-        Watchlists
-      </h2>
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <Input
+        placeholder="New watchlist name..."
+        value={newName}
+        onChange={(e) => setNewName(e.target.value)}
+        className="w-48 h-7 text-xs"
+      />
+      <Button size="sm" variant="primary" onClick={handleCreate}>
+        Create
+      </Button>
+    </div>
+  );
 
-      <div className="flex items-center gap-2">
-        <Input
-          placeholder="New watchlist name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          className="max-w-xs"
-        />
-        <Button size="sm" onClick={handleCreate}>
-          Create
-        </Button>
-      </div>
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title="Watchlists"
+        subtitle="Monitor, tracks, and group your high-conviction digital assets"
+        actions={headerActions}
+      />
 
       {loading ? (
         <div className="space-y-2">
@@ -104,11 +110,43 @@ export default function WatchlistsPage() {
           ))}
         </div>
       ) : watchlists.length === 0 ? (
-        <div className="border border-dashed border-[var(--border-subtle)] rounded p-8 text-center">
-          <p className="text-xs text-[var(--text-muted)] font-mono uppercase tracking-widest">
-            No watchlists yet
-          </p>
-        </div>
+        <EmptyState
+          title="Build Your Tactical Watchlist"
+          description="Watchlists allow you to monitor specific market sectors, custom portfolios, or target assets. Track real-time prices, volume breakout flags, and multi-agent AI consensus on customized dashboards."
+          icon={
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-8 h-8 text-[var(--text-muted)] opacity-60"
+            >
+              <path d="M3 12h.01" />
+              <path d="M3 18h.01" />
+              <path d="M3 6h.01" />
+              <path d="M8 12h13" />
+              <path d="M8 18h13" />
+              <path d="M8 6h13" />
+            </svg>
+          }
+          actionButton={{
+            label: "Initialize Default Watchlist",
+            onClick: () => {
+              createWatchlist("Default Watchlist")
+                .then((wl) => {
+                  setWatchlists((prev) => [...prev, wl]);
+                  setNewName("");
+                  addGlobalToast("Default Watchlist created", "success");
+                })
+                .catch(() => {
+                  addGlobalToast("Failed to create watchlist", "error");
+                });
+            },
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {watchlists.map((wl) => (

@@ -1,22 +1,40 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { OLLOResponse, OLLOBriefing } from "../../types/ollo"
+import { Button } from "../ui/button"
 
 interface Props {
   greeting: OLLOResponse | null
   briefing: OLLOBriefing | null
   loading: boolean
   error: string | null
+  isBackendOffline?: boolean
+  onRetry?: () => void
 }
 
 type DisplayMode = "greeting" | "briefing"
 
-export default function OLLOCommander({ greeting, briefing, loading, error }: Props) {
+export default function OLLOCommander({
+  greeting,
+  briefing,
+  loading,
+  error,
+  isBackendOffline = false,
+  onRetry,
+}: Props) {
   const [mode, setMode] = useState<DisplayMode>("greeting")
 
   useEffect(() => {
     if (briefing && !greeting) setMode("briefing")
   }, [briefing, greeting])
+
+  const handleReload = () => {
+    if (onRetry) {
+      onRetry();
+    } else {
+      window.location.reload();
+    }
+  };
 
   if (loading) {
     return (
@@ -36,21 +54,42 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
     )
   }
 
-  if (error) {
+  // Handle systemic offline or single error with premium product language
+  if (isBackendOffline || error) {
+    const errorDetail = error || "OLLO connection failed";
     return (
-      <div className="flex flex-col items-center justify-center py-12">
+      <div className="flex flex-col items-center justify-center py-10 text-center max-w-sm mx-auto space-y-4">
         <div
-          className="rounded-full flex items-center justify-center"
+          className="rounded-full flex items-center justify-center animate-pulse"
           style={{
-            width: 64,
-            height: 64,
-            border: "1px solid rgba(255, 93, 115, 0.15)",
-            background: "rgba(255, 93, 115, 0.03)",
+            width: 72,
+            height: 72,
+            border: "1px solid rgba(255, 93, 115, 0.25)",
+            background: "rgba(255, 93, 115, 0.05)",
+            boxShadow: "0 0 12px rgba(255, 93, 115, 0.15)",
           }}
         >
-          <span className="text-lg" style={{ color: "rgba(255, 93, 115, 0.4)" }}>◉</span>
+          <span className="text-xl text-[var(--accent-red)] font-bold font-mono">!</span>
         </div>
-        <p className="mt-3 text-[10px] font-mono" style={{ color: "rgba(255, 93, 115, 0.6)" }}>{error}</p>
+        <div className="space-y-1">
+          <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-primary)]">
+            Tactical Link Degraded
+          </h3>
+          <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+            The cognitive command deck is currently awaiting systemic connection to core services. Reconnecting tactical data streams.
+          </p>
+          <p className="text-[9px] font-mono text-[var(--accent-red)] opacity-75 mt-1">
+            {errorDetail}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="font-mono text-[10px] uppercase tracking-wider h-7 px-3 text-[var(--accent-red)] hover:text-white border-[var(--accent-red)]/35 hover:bg-[var(--accent-red)]/15"
+          onClick={handleReload}
+        >
+          Reconnect tactical grid
+        </Button>
       </div>
     )
   }
