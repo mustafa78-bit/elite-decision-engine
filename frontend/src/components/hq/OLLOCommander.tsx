@@ -59,7 +59,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
 
   return (
     <div className="flex flex-col items-center justify-center py-10">
-      {/* OLLO Orb — calm, breathing, volumetric */}
+      {/* NEXUS Orb — calm, breathing, volumetric */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -148,7 +148,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
             className="text-center mt-4"
           >
             <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-              Awaiting OLLO connection...
+              Awaiting NEXUS connection...
             </p>
           </motion.div>
         )}

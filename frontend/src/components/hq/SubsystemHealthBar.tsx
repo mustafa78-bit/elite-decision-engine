@@ -79,7 +79,7 @@ export default function SubsystemHealthBar({
     { label: "Whale", status: whale.status },
     { label: "Market", status: market.status },
     { label: "Evidence", status: evidence.status },
-    { label: "OLLO", status: olloStatus.status },
+    { label: "NEXUS", status: olloStatus.status },
     { label: "AI", status: aiHealth.status },
   ]
 
