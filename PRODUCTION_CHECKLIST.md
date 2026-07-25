@@ -1,139 +1,66 @@
-# Production Checklist — Elite Platform
+# Production Readiness Checklist — Self-Hosted Elite Decision Engine
 
-> Verified during Product Completion Sprint.
+This checklist is verified for local, self-hosted workstation production environments (e.g., Windows, macOS, or Linux running on the founder's own hardware).
 
-## 1. ENVIRONMENT VARIABLES
+---
 
-| Variable | Required | Status | Notes |
-|----------|----------|--------|-------|
-| `DATABASE_URL` | ✅ Yes | ⚠️ | Graceful fallback to POSTGRES_* vars, but should be explicit |
-| `JWT_SECRET` | ✅ Yes | ⚠️ | Must be >= 32 bytes (current test secret is 30 bytes) |
-| `API_ENV` | ⚠️ Recommend | ✅ | Defaults to `development` |
-| `CORS_ORIGINS` | ✅ Yes | ✅ | Defaults to `http://localhost:5173` |
-| `ENCRYPTION_KEY` | ⚠️ (prod) | ❌ | Referenced in compose.prod but not in config.py |
-| `REDIS_URL` | ⚠️ (prod) | ❌ | Referenced in compose.prod but code doesn't use it |
-| `LOG_LEVEL` | ⚠️ (prod) | ❌ | Not used anywhere |
-| `TELEGRAM_TOKEN` | ❌ Optional | ✅ | Gracefully skipped |
-| `HL_API_KEY/SECRET` | ❌ Optional | ✅ | Gracefully skipped |
+## 1. Environment & Secrets Configuration
 
-**Issues**:
-- `ENCRYPTION_KEY` env var is in `docker-compose.prod.yml` but never read by the application
-- `REDIS_URL` is set but never used (Redis container exists but no caching code uses it)
-- `LOG_LEVEL` env var is set but never read — logging uses hardcoded levels
+- [ ] **`API_ENV`**: Set to `production` (enforces JSON logging, stricter security headers, and disables development bypass).
+- [ ] **`JWT_SECRET`**: Generated as a high-entropy string of at least 32 bytes (256-bit). *Never* use default/development secrets in production.
+- [ ] **`ENCRYPTION_KEY`**: Set to a unique, cryptographically secure key for decrypting secure data (e.g., API keys).
+- [ ] **`DATABASE_URL`**: Set to a production-grade PostgreSQL instance (`postgresql://user:pass@host:5432/dbname`). SQLite is NOT used in production.
+- [ ] **`CORS_ORIGINS`**: Explicitly set to the custom domain or local workstation interface (e.g., `https://elite.local` or `https://127.0.0.1`). Wildcards are disabled.
+- [ ] **No Hardcoded Credentials**: Checked and verified that all database, API key, and JWT secrets are injected purely via environment variables.
 
-## 2. SECRETS
+---
 
-| Secret | Storage | Status |
-|--------|---------|--------|
-| JWT Secret | Env var (`JWT_SECRET`) | ✅ |
-| DB Password | Env var (`POSTGRES_PASSWORD` or `DATABASE_URL`) | ✅ |
-| Telegram Token | Env var (`TELEGRAM_TOKEN`) | ✅ |
-| Exchange API Keys | Env var (`HL_API_KEY`, `HL_SECRET`) | ✅ |
-| Encryption Key | Env var (`ENCRYPTION_KEY`) | Referenced but unused |
-| Redis Password | Env var (`REDIS_PASSWORD`) | ✅ (in compose.prod) |
-| AWS Credentials | Env var (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) | ✅ (in compose.prod) |
+## 2. Reverse Proxy & HTTPS Hardening
 
-**Issues**: No secrets in code. All secrets are env-var based.
+- [ ] **SSL/TLS Configuration**: Reverse proxy (Caddy or Nginx) is configured with HTTPS enabled.
+  - *Caddy*: Configured for automatic local HTTPS (via Caddy's internal Local CA) or Let's Encrypt for public domains.
+  - *Nginx*: Configured with valid SSL certificates, high-grade cipher suites, and modern protocols (TLSv1.2, TLSv1.3).
+- [ ] **Static File Delivery**: Reverse proxy is configured to serve static assets from the `frontend/dist` directory directly (leveraging Nginx/Caddy's native speed rather than routing static assets through python).
+- [ ] **Proxy Headers**: Appropriate forwarding headers are set:
+  - `X-Real-IP` and `X-Forwarded-For` to propagate client IP addresses.
+  - `X-Forwarded-Proto` set to `https` to signal downstream components.
+  - `Host` header set correctly.
+- [ ] **Security Headers**: Production-grade HTTP headers are configured on the proxy:
+  - `Strict-Transport-Security` (HSTS) with a 1-year duration.
+  - `X-Frame-Options: DENY` (or `SAMEORIGIN`).
+  - `X-Content-Type-Options: nosniff`.
+  - Content Security Policy (CSP) restricts script and connect origins securely.
+- [ ] **WebSocket Upgrades**: Reverse proxy supports HTTP/1.1 protocol upgrades for WebSocket connections on `/ws/*` paths.
 
-## 3. LOGGING
+---
 
-| Aspect | Status | Notes |
-|--------|--------|-------|
-| Console logging | ✅ | Standard format in dev |
-| File logging | ✅ | Rotating file handler (engine.log, trade.log, error.log) |
-| JSON logging | ⚠️ | Only in production mode via `_JsonFormatter` |
-| Structured log format | ✅ | JSON with timestamp, level, module, message |
-| Request ID tracking | ✅ | `X-Request-ID` on all responses, logged in middleware |
-| Error logging | ✅ | Stack traces logged to error.log |
-| Audit trail | ❌ | No structured audit logging for state changes |
+## 3. Database Production Preparedness
 
-**Issues**:
-- `LOG_LEVEL` env var is set in compose.prod but never read by `logging_config.py`
-- No sensitive data scrubbing in log messages (passwords, tokens, etc.)
+- [ ] **PostgreSQL Connectivity**: Verified that the database is running, reachable, and accepts connections on standard port `5432`.
+- [ ] **Schema Migrations**: Schema creation is handled safely. Table structures are fully synchronized with the database models.
+- [ ] **Transactional Safety**: Programmatic database operations utilize `session_scope()` contexts to prevent connection leaks or uncommitted state.
+- [ ] **Foreign Keys**: Enforced at the database layer (unlike SQLite configurations).
+- [ ] **Index Verification**: Critical indexes on signals (`symbol`, `status`), trades, user settings, and watchlists are initialized.
 
-## 4. MONITORING
+---
 
-| Aspect | Status | Notes |
-|--------|--------|-------|
-| Health endpoint | ✅ | `/health` returns basic status |
-| Detailed health | ✅ | `/health/details` calls `HealthService.full()` |
-| Prometheus metrics | ❌ | Prometheus container exists but app doesn't expose metrics endpoint |
-| Grafana dashboard | ❌ | Grafana container exists but no dashboards provisioned |
-| Alerting | ❌ | No alert rules configured |
-| Uptime tracking | ✅ | `HealthService.uptime()` measures engine runtime |
-| Error tracking | ✅ | `HealthService.errors()` tracks consecutive failures per component |
+## 4. Production Logging & Observability
 
-**Issues**:
-- No `/metrics` endpoint for Prometheus scraping
-- `HealthService.execution()` will crash because it instantiates `ExecutionLoop()` without dependencies
-- Prometheus and Grafana containers exist in compose.prod but app doesn't expose metrics
+- [ ] **Rotational Log Files**: Log rotation is configured to prevent disk space exhaustion:
+  - `logs/engine.log` (core, DB, app) capped at 10 MB with 5 backups.
+  - `logs/trade.log` (execution, scoring) capped at 10 MB with 5 backups.
+  - `logs/error.log` (all ERROR+ logs) capped at 10 MB with 5 backups.
+- [ ] **Console JSON Logging**: Enabled automatically in production (`API_ENV=production`) for standard structured log aggregation.
+- [ ] **Sensitive Data Masking**: Log streams are filtered to automatically mask credentials, secrets, Bearer tokens, and API keys.
+- [ ] **Request ID Tracing**: Every incoming HTTP request is assigned a unique `X-Request-ID` header, propagated through logs and responses to facilitate debugging.
 
-## 5. HEALTH ENDPOINTS
+---
 
-| Endpoint | Status | Response Time | Notes |
-|----------|--------|---------------|-------|
-| `/health` | ✅ | <10ms | Lightweight — no DB call |
-| `/health/details` | ⚠️ | Variable | Calls DB, collector, errors — may be slow |
+## 5. Automation, Startup & Recovery
 
-## 6. DOCKER
-
-| Aspect | Status | Notes |
-|--------|--------|-------|
-| Dockerfile (dev) | ✅ | Multi-stage, includes frontend build |
-| Dockerfile.prod | ✅ | Hardened: non-root user, healthcheck, --workers 4 |
-| Dockerfile.arm64 | ✅ | ARM64 variant |
-| docker-compose.yml | ✅ | Dev compose with db, redis, api |
-| docker-compose.prod.yml | ✅ | Full production stack |
-| .dockerignore | ❌ | **MISSING** — build copies venv, node_modules, .git |
-
-**Issues**:
-- **Critical**: Missing `.dockerignore` — build context is unnecessarily large and may expose secrets
-- `scripts/backup.sh` referenced but does not exist
-- `deploy/init-db.sql` referenced but does not exist
-
-## 7. DEPLOYMENT
-
-| Aspect | Status | Notes |
-|--------|--------|-------|
-| CI/CD (GitHub Actions) | ✅ | Tests run on push/PR to main and execution-layer |
-| Linting | ✅ | `ruff check` in CI |
-| Tests | ✅ | pytest + npm test in CI |
-| Build | ✅ | Frontend build in CI |
-| Docker build | ❌ | Not in CI pipeline |
-| Automated deployment | ❌ | No deploy step in CI |
-
-## 8. BACKUPS
-
-| Aspect | Status | Notes |
-|--------|--------|-------|
-| DB volume | ✅ | `pgdata` volume in compose |
-| Backup container | ⚠️ | In compose.prod but uses non-existent `scripts/backup.sh` |
-| S3 backup | ⚠️ | Configured but non-functional |
-| Scheduled backup | ⚠️ | Configured (3 AM daily) but non-functional |
-
-## 9. RECOVERY
-
-| Aspect | Status | Notes |
-|--------|--------|-------|
-| DB volume persists | ✅ | Named volume `pgdata` survives container restart |
-| Restart policy | ✅ | `restart: unless-stopped` on all services |
-| Health checks | ✅ | db, redis, and api all have healthchecks |
-| Rollback plan | ❌ | No documented rollback procedure |
-| Data migration | ❌ | No migration framework (empty `migrations/` dir) |
-
-## 10. MISSING ITEMS SUMMARY
-
-| Area | Missing | Priority |
-|------|---------|----------|
-| Docker | `.dockerignore` | CRITICAL |
-| Scripts | `scripts/backup.sh` | HIGH |
-| Deploy | `deploy/init-db.sql` | HIGH |
-| Monitoring | `/metrics` endpoint (Prometheus) | MEDIUM |
-| Monitoring | Grafana dashboards | MEDIUM |
-| Config | `ENCRYPTION_KEY` unused | MEDIUM |
-| Config | `REDIS_URL` unused | LOW |
-| Config | `LOG_LEVEL` not read | LOW |
-| Ops | Rollback plan | MEDIUM |
-| Ops | Data migrations | MEDIUM |
-
-**Production Readiness Score: 6.5/10**
+- [ ] **Production Launch Scripts**: Cross-platform startup scripts (`START_PRODUCTION.sh` / `START_PRODUCTION.bat`) are fully operational.
+- [ ] **Process Cleanup Scripts**: Cross-platform shutdown scripts (`STOP_PRODUCTION.sh` / `STOP_PRODUCTION.bat`) terminate all backend and proxy processes.
+- [ ] **Automatic Service Restart**: Native startup tasks or services configured to automatically launch the application on system boot (e.g., systemd, launchd, or Windows Task Scheduler).
+- [ ] **Graceful Rollback Procedure**: Documented steps to restore files, frontend assets, database backups, and environment configurations to a previous known-good state.
+- [ ] **Automated Backup Strategy**: Regular cron/task schedules to dump the production PostgreSQL database safely to a secure local folder or S3 bucket.
+- [ ] **Health Checks**: Automated script or endpoint tests to continuously monitor backend service, DB ping, and proxy response.
