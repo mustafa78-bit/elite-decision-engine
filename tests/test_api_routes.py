@@ -443,7 +443,7 @@ def test_get_users_me_with_auth(api_client, db_session):
     assert body["email"] == "test@example.com"
 
 
-def test_get_users_me_no_auth():
+def test_get_users_me_no_auth(db_session):
     from fastapi.testclient import TestClient
     from api.main import app
     client = TestClient(app)
@@ -598,7 +598,7 @@ def test_register_missing_fields(api_client):
 # ─── Protected routes (require auth) ───────────────────────────────────────
 
 
-def test_get_signals_requires_auth():
+def test_get_signals_requires_auth(db_session):
     from fastapi.testclient import TestClient
     from api.main import app
     client = TestClient(app)
@@ -606,7 +606,7 @@ def test_get_signals_requires_auth():
     assert resp.status_code == 401
 
 
-def test_get_risk_requires_auth():
+def test_get_risk_requires_auth(db_session):
     from fastapi.testclient import TestClient
     from api.main import app
     client = TestClient(app)
@@ -614,7 +614,7 @@ def test_get_risk_requires_auth():
     assert resp.status_code == 401
 
 
-def test_get_portfolio_requires_auth():
+def test_get_portfolio_requires_auth(db_session):
     from fastapi.testclient import TestClient
     from api.main import app
     client = TestClient(app)
@@ -622,7 +622,7 @@ def test_get_portfolio_requires_auth():
     assert resp.status_code == 401
 
 
-def test_get_performance_requires_auth():
+def test_get_performance_requires_auth(db_session):
     from fastapi.testclient import TestClient
     from api.main import app
     client = TestClient(app)
@@ -630,11 +630,11 @@ def test_get_performance_requires_auth():
     assert resp.status_code == 401
 
 
-def test_get_position_sizing_requires_auth():
+def test_get_position_sizing_requires_auth(db_session):
     from fastapi.testclient import TestClient
     from api.main import app
     client = TestClient(app)
-    resp = client.get("/position-sizing")
+    resp = client.get("/position-sizing?entry=50000")
     assert resp.status_code == 401
 
 
