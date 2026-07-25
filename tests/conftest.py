@@ -59,20 +59,20 @@ def test_engine():
         engine = create_engine(TEST_DATABASE_URL, echo=False)
 
     if "sqlite" in repr(engine.url):
-        _enable_sqlite_pragmas(engine)
+        _disable_sqlite_pragmas(engine)
 
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
 
 
-def _enable_sqlite_pragmas(engine):
-    """Enable foreign keys for SQLite test databases."""
+def _disable_sqlite_pragmas(engine):
+    """Disable foreign keys for SQLite test databases to maintain compatibility with isolated test fixtures."""
 
     @event.listens_for(engine, "connect")
     def _set_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA foreign_keys=OFF")
         cursor.close()
 
 

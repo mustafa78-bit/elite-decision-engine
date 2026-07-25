@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from services.notification_service import NotificationService
 
@@ -15,58 +15,67 @@ def _get_notification_service() -> NotificationService:
 
 @router.get("/notifications")
 def get_notifications(
+    request: Request,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     unread_only: bool = Query(False),
     event_type: Optional[str] = Query(None),
 ):
+    user_id = request.state.user_id
     svc = _get_notification_service()
     return svc.list_notifications(
         limit=limit, offset=offset,
         unread_only=unread_only, event_type=event_type,
+        user_id=user_id,
     )
 
 
 @router.get("/notifications/stats")
-def get_notification_stats():
+def get_notification_stats(request: Request):
+    user_id = request.state.user_id
     svc = _get_notification_service()
-    return svc.stats()
+    return svc.stats(user_id=user_id)
 
 
 @router.get("/notifications/{notification_id}")
-def get_notification(notification_id: int):
+def get_notification(notification_id: int, request: Request):
+    user_id = request.state.user_id
     svc = _get_notification_service()
-    result = svc.get_notification(notification_id)
+    result = svc.get_notification(notification_id, user_id=user_id)
     if not result:
         raise HTTPException(status_code=404, detail="Notification not found")
     return result
 
 
 @router.put("/notifications/{notification_id}/read")
-def mark_read(notification_id: int):
+def mark_read(notification_id: int, request: Request):
+    user_id = request.state.user_id
     svc = _get_notification_service()
-    if not svc.mark_read(notification_id):
+    if not svc.mark_read(notification_id, user_id=user_id):
         raise HTTPException(status_code=404, detail="Notification not found")
     return {"success": True}
 
 
 @router.put("/notifications/read-all")
-def mark_all_read(event_type: Optional[str] = Query(None)):
+def mark_all_read(request: Request, event_type: Optional[str] = Query(None)):
+    user_id = request.state.user_id
     svc = _get_notification_service()
-    count = svc.mark_all_read(event_type=event_type)
+    count = svc.mark_all_read(event_type=event_type, user_id=user_id)
     return {"success": True, "marked_count": count}
 
 
 @router.delete("/notifications/{notification_id}")
-def delete_notification(notification_id: int):
+def delete_notification(notification_id: int, request: Request):
+    user_id = request.state.user_id
     svc = _get_notification_service()
-    if not svc.delete_notification(notification_id):
+    if not svc.delete_notification(notification_id, user_id=user_id):
         raise HTTPException(status_code=404, detail="Notification not found")
     return {"success": True}
 
 
 @router.delete("/notifications/read-all")
-def delete_all_read():
+def delete_all_read(request: Request):
+    user_id = request.state.user_id
     svc = _get_notification_service()
-    count = svc.delete_all_read()
+    count = svc.delete_all_read(user_id=user_id)
     return {"success": True, "deleted_count": count}

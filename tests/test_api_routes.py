@@ -52,7 +52,7 @@ def _make_trade(db_session, signal_id=1, status="OPEN", pnl=None, **overrides):
 
 
 def _make_notification(db_session, **overrides):
-    kwargs = dict(event_type="trade_opened", payload={}, read=False)
+    kwargs = dict(user_id=1, event_type="trade_opened", payload={}, read=False)
     kwargs.update(overrides)
     n = Notification(**kwargs)
     db_session.add(n)

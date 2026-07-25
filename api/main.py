@@ -39,6 +39,10 @@ from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
 from api.routes.paper_trading import router as paper_trading_router
 from api.routes.performance import router as performance_router
+from api.routes.council import router as council_router
+from api.routes.ollo import router as ollo_router
+from api.routes.whale import router as whale_router
+from api.routes.paper import router as paper_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.regime import router as regime_router
 from api.routes.risk import router as risk_router
@@ -170,6 +174,10 @@ app.include_router(monitoring_router)
 app.include_router(notifications_router)
 app.include_router(paper_trading_router)
 app.include_router(performance_router)
+app.include_router(council_router)
+app.include_router(ollo_router)
+app.include_router(whale_router)
+app.include_router(paper_router)
 app.include_router(portfolio_router)
 app.include_router(regime_router)
 app.include_router(risk_router)
@@ -305,6 +313,17 @@ except Exception as e:
     _evidence_engine = None
     logger.warning("Evidence engine initialization failed: %s", e)
 
+_ollo_service: Optional = None
+
+try:
+    from services.ai.provider_factory import create_ai_service
+    from services.ollo.ollo_service import OLLOService
+    _ollo_service = OLLOService(ai_service=create_ai_service())
+    logger.info("OLLO service initialized successfully")
+except Exception as e:
+    _ollo_service = None
+    logger.warning("OLLO service initialization failed: %s", e)
+
 _mip_service: Optional[MarketDataService] = None
 
 
@@ -345,14 +364,14 @@ async def _broadcast_market() -> None:
             btc_health_score=btc_score,
             volatility=vol_val,
         ))
-        await manager.broadcast(serialize(event))
+        await manager.broadcast_to_room("dashboard", serialize(event))
 
         price_event = PriceUpdateEvent(payload=PricePayload(
             symbol="BTC",
             price=price,
             volume=float(df["volume"].iloc[-1]),
         ))
-        await manager.broadcast(serialize(price_event))
+        await manager.broadcast_to_room("analytics", serialize(price_event))
 
         latest = df.iloc[-1]
         candle_event = CandleUpdateEvent(payload=CandlePayload(
@@ -364,14 +383,14 @@ async def _broadcast_market() -> None:
             volume=float(latest["volume"]),
             timestamp=int(latest["timestamp"]) if "timestamp" in latest else 0,
         ))
-        await manager.broadcast(serialize(candle_event))
+        await manager.broadcast_to_room("analytics", serialize(candle_event))
 
         volume_24h = float(df["volume"].tail(24).sum()) if len(df) >= 24 else float(df["volume"].sum())
         vol_event = VolumeUpdateEvent(payload=VolumePayload(
             symbol="BTC",
             volume_24h=volume_24h,
         ))
-        await manager.broadcast(serialize(vol_event))
+        await manager.broadcast_to_room("analytics", serialize(vol_event))
     except Exception:
         logger.exception("Market broadcast failed")
 
@@ -397,7 +416,8 @@ async def _broadcast_risk() -> None:
             daily_loss=0.0,
             max_daily_loss=10000,
         ))
-        await manager.broadcast(serialize(event))
+        await manager.broadcast_to_room("dashboard", serialize(event))
+        await manager.broadcast_to_room("portfolio", serialize(event))
     except Exception:
         logger.exception("Risk broadcast failed")
 

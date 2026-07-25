@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from services.preferences_service import PreferencesService
 from dto.preferences import ThemeConfigDTO
@@ -13,7 +13,8 @@ def _get_preferences_service() -> PreferencesService:
 
 
 @router.get("/preferences")
-def get_preferences(user_id: int = Query(1, ge=1)):
+def get_preferences(request: Request):
+    user_id = request.state.user_id
     svc = _get_preferences_service()
     result = svc.get_preferences(user_id)
     if result is None:
@@ -26,19 +27,22 @@ def get_preferences(user_id: int = Query(1, ge=1)):
 
 
 @router.put("/preferences")
-def update_preferences(user_id: int = Query(1, ge=1), data: dict = {}):
+def update_preferences(request: Request, data: dict = {}):
+    user_id = request.state.user_id
     svc = _get_preferences_service()
     return svc.upsert_preferences(user_id, data)
 
 
 @router.put("/preferences/theme")
-def update_theme(user_id: int = Query(1, ge=1), theme: str = "dark"):
+def update_theme(request: Request, theme: str = "dark"):
+    user_id = request.state.user_id
     svc = _get_preferences_service()
     return svc.update_theme(user_id, theme)
 
 
 @router.put("/preferences/layout")
-def update_layout(user_id: int = Query(1, ge=1), layout: dict = {}):
+def update_layout(request: Request, layout: dict = {}):
+    user_id = request.state.user_id
     svc = _get_preferences_service()
     return svc.update_layout(user_id, layout)
 

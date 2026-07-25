@@ -2,11 +2,11 @@
 name = "elite-decision-engine"
 version = "1.0.0"
 description = "AI-powered trading decision engine"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 
 [tool.ruff]
 line-length = 120
-target-version = "py313"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]

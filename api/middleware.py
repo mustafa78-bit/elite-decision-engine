@@ -32,7 +32,8 @@ async def auth_middleware(request: Request, call_next):
         response.headers["X-Request-ID"] = rid
         return response
 
-    if API_ENV == "development":
+    from config import DEV_AUTH_BYPASS
+    if API_ENV == "development" and DEV_AUTH_BYPASS:
         request.state.user_id = 1
         request.state.username = "dev"
         response = await call_next(request)

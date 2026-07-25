@@ -68,6 +68,7 @@ if not DATABASE_URL:
     )
 
 DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
+DEV_AUTH_BYPASS = os.getenv("DEV_AUTH_BYPASS", "false").lower() in ("true", "1", "yes")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
 CORS_ORIGIN_REGEX = os.getenv("CORS_ORIGIN_REGEX", r"^https?://localhost(:\d+)?$")
 

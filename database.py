@@ -10,7 +10,9 @@ from sqlalchemy import (
     Boolean,
     Text,
     JSON,
+    ForeignKey,
 )
+from contextlib import contextmanager
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
@@ -85,7 +87,7 @@ class Trade(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    signal_id = Column(Integer)
+    signal_id = Column(Integer, ForeignKey("signals.id", ondelete="SET NULL"), nullable=True)
 
     symbol = Column(String(20))
     side = Column(String(10))
@@ -139,7 +141,7 @@ class UserSettings(Base):
     __tablename__ = "user_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     timezone = Column(String(50), default="UTC")
     dashboard_config = Column(JSON, default=dict)
     risk_preferences = Column(JSON, default=dict)
@@ -156,7 +158,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     event_type = Column(String(30), nullable=False, index=True)
     payload = Column(JSON, default=dict)
     read = Column(Boolean, default=False)
@@ -170,7 +172,7 @@ class Watchlist(Base):
     __tablename__ = "watchlists"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(50), nullable=False, default="Default")
     symbols = Column(JSON, default=list)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -201,8 +203,8 @@ class JournalEntry(Base):
     result = Column(String(20), default="PENDING")
     pnl = Column(Float, default=0)
 
-    signal_id = Column(Integer, nullable=True)
-    trade_id = Column(Integer, nullable=True)
+    signal_id = Column(Integer, ForeignKey("signals.id", ondelete="SET NULL"), nullable=True)
+    trade_id = Column(Integer, ForeignKey("trades.id", ondelete="SET NULL"), nullable=True)
 
     created_at = Column(
         DateTime(timezone=True),
@@ -226,7 +228,7 @@ class PaperOrder(Base):
     filled_price = Column(Float, nullable=True)
     filled_quantity = Column(Float, nullable=True)
     status = Column(String(20), default="PENDING")
-    trade_id = Column(Integer, nullable=True)
+    trade_id = Column(Integer, ForeignKey("trades.id", ondelete="SET NULL"), nullable=True)
     reason = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -240,8 +242,8 @@ class PaperTrade(Base):
     __tablename__ = "paper_trades"
 
     id = Column(Integer, primary_key=True, index=True)
-    position_id = Column(Integer, nullable=False)
-    order_id = Column(Integer, nullable=True)
+    position_id = Column(Integer, ForeignKey("trades.id", ondelete="CASCADE"), nullable=False)
+    order_id = Column(Integer, ForeignKey("paper_orders.id", ondelete="SET NULL"), nullable=True)
     symbol = Column(String(20), nullable=False)
     side = Column(String(10), nullable=False)
     entry = Column(Float, nullable=False)
@@ -263,7 +265,7 @@ class DecisionExplanation(Base):
     __tablename__ = "decision_explanations"
 
     id = Column(Integer, primary_key=True, index=True)
-    signal_id = Column(Integer, nullable=False, index=True)
+    signal_id = Column(Integer, ForeignKey("signals.id", ondelete="CASCADE"), nullable=False, index=True)
     symbol = Column(String(20), nullable=False)
     side = Column(String(10), nullable=False)
 
@@ -317,7 +319,7 @@ PARTIALLY_FILLED = "PARTIALLY_FILLED"
 
 ORDER_STATUSES = frozenset({PENDING, FILLED, PARTIALLY_FILLED, CANCEL})
 TRADE_STATUSES = frozenset({OPEN, TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
-FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED, CANCEL})
+FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED})
 ORDER_FINAL_STATUSES = frozenset({FILLED, CANCEL})
 TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
@@ -329,8 +331,61 @@ def get_session():
     return SessionLocal()
 
 
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = get_session()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def seed_default_user():
+    from auth.service import hash_password
+    session = get_session()
+    try:
+        user_count = session.query(User).count()
+        if user_count == 0:
+            logger.info("Seeding default admin user...")
+            admin = User(
+                username="admin",
+                email="admin@test.com",
+                hashed_password=hash_password("admin123"),
+            )
+            session.add(admin)
+            session.commit()
+            logger.info("Default admin user seeded successfully.")
+    except Exception as e:
+        session.rollback()
+        logger.warning("Failed to seed default admin user: %s", e)
+    finally:
+        session.close()
+
+
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    import os
+    from alembic.config import Config
+    from alembic import command
+
+    api_env = os.getenv("API_ENV", "development")
+    if api_env == "test":
+        Base.metadata.create_all(bind=engine)
+    else:
+        try:
+            logger.info("Running programmatic Alembic database upgrade...")
+            alembic_cfg = Config("alembic.ini")
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Alembic database upgrade completed successfully.")
+        except Exception as e:
+            logger.warning("Programmatic Alembic upgrade failed, falling back to create_all: %s", e)
+            Base.metadata.create_all(bind=engine)
+
+    seed_default_user()
 
 
 # ------------------------------------------------------------------
