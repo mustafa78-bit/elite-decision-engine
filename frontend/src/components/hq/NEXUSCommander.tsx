@@ -11,7 +11,7 @@ interface Props {
 
 type DisplayMode = "greeting" | "briefing"
 
-export default function OLLOCommander({ greeting, briefing, loading, error }: Props) {
+export default function NEXUSCommander({ greeting, briefing, loading, error }: Props) {
   const [mode, setMode] = useState<DisplayMode>("greeting")
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
             height: 80,
             background: "radial-gradient(circle at 35% 35%, rgba(79,140,255,0.1), rgba(79,140,255,0.02), transparent)",
             border: "1px solid rgba(79,140,255,0.06)",
-            animation: "ollo-breathe 3s ease-in-out infinite",
+            animation: "nexus-breathe 3s ease-in-out infinite",
           }}
         />
         <div className="h-1.5 skeleton-pulse w-24 mt-5" />
@@ -59,7 +59,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
 
   return (
     <div className="flex flex-col items-center justify-center py-10">
-      {/* OLLO Orb — calm, breathing, volumetric */}
+      {/* NEXUS Orb — calm, breathing, volumetric */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -72,7 +72,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
             height: 80,
             background: "radial-gradient(circle at 35% 30%, rgba(79,140,255,0.15) 0%, rgba(79,140,255,0.03) 40%, transparent 65%)",
             border: "1px solid rgba(79,140,255,0.1)",
-            animation: "ollo-breathe 5s ease-in-out infinite, ollo-glow 5s ease-in-out infinite",
+            animation: "nexus-breathe 5s ease-in-out infinite, nexus-glow 5s ease-in-out infinite",
           }}
         />
       </motion.div>
@@ -148,7 +148,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
             className="text-center mt-4"
           >
             <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-              Awaiting OLLO connection...
+              Awaiting NEXUS connection...
             </p>
           </motion.div>
         )}

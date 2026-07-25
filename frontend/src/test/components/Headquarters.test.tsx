@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "../test-utils";
 import MissionStatusBar from "../../components/hq/MissionStatusBar";
 import EvidencePanel from "../../components/hq/EvidencePanel";
-import OLLOCommander from "../../components/hq/OLLOCommander";
+import NEXUSCommander from "../../components/hq/NEXUSCommander";
 import type { EvidenceReport } from "../../types/evidence";
 import type { OLLOResponse, OLLOBriefing } from "../../types/ollo";
 
@@ -311,16 +311,16 @@ describe("Subsystem status display", () => {
   });
 });
 
-/* ====== OLLOCommander ====== */
-describe("OLLOCommander", () => {
+/* ====== NEXUSCommander ====== */
+describe("NEXUSCommander", () => {
   it("shows loading state", () => {
-    render(<OLLOCommander greeting={null} briefing={null} loading={true} error={null} />);
+    render(<NEXUSCommander greeting={null} briefing={null} loading={true} error={null} />);
     expect(document.querySelector(".skeleton-pulse")).toBeTruthy();
   });
 
   it("shows error state", () => {
-    render(<OLLOCommander greeting={null} briefing={null} loading={false} error="OLLO connection failed" />);
-    expect(screen.getByText("OLLO connection failed")).toBeInTheDocument();
+    render(<NEXUSCommander greeting={null} briefing={null} loading={false} error="NEXUS connection failed" />);
+    expect(screen.getByText("NEXUS connection failed")).toBeInTheDocument();
   });
 
   it("shows greeting text when provided", () => {
@@ -335,7 +335,7 @@ describe("OLLOCommander", () => {
       tokens_out: 30,
       sections: [],
     };
-    render(<OLLOCommander greeting={greeting} briefing={null} loading={false} error={null} />);
+    render(<NEXUSCommander greeting={greeting} briefing={null} loading={false} error={null} />);
     expect(screen.getAllByText(/Welcome, Commander/).length).toBeGreaterThan(0);
   });
 
@@ -354,7 +354,7 @@ describe("OLLOCommander", () => {
         { heading: "Risk Assessment", content: "Risk levels are moderate." },
       ],
     };
-    render(<OLLOCommander greeting={greeting} briefing={null} loading={false} error={null} />);
+    render(<NEXUSCommander greeting={greeting} briefing={null} loading={false} error={null} />);
     expect(screen.getByText("Market Overview")).toBeInTheDocument();
     expect(screen.getByText("Risk Assessment")).toBeInTheDocument();
   });
@@ -371,7 +371,7 @@ describe("OLLOCommander", () => {
       tokens_out: 20,
       sections: [],
     };
-    render(<OLLOCommander greeting={greeting} briefing={null} loading={false} error={null} />);
+    render(<NEXUSCommander greeting={greeting} briefing={null} loading={false} error={null} />);
     expect(screen.getByText(/anthropic/)).toBeInTheDocument();
     expect(screen.getByText(/claude-3/)).toBeInTheDocument();
   });
@@ -388,14 +388,14 @@ describe("OLLOCommander", () => {
       tokens_in: 100,
       tokens_out: 80,
     };
-    render(<OLLOCommander greeting={null} briefing={briefing} loading={false} error={null} />);
+    render(<NEXUSCommander greeting={null} briefing={briefing} loading={false} error={null} />);
     expect(screen.getByText(/Operation Market Pulse/)).toBeInTheDocument();
     expect(screen.getByText(/morning Briefing/)).toBeInTheDocument();
     expect(screen.getByText(/Today's briefing covers/)).toBeInTheDocument();
   });
 
   it("shows awaiting connection state", () => {
-    render(<OLLOCommander greeting={null} briefing={null} loading={false} error={null} />);
-    expect(screen.getByText("Awaiting OLLO connection...")).toBeInTheDocument();
+    render(<NEXUSCommander greeting={null} briefing={null} loading={false} error={null} />);
+    expect(screen.getByText("Awaiting NEXUS connection...")).toBeInTheDocument();
   });
 });

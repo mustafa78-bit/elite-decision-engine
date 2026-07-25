@@ -382,7 +382,7 @@ class TestPromptLibrary:
     def test_ollo_prompt(self):
         result = ollo_prompt("What is the market doing?")
         assert isinstance(result, str)
-        assert "OLLO" in result
+        assert "NEXUS" in result
 
     def test_ollo_prompt_with_history(self):
         result = ollo_prompt("What is BTC at?", conversation_history="User asked about ETH earlier.")

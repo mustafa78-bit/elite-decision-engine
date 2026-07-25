@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { useSubsystems } from "../hooks/useSubsystems"
 import { computeMissionStatus } from "../types/mission"
-import OLLOCommander from "../components/hq/OLLOCommander"
+import NEXUSCommander from "../components/hq/NEXUSCommander"
 import MissionRing from "../components/hq/MissionRing"
 import MissionFlow from "../components/hq/MissionFlow"
 import SubsystemHealthBar from "../components/hq/SubsystemHealthBar"
@@ -215,10 +215,10 @@ export default function CommandDeck() {
 
         {/* ====== CONTENT — unified vertical flow ====== */}
         <div className="flex-1 overflow-y-auto">
-          {/* 1 + 2: OLLO + Mission Ring */}
+          {/* 1 + 2: NEXUS + Mission Ring */}
           <div className="hq-section flex flex-col items-center py-10">
             <div className="relative flex flex-col items-center">
-              <OLLOCommander
+              <NEXUSCommander
                 greeting={ollo.greeting}
                 briefing={ollo.briefing}
                 loading={loading && !ollo.greeting}

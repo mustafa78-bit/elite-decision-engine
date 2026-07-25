@@ -71,6 +71,9 @@ function StatusDot({ status, label }: { status: string; label: string }) {
 export default function SubsystemHealthBar({
   scanner, risk, council, portfolio, whale, market, evidence, olloStatus, aiHealth,
 }: Props) {
+  // Unused prop for backward-compatibility with callers
+  void aiHealth;
+
   const allSystems = [
     { label: "Scanner", status: scanner.status },
     { label: "Risk", status: risk.status },
@@ -79,8 +82,7 @@ export default function SubsystemHealthBar({
     { label: "Whale", status: whale.status },
     { label: "Market", status: market.status },
     { label: "Evidence", status: evidence.status },
-    { label: "OLLO", status: olloStatus.status },
-    { label: "AI", status: aiHealth.status },
+    { label: "NEXUS", status: olloStatus.status },
   ]
 
   const onlineCount = allSystems.filter((s) => s.status === "ONLINE").length

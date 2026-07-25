@@ -203,7 +203,7 @@ class TestPersonality:
 
     def test_system_prompt_is_professional(self):
         prompt = get_system_prompt()
-        assert "OLLO" in prompt
+        assert "NEXUS" in prompt
         assert "Chief Investment Officer" in prompt
         assert "NEVER" in prompt
 

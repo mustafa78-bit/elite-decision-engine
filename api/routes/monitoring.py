@@ -63,3 +63,40 @@ def get_monitoring():
 @router.get("/health/details")
 def health_details():
     return HealthService.full()
+
+
+@router.get("/health/ai")
+def health_ai():
+    from datetime import datetime, timezone
+    from api.routes.ollo import _get_ollo
+    try:
+        from api.main import _evidence_engine
+        evidence_available = _evidence_engine is not None
+    except ImportError:
+        evidence_available = False
+
+    svc = _get_ollo()
+    ollo_status = {"connected": False, "latency_ms": 0, "error": "NEXUS not initialized"}
+    if svc is not None:
+        try:
+            st = svc.status()
+            ai_health = st.get("ai_health", {})
+            ollo_status = {
+                "connected": ai_health.get("connected", True),
+                "latency_ms": ai_health.get("latency_ms", 0),
+                "error": ai_health.get("error", None)
+            }
+        except Exception as e:
+            ollo_status["error"] = str(e)
+
+    return {
+        "status": "ok",
+        "providers": {},
+        "ollo": ollo_status,
+        "nexus": ollo_status,
+        "evidence_engine": {
+            "available": evidence_available,
+            "latest_report": None
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }

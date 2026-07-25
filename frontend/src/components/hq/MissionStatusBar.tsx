@@ -82,7 +82,7 @@ export default function MissionStatusBar({
             style={{
               backgroundColor: config.color,
               boxShadow: `0 0 8px ${config.glow}`,
-              animation: status === "ACTIVE" ? "none" : "ollo-ping 2.5s ease-in-out infinite",
+              animation: status === "ACTIVE" ? "none" : "nexus-ping 2.5s ease-in-out infinite",
             }}
           />
           <span style={{ color: config.color, fontWeight: 600, letterSpacing: "0.1em" }}>

@@ -95,7 +95,7 @@ function Sector({ label, status }: { label: string; status: SubsystemStatus }) {
 export default function MissionRing({ sectors }: Props) {
   return (
     <div className="flex flex-col items-center justify-center" style={{ padding: "8px 0" }}>
-      {/* OLLO Center */}
+      {/* NEXUS Center */}
       <div
         className="relative flex items-center justify-center"
         style={{ width: 120, height: 120 }}

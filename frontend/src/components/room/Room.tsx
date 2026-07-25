@@ -2,7 +2,7 @@ import { useRef, useState, useMemo, useEffect, useCallback, type ReactNode } fro
 import { useLocation } from "react-router-dom";
 import { getRoomForPath, type RoomDefinition } from "../../types/room";
 import Particles from "./Particles";
-import OLLO from "./OLLO";
+import NEXUS from "./NEXUS";
 import RoomDoor from "./RoomDoor";
 
 interface Props {
@@ -93,7 +93,7 @@ export default function Room({ children }: Props) {
         <div className="relative z-10">
           {children}
         </div>
-        <OLLO room={room} isDoorOpen={isDoorOpen} />
+        <NEXUS room={room} isDoorOpen={isDoorOpen} />
       </div>
     </>
   );

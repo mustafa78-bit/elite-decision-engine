@@ -139,12 +139,12 @@ body {
   50% { opacity: 0.5; }
 }
 
-/* OLLO Breathing — very soft */
-@keyframes ollo-breathe {
+/* NEXUS Breathing — very soft */
+@keyframes nexus-breathe {
   0%, 100% { transform: scale(1); opacity: 0.9; }
   50% { transform: scale(1.02); opacity: 1; }
 }
-@keyframes ollo-glow {
+@keyframes nexus-glow {
   0%, 100% { box-shadow: 0 0 40px rgba(79, 140, 255, 0.1), 0 0 80px rgba(79, 140, 255, 0.03); }
   50% { box-shadow: 0 0 60px rgba(79, 140, 255, 0.18), 0 0 120px rgba(79, 140, 255, 0.05); }
 }

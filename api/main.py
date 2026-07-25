@@ -38,6 +38,10 @@ from api.routes.open_interest import router as open_interest_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
 from api.routes.paper_trading import router as paper_trading_router
+from api.routes.paper import router as paper_router
+from api.routes.ollo import router as ollo_router
+from api.routes.council import router as council_router
+from api.routes.whale import router as whale_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.regime import router as regime_router
@@ -169,6 +173,11 @@ app.include_router(open_interest_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
 app.include_router(paper_trading_router)
+app.include_router(paper_router)
+app.include_router(ollo_router, prefix="/ollo")
+app.include_router(ollo_router, prefix="/nexus")
+app.include_router(council_router)
+app.include_router(whale_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
 app.include_router(regime_router)
@@ -304,6 +313,18 @@ try:
 except Exception as e:
     _evidence_engine = None
     logger.warning("Evidence engine initialization failed: %s", e)
+
+_ollo_service: Optional = None
+_nexus_service: Optional = None
+
+try:
+    from services.ai import create_ai_service
+    from services.ollo import OLLOService
+    _ollo_service = OLLOService(ai_service=create_ai_service())
+    _nexus_service = _ollo_service
+    logger.info("NEXUS/OLLO service initialized successfully")
+except Exception as e:
+    logger.warning("NEXUS/OLLO service initialization failed: %s", e)
 
 _mip_service: Optional[MarketDataService] = None
 

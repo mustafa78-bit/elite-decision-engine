@@ -15,7 +15,7 @@ function usePrevious<T>(value: T): T | undefined {
   return prev;
 }
 
-export default function OLLO({ room, isDoorOpen }: Props) {
+export default function NEXUS({ room, isDoorOpen }: Props) {
   const [showMessage, setShowMessage] = useState(false);
   const prevRoomId = usePrevious(room.id);
   const isNewRoom = prevRoomId !== undefined && prevRoomId !== room.id;
@@ -58,7 +58,7 @@ export default function OLLO({ room, isDoorOpen }: Props) {
             >
               {showWelcome && (
                 <div className="text-[9px] uppercase tracking-[0.15em] mb-1.5" style={{ opacity: 0.5 }}>
-                  OLLO Guide
+                  NEXUS Guide
                 </div>
               )}
               {message}
@@ -95,7 +95,7 @@ export default function OLLO({ room, isDoorOpen }: Props) {
             boxShadow: `0 0 24px ${room.accent}33, inset 0 0 24px ${room.accent}18`,
             color: room.accent,
           }}
-          title="OLLO — AI Guide"
+          title="NEXUS — AI Commander"
         >
           <span style={{ filter: `drop-shadow(0 0 6px ${room.accent})` }}>
             ◉
@@ -105,13 +105,13 @@ export default function OLLO({ room, isDoorOpen }: Props) {
           className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
           style={{
             backgroundColor: room.accent,
-            animation: 'ollo-ping 2.5s ease-in-out infinite',
+            animation: 'nexus-ping 2.5s ease-in-out infinite',
           }}
         />
       </motion.div>
 
       <style>{`
-        @keyframes ollo-ping {
+        @keyframes nexus-ping {
           0%, 100% { transform: scale(1); opacity: 0.6; box-shadow: 0 0 4px ${room.accent}; }
           50% { transform: scale(1.6); opacity: 0; box-shadow: 0 0 16px ${room.accent}; }
         }

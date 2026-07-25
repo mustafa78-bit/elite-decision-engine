@@ -21,7 +21,7 @@ export function AIChat() {
     {
       id: "welcome",
       role: "assistant",
-      content: "I'm your AI trading assistant. Ask me anything about markets, analysis, or your portfolio.",
+      content: "I am NEXUS, the AI Commander, Chief Investment Officer, and Decision Intelligence Core of the Elite Decision Engine. Ask me anything about markets, analysis, or your portfolio.",
       timestamp: new Date(),
     },
   ]);
@@ -74,7 +74,7 @@ export function AIChat() {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle>AI Assistant</CardTitle>
+        <CardTitle>NEXUS Core</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 p-0">
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">

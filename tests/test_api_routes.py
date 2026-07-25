@@ -712,3 +712,20 @@ def test_db_tables_in_health_details(api_client):
     assert resp.status_code == 200
     tbl = resp.json().get("database_tables", {})
     assert "status" in tbl
+
+
+def test_ai_status_endpoints(api_client):
+    for prefix in ("/ollo", "/nexus"):
+        resp = api_client.get(f"{prefix}/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "ai_health" in data
+
+
+def test_health_ai_endpoint(api_client):
+    resp = api_client.get("/health/ai")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "ollo" in data
+    assert "nexus" in data
+    assert data["status"] == "ok"
