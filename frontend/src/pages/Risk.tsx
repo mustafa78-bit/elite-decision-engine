@@ -6,6 +6,10 @@ import RiskCard from "../components/risk/RiskCard";
 import type { RiskData, PositionSizing } from "../api/risk";
 import { ApiError } from "../api/client";
 import { fetchRisk, fetchPositionSizing } from "../api/risk";
+import { LoadingScreen } from "../components/layout/LoadingScreen";
+import { ErrorState } from "../components/ui/ErrorState";
+import { EmptyState } from "../components/ui/EmptyState";
+import { PageHeader, PageContainer } from "../components/ui/PageHeader";
 
 export default function Risk() {
   const [risk, setRisk] = useState<RiskData | null>(null);
@@ -48,30 +52,31 @@ export default function Risk() {
 
   if (loading) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading risk data...
-      </div>
+      <PageContainer>
+        <PageHeader title="Risk" subtitle="Systemic Exposure & Position Sizing Guardrails" />
+        <LoadingScreen variant="grid" />
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
-          {error}
-          <button onClick={fetchRiskData} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
-          </button>
-        </div>
-      </div>
+      <PageContainer>
+        <PageHeader title="Risk" subtitle="Systemic Exposure & Position Sizing Guardrails" />
+        <ErrorState message={error} onRetry={fetchRiskData} />
+      </PageContainer>
     );
   }
 
   if (!risk) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        No risk data available
-      </div>
+      <PageContainer>
+        <PageHeader title="Risk" subtitle="Systemic Exposure & Position Sizing Guardrails" />
+        <EmptyState
+          title="No Risk Parameters"
+          description="Operational risk guidelines and current systemic parameters could not be fetched."
+        />
+      </PageContainer>
     );
   }
 
@@ -83,9 +88,11 @@ export default function Risk() {
     : 0;
 
   return (
-    <div className="space-y-6">
-      <section>
-        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
+    <PageContainer>
+      <PageHeader title="Risk" subtitle="Systemic Exposure & Position Sizing Guardrails" />
+
+      <section className="space-y-3">
+        <h2 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] font-semibold">
           Risk Overview
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -120,8 +127,8 @@ export default function Risk() {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section>
-          <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
+        <section className="space-y-3">
+          <h2 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] font-semibold">
             Exposure
           </h2>
           <ExposureCard
@@ -132,8 +139,8 @@ export default function Risk() {
           />
         </section>
 
-        <section>
-          <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
+        <section className="space-y-3">
+          <h2 className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)] font-semibold">
             Position Sizing
           </h2>
           <PositionSizeCard
@@ -147,6 +154,6 @@ export default function Risk() {
           />
         </section>
       </div>
-    </div>
+    </PageContainer>
   );
 }

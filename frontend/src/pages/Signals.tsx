@@ -6,6 +6,10 @@ import SignalTimeline from "../components/signals/SignalTimeline";
 import type { SignalRow } from "../api/signals";
 import { ApiError } from "../api/client";
 import { fetchSignals } from "../api/signals";
+import { LoadingScreen } from "../components/layout/LoadingScreen";
+import { ErrorState } from "../components/ui/ErrorState";
+import { EmptyState } from "../components/ui/EmptyState";
+import { PageHeader, PageContainer } from "../components/ui/PageHeader";
 
 export default function Signals() {
   const [signals, setSignals] = useState<SignalRow[]>([]);
@@ -33,32 +37,37 @@ export default function Signals() {
 
   if (loading) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading signals...
-      </div>
+      <PageContainer>
+        <PageHeader title="Signals" subtitle="Live Signals Feed & Sentiment Insights" />
+        <LoadingScreen variant="table" />
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
-          {error}
-          <button onClick={loadSignals} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
-          </button>
-        </div>
-      </div>
+      <PageContainer>
+        <PageHeader title="Signals" subtitle="Live Signals Feed & Sentiment Insights" />
+        <ErrorState message={error} onRetry={loadSignals} />
+      </PageContainer>
+    );
+  }
+
+  if (signals.length === 0) {
+    return (
+      <PageContainer>
+        <PageHeader title="Signals" subtitle="Live Signals Feed & Sentiment Insights" />
+        <EmptyState
+          title="No Signals Generated"
+          description="The AI model queue has not generated any tactical entry or exit signals yet."
+        />
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-          Live Signals ({signals.length})
-        </h2>
-      </div>
+    <PageContainer>
+      <PageHeader title="Signals" subtitle={`Live Signals Feed & Sentiment Insights (${signals.length})`} />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="lg:col-span-3 space-y-4">
@@ -101,6 +110,6 @@ export default function Signals() {
           <SignalTimeline signals={signals} />
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

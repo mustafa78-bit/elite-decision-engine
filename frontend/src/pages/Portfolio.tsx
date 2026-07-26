@@ -10,6 +10,10 @@ import ExposureChart from "../components/portfolio/ExposureChart";
 import AllocationCard from "../components/portfolio/AllocationCard";
 import PositionTable from "../components/portfolio/PositionTable";
 import MetricCard from "../components/MetricCard";
+import { LoadingScreen } from "../components/layout/LoadingScreen";
+import { ErrorState } from "../components/ui/ErrorState";
+import { EmptyState } from "../components/ui/EmptyState";
+import { PageHeader, PageContainer } from "../components/ui/PageHeader";
 
 export default function Portfolio() {
   const { openTrades } = useOutletContext<LayoutContext>();
@@ -34,30 +38,31 @@ export default function Portfolio() {
 
   if (loading) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading portfolio...
-      </div>
+      <PageContainer>
+        <PageHeader title="Portfolio" subtitle="Asset Allocation & Performance Workstation" />
+        <LoadingScreen variant="grid" />
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
-          {error}
-          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
-          </button>
-        </div>
-      </div>
+      <PageContainer>
+        <PageHeader title="Portfolio" subtitle="Asset Allocation & Performance Workstation" />
+        <ErrorState message={error} onRetry={load} />
+      </PageContainer>
     );
   }
 
   if (!port) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        No portfolio data
-      </div>
+      <PageContainer>
+        <PageHeader title="Portfolio" subtitle="Asset Allocation & Performance Workstation" />
+        <EmptyState
+          title="No Portfolio Data Available"
+          description="Your active asset allocations and balance metrics are currently blank."
+        />
+      </PageContainer>
     );
   }
 
@@ -70,10 +75,8 @@ export default function Portfolio() {
   }));
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-        Portfolio Terminal
-      </h2>
+    <PageContainer>
+      <PageHeader title="Portfolio" subtitle="Asset Allocation & Performance Workstation" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <BalanceCard
@@ -101,6 +104,6 @@ export default function Portfolio() {
       </div>
 
       <PositionTable positions={positions} />
-    </div>
+    </PageContainer>
   );
 }

@@ -8,6 +8,10 @@ import { cn } from "../lib/utils";
 import { fetchSignals, type SignalRow } from "../api/signals";
 import type { LayoutContext } from "../components/layout/Layout";
 import type { TradeIntelligence } from "../types/trade";
+import { LoadingScreen } from "../components/layout/LoadingScreen";
+import { ErrorState } from "../components/ui/ErrorState";
+import { EmptyState } from "../components/ui/EmptyState";
+import { PageHeader, PageContainer } from "../components/ui/PageHeader";
 
 type DecisionTab = "all" | "approved" | "rejected" | "watch" | "executed" | "closed";
 
@@ -474,239 +478,219 @@ export default function DecisionCenter() {
   }), [decisions]);
 
   return (
-    <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
-            Decision Center
-          </h2>
-        </div>
+    <PageContainer>
+      <PageHeader title="Decision Center" subtitle="Tactical Action Board & AI Explanations" />
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle>Win Rate</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2">
-              <span className={cn(
-                "text-lg font-mono tabular-nums font-bold",
-                analytics.totalDecisions > 0
-                  ? analytics.winRate >= 50 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"
-                  : "text-[var(--text-muted)]",
-              )}>
-                {analytics.totalDecisions > 0 ? `${analytics.winRate}%` : "--"}
-              </span>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle>Avg Confidence</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2">
-              <span className={cn(
-                "text-lg font-mono tabular-nums font-bold",
-                analytics.totalDecisions > 0 ? getConfidenceColor(analytics.avgConfidence) : "text-[var(--text-muted)]",
-              )}>
-                {analytics.totalDecisions > 0 ? `${analytics.avgConfidence}%` : "--"}
-              </span>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle>Avg Risk</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2">
-              <span className={cn(
-                "text-lg font-mono tabular-nums font-bold",
-                analytics.totalDecisions > 0 ? getRiskColor(analytics.avgRisk) : "text-[var(--text-muted)]",
-              )}>
-                {analytics.totalDecisions > 0 ? analytics.avgRisk.toFixed(2) : "--"}
-              </span>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle>Best Strategy</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2">
-              <span className={cn(
-                "text-sm font-mono",
-                analytics.totalDecisions > 0 ? "text-[var(--accent-green)]" : "text-[var(--text-muted)]",
-              )}>
-                {analytics.totalDecisions > 0 ? analytics.bestStrategy : "--"}
-              </span>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle>Weakest Strategy</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2">
-              <span className={cn(
-                "text-sm font-mono",
-                analytics.totalDecisions > 0 ? "text-[var(--accent-red)]" : "text-[var(--text-muted)]",
-              )}>
-                {analytics.totalDecisions > 0 ? analytics.worstStrategy : "--"}
-              </span>
-            </CardContent>
-          </Card>
-        </div>
+      {error ? (
+        <ErrorState message={error} onRetry={loadSignals} />
+      ) : loading ? (
+        <LoadingScreen variant="table" />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Card>
+              <CardHeader className="py-2">
+                <CardTitle>Win Rate</CardTitle>
+              </CardHeader>
+              <CardContent className="py-2">
+                <span className={cn(
+                  "text-lg font-mono tabular-nums font-bold",
+                  analytics.totalDecisions > 0
+                    ? analytics.winRate >= 50 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"
+                    : "text-[var(--text-muted)]",
+                )}>
+                  {analytics.totalDecisions > 0 ? `${analytics.winRate}%` : "--"}
+                </span>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="py-2">
+                <CardTitle>Avg Confidence</CardTitle>
+              </CardHeader>
+              <CardContent className="py-2">
+                <span className={cn(
+                  "text-lg font-mono tabular-nums font-bold",
+                  analytics.totalDecisions > 0 ? getConfidenceColor(analytics.avgConfidence) : "text-[var(--text-muted)]",
+                )}>
+                  {analytics.totalDecisions > 0 ? `${analytics.avgConfidence}%` : "--"}
+                </span>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="py-2">
+                <CardTitle>Avg Risk</CardTitle>
+              </CardHeader>
+              <CardContent className="py-2">
+                <span className={cn(
+                  "text-lg font-mono tabular-nums font-bold",
+                  analytics.totalDecisions > 0 ? getRiskColor(analytics.avgRisk) : "text-[var(--text-muted)]",
+                )}>
+                  {analytics.totalDecisions > 0 ? analytics.avgRisk.toFixed(2) : "--"}
+                </span>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="py-2">
+                <CardTitle>Best Strategy</CardTitle>
+              </CardHeader>
+              <CardContent className="py-2">
+                <span className={cn(
+                  "text-sm font-mono",
+                  analytics.totalDecisions > 0 ? "text-[var(--accent-green)]" : "text-[var(--text-muted)]",
+                )}>
+                  {analytics.totalDecisions > 0 ? analytics.bestStrategy : "--"}
+                </span>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="py-2">
+                <CardTitle>Weakest Strategy</CardTitle>
+              </CardHeader>
+              <CardContent className="py-2">
+                <span className={cn(
+                  "text-sm font-mono",
+                  analytics.totalDecisions > 0 ? "text-[var(--accent-red)]" : "text-[var(--text-muted)]",
+                )}>
+                  {analytics.totalDecisions > 0 ? analytics.worstStrategy : "--"}
+                </span>
+              </CardContent>
+            </Card>
+          </div>
 
-        <div className="flex gap-1 flex-wrap border-b border-[var(--border-subtle)] pb-2">
-          {TABS.map((tab) => (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? "primary" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-              <span className="ml-1.5 text-[10px] text-[var(--text-muted)]">
-                {tabCounts[tab.id]}
-              </span>
-            </Button>
-          ))}
-        </div>
+          <div className="flex gap-1 flex-wrap border-b border-[var(--border-subtle)] pb-2">
+            {TABS.map((tab) => (
+              <Button
+                key={tab.id}
+                variant={activeTab === tab.id ? "primary" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+                <span className="ml-1.5 text-[10px] text-[var(--text-muted)]">
+                  {tabCounts[tab.id]}
+                </span>
+              </Button>
+            ))}
+          </div>
 
-        {error ? (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-col items-center gap-3 py-4">
-                <p className="text-xs text-[var(--accent-red)] font-mono text-center">{error}</p>
-                <Button variant="ghost" size="sm" onClick={loadSignals}>Retry</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : loading ? (
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-8 bg-[var(--bg-elevated)] rounded animate-pulse" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ) : filtered.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-xs font-mono text-[var(--text-muted)]">
-                No decisions found for this filter
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="p-0">
-              <div className="relative w-full overflow-auto">
-                <table className="w-full caption-bottom text-sm">
-                  <thead className="border-b border-[var(--border-subtle)]">
-                    <tr>
-                      <TableHead className="w-20">Symbol</TableHead>
-                      <TableHead className="w-16">Side</TableHead>
-                      <TableHead className="w-20">Elite Score</TableHead>
-                      <TableHead className="w-14">Conf</TableHead>
-                      <TableHead className="w-24">Decision</TableHead>
-                      <TableHead className="w-20">Risk</TableHead>
-                      <TableHead className="w-24">Time</TableHead>
-                      <TableHead className="w-18">Outcome</TableHead>
-                      <TableHead className="w-24">Explain</TableHead>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((item) => {
-                      const decision = getDecisionBadge(item.decision);
-                      const outcome = getOutcomeBadge(item.outcome);
-                      return (
-                        <tr
-                          key={item.id}
-                          tabIndex={0}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleExplain(item); }}
-                          className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)]"
-                        >
-                          <TableCell className="w-20">
-                            <span className="text-xs font-semibold text-[var(--text-primary)]">
-                              {item.symbol}
-                            </span>
-                          </TableCell>
-                          <TableCell className="w-16">
-                            <Badge variant={getSideBadge(item.side)} className="text-[9px]">
-                              {item.side}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="w-20">
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-elevated)] overflow-hidden max-w-12">
-                                <div
-                                  className={cn(
-                                    "h-full rounded-full",
-                                    item.eliteScore >= 60 ? "bg-[var(--accent-green)]" :
-                                    item.eliteScore >= 40 ? "bg-[var(--accent-yellow)]" :
-                                    "bg-[var(--accent-red)]",
-                                  )}
-                                  style={{ width: `${item.eliteScore}%` }}
-                                />
-                              </div>
-                              <span className={cn("text-[11px] font-mono tabular-nums", getScoreColor(item.eliteScore))}>
-                                {item.eliteScore.toFixed(0)}
+          {filtered.length === 0 ? (
+            <EmptyState
+              title="No Decisions Registered"
+              description={`There are currently zero strategic decisions logged under the "${activeTab.toUpperCase()}" filter tab.`}
+            />
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <div className="relative w-full overflow-auto">
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="border-b border-[var(--border-subtle)]">
+                      <tr>
+                        <TableHead className="w-20">Symbol</TableHead>
+                        <TableHead className="w-16">Side</TableHead>
+                        <TableHead className="w-20">Elite Score</TableHead>
+                        <TableHead className="w-14">Conf</TableHead>
+                        <TableHead className="w-24">Decision</TableHead>
+                        <TableHead className="w-20">Risk</TableHead>
+                        <TableHead className="w-24">Time</TableHead>
+                        <TableHead className="w-18">Outcome</TableHead>
+                        <TableHead className="w-24">Explain</TableHead>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((item) => {
+                        const decision = getDecisionBadge(item.decision);
+                        const outcome = getOutcomeBadge(item.outcome);
+                        return (
+                          <tr
+                            key={item.id}
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleExplain(item); }}
+                            className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)]"
+                          >
+                            <TableCell className="w-20">
+                              <span className="text-xs font-semibold text-[var(--text-primary)]">
+                                {item.symbol}
                               </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="w-14">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getConfidenceColor(item.confidence))}>
-                              {item.confidence}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="w-24">
-                            <Badge variant={decision.variant} className="text-[9px]">
-                              {decision.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="w-20">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getRiskColor(item.risk))}>
-                              {item.risk.toFixed(2)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="w-24">
-                            <span className="text-[10px] font-mono text-[var(--text-secondary)]">
-                              {formatTimestamp(item.timestamp)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="w-18">
-                            <Badge variant={outcome.variant} className="text-[8px]">
-                              {outcome.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="w-24">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleExplain(item)}
-                            >
-                              Explain →
-                            </Button>
-                          </TableCell>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="px-3 py-2 border-t border-[var(--border-subtle)]">
-                <p className="text-[10px] text-[var(--text-muted)] font-mono">
-                  {filtered.length} decision{filtered.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                            </TableCell>
+                            <TableCell className="w-16">
+                              <Badge variant={getSideBadge(item.side)} className="text-[9px]">
+                                {item.side}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="w-20">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-elevated)] overflow-hidden max-w-12">
+                                  <div
+                                    className={cn(
+                                      "h-full rounded-full",
+                                      item.eliteScore >= 60 ? "bg-[var(--accent-green)]" :
+                                      item.eliteScore >= 40 ? "bg-[var(--accent-yellow)]" :
+                                      "bg-[var(--accent-red)]",
+                                    )}
+                                    style={{ width: `${item.eliteScore}%` }}
+                                  />
+                                </div>
+                                <span className={cn("text-[11px] font-mono tabular-nums", getScoreColor(item.eliteScore))}>
+                                  {item.eliteScore.toFixed(0)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-14">
+                              <span className={cn("text-[11px] font-mono tabular-nums", getConfidenceColor(item.confidence))}>
+                                {item.confidence}%
+                              </span>
+                            </TableCell>
+                            <TableCell className="w-24">
+                              <Badge variant={decision.variant} className="text-[9px]">
+                                {decision.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="w-20">
+                              <span className={cn("text-[11px] font-mono tabular-nums", getRiskColor(item.risk))}>
+                                {item.risk.toFixed(2)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="w-24">
+                              <span className="text-[10px] font-mono text-[var(--text-secondary)]">
+                                {formatTimestamp(item.timestamp)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="w-18">
+                              <Badge variant={outcome.variant} className="text-[8px]">
+                                {outcome.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="w-24">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleExplain(item)}
+                              >
+                                Explain →
+                              </Button>
+                            </TableCell>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-3 py-2 border-t border-[var(--border-subtle)]">
+                  <p className="text-[10px] text-[var(--text-muted)] font-mono">
+                    {filtered.length} decision{filtered.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
 
       <ExplainDrawer
         item={selectedItem}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       />
-    </>
+    </PageContainer>
   );
 }

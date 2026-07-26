@@ -6,6 +6,10 @@ import { ApiError } from "../api/client";
 import PaperPnLCard from "../components/paper/PaperPnLCard";
 import PaperPerformanceCard from "../components/paper/PaperPerformanceCard";
 import PaperPositionTable from "../components/paper/PaperPositionTable";
+import { LoadingScreen } from "../components/layout/LoadingScreen";
+import { ErrorState } from "../components/ui/ErrorState";
+import { EmptyState } from "../components/ui/EmptyState";
+import { PageHeader, PageContainer } from "../components/ui/PageHeader";
 
 export default function PaperTrading() {
   const [data, setData] = useState<PaperTradingData | null>(null);
@@ -29,34 +33,37 @@ export default function PaperTrading() {
 
   if (loading) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading paper trading...
-      </div>
+      <PageContainer>
+        <PageHeader title="Paper Trading" subtitle="Simulated Live Trading Environment" />
+        <LoadingScreen variant="grid" />
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 rounded">
-          {error}
-          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Retry</button>
-        </div>
-      </div>
+      <PageContainer>
+        <PageHeader title="Paper Trading" subtitle="Simulated Live Trading Environment" />
+        <ErrorState message={error} onRetry={load} />
+      </PageContainer>
     );
   }
 
   if (!data) {
     return (
-      <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        No paper trading data
-      </div>
+      <PageContainer>
+        <PageHeader title="Paper Trading" subtitle="Simulated Live Trading Environment" />
+        <EmptyState
+          title="No Paper Trading Profile"
+          description="Simulated execution history and paper account stats are currently not loaded."
+        />
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">Paper Trading Terminal</h2>
+    <PageContainer>
+      <PageHeader title="Paper Trading" subtitle="Simulated Live Trading Environment" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PaperPnLCard
@@ -74,6 +81,6 @@ export default function PaperTrading() {
 
       <PaperPositionTable trades={data.open} title="Open Trades" />
       <PaperPositionTable trades={data.closed} title="Closed Trades" />
-    </div>
+    </PageContainer>
   );
 }
