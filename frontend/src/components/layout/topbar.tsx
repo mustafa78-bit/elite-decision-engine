@@ -5,9 +5,9 @@ import { Kbd } from "../ui/kbd";
 import { FullscreenToggle, FocusModeToggle } from "../workspace/mode-toggles";
 import { WorkspacePresets } from "../workspace/workspace-presets";
 import { NotificationCenter } from "./notification-center";
-import { ConnectionIndicator, type ConnectionState } from "./connection-indicator";
+import { ConnectionStatusBadge } from "./ConnectionStatus";
 
-export default function Topbar({ status = "disconnected" }: { status?: ConnectionState }) {
+export default function Topbar({ status = "DISCONNECTED" }: { status?: "CONNECTED" | "DISCONNECTED" }) {
   const { setCommandPaletteOpen, setGlobalSearchOpen } = useUIStore();
   const { symbol, setSymbol, recentSymbols } = useTerminalStore();
   const { fullscreen } = useWorkspaceStore();
@@ -67,7 +67,7 @@ export default function Topbar({ status = "disconnected" }: { status?: Connectio
         <FullscreenToggle />
         <WorkspacePresets />
         <NotificationCenter />
-        <ConnectionIndicator status={status} />
+        <ConnectionStatusBadge wsRooms={{ trades: status }} />
 
         <span className="text-[10px] text-[var(--text-muted)] font-mono">
           {new Date().toLocaleTimeString("en-US", {

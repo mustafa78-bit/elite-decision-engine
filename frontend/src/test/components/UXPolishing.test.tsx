@@ -1,29 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "../test-utils";
-import { ConnectionIndicator } from "../../components/layout/connection-indicator";
+import { ConnectionStatusBadge } from "../../components/layout/ConnectionStatus";
 import { ChartToolbar } from "../../components/trading/chart-toolbar";
 import { ChartMarkers } from "../../components/trading/chart-markers";
 import { ChartOverlays } from "../../components/trading/chart-overlays";
 
-describe("ConnectionIndicator", () => {
+describe("ConnectionStatusBadge", () => {
   it("renders connected state", () => {
-    render(<ConnectionIndicator status="connected" />);
+    render(<ConnectionStatusBadge wsRooms={{ trades: "CONNECTED" }} />);
     expect(screen.getByText("Live")).toBeInTheDocument();
   });
 
   it("renders disconnected state", () => {
-    render(<ConnectionIndicator status="disconnected" />);
-    expect(screen.getByText("Disconnected")).toBeInTheDocument();
-  });
-
-  it("renders reconnecting state", () => {
-    render(<ConnectionIndicator status="reconnecting" />);
-    expect(screen.getByText("Reconnecting...")).toBeInTheDocument();
-  });
-
-  it("renders custom label", () => {
-    render(<ConnectionIndicator status="connected" label="Custom" />);
-    expect(screen.getByText("Custom")).toBeInTheDocument();
+    render(<ConnectionStatusBadge wsRooms={{ trades: "DISCONNECTED" }} />);
+    expect(screen.getByText("Offline")).toBeInTheDocument();
   });
 });
 
