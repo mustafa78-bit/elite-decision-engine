@@ -317,16 +317,32 @@ PARTIALLY_FILLED = "PARTIALLY_FILLED"
 
 ORDER_STATUSES = frozenset({PENDING, FILLED, PARTIALLY_FILLED, CANCEL})
 TRADE_STATUSES = frozenset({OPEN, TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
-FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED, CANCEL})
 ORDER_FINAL_STATUSES = frozenset({FILLED, CANCEL})
 TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
+FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED})
 
 # ------------------------------------------------------------------
 # HELPERS
 # ------------------------------------------------------------------
 
+from contextlib import contextmanager
+
 def get_session():
     return SessionLocal()
+
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
 
 
 def create_tables():
