@@ -1,3 +1,4 @@
+import React from "react";
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
@@ -12,7 +13,7 @@ const CARD_VARIANTS: Record<string, string> = {
   elevated: "surface-elevated rounded-xl",
 };
 
-export function Card({
+export const Card = React.memo(function Card({
   variant = "default",
   className,
   children,
@@ -24,9 +25,9 @@ export function Card({
       {children}
     </div>
   );
-}
+});
 
-export function CardHeader({
+export const CardHeader = React.memo(function CardHeader({
   className,
   children,
   ...props
@@ -36,9 +37,9 @@ export function CardHeader({
       {children}
     </div>
   );
-}
+});
 
-export function CardTitle({
+export const CardTitle = React.memo(function CardTitle({
   className,
   children,
   ...props
@@ -54,9 +55,9 @@ export function CardTitle({
       {children}
     </h3>
   );
-}
+});
 
-export function CardContent({
+export const CardContent = React.memo(function CardContent({
   className,
   children,
   ...props
@@ -66,4 +67,4 @@ export function CardContent({
       {children}
     </div>
   );
-}
+});

@@ -1,3 +1,4 @@
+import React from "react";
 import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
@@ -24,7 +25,7 @@ const variants: Record<string, string> = {
   cyan: "bg-[var(--bg-elevated)] text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/30",
 };
 
-export function Badge({
+export const Badge = React.memo(function Badge({
   variant = "default",
   children,
   className,
@@ -40,4 +41,4 @@ export function Badge({
       {children}
     </span>
   );
-}
+});
