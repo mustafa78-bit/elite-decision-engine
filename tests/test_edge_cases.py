@@ -55,6 +55,10 @@ class MockRiskManager:
     def can_open_trade(self, candidate):
         return True, ""
 
+    def evaluate_trade(self, candidate):
+        from risk.models import RiskDecision
+        return RiskDecision(allowed=True, reason="", rejection_code=None)
+
 
 class MockPaperExecutor:
     def monitor_open_trades(self):

@@ -32,24 +32,42 @@ class WidgetService:
         return handler(**params)
 
     def get_all_widgets(self) -> dict[str, Any]:
-        return {
-            "kpi": self._kpi_widget(),
-            "portfolio": self._portfolio_widget(),
-            "monitoring": self._monitoring_widget(),
-            "notifications": self._notifications_widget(),
-        }
+        session = self.session_factory()
+        try:
+            # Optimize: reuse a single session across widget computations to eliminate duplicate database connection overhead.
+            # Use a wrapper proxy that ignores `.close()` calls so sub-services (like KPIService) do not prematurely close it.
+            class _NoCloseSession:
+                def __init__(self, s):
+                    self._s = s
+                def __getattr__(self, name):
+                    return getattr(self._s, name)
+                def close(self):
+                    pass
 
-    def _kpi_widget(self) -> dict[str, Any]:
+            no_close_session = _NoCloseSession(session)
+            sf = lambda: no_close_session
+            return {
+                "kpi": self._kpi_widget(session_factory=sf),
+                "portfolio": self._portfolio_widget(session_factory=sf),
+                "monitoring": self._monitoring_widget(session_factory=sf),
+                "notifications": self._notifications_widget(session_factory=sf),
+            }
+        finally:
+            session.close()
+
+    def _kpi_widget(self, **kwargs) -> dict[str, Any]:
         from services.kpi_service import KPIService
-        kpi_svc = KPIService(session_factory=self.session_factory)
+        sf = kwargs.get("session_factory") or self.session_factory
+        kpi_svc = KPIService(session_factory=sf)
         kpis = kpi_svc.get_kpis()
         return KPIDashboardWidgetDTO(
             kpis=[k.to_dict() for k in kpis],
             period="all",
         ).to_dict()
 
-    def _portfolio_widget(self) -> dict[str, Any]:
-        session = self.session_factory()
+    def _portfolio_widget(self, **kwargs) -> dict[str, Any]:
+        sf = kwargs.get("session_factory") or self.session_factory
+        session = sf()
         try:
             trades = session.query(Trade).all()
             closed = [t for t in trades if t.status in FINAL_STATUSES]
@@ -66,11 +84,14 @@ class WidgetService:
                 max_drawdown=0.0,
             ).to_dict()
         finally:
-            session.close()
+            # Only close session if it's the default (locally opened) session
+            if sf == self.session_factory:
+                session.close()
 
-    def _monitoring_widget(self) -> dict[str, Any]:
+    def _monitoring_widget(self, **kwargs) -> dict[str, Any]:
         from monitoring.health import HealthService
-        session = self.session_factory()
+        sf = kwargs.get("session_factory") or self.session_factory
+        session = sf()
         try:
             db_ok = True
             try:
@@ -86,10 +107,12 @@ class WidgetService:
                 last_error=None,
             ).to_dict()
         finally:
-            session.close()
+            if sf == self.session_factory:
+                session.close()
 
-    def _notifications_widget(self, limit: int = 10) -> dict[str, Any]:
-        session = self.session_factory()
+    def _notifications_widget(self, limit: int = 10, **kwargs) -> dict[str, Any]:
+        sf = kwargs.get("session_factory") or self.session_factory
+        session = sf()
         try:
             recent = session.query(Notification).order_by(Notification.created_at.desc()).limit(limit).all()
             unread = session.query(Notification).filter(Notification.read == False).count()
@@ -104,4 +127,5 @@ class WidgetService:
                 } for n in recent],
             ).to_dict()
         finally:
-            session.close()
+            if sf == self.session_factory:
+                session.close()
