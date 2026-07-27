@@ -59,6 +59,8 @@ from api.routes.scanner import router as scanner_router
 from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
+from api.routes.nexus_memory import router as nexus_memory_router
+from api.routes.nexus_l1_views import router as nexus_l1_views_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -190,6 +192,8 @@ app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
+app.include_router(nexus_memory_router)
+app.include_router(nexus_l1_views_router)
 
 manager = WebSocketManager()
 
