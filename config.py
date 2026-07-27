@@ -7,7 +7,7 @@ load_dotenv()
 logger = logging.getLogger("config")
 
 API_ENV = os.getenv("API_ENV", "development")
-VERSION = os.getenv("APP_VERSION", "0.9.0")
+VERSION = os.getenv("APP_VERSION", "1.0.0")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
