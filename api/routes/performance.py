@@ -2,7 +2,8 @@ from dataclasses import asdict
 
 from fastapi import APIRouter
 
-from performance_engine import PerformanceEngine
+from portfolio.engine import PortfolioEngine
+from performance.engine import PerformanceEngine
 
 
 router = APIRouter()
@@ -10,5 +11,7 @@ router = APIRouter()
 
 @router.get("/performance")
 def get_performance():
-    stats = PerformanceEngine().stats()
-    return asdict(stats)
+    # Use consolidated modular performance report
+    snapshot = PortfolioEngine().snapshot()
+    report = PerformanceEngine().report(snapshot)
+    return asdict(report)

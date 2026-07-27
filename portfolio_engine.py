@@ -1,5 +1,8 @@
 """Portfolio and performance tracking for the Elite Decision Engine.
 
+.. deprecated:: 1.0.0
+   This module is deprecated. Use `portfolio.engine` instead.
+
 Reads from the Trade database only — no side effects, no business logic
 modification.  Injectable ``session_factory`` for test isolation.
 """

@@ -1,12 +1,12 @@
 # ARCHITECTURE — Elite Decision Engine
 
-> **Version**: 1.0.0 | **Status**: Pre-Beta | **Last Updated**: July 2026
+> **Version**: 1.0.0-founder-alpha | **Status**: Release Candidate | **Last Updated**: July 2026
 
 ---
 
 ## 1. System Overview
 
-Elite Decision Engine is an AI-powered paper trading platform that evaluates market signals through a multi-stage decision pipeline, executes paper trades, and provides real-time monitoring via a rich web dashboard.
+Elite Decision Engine is an AI-powered paper trading and decision intelligence platform. It ingests market data, evaluates opportunities through a multi-stage decision pipeline, manages risk parameters, executes paper trades, and monitors performance, exposing REST/WS APIs to a high-density frontend dashboard.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -51,371 +51,130 @@ Elite Decision Engine is an AI-powered paper trading platform that evaluates mar
 
 ## 2. Architectural Principles
 
-1. **Layered Pipeline**: Each stage in the pipeline has a single responsibility. Pipeline → Loop → Engine → Executor.
-2. **Dependency Injection**: All major components accept injectable dependencies for testability.
-3. **Protocol-based Interfaces**: `DecisionPipeline` uses `Protocol` classes for collector, filter, scorer, and confidence calculator.
-4. **Event-Driven Notifications**: Trade lifecycle events flow through `NotificationDispatcher` to WebSocket and Telegram.
-5. **Separation of Concerns**: Market data, scoring, execution, risk, and notifications are isolated modules.
-6. **Paper-First**: All execution is paper-only. Live trading infrastructure exists but is dormant.
+1. **Layered Pipeline**: Single-responsibility steps: Pipeline → Loop → Engine → Executor.
+2. **Dependency Injection**: Injectable dependencies/session-factories across all core engines for test isolation.
+3. **Protocol-based Interfaces**: Interfaces utilize typed contracts for collectors, filters, scorers, and confidence calculators.
+4. **Event-Driven Notifications**: Real-time trade events broadcast via a unified `NotificationDispatcher` to WebSockets and Telegram.
+5. **Separation of Concerns**: Complete decoupling of Market Data, Scoring, Risk, and Notifications.
 
 ---
 
-## 3. Core Data Flow
+## 3. Core Flows
 
-### Trading Signal Flow
+### 3.1 Market Data Flow
+All market data flows through the **Market Intelligence Platform (MIP)** layer:
+1. High-frequency feeds collect ticker and candle updates from external exchanges (e.g., Hyperliquid API) via `HyperliquidCollector`.
+2. Raw data is cached in a thread-safe `CacheManager` with configurable per-key TTLs.
+3. Decoupled sub-services enrich raw data:
+   - `IndicatorService` / `IndicatorEngine`: Calculates EMAs, RSI, and ATR.
+   - `FeatureStore`: Generates advanced predictive indicators.
+   - `ContextService`: Aggregates contextual data (open interest, funding rates, news sentiment, liquidation heatmap, whale flows).
+4. `MarketDataService` acts as the single unified entry point, consolidating these layers into fully enriched `Asset` models.
 
-```
-                 ┌─────────────────────┐
-                 │    Database Poll    │
-                 │  (DecisionEngine)   │
-                 └─────────┬───────────┘
-                           │ Open signals
-                           ▼
-                 ┌─────────────────────┐
-                 │   ExecutionLoop    │
-                 │  .run_once()       │
-                 └─────────┬───────────┘
-                           │ Signal list
-                           ▼
-                 ┌─────────────────────┐
-                 │  SignalRankingAI    │  (optional ML ranking)
-                 └─────────┬───────────┘
-                           │ Ranked signals
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-     ┌────────────┐ ┌────────────┐ ┌────────────┐
-     │Decision    │ │Decision    │ │Decision    │
-     │Pipeline    │ │Pipeline    │ │Pipeline    │
-     └─────┬──────┘ └─────┬──────┘ └─────┬──────┘
-           │              │              │
-           │ 1. Fetch market data        │
-           │ 2. Apply BTC filter         │
-           │ 3. Score (5 components)     │
-           │ 4. Confidence calculation   │
-           ▼              ▼              ▼
-     ┌──────────────────────────────────────┐
-     │      TradeCandidate (or None)        │
-     └──────────────┬───────────────────────┘
-                    │ Approved candidate
-                    ▼
-     ┌──────────────────────────────────────┐
-     │         RiskManager                  │
-     │   evaluate_trade(candidate)          │
-     └──────────────┬───────────────────────┘
-                    │ RiskDecision (allowed/rejected)
-                    ▼
-     ┌──────────────────────────────────────┐
-     │      PositionSizingEngine            │
-     │   calculate(candidate)               │
-     └──────────────┬───────────────────────┘
-                    │ PositionSize (qty, notional, risk)
-                    ▼
-     ┌──────────────────────────────────────┐
-     │          TradeEngine                 │
-     │   create_trade(signal, entry, atr)   │
-     │   1. TP/SL calculation               │
-     │   2. Duplicate check                 │
-     │   3. DB persist                      │
-     │   4. Notification emit               │
-     └──────────────┬───────────────────────┘
-                    │ Trade record (DB)
-                    ▼
-     ┌──────────────────────────────────────┐
-     │         PaperExecutor                │
-     │   monitor_open_trades()              │
-     │   1. Fetch current price             │
-     │   2. Check TP/SL                     │
-     │   3. Close if hit                    │
-     │   4. Stale trade cleanup (7d)        │
-     │   5. Notification emit               │
-     └──────────────────────────────────────┘
-```
-
-### Data Flow Per Pipeline Run
+### 3.2 Decision Pipeline & Execution Flow
+Open signals are evaluated and executed through a deterministic multi-stage workflow:
 
 ```
-Signal
+TradingSignal (DB)
   │
-  ├── MarketDataCollector.get_ohlcv()     ◄── Hyperliquid API
+  ▼
+DecisionPipeline.evaluate()
   │
-  ├── BTCHealthFilter.evaluate()          ◄── Market health check
+  ├── 1. Fetch data from MarketDataService
+  ├── 2. Verify BTC market health gate (BTCHealthFilter)
+  ├── 3. Score across 5 components (EMA, RSI, ATR, Volatility, Volume)
+  └── 4. Calculate final confidence & decision (ConfidenceEngine)
   │
-  ├── ScoringEngine.score()
-  │     ├── IndicatorEngine.calculate()   ◄── EMA20/50/200, RSI, ATR
-  │     ├── VolumeEngine.score()          ◄── Volume analysis
-  │     ├── BTCHealth.score()             ◄── BTC health score
-  │     ├── VolatilityEngine.score()      ◄── Volatility measurement
-  │     ├── MTFEngine.score()             ◄── Multi-timeframe
-  │     ├── RiskEngine.score()            ◄── Risk assessment
-  │     └── Weighted aggregation          ◄── 5-component weighted score
+  ▼  [If STRONGLY_APPROVED]
   │
-  ├── ConfidenceEngine.calculate()        ◄── Decision (APPROVE/REJECT)
-  │
-  ├── RegimeAI.detect()                   ◄── Market regime context
-  │
-  └── TradeMemory.list()                  ◄── Past trade context
+RiskManager.evaluate_trade()
+  │  Verify daily loss limits, maximum open trade counts, and exposure bounds
+  ▼
+PositionSizingEngine.calculate()
+  │  Calculate exact position quantity, risk budget, and stop limits
+  ▼
+TradeEngine.create_trade()
+  │  Calculate ATR-based Stop Loss & Take Profit limits, check duplicates, write to DB
+  ▼
+PaperExecutor (Monitoring Loop)
+     Check open trades vs ticker price -> trigger TP/SL exits -> auto-close stale trades (>7d)
 ```
+
+### 3.3 Risk Management Architecture
+The **Risk Management** system implements strict multi-layer execution safeguards:
+- **Pre-execution Gates**: `RiskManager` evaluates a `TradeCandidate` prior to entry. Rejects any order that would violate maximum open trades (default: 3), daily drawdowns, or asset concentration limits.
+- **Position Sizing Engine**: Dynamically scales entry quantity according to stop-loss distance (R-multiple) and total account equity to enforce a deterministic risk-per-trade constraint.
+- **Post-execution Protection**: Enforced programmatically by `PaperExecutor` monitoring, which guarantees that once a trade is live, stop-loss and take-profit targets are checked and executed with zero process-local delay.
 
 ---
 
-## 4. Module Architecture
+## 4. AI & Decision Intelligence Core (NEXUS AI)
 
-### 4.1 Core (`core/`)
-
-```
-DecisionEngine
-├── run()             — Infinite loop polling signals every CHECK_INTERVAL
-├── get_open_signals()— DB query for OPEN signals
-└── process_signal()  — Delegates to ExecutionLoop.run_once()
-
-ConfidenceEngine
-└── calculate()       — Decision logic from component scores
-```
-
-**Key decision**: `DecisionEngine.run()` is a blocking synchronous loop. This is the main entry point for the CLI application (`app.py`).
-
-### 4.2 Market Data (`market_data/`)
+The artificial intelligence module is centralized under the **NEXUS AI** ecosystem (renamed from OLLO).
 
 ```
-HyperliquidCollector  ───► OHLCV from Hyperliquid API
-    │
-    ├── IndicatorEngine   — Technical indicators (EMA, RSI, ATR)
-    ├── VolumeEngine      — Volume profile scoring
-    ├── BTCHealth         — BTC market health index
-    ├── VolatilityEngine  — Volatility classification
-    ├── MTFEngine         — Multi-timeframe analysis
-    └── LiveEngine        — Real-time market data
-
-    MarketDataNormalizer  — Symbol normalization
-    FundingCollector      — Funding rate collection
-    OpenInterestCollector — Open interest data
+                 ┌────────────────────────────────┐
+                 │          NEXUS AI              │
+                 │   Premium operator assistant   │
+                 └──────────────┬─────────────────┘
+                                │
+        ┌───────────────────────┼────────────────────────┐
+        ▼                       ▼                        ▼
+ ┌──────────────┐        ┌──────────────┐        ┌───────────────┐
+ │  Collapsed   │        │   Expanded   │        │ Immersive     │
+ │  Breathing   │        │ Side Console │        │ Workspace     │
+ │   Orb Ring   │        │Drawer Panel  │        │ Conversation  │
+ └──────────────┘        └──────────────┘        └───────────────┘
 ```
 
-### 4.3 Exchange (`exchange/`)
+### 4.1 Workspace & Route Context-Awareness
+NEXUS AI operates as a premium operator console utilizing three distinct states:
+1. **Collapsed State**: A subtle breathing orb/ring in the bottom-right corner of the workspace.
+2. **Expanded State**: A side console drawer panel auto-focusing on user queries.
+3. **Conversation State**: An immersive full-screen dialog overlay.
 
-```
-ExchangeAdapter (ABC)
-├── ticker()
-├── candles()
-├── account_balance()
-├── positions()
-├── create_order()
-├── cancel_order()
-├── order_status()
-├── order_history()
-└── trading_enabled()
+The panel dynamically maps client-side routes to **Context Rooms** (e.g. Command Deck, Portfolio, Scanner). Upon transition, it invokes `greetNEXUS(room)` to retrieve room-specific metrics and suggest custom "Quick Intel Queries" (e.g., "Analyze my portfolio exposure").
 
-├── HyperliquidConnector — Hyperliquid implementation
-└── BinanceConnector     — Binance implementation
-```
-
-### 4.4 Execution (`execution/`)
-
-```
-ExecutionLoop
-├── run_once(signals)        — Process batch, monitor trades
-├── process_signal(signal)   — Evaluate → Risk → Size → Create
-└── monitor()                — Check open paper trades
-
-DecisionPipeline
-├── evaluate(signal)         — Market data → Filters → Score → Confidence
-├── _fetch_market_data()     — OHLCV retrieval
-├── _passes_filters()        — BTC health gate
-└── _validate_signal()       — Required fields check
-
-TradeEngine
-└── create_trade()           — TP/SL calcs → DB → Notifications
-
-PaperExecutor
-├── open_trade()             — Validate → Persist
-├── monitor_open_trades()    — Check all open → TP/SL → Auto-close stale
-├── close_trade()            — Manual close with PnL
-└── calculate_pnl()          — Unrealized/realized PnL
-
-TPSLEngine
-└── calculate()              — Entry/Stop/TP1/TP2/RR from ATR
-```
-
-### 4.5 Scoring (`scoring/`)
-
-```
-ScoringEngine
-└── score(signal)            — 5-component weighted scoring
-
-RegimeAI
-└── detect(values)           — Market regime classification
-
-SignalRankingAI
-└── rank_signals(signals)    — ML-based signal prioritization
-
-RiskEngine
-└── score(values, volatility)— Risk component score
-
-PerformanceIntelligence     — Performance analytics
-BacktestV2                  — Historical backtesting
-```
-
-### 4.6 API (`api/`)
-
-```
-FastAPI Application
-├── CORS Middleware
-├── Auth Middleware (HTTP)
-├── 31 Route Modules
-├── 6 WebSocket Endpoints
-└── Periodic Broadcast Task (30s)
-
-WebSocket Manager
-└── Room-based pub/sub (6 rooms)
-```
-
-### 4.7 Database (`database.py` — note: file, not module)
-
-```
-Engine (PostgreSQL/SQLite)
-│
-├── SessionLocal (sessionmaker)
-│
-├── Models:
-│   ├── Signal          — Trading signals
-│   ├── Trade           — Executed trades
-│   ├── User            — User accounts
-│   ├── UserSettings    — User preferences
-│   ├── Notification    — Notification records
-│   ├── Watchlist       — User watchlists
-│   └── JournalEntry    — Trade journal
-│
-├── Helpers:
-│   ├── get_session()   — Session factory
-│   ├── session_scope() — Context manager
-│   ├── create_tables() — Schema creation
-│   └── update_signal_status() — Signal state updates
-```
+### 4.2 Multi-Agent AI Council (Advisory Layer)
+The platform integrates a multi-agent consensus system known as the **AI Council**:
+- Enlists 6 domain-specific cognitive agents: Macro, Technical, Trend, Risk, News, and Whale Intelligence.
+- Aggregates reports to compute consensus and Executive Summaries.
+- **Latency Design**: Because LLM inference introduces significant execution delays, the **AI Council is integrated as an advisory layer**. It is strictly decoupled from the high-frequency live decision pipeline to guarantee zero execution latency.
 
 ---
 
-## 5. Frontend Architecture
+## 5. Components Categorization
 
-```
-App.tsx (Root)
-├── ThemeProvider          — Dark theme CSS variables
-├── AuthProvider           — Authentication context
-├── BrowserRouter
-│   └── Routes (31 routes)
-│       ├── Login (public)
-│       ├── AuthGuard → Layout (protected)
-│       │   ├── Header + Sidebar + Outlet
-│       │   └── Context:
-│       │       ├── WebSocket data (6 rooms)
-│       │       └── UI state (Zustand stores)
-│       └── NotFound (404)
+### 5.1 Active Production Core
+These components are active, maintained, and covered by the 100% successful test suites:
+- **`market/` Package**: The newer, high-performance Market Intelligence Platform (MIP) architecture. Includes `market.services.MarketDataService` as the single entry point.
+- **`portfolio/` & `performance/` Packages**: Consolidated, modern modular engines used across all dashboard and analytics route endpoints.
+- **`services/`**: Supporting coordinators, explanation services, widgets, and AI engines.
+- **`scanner/`**: Scanner PRO modules, watchlist managers, and probability calculations.
+- **`api/routes/`**: Standard endpoint routers (auth, trading, analytics, KPI, preferences, scanner, etc.).
 
-Page Pattern (per page):
-└── useCallback(fetch) → useEffect → loading|error|empty|data → render
+### 5.2 Legacy Compatibility Components
+These components are preserved to support older client versions, existing database schemas, or CLI scripts:
+- **`api/routes/ollo.py`**: Kept as a backward-compatibility route redirecting to NEXUS services. Currently kept unregistered in the default production list to ensure clean endpoint namespaces, but fully functional when enabled.
+- **`market_data/`**: Root directory containing traditional low-level event collectors (live websocket broadcast tasks, volatile engines, funding/OI collectors) which run side-by-side with MIP.
 
-State Strategy:
-├── React Query — Server state (API data with 10s staleTime)
-├── Zustand — Client state (UI, preferences, workspace, terminal)
-└── React Context — Auth state, theme
-```
+### 5.3 Deprecated Components
+- **`portfolio_engine.py` (root)**: Deprecated in favor of the modular `portfolio.engine` package. Maintained strictly for legacy compatibility.
+- **`performance_engine.py` (root)**: Deprecated in favor of the modular `performance.engine` package. Maintained strictly for legacy compatibility.
 
 ---
 
-## 6. Integration Architecture
+## 6. Service Ownership & Directories
 
-### Internal Data Channels
-
-```
-┌─────────┐    SQLAlchemy     ┌──────────┐
-│ Signals │◄──────────────────►│ Database │
-│ Trades  │                    │ (SQL)    │
-│ Users   │                    └────┬─────┘
-└─────────┘                         │
-                                    │
-┌──────────┐    REST/WS            │
-│ Frontend │◄──────────────────────┘
-│  (React) │    http://localhost:8000
-└──────────┘
-
-┌──────────┐    WebSocket (6 rooms)
-│ Frontend │◄────────────────────────┐
-│ (Live)   │                         │
-└──────────┘    Periodic broadcast   │
-                 (every 30s)         │
-                                     │
-┌─────────────┐    Notification     │
-│ Telegram Bot│◄─── Dispatcher      │
-└─────────────┘                     │
-
-┌───────────────┐    HTTP API
-│ Hyperliquid   │◄──────────────────┘
-│ Exchange      │
-└───────────────┘
-```
-
----
-
-## 7. Configuration Architecture
-
-```
-config.py
-├── Environment: API_ENV, DEBUG
-├── Database: DATABASE_URL or POSTGRES_*
-├── Auth: JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-├── CORS: CORS_ORIGINS
-├── Scoring: SCORE_WEIGHTS (5 components)
-├── Trading: CHECK_INTERVAL, MIN_SCORE, MAX_OPEN_TRADES
-├── Risk: Max exposure, daily loss, position size limits
-└── Notifications: TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-
-logging_config.py
-├── 3 rotating file handlers (10MB, 5 backups)
-├── 1 console handler (JSON in prod, plain in dev)
-└── log_state() structured logging helper
-
-startup.py
-├── Environment validation
-├── PostgreSQL configuration check
-├── Config sanity check
-├── Database connectivity check
-└── Table accessibility check
-```
-
----
-
-## 8. Deployment Architecture
-
-### Development (docker-compose.yml)
-
-```
-┌─────────┐   ┌─────────┐   ┌──────────┐
-│PostgreSQL│   │  Redis  │   │   API    │
-│  16      │   │   7     │   │uvicorn   │
-│:5432     │   │:6379    │   │:8000     │
-└─────────┘   └─────────┘   └──────────┘
-```
-
-### Production (docker-compose.prod.yml)
-
-```
-Internet
-    │
-    ▼
-┌──────────┐  Let's Encrypt TLS
-│  Traefik │◄─────────────────────
-│  v3.0    │
-└────┬─────┘
-     │
-     ├── api.elite-decision.io ──► FastAPI (4 workers, 1000 concurrency)
-     ├── app.elite-decision.io ──► Nginx (SPA)
-     └── monitor.elite-decision.io ──► Grafana
-
-Internal Network:
-├── PostgreSQL 16 (persistent)
-├── Redis 7 (password auth)
-├── Prometheus (30d retention)
-└── Backup (cron → S3)
-```
+| Module / Package | Description | Primary Classes / Service | Scope |
+|------------------|-------------|---------------------------|-------|
+| `market/` | Market Intelligence Platform (MIP) | `MarketDataService` | High-performance cache & data integration |
+| `portfolio/` | Portfolio Management Engine | `PortfolioEngine` | Cash, position sizing, exposure DTOs |
+| `performance/` | Performance Engine | `PerformanceEngine` | Sharpe, Sortino, Calmar, Expectancy ratios |
+| `council/` | AI Council Multi-Agent System | `ConsensusEngine` | Advisory cognitive reports |
+| `decision/` | Pipeline & Evidence System | `DecisionPipeline` | Core execution checks and indicators |
+| `simulator/` | Standalone Isolated Simulator | `ExecutionSimulator` | Isolated paper-trading simulation |
+| `api/` | FastAPI Routes and WebSocket Manager| `app`, `WebSocketManager` | Web API Layer |
 
 ---
 

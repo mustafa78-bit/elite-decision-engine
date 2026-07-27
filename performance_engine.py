@@ -1,5 +1,8 @@
 """Performance analytics for the Elite Decision Engine.
 
+.. deprecated:: 1.0.0
+   This module is deprecated. Use `performance.engine` instead.
+
 Evaluates trading strategy quality — independent from PortfolioEngine.
 Read-only, no side effects.
 """

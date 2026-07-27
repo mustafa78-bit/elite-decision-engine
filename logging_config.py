@@ -49,8 +49,16 @@ class _SensitiveDataFilter(logging.Filter):
                         s = pattern.sub(replacement, s)
                     cleaned.append(s)
                 else:
-                    # Keep original types to prevent formatting TypeErrors (e.g., %d, %f)
-                    cleaned.append(arg)
+                    s = str(arg)
+                    has_match = False
+                    for pattern, replacement in _SENSITIVE_PATTERNS:
+                        if pattern.search(s):
+                            s = pattern.sub(replacement, s)
+                            has_match = True
+                    if has_match:
+                        cleaned.append(s)
+                    else:
+                        cleaned.append(arg)
             record.args = tuple(cleaned)
         return True
 
