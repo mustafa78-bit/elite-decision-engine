@@ -330,6 +330,8 @@ def get_session():
 
 
 def create_tables():
+    # Ensure L0 models are imported so SQLAlchemy metadata registers them
+    from memory.l0_event_log.models import NEXUSEvent, NEXUSSnapshot
     Base.metadata.create_all(bind=engine)
 
 
