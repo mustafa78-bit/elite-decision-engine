@@ -260,6 +260,8 @@ class ProjectionRunner:
 
                 # Ensure projection supports the event type
                 if event.event_type not in projection.supported_event_types():
+                    if hasattr(projection, "ignored_events"):
+                        projection.ignored_events += 1
                     continue
 
                 # Process event with retry logic
