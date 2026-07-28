@@ -58,6 +58,114 @@ class PortfolioService:
         finally:
             session.close()
 
+    def get_portfolio_health_score(self) -> int:
+        """Calculate a comprehensive performance-adjusted Portfolio Health Score out of 100."""
+        details = self.get_portfolio_health_details()
+        return details["score"]
+
+    def get_portfolio_health_details(self) -> dict[str, Any]:
+        """Calculate a comprehensive performance-adjusted Portfolio Health Score and qualitative metadata."""
+        session = self.session_factory()
+        try:
+            trades = session.query(Trade).all()
+            if not trades:
+                return {
+                    "score": 100,
+                    "status": "Excellent",
+                    "contributors": [
+                        "✓ Drawdown remains controlled (0.0%)",
+                        "✓ Diversification is good (no active concentration)",
+                        "✓ Capital allocation is conservative"
+                    ],
+                    "recommended_action": "No immediate action required. Maintain current trading parameters."
+                }
+
+            closed = [t for t in trades if t.status in FINAL_STATUSES]
+            open_trades = [t for t in trades if t.status == "OPEN"]
+
+            # 1. Start with 100 points
+            score = 100.0
+            contributors = []
+
+            # 2. Drawdown penalty (Max 35 points)
+            current_dd = self._current_drawdown(trades)
+            from config import ACCOUNT_EQUITY
+            equity_ref = max(ACCOUNT_EQUITY, 1000.0)
+            dd_ratio = current_dd / equity_ref
+            dd_penalty = min(dd_ratio * 150.0, 35.0)
+            score -= dd_penalty
+
+            if dd_penalty > 15.0:
+                contributors.append(f"⚠ High portfolio drawdown detected ({dd_ratio * 100.0:.1f}%)")
+            else:
+                contributors.append(f"✓ Drawdown remains controlled ({dd_ratio * 100.0:.1f}%)")
+
+            # 3. Concentration penalty (Max 25 points)
+            risk_metrics = self._compute_risk(trades)
+            concentration = risk_metrics.get("symbol_concentration", {})
+            max_conc = 0.0
+            if concentration:
+                max_conc = max(concentration.values())
+                if max_conc > 0.40:
+                    conc_penalty = min((max_conc - 0.40) * 50.0, 25.0)
+                    score -= conc_penalty
+                    contributors.append(f"⚠ Single asset concentration high ({max_conc * 100.0:.1f}%)")
+                else:
+                    contributors.append(f"✓ Diversification is good ({max_conc * 100.0:.1f}% peak concentration)")
+            else:
+                contributors.append("✓ Diversification is good (no active concentration)")
+
+            # 4. Exposure penalty (Max 20 points)
+            from config import MAX_PORTFOLIO_EXPOSURE
+            active_exposure = risk_metrics.get("current_exposure", 0.0)
+            exposure_ratio = 0.0
+            if MAX_PORTFOLIO_EXPOSURE > 0:
+                exposure_ratio = active_exposure / MAX_PORTFOLIO_EXPOSURE
+                if exposure_ratio > 0.70:
+                    exposure_penalty = min((exposure_ratio - 0.70) * 66.6, 20.0)
+                    score -= exposure_penalty
+                    contributors.append(f"⚠ Extreme portfolio exposure/leverage ({exposure_ratio * 100.0:.1f}%)")
+                else:
+                    contributors.append(f"✓ Capital allocation is conservative ({exposure_ratio * 100.0:.1f}% exposure)")
+            else:
+                contributors.append("✓ Capital allocation is conservative")
+
+            # 5. Win Rate penalty (Max 20 points)
+            if closed:
+                wins = [t for t in closed if t.pnl and t.pnl > 0]
+                win_rate = len(wins) / len(closed)
+                if win_rate < 0.45:
+                    wr_penalty = min((0.45 - win_rate) * 40.0, 20.0)
+                    score -= wr_penalty
+                    contributors.append(f"⚠ Strategy win rate is sub-optimal ({win_rate * 100.0:.1f}%)")
+                else:
+                    contributors.append(f"✓ Historical win rate is steady ({win_rate * 100.0:.1f}%)")
+
+            # Format final score & qualitative metrics
+            final_score = max(min(int(round(score)), 100), 0)
+
+            if final_score >= 90:
+                status = "Excellent"
+                recommended_action = "No immediate action required. Maintain current trading parameters."
+            elif final_score >= 75:
+                status = "Healthy"
+                recommended_action = "No immediate action required."
+            elif final_score >= 50:
+                status = "Caution"
+                recommended_action = "Reduce sizing on new signals and check high drawdown open positions."
+            else:
+                status = "Critical"
+                recommended_action = "URGENT: Consider hedging active exposure or executing partial manual position exits."
+
+            return {
+                "score": final_score,
+                "status": status,
+                "contributors": contributors[:3],
+                "recommended_action": recommended_action
+            }
+        finally:
+            session.close()
+
     def _compute_summary(self, trades: list[Trade]) -> dict[str, Any]:
         closed = [t for t in trades if t.status in FINAL_STATUSES]
         open_trades = [t for t in trades if t.status == "OPEN"]

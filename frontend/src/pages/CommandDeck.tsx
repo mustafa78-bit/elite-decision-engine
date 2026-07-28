@@ -8,6 +8,7 @@ import MissionFlow from "../components/hq/MissionFlow"
 import SubsystemHealthBar from "../components/hq/SubsystemHealthBar"
 import HQLoadingScreen from "../components/hq/HQLoadingScreen"
 import type { SubsystemStatus } from "../types/system"
+import FounderMorningBrief from "../components/dashboard/FounderMorningBrief"
 
 function statusColor(status: SubsystemStatus): string {
   switch (status) {
@@ -214,9 +215,14 @@ export default function CommandDeck() {
         </header>
 
         {/* ====== CONTENT — unified vertical flow ====== */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {/* SPRINT 12: "The 30-Second Morning" Executive HUD */}
+          <div className="max-w-7xl mx-auto">
+            <FounderMorningBrief />
+          </div>
+
           {/* 1 + 2: OLLO + Mission Ring */}
-          <div className="hq-section flex flex-col items-center py-10">
+          <div className="hq-section flex flex-col items-center py-4">
             <div className="relative flex flex-col items-center">
               <OLLOCommander
                 greeting={ollo.greeting}

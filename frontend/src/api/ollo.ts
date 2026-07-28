@@ -16,3 +16,7 @@ export function fetchBriefing(kind = "morning", room = "command_deck"): Promise<
 export function fetchOLLOStatus(): Promise<OLLOStatus> {
   return apiFetch<OLLOStatus>("/ollo/status")
 }
+
+export function fetchMorningBrief(): Promise<any> {
+  return apiFetch<any>("/ollo/morning-brief")
+}
