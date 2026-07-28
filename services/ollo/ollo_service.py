@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from services.ai.ai_service import AIService
@@ -12,6 +13,9 @@ from services.ollo.mission_profile import get_profile
 from services.ollo.parser import OLLOBriefing, OLLOResponse, parse_response
 from services.ollo.personality import get_system_prompt
 from services.ollo.planner import Planner, Plan
+
+from decision.kernel.FounderOS import FounderOS
+from decision.kernel.KnowledgeGraph import KnowledgeGraph
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +88,47 @@ class OLLOService:
     def query(self, query: str, room_id: str = "command_deck") -> OLLOResponse:
         start = time.perf_counter()
         profile = get_profile(room_id)
+
+        # Check if query matches a core executive question from FounderOS
+        KNOWN_EXECUTIVE_KEYS = {
+            "what_changed_overnight",
+            "what_deserves_attention",
+            "what_should_i_ignore",
+            "which_risks_increased",
+            "which_opportunities_appeared",
+            "which_decisions_succeeded",
+            "which_decisions_failed",
+            "what_patterns_emerged",
+            "what_should_i_do_first_today",
+            "what_should_i_absolutely_avoid_today",
+        }
+        norm_key = query.lower().replace("?", "").replace(" ", "_").replace("'", "")
+        if norm_key in KNOWN_EXECUTIVE_KEYS:
+            fos = FounderOS()
+            executive_ans = fos.query(query)
+
+            # Found custom executive response
+            raw_text = f"**Executive Institutional Memory Answer:**\n{executive_ans['answer']}\n\n**Actionability:**\n{executive_ans['actionability']}"
+            elapsed = (time.perf_counter() - start) * 1000
+
+            # Record command action in memory
+            fos.record_executive_action({
+                "action": f"OLLO Query: {query}",
+                "result": "INSTANT_EXECUTIVE_MATCH"
+            })
+
+            return OLLOResponse(
+                text=raw_text,
+                room=room_id,
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                provider="FounderOS",
+                model="Executive-Memory-v2",
+                duration_ms=elapsed,
+                tokens_in=0,
+                tokens_out=0,
+                sections=[]
+            )
+
         plan = self._planner.plan_query(room_id, query)
         context = self._context.build(plan.context_keys, room=room_id)
 
@@ -126,6 +171,50 @@ class OLLOService:
 
     def briefing(self, kind: str = "morning", room_id: str = "command_deck") -> OLLOBriefing:
         start = time.perf_counter()
+
+        # If morning briefing, ground with FounderOS Brief
+        if kind == "morning":
+            fos = FounderOS()
+            brief = fos.generate_brief()
+
+            # Ground directly with stable morning brief
+            raw_brief_text = f"""# EXECUTIVE MORNING BRIEFING
+**Status**: ACTIVE | **Time**: {brief.timestamp}
+
+### 1. Executive Summary
+{brief.executive_summary}
+
+### 2. Market Condition
+{brief.market_summary}
+
+### 3. Portfolio Allocation
+{brief.portfolio_summary}
+
+### 4. Learning & Calibrations
+{brief.learning_summary}
+{brief.calibration_summary}
+
+### 5. Recommended Actions
+""" + "\n".join([f"- {a}" for e, a in enumerate(brief.recommended_actions)]) + """
+
+### 6. Today's Strategic Priorities
+""" + "\n".join([f"- {p}" for e, p in enumerate(brief.todays_priorities)])
+
+            elapsed = (time.perf_counter() - start) * 1000
+            self._memory.record_briefing(kind, raw_brief_text)
+
+            return OLLOBriefing(
+                kind=kind,
+                title="Morning Briefing",
+                text=raw_brief_text,
+                timestamp=brief.timestamp,
+                provider="FounderOS",
+                model="Executive-Brain-v2",
+                duration_ms=elapsed,
+                tokens_in=0,
+                tokens_out=0
+            )
+
         plan = self._planner.plan_briefing(room_id, kind)
         context = self._context.build(plan.context_keys, room=room_id)
 

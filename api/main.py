@@ -59,6 +59,8 @@ from api.routes.scanner import router as scanner_router
 from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
+from api.routes.founder import router as founder_router
+from api.routes.graph import router as graph_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -190,6 +192,8 @@ app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
+app.include_router(founder_router)
+app.include_router(graph_router)
 
 manager = WebSocketManager()
 

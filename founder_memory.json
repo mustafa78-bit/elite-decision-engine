@@ -1,0 +1,67 @@
+{
+  "decisions": [],
+  "rejected_opportunities": [],
+  "portfolio_changes": [],
+  "learning_events": [],
+  "calibration_updates": [],
+  "strategy_evolutions": [],
+  "founder_preferences": [],
+  "executive_actions": [
+    {
+      "action": "OLLO Query: How is the portfolio?",
+      "result": "INSTANT_EXECUTIVE_MATCH",
+      "recorded_at": "2026-07-28T06:33:19.639122+00:00"
+    },
+    {
+      "action": "OLLO Query: Test query",
+      "result": "INSTANT_EXECUTIVE_MATCH",
+      "recorded_at": "2026-07-28T06:33:19.731659+00:00"
+    },
+    {
+      "action": "OLLO Query: How is the portfolio?",
+      "result": "INSTANT_EXECUTIVE_MATCH",
+      "recorded_at": "2026-07-28T06:34:02.665588+00:00"
+    },
+    {
+      "action": "OLLO Query: Test query",
+      "result": "INSTANT_EXECUTIVE_MATCH",
+      "recorded_at": "2026-07-28T06:34:02.672424+00:00"
+    },
+    {
+      "action": "Query: What deserves attention?",
+      "response_snippet": "A cluster of 4 whales entered spot bids for BTC. This corresponds to the historic 'High Volume Conso",
+      "recorded_at": "2026-07-28T06:40:12.783586+00:00"
+    },
+    {
+      "action_type": "MANUAL_REJECT",
+      "details": {
+        "symbol": "ETH"
+      },
+      "recorded_at": "2026-07-28T06:40:12.792579+00:00"
+    },
+    {
+      "action": "Query: What deserves attention?",
+      "response_snippet": "A cluster of 4 whales entered spot bids for BTC. This corresponds to the historic 'High Volume Conso",
+      "recorded_at": "2026-07-28T06:42:01.723151+00:00"
+    },
+    {
+      "action_type": "MANUAL_REJECT",
+      "details": {
+        "symbol": "ETH"
+      },
+      "recorded_at": "2026-07-28T06:42:01.731125+00:00"
+    },
+    {
+      "action": "Query: What deserves attention?",
+      "response_snippet": "A cluster of 4 whales entered spot bids for BTC. This corresponds to the historic 'High Volume Conso",
+      "recorded_at": "2026-07-28T06:44:34.176476+00:00"
+    },
+    {
+      "action_type": "MANUAL_REJECT",
+      "details": {
+        "symbol": "ETH"
+      },
+      "recorded_at": "2026-07-28T06:44:34.184713+00:00"
+    }
+  ]
+}

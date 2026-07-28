@@ -14,6 +14,10 @@ from market.services import MarketDataService
 from scanner.core import OpportunityScanner
 from scanner.models import Opportunity
 
+from decision.kernel.DecisionKernel import DecisionKernel
+from decision.kernel.DecisionRequest import DecisionRequest
+from decision.kernel.DecisionContext import DecisionContext
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,34 +64,33 @@ class DecisionAggregator:
         reasons = self.reason_builder.build(opportunity, asset)
         warnings = self.reason_builder.build_warnings(opportunity)
 
-        if conf >= 80:
-            decision = "STRONG_APPROVE"
-        elif conf >= 65:
-            decision = "APPROVE"
-        elif conf >= 50:
-            decision = "WATCH"
-        else:
-            decision = "REJECT"
-
-        self.timeline.record(symbol, "decision", f"Decision: {decision} (confidence={conf:.1f})", source="DecisionAggregator")
-
-        signals = opportunity.signals + opportunity.probability_signals + opportunity.risk_signals
-
-        result = DecisionResult(
+        # Delegate decision to Unified Decision Kernel
+        req = DecisionRequest(
             symbol=symbol,
             side=opportunity.side,
-            decision=decision,
-            score=opportunity.score,
-            confidence=conf,
-            probability=opportunity.probability_score,
-            risk_score=opportunity.risk_score,
-            reasons=reasons,
-            warnings=warnings,
-            signals=list(set(signals)),
-            timeline=[],
-            intelligence_summary=self._build_intel_summary(asset),
-            feature_summary=dict(asset.features),
+            timeframe=timeframe,
+            price=opportunity.price or 0.0,
+            signals=opportunity.signals,
+            strategy=opportunity.strategy,
+            metadata={
+                "score": opportunity.score,
+                "confidence": conf,
+                "reasons": reasons,
+                "warnings": warnings,
+            }
         )
+
+        ctx = DecisionContext(
+            indicators={"final_score": opportunity.score, "confidence": conf},
+            market_regime=self._build_intel_summary(asset),
+            risk_assessment={"risk_score": opportunity.risk_score}
+        )
+
+        kernel = DecisionKernel()
+        result = kernel.decide(req, ctx)
+
+        # Re-record aggregated details for compatibility
+        self.timeline.record(symbol, "decision", f"Decision: {result.decision} (confidence={result.confidence:.1f})", source="DecisionAggregator")
 
         result = self.timeline.build_timeline(result)
         return result

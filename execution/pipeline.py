@@ -19,6 +19,10 @@ from memory.trade_memory import TradeMemory
 from scoring.regime_ai import RegimeAI
 from scoring.scoring_engine import ScoringEngine
 
+from decision.kernel.DecisionKernel import DecisionKernel
+from decision.kernel.DecisionRequest import DecisionRequest
+from decision.kernel.DecisionContext import DecisionContext
+
 
 APPROVED_DECISIONS = frozenset({"APPROVE", "STRONG_APPROVE"})
 
@@ -120,15 +124,47 @@ class DecisionPipeline:
                 return None
 
             scores = self.scoring_engine.score(signal)
-            decision_data = self.confidence_engine.calculate(scores)
-            decision = str(decision_data.get("decision", "REJECT"))
+
+            # Format inputs to delegate to Unified Decision Kernel
+            req = DecisionRequest(
+                symbol=signal.symbol,
+                side=signal.side,
+                timeframe=signal.timeframe,
+                price=scores.get("entry", 0.0),
+                signals=scores.get("signals", []),
+                strategy=getattr(signal, "strategy", "trend"),
+                metadata={
+                    "score": scores.get("final_score", 0.5),
+                    "confidence": scores.get("confidence", 50.0),
+                }
+            )
+
+            lessons = []
+            if self.trade_memory is not None:
+                lessons = [getattr(e, "entry_reason", "") for e in self.trade_memory.list(limit=5)]
+
+            ctx = DecisionContext(
+                indicators=dict(scores),
+                market_regime={
+                    "regime": "BULLISH" if scores.get("trend_score", 0.5) > 0.6 else "NEUTRAL",
+                },
+                learning_lessons=lessons,
+                risk_assessment={
+                    "risk_score": scores.get("risk_score", 0.3),
+                }
+            )
+
+            kernel = DecisionKernel()
+            kernel_result = kernel.decide(req, ctx)
+            decision = kernel_result.decision
 
             self.logger.info(
-                "Pipeline decision for %s %s %s: %s",
+                "Pipeline decision for %s %s %s: %s (calibrated confidence=%s)",
                 signal.symbol,
                 signal.side,
                 signal.timeframe,
                 decision,
+                kernel_result.confidence,
             )
 
             if decision not in APPROVED_DECISIONS:
@@ -136,7 +172,7 @@ class DecisionPipeline:
                     "Rejected %s %s: decision=%s confidence=%s final_score=%s",
                     signal.symbol, signal.side,
                     decision,
-                    decision_data.get("confidence"),
+                    kernel_result.confidence,
                     scores.get("final_score"),
                 )
                 return None
