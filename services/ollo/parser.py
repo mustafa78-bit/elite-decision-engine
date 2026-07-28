@@ -22,6 +22,7 @@ class OLLOResponse:
     tokens_in: Optional[int] = None
     tokens_out: Optional[int] = None
     sections: list[dict] = field(default_factory=list)
+    action_executed: Optional[dict[str, Any]] = None
 
     def to_dict(self) -> dict:
         return {
@@ -36,6 +37,7 @@ class OLLOResponse:
                 "out": self.tokens_out,
             },
             "sections": self.sections,
+            "action_executed": self.action_executed,
         }
 
 
