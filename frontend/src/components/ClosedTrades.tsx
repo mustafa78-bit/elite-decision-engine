@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import type { TradePayload } from "../types/trade";
 
 interface Props {
@@ -5,6 +6,7 @@ interface Props {
 }
 
 export default function ClosedTrades({ trades }: Props) {
+  const navigate = useNavigate();
   if (trades.length === 0) {
     return (
       <div className="glass-card px-4 py-5 text-center">
@@ -24,6 +26,7 @@ export default function ClosedTrades({ trades }: Props) {
               <th className="text-right px-4 py-2 font-medium">Exit</th>
               <th className="text-right px-4 py-2 font-medium">PnL</th>
               <th className="text-left px-4 py-2 font-medium">Reason</th>
+              <th className="text-right px-4 py-2 font-medium">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -48,6 +51,17 @@ export default function ClosedTrades({ trades }: Props) {
                   ) : "—"}
                 </td>
                 <td className="px-4 py-2" style={{ color: "#64748B" }}>{t.close_reason ?? "—"}</td>
+                <td className="px-4 py-2 text-right">
+                  <button
+                    onClick={() => {
+                      const res = t.pnl !== undefined && t.pnl >= 0 ? "WIN" : "LOSS";
+                      navigate(`/journal?symbol=${t.symbol}&side=${t.side}&entry_price=${t.entry}&exit_price=${t.exit_price ?? 0}&pnl=${t.pnl ?? 0}&result=${res}`);
+                    }}
+                    className="text-[9px] uppercase tracking-wider font-bold text-[var(--accent-blue)] bg-[var(--accent-blue)]/10 hover:bg-[var(--accent-blue)]/20 px-2 py-0.5 rounded transition-colors"
+                  >
+                    Journal 📓
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

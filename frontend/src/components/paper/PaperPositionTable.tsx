@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import type { PaperTrade } from "../../api/paper";
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export default function PaperPositionTable({ trades, title }: Props) {
+  const navigate = useNavigate();
   if (trades.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded p-4">
@@ -29,6 +31,7 @@ export default function PaperPositionTable({ trades, title }: Props) {
             <th className="text-right px-3 py-1.5 font-medium">Exit</th>
             <th className="text-right px-3 py-1.5 font-medium">PnL</th>
             <th className="text-right px-3 py-1.5 font-medium">Status</th>
+            {title.includes("Closed") && <th className="text-right px-3 py-1.5 font-medium">Action</th>}
           </tr>
         </thead>
         <tbody>
@@ -48,6 +51,19 @@ export default function PaperPositionTable({ trades, title }: Props) {
                 {t.pnl != null ? `$${t.pnl.toFixed(2)}` : "\u2014"}
               </td>
               <td className="px-3 py-1.5 text-right text-gray-300">{t.status}</td>
+              {title.includes("Closed") && (
+                <td className="px-3 py-1.5 text-right">
+                  <button
+                    onClick={() => {
+                      const res = (t.pnl ?? 0) >= 0 ? "WIN" : "LOSS";
+                      navigate(`/journal?symbol=${t.symbol}&side=${t.side}&entry_price=${t.entry}&exit_price=${t.exit_price ?? 0}&pnl=${t.pnl ?? 0}&result=${res}`);
+                    }}
+                    className="text-[9px] uppercase tracking-wider font-bold text-[var(--accent-blue)] bg-[var(--accent-blue)]/10 hover:bg-[var(--accent-blue)]/20 px-2 py-0.5 rounded transition-colors focus:ring-1 focus:ring-[var(--accent-blue)]"
+                  >
+                    Journal 📓
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
