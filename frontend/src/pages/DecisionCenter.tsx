@@ -8,8 +8,9 @@ import { cn } from "../lib/utils";
 import { fetchSignals, type SignalRow } from "../api/signals";
 import type { LayoutContext } from "../components/layout/Layout";
 import type { TradeIntelligence } from "../types/trade";
+import TrustDashboard from "../components/dashboard/TrustDashboard";
 
-type DecisionTab = "all" | "approved" | "rejected" | "watch" | "executed" | "closed";
+type DecisionTab = "all" | "approved" | "rejected" | "watch" | "executed" | "closed" | "trust";
 
 interface DecisionItem {
   id: string;
@@ -42,6 +43,7 @@ const TABS: { id: DecisionTab; label: string }[] = [
   { id: "watch", label: "Watch" },
   { id: "executed", label: "Executed" },
   { id: "closed", label: "Closed" },
+  { id: "trust", label: "Trust Engine" },
 ];
 
 function getScoreColor(score: number): string {
@@ -471,6 +473,7 @@ export default function DecisionCenter() {
     watch: decisions.filter((d) => d.decision === "NEUTRAL" || d.decision === "PENDING").length,
     executed: decisions.filter((d) => d.outcome === "EXECUTED").length,
     closed: decisions.filter((d) => d.outcome === "CORRECT" || d.outcome === "INCORRECT").length,
+    trust: "v2.0",
   }), [decisions]);
 
   return (
@@ -568,7 +571,9 @@ export default function DecisionCenter() {
           ))}
         </div>
 
-        {error ? (
+        {activeTab === "trust" ? (
+          <TrustDashboard />
+        ) : error ? (
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-col items-center gap-3 py-4">
