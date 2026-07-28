@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
+import { useOutletContext, useNavigate } from "react-router-dom"
 import { useSubsystems } from "../hooks/useSubsystems"
 import { computeMissionStatus } from "../types/mission"
 import OLLOCommander from "../components/hq/OLLOCommander"
@@ -8,6 +9,17 @@ import MissionFlow from "../components/hq/MissionFlow"
 import SubsystemHealthBar from "../components/hq/SubsystemHealthBar"
 import HQLoadingScreen from "../components/hq/HQLoadingScreen"
 import type { SubsystemStatus } from "../types/system"
+
+import type { LayoutContext } from "../components/layout/Layout"
+import FounderMorningBrief from "../components/dashboard/FounderMorningBrief"
+import { PortfolioSummaryWidget } from "../components/dashboard/portfolio-summary-widget"
+import FounderMarketSummary from "../components/dashboard/FounderMarketSummary"
+import RiskAlerts from "../components/dashboard/RiskAlerts"
+import AICouncilWidget from "../components/dashboard/AICouncilWidget"
+import { WatchlistWidget } from "../components/dashboard/watchlist-widget"
+import AIDecisionTimeline from "../components/dashboard/AIDecisionTimeline"
+import ActionCenter from "../components/dashboard/ActionCenter"
+import { QuickActionsWidget } from "../components/dashboard/quick-actions-widget"
 
 function statusColor(status: SubsystemStatus): string {
   switch (status) {
@@ -61,6 +73,8 @@ function ProgressLine({ value, label, color }: { value: number; label: string; c
 
 export default function CommandDeck() {
   const [showLoading, setShowLoading] = useState(true)
+  const { notifications, latestIntelligence } = useOutletContext<LayoutContext>()
+  const navigate = useNavigate()
 
   const {
     scanner, risk, council, portfolio, whale, market, evidence,
@@ -118,6 +132,13 @@ export default function CommandDeck() {
   const supportingCount = evidence.data?.supporting_evidence.length ?? null
   const conflictCount = evidence.data?.contradicting_evidence.length ?? null
   const warningCount = evidence.data?.warnings.length ?? null
+
+  const quickActions = useMemo(() => [
+    { label: "Analyze BTC", icon: "📈", onClick: () => navigate("/asset/BTC") },
+    { label: "Scan Market", icon: "🔍", onClick: () => navigate("/scanner") },
+    { label: "Risk Assessment", icon: "🛡️", onClick: () => navigate("/risk") },
+    { label: "Journal Decision", icon: "📝", onClick: () => navigate("/journal") },
+  ], [navigate])
 
   // Hide loading screen after subsystems load
   useEffect(() => {
@@ -213,88 +234,107 @@ export default function CommandDeck() {
           </div>
         </header>
 
-        {/* ====== CONTENT — unified vertical flow ====== */}
-        <div className="flex-1 overflow-y-auto">
-          {/* 1 + 2: OLLO + Mission Ring */}
-          <div className="hq-section flex flex-col items-center py-10">
-            <div className="relative flex flex-col items-center">
-              <OLLOCommander
-                greeting={ollo.greeting}
-                briefing={ollo.briefing}
-                loading={loading && !ollo.greeting}
-                error={ollo.status.error}
-              />
-              <div className="mt-6">
-                <MissionRing sectors={sectors} />
-              </div>
-            </div>
-          </div>
+        {/* ====== CONTENT — high-density layout-optimized dashboard ====== */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
-          {/* 3: Current Recommendation */}
-          {recommendation && (
-            <div className="hq-section">
-              <div className="max-w-xl mx-auto">
-                <div className="hq-section-label">Current Recommendation</div>
-                <p
-                  className="text-sm font-semibold leading-snug"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {recommendation}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* 4: Evidence */}
-          {(confidence !== null || strength !== null || explainability !== null) && (
-            <div className="hq-section">
-              <div className="max-w-xl mx-auto">
-                <div className="hq-section-label">Evidence</div>
-                <div className="space-y-2">
-                  {confidence !== null && (
-                    <ProgressLine
-                      value={confidence}
-                      label="Decision Confidence"
-                      color={qualityColor(decisionQuality ?? "UNKNOWN")}
-                    />
-                  )}
-                  {strength !== null && (
-                    <ProgressLine value={strength} label="Evidence Strength" color="#4F8CFF" />
-                  )}
-                  {explainability !== null && (
-                    <ProgressLine value={explainability} label="Explainability" color="#8B5CF6" />
-                  )}
+            {/* Left Column (5/12 width): Conversational Core & Central Status */}
+            <div className="xl:col-span-5 space-y-6">
+              <div className="flex flex-col items-center py-6 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl">
+                <OLLOCommander
+                  greeting={ollo.greeting}
+                  briefing={ollo.briefing}
+                  loading={loading && !ollo.greeting}
+                  error={ollo.status.error}
+                />
+                <div className="mt-4">
+                  <MissionRing sectors={sectors} />
                 </div>
+              </div>
 
-                {/* Counts */}
-                {(supportingCount !== null || conflictCount !== null || warningCount !== null) && (
-                  <div className="flex items-center gap-4 mt-3">
-                    {supportingCount !== null && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#3EDC97" }}>{supportingCount}</span> supporting
-                      </span>
+              {recommendation && (
+                <div className="p-4 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl">
+                  <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Current Recommendation</div>
+                  <p className="text-sm font-semibold leading-snug text-[var(--text-primary)]">
+                    {recommendation}
+                  </p>
+                </div>
+              )}
+
+              {(confidence !== null || strength !== null || explainability !== null) && (
+                <div className="p-4 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl space-y-2">
+                  <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-2">Evidence Overview</div>
+                  <div className="space-y-2">
+                    {confidence !== null && (
+                      <ProgressLine
+                        value={confidence}
+                        label="Decision Confidence"
+                        color={qualityColor(decisionQuality ?? "UNKNOWN")}
+                      />
                     )}
-                    {conflictCount !== null && conflictCount > 0 && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#FF5D73" }}>{conflictCount}</span> conflicting
-                      </span>
+                    {strength !== null && (
+                      <ProgressLine value={strength} label="Evidence Strength" color="#4F8CFF" />
                     )}
-                    {warningCount !== null && warningCount > 0 && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#FFB547" }}>{warningCount}</span> warnings
-                      </span>
+                    {explainability !== null && (
+                      <ProgressLine value={explainability} label="Explainability" color="#8B5CF6" />
                     )}
                   </div>
-                )}
+                  {(supportingCount !== null || conflictCount !== null || warningCount !== null) && (
+                    <div className="flex items-center gap-4 mt-3">
+                      {supportingCount !== null && (
+                        <span className="text-[7px] font-mono text-[var(--text-muted)]">
+                          <span style={{ color: "#3EDC97" }}>{supportingCount}</span> supporting
+                        </span>
+                      )}
+                      {conflictCount !== null && conflictCount > 0 && (
+                        <span className="text-[7px] font-mono text-[var(--text-muted)]">
+                          <span style={{ color: "#FF5D73" }}>{conflictCount}</span> conflicting
+                        </span>
+                      )}
+                      {warningCount !== null && warningCount > 0 && (
+                        <span className="text-[7px] font-mono text-[var(--text-muted)]">
+                          <span style={{ color: "#FFB547" }}>{warningCount}</span> warnings
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="p-4 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-xl flex justify-center">
+                <MissionFlow nodes={flowNodes} />
+              </div>
+
+              <QuickActionsWidget actions={quickActions} />
+            </div>
+
+            {/* Right Column (7/12 width): Executive Dashboard Workspaces */}
+            <div className="xl:col-span-7 space-y-6">
+              {/* Row 1: Briefing & Recommended Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FounderMorningBrief />
+                <ActionCenter />
+              </div>
+
+              {/* Row 2: Market Summary */}
+              <FounderMarketSummary />
+
+              {/* Row 3: Portfolio & Risks */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <PortfolioSummaryWidget />
+                <RiskAlerts />
+              </div>
+
+              {/* Row 4: Council & Watchlist */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <AICouncilWidget intelligence={latestIntelligence} />
+                <div className="space-y-6">
+                  <WatchlistWidget />
+                  <AIDecisionTimeline notifications={notifications} />
+                </div>
               </div>
             </div>
-          )}
 
-          {/* 5: Mission Flow */}
-          <div className="hq-section">
-            <div className="max-w-2xl mx-auto">
-              <MissionFlow nodes={flowNodes} />
-            </div>
           </div>
         </div>
 
