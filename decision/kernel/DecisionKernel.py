@@ -136,8 +136,8 @@ class DecisionKernel:
         # 12. Improve
         timeline.record("Improve", "Registered decision with learning loops for outcome auditing", source="DecisionKernel")
 
-        # Construct and return stable DecisionResult
-        return DecisionResult(
+        # Construct stable DecisionResult
+        result = DecisionResult(
             decision_id=decision_id,
             symbol=request.symbol,
             side=request.side,
@@ -168,6 +168,37 @@ class DecisionKernel:
                 **request.metadata,
             },
         )
+
+        # Save to persistent append-only Decision Ledger
+        from decision.kernel.DecisionLedger import DecisionLedger
+        ledger = DecisionLedger()
+        ledger.append(decision_id, {
+            "decision_id": decision_id,
+            "symbol": request.symbol,
+            "side": request.side,
+            "decision": recommendation,
+            "confidence": calibrated_confidence,
+            "score": raw_score,
+            "risk_score": context.risk_assessment.get("risk_score", 0.3),
+            "request": {
+                "symbol": request.symbol,
+                "side": request.side,
+                "timeframe": request.timeframe,
+                "price": request.price,
+                "signals": request.signals,
+            },
+            "context_snapshot": {
+                "indicators": context.indicators,
+                "market_regime": context.market_regime,
+                "trust_scores": context.trust_scores,
+                "risk_assessment": context.risk_assessment,
+            },
+            "evidence": [e.__dict__ for e in evidence_list],
+            "reasoning": [r.__dict__ for r in reasoning_steps],
+            "timeline": timeline.to_list(),
+        })
+
+        return result
 
     def _compute_deterministic_hash(self, request: DecisionRequest, context: DecisionContext) -> str:
         """Compute a SHA-256 hash of parameters and context to guarantee determinism and replayability."""

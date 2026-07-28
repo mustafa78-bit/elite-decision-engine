@@ -90,6 +90,7 @@ class TradeEngine:
                 tp2=levels["tp2"],
                 rr=levels["rr"],
                 status="OPEN",
+                exchange_order_id=intelligence.get("decision_id") if intelligence else None,
             )
 
             session.add(trade)

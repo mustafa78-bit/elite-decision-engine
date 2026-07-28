@@ -9,6 +9,10 @@ from decision.kernel.DecisionResult import DecisionResult
 from decision.kernel.DecisionTimeline import DecisionTimeline, TimelineEvent
 from decision.kernel.KnowledgeGraph import GraphEdge, GraphNode, KnowledgeGraph
 from decision.kernel.FounderOS import FounderBrief, FounderOS
+from decision.kernel.DecisionLedger import DecisionLedger
+from decision.kernel.DecisionEvaluator import DecisionEvaluator
+from decision.kernel.CalibrationEngine import CalibrationEngine
+from decision.kernel.TrustMetrics import TrustMetrics
 
 __all__ = [
     "DecisionKernel",
@@ -24,4 +28,8 @@ __all__ = [
     "KnowledgeGraph",
     "FounderBrief",
     "FounderOS",
+    "DecisionLedger",
+    "DecisionEvaluator",
+    "CalibrationEngine",
+    "TrustMetrics",
 ]

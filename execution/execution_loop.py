@@ -202,6 +202,7 @@ class ExecutionLoop:
         intelligence = {
             "confidence": candidate.confidence,
             "decision": candidate.decision,
+            "decision_id": candidate.decision_id,
             **candidate.scores,
         }
 

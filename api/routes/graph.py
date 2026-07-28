@@ -7,13 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from decision.kernel.KnowledgeGraph import GraphNode, KnowledgeGraph
+from decision.kernel.DecisionLedger import DecisionLedger
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/graph", tags=["graph"])
 
-# Instantiate single global KnowledgeGraph manager
+# Instantiate single global KnowledgeGraph and Ledger managers
 _knowledge_graph = KnowledgeGraph()
+_ledger = DecisionLedger()
 
 
 class NodeCreateRequest(BaseModel):
@@ -151,6 +153,19 @@ def query_forecast(node_id: str):
         }
     except Exception as e:
         logger.exception("Failed to predict next states")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ledger")
+def get_graph_ledger():
+    """Retrieve all decision records logged in the Decision Ledger."""
+    try:
+        return {
+            "status": "success",
+            "ledger": _ledger.get_all_records()
+        }
+    except Exception as e:
+        logger.exception("Failed to query ledger")
         raise HTTPException(status_code=500, detail=str(e))
 
 

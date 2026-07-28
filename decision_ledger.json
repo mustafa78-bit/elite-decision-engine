@@ -1,0 +1,582 @@
+{
+  "88f454c2c3b3d22c9db186a2096db4bf9946a461a62533cd1656bfdcf6ed101d": {
+    "decision_id": "88f454c2c3b3d22c9db186a2096db4bf9946a461a62533cd1656bfdcf6ed101d",
+    "symbol": "ETHUSDT",
+    "side": "LONG",
+    "decision": "STRONG_APPROVE",
+    "confidence": 81.6,
+    "score": 0.82,
+    "risk_score": 0.25,
+    "request": {
+      "symbol": "ETHUSDT",
+      "side": "LONG",
+      "timeframe": "4h",
+      "price": 3000.0,
+      "signals": [
+        "BULLISH_EMA_CROSS"
+      ]
+    },
+    "context_snapshot": {
+      "indicators": {
+        "final_score": 0.82,
+        "confidence": 85.0,
+        "rsi": 62.0
+      },
+      "market_regime": {},
+      "trust_scores": {
+        "score": 0.9
+      },
+      "risk_assessment": {
+        "risk_score": 0.25
+      }
+    },
+    "evidence": [
+      {
+        "source": "Indicators",
+        "metric_name": "final_score",
+        "metric_value": 0.82,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949698+00:00"
+      },
+      {
+        "source": "Indicators",
+        "metric_name": "confidence",
+        "metric_value": 85.0,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949705+00:00"
+      },
+      {
+        "source": "Indicators",
+        "metric_name": "rsi",
+        "metric_value": 62.0,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949710+00:00"
+      },
+      {
+        "source": "TrustEngine",
+        "metric_name": "trust_score",
+        "metric_value": 0.9,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949715+00:00"
+      }
+    ],
+    "reasoning": [
+      {
+        "step": "Reason",
+        "description": "Initial technical signal score evaluated at 0.82",
+        "impact": 0.82,
+        "status": "SUCCESS",
+        "timestamp": "2026-07-28T07:39:49.949681+00:00"
+      }
+    ],
+    "timeline": [
+      {
+        "stage": "Observe",
+        "description": "Received request to evaluate ETHUSDT LONG",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949645+00:00"
+      },
+      {
+        "stage": "Understand",
+        "description": "Consolidated metrics for ETHUSDT at price $3000.00",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949664+00:00"
+      },
+      {
+        "stage": "Connect",
+        "description": "Queried Knowledge Graph 2.0; found 0 related entities",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949672+00:00"
+      },
+      {
+        "stage": "Trust",
+        "description": "Assessed system trust levels: score=0.90",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949726+00:00"
+      },
+      {
+        "stage": "Learn",
+        "description": "Extracted 1 past learning outcome insights",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949735+00:00"
+      },
+      {
+        "stage": "Calibrate",
+        "description": "Applied calibration scaling to confidence ratings",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949739+00:00"
+      },
+      {
+        "stage": "Decide",
+        "description": "Action recommendation formulated: STRONG_APPROVE",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949747+00:00"
+      },
+      {
+        "stage": "Explain",
+        "description": "Synthesized explanation briefs and warnings",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949760+00:00"
+      },
+      {
+        "stage": "Remember",
+        "description": "Committed decision metadata and cognitive traces to memory index (ID: 88f454c2c3b3d22c9db186a2096db4bf9946a461a62533cd1656bfdcf6ed101d)",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949860+00:00"
+      },
+      {
+        "stage": "Improve",
+        "description": "Registered decision with learning loops for outcome auditing",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:49.949867+00:00"
+      }
+    ],
+    "created_at": "2026-07-28T07:39:49.949954+00:00",
+    "execution_status": "PENDING",
+    "outcome": null,
+    "evaluation": null
+  },
+  "c0a6106656399ef14b201a4454053b1b51a719f6c651bb26db0ecdbc1b9ff0b6": {
+    "decision_id": "c0a6106656399ef14b201a4454053b1b51a719f6c651bb26db0ecdbc1b9ff0b6",
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "decision": "STRONG_APPROVE",
+    "confidence": 80.75,
+    "score": 0.75,
+    "risk_score": 0.35,
+    "request": {
+      "symbol": "BTCUSDT",
+      "side": "LONG",
+      "timeframe": "1h",
+      "price": 0.0,
+      "signals": [
+        "BULLISH_TREND_ALIGNED"
+      ]
+    },
+    "context_snapshot": {
+      "indicators": {
+        "final_score": 0.75,
+        "confidence": 85.0
+      },
+      "market_regime": {},
+      "trust_scores": {},
+      "risk_assessment": {
+        "risk_score": 0.35
+      }
+    },
+    "evidence": [
+      {
+        "source": "Indicators",
+        "metric_name": "final_score",
+        "metric_value": 0.75,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249164+00:00"
+      },
+      {
+        "source": "Indicators",
+        "metric_name": "confidence",
+        "metric_value": 85.0,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249169+00:00"
+      },
+      {
+        "source": "TrustEngine",
+        "metric_name": "trust_score",
+        "metric_value": 0.85,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249174+00:00"
+      }
+    ],
+    "reasoning": [
+      {
+        "step": "Reason",
+        "description": "Initial technical signal score evaluated at 0.75",
+        "impact": 0.75,
+        "status": "SUCCESS",
+        "timestamp": "2026-07-28T07:39:50.249155+00:00"
+      }
+    ],
+    "timeline": [
+      {
+        "stage": "Observe",
+        "description": "Received request to evaluate BTCUSDT LONG",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249122+00:00"
+      },
+      {
+        "stage": "Understand",
+        "description": "Consolidated metrics for BTCUSDT at price $0.00",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249137+00:00"
+      },
+      {
+        "stage": "Connect",
+        "description": "Queried Knowledge Graph 2.0; found 0 related entities",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249145+00:00"
+      },
+      {
+        "stage": "Trust",
+        "description": "Assessed system trust levels: score=0.85",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249179+00:00"
+      },
+      {
+        "stage": "Learn",
+        "description": "Extracted 0 past learning outcome insights",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249184+00:00"
+      },
+      {
+        "stage": "Calibrate",
+        "description": "Applied calibration scaling to confidence ratings",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249189+00:00"
+      },
+      {
+        "stage": "Decide",
+        "description": "Action recommendation formulated: STRONG_APPROVE",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249196+00:00"
+      },
+      {
+        "stage": "Explain",
+        "description": "Synthesized explanation briefs and warnings",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249204+00:00"
+      },
+      {
+        "stage": "Remember",
+        "description": "Committed decision metadata and cognitive traces to memory index (ID: c0a6106656399ef14b201a4454053b1b51a719f6c651bb26db0ecdbc1b9ff0b6)",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249272+00:00"
+      },
+      {
+        "stage": "Improve",
+        "description": "Registered decision with learning loops for outcome auditing",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.249277+00:00"
+      }
+    ],
+    "created_at": "2026-07-28T07:39:50.249560+00:00",
+    "execution_status": "PENDING",
+    "outcome": null,
+    "evaluation": null
+  },
+  "2c67a4ae9f0066f8047fe903d4be10f13728d07d7c2474ac081dba5acc9f0c1b": {
+    "decision_id": "2c67a4ae9f0066f8047fe903d4be10f13728d07d7c2474ac081dba5acc9f0c1b",
+    "symbol": "BTCUSDT",
+    "side": "LONG",
+    "decision": "APPROVE",
+    "confidence": 77.89999999999999,
+    "score": 0.7,
+    "risk_score": 0.0,
+    "request": {
+      "symbol": "BTCUSDT",
+      "side": "LONG",
+      "timeframe": "1h",
+      "price": 0.0,
+      "signals": []
+    },
+    "context_snapshot": {
+      "indicators": {
+        "final_score": 0.7,
+        "confidence": 82.0
+      },
+      "market_regime": {},
+      "trust_scores": {},
+      "risk_assessment": {
+        "risk_score": 0.0
+      }
+    },
+    "evidence": [
+      {
+        "source": "Indicators",
+        "metric_name": "final_score",
+        "metric_value": 0.7,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258125+00:00"
+      },
+      {
+        "source": "Indicators",
+        "metric_name": "confidence",
+        "metric_value": 82.0,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258130+00:00"
+      },
+      {
+        "source": "TrustEngine",
+        "metric_name": "trust_score",
+        "metric_value": 0.85,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258134+00:00"
+      }
+    ],
+    "reasoning": [
+      {
+        "step": "Reason",
+        "description": "Initial technical signal score evaluated at 0.70",
+        "impact": 0.7,
+        "status": "SUCCESS",
+        "timestamp": "2026-07-28T07:39:50.258118+00:00"
+      }
+    ],
+    "timeline": [
+      {
+        "stage": "Observe",
+        "description": "Received request to evaluate BTCUSDT LONG",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258099+00:00"
+      },
+      {
+        "stage": "Understand",
+        "description": "Consolidated metrics for BTCUSDT at price $0.00",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258105+00:00"
+      },
+      {
+        "stage": "Connect",
+        "description": "Queried Knowledge Graph 2.0; found 0 related entities",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258111+00:00"
+      },
+      {
+        "stage": "Trust",
+        "description": "Assessed system trust levels: score=0.85",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258139+00:00"
+      },
+      {
+        "stage": "Learn",
+        "description": "Extracted 0 past learning outcome insights",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258144+00:00"
+      },
+      {
+        "stage": "Calibrate",
+        "description": "Applied calibration scaling to confidence ratings",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258148+00:00"
+      },
+      {
+        "stage": "Decide",
+        "description": "Action recommendation formulated: APPROVE",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258154+00:00"
+      },
+      {
+        "stage": "Explain",
+        "description": "Synthesized explanation briefs and warnings",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258162+00:00"
+      },
+      {
+        "stage": "Remember",
+        "description": "Committed decision metadata and cognitive traces to memory index (ID: 2c67a4ae9f0066f8047fe903d4be10f13728d07d7c2474ac081dba5acc9f0c1b)",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258209+00:00"
+      },
+      {
+        "stage": "Improve",
+        "description": "Registered decision with learning loops for outcome auditing",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.258215+00:00"
+      }
+    ],
+    "created_at": "2026-07-28T07:39:50.258463+00:00",
+    "execution_status": "PENDING",
+    "outcome": null,
+    "evaluation": null
+  },
+  "5925adc1b72c505d204f8048603b93bf6c69d5427dd64c626a41b0b5131a37fc": {
+    "decision_id": "5925adc1b72c505d204f8048603b93bf6c69d5427dd64c626a41b0b5131a37fc",
+    "symbol": "ETHUSDT",
+    "side": "LONG",
+    "decision": "STRONG_APPROVE",
+    "confidence": 80.18,
+    "score": 0.7,
+    "risk_score": 0.0,
+    "request": {
+      "symbol": "ETHUSDT",
+      "side": "LONG",
+      "timeframe": "1h",
+      "price": 0.0,
+      "signals": []
+    },
+    "context_snapshot": {
+      "indicators": {
+        "final_score": 0.7,
+        "confidence": 84.4
+      },
+      "market_regime": {},
+      "trust_scores": {},
+      "risk_assessment": {
+        "risk_score": 0.0
+      }
+    },
+    "evidence": [
+      {
+        "source": "Indicators",
+        "metric_name": "final_score",
+        "metric_value": 0.7,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259548+00:00"
+      },
+      {
+        "source": "Indicators",
+        "metric_name": "confidence",
+        "metric_value": 84.4,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259553+00:00"
+      },
+      {
+        "source": "TrustEngine",
+        "metric_name": "trust_score",
+        "metric_value": 0.85,
+        "confidence": 1.0,
+        "trust_score": 1.0,
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259558+00:00"
+      }
+    ],
+    "reasoning": [
+      {
+        "step": "Reason",
+        "description": "Initial technical signal score evaluated at 0.70",
+        "impact": 0.7,
+        "status": "SUCCESS",
+        "timestamp": "2026-07-28T07:39:50.259541+00:00"
+      }
+    ],
+    "timeline": [
+      {
+        "stage": "Observe",
+        "description": "Received request to evaluate ETHUSDT LONG",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259521+00:00"
+      },
+      {
+        "stage": "Understand",
+        "description": "Consolidated metrics for ETHUSDT at price $0.00",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259528+00:00"
+      },
+      {
+        "stage": "Connect",
+        "description": "Queried Knowledge Graph 2.0; found 0 related entities",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259534+00:00"
+      },
+      {
+        "stage": "Trust",
+        "description": "Assessed system trust levels: score=0.85",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259563+00:00"
+      },
+      {
+        "stage": "Learn",
+        "description": "Extracted 0 past learning outcome insights",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259568+00:00"
+      },
+      {
+        "stage": "Calibrate",
+        "description": "Applied calibration scaling to confidence ratings",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259573+00:00"
+      },
+      {
+        "stage": "Decide",
+        "description": "Action recommendation formulated: STRONG_APPROVE",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259578+00:00"
+      },
+      {
+        "stage": "Explain",
+        "description": "Synthesized explanation briefs and warnings",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259586+00:00"
+      },
+      {
+        "stage": "Remember",
+        "description": "Committed decision metadata and cognitive traces to memory index (ID: 5925adc1b72c505d204f8048603b93bf6c69d5427dd64c626a41b0b5131a37fc)",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259630+00:00"
+      },
+      {
+        "stage": "Improve",
+        "description": "Registered decision with learning loops for outcome auditing",
+        "source": "DecisionKernel",
+        "details": {},
+        "timestamp": "2026-07-28T07:39:50.259636+00:00"
+      }
+    ],
+    "created_at": "2026-07-28T07:39:50.259880+00:00",
+    "execution_status": "PENDING",
+    "outcome": null,
+    "evaluation": null
+  }
+}

@@ -79,6 +79,7 @@ class TradeCandidate:
     signal: TradingSignal
     regime_context: Optional[dict[str, Any]] = None
     memory_context: Optional[dict[str, Any]] = None
+    decision_id: str = ""
 
 
 class DecisionPipeline:
@@ -225,11 +226,12 @@ class DecisionPipeline:
                 timeframe=signal.timeframe,
                 entry=self._optional_float(scores.get("entry")),
                 scores=scores,
-                confidence=float(decision_data.get("confidence", 0.0)),
+                confidence=float(kernel_result.confidence),
                 decision=decision,
                 signal=signal,
                 regime_context=regime_context,
                 memory_context=memory_context,
+                decision_id=kernel_result.decision_id,
             )
 
         except Exception as exc:

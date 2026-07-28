@@ -397,6 +397,36 @@ class PaperExecutor:
             self._realized_pnl[int(trade.id)] = pnl.realized_pnl or pnl.unrealized_pnl
             self._pnl_percentages[int(trade.id)] = pnl.pnl_percentage
 
+        # SPRINT 10: Outcome tracking and evaluation attachment
+        decision_id = getattr(trade, "exchange_order_id", None)
+        if decision_id:
+            from decision.kernel.DecisionLedger import DecisionLedger
+            from decision.kernel.DecisionEvaluator import DecisionEvaluator
+
+            ledger = DecisionLedger()
+            evaluator = DecisionEvaluator(ledger=ledger)
+
+            # Reconstruct duration
+            created = trade.created_at or datetime.now(timezone.utc)
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            duration_seconds = (datetime.now(timezone.utc) - created).total_seconds()
+
+            outcome = {
+                "pnl": pnl.unrealized_pnl,
+                "success": status == TP_HIT or pnl.unrealized_pnl > 0,
+                "duration_seconds": max(1.0, duration_seconds),
+                "max_drawdown": 0.0,
+                "max_profit": max(0.0, pnl.unrealized_pnl),
+                "exit_reason": close_reason,
+            }
+
+            ledger.attach_outcome(decision_id, outcome)
+            ledger.update_execution_status(decision_id, "COMPLETED")
+
+            # Auto evaluate and emit learning data
+            evaluator.evaluate(decision_id)
+
     def _close_status_for_price(self, trade: Trade, current_price: float) -> Optional[str]:
         side = self._normalize_side(str(trade.side))
         if trade.tp1 is None or trade.stop is None:
