@@ -206,3 +206,20 @@ def test_api_command_execution(api_client):
     resp = api_client.post("/ollo/os/command", json={"action": "compare_strategies", "params": {}})
     assert resp.status_code == 200
     assert "comparison" in resp.json()
+
+
+# ─── 8. Morning Command Center Briefing Tests ──────────────────────────────
+
+def test_morning_briefing_continuous_dialogue():
+    from services.ollo.ollo_service import OLLOService
+    from tests.test_ollo import MockAIService
+    mock_ai = MockAIService()
+    svc = OLLOService(ai_service=mock_ai)
+
+    # Run the intercepted morning query
+    resp = svc.query("What do I need to know today?")
+    assert resp.room == "command_deck"
+    assert resp.text.startswith("OLLO response:")
+    assert len(resp.sections) == 1
+    assert resp.sections[0]["heading"] == "Suggested Commands"
+    assert "Analyze BTC" in resp.sections[0]["bullets"]

@@ -83,6 +83,32 @@ class OLLOService:
 
     def query(self, query: str, room_id: str = "command_deck") -> OLLOResponse:
         start = time.perf_counter()
+        q_lower = query.lower()
+
+        # Intercept for Executive Morning Briefing workflow
+        if "what do i need to know today" in q_lower or "morning briefing" in q_lower or "morning brief" in q_lower:
+            briefing = self.briefing("morning", room_id=room_id)
+            return OLLOResponse(
+                text=briefing.text,
+                room=room_id,
+                provider=briefing.provider,
+                model=briefing.model,
+                duration_ms=(time.perf_counter() - start) * 1000,
+                tokens_in=briefing.tokens_in,
+                tokens_out=briefing.tokens_out,
+                sections=[
+                    {
+                        "heading": "Suggested Commands",
+                        "bullets": [
+                            "Analyze BTC",
+                            "Show Portfolio",
+                            "Replay Yesterday",
+                            "Open Risk Dashboard",
+                            "Show Watchlist"
+                        ]
+                    }
+                ]
+            )
 
         # 1. Update Ephemeral Context Manager from query
         from services.ollo.os import context_manager, memory_layer, intent_router, explainability_layer, command_system, conversation_timeline
