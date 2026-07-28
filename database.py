@@ -300,6 +300,107 @@ class DecisionExplanation(Base):
 
 
 # ------------------------------------------------------------------
+# LEARNING ENGINE TABLES
+# ------------------------------------------------------------------
+
+class LearningOutcome(Base):
+    __tablename__ = "learning_outcomes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    decision_id = Column(String(100), nullable=False, index=True)
+    strategy = Column(String(100))
+    advisor_set = Column(JSON, default=dict)
+    final_outcome = Column(String(30), nullable=False)  # e.g. "CORRECT", "INCORRECT", "PENDING"
+    pnl = Column(Float, default=0.0)
+    roi = Column(Float, default=0.0)
+    success_score = Column(Float, default=0.0)
+    time_horizon = Column(Float, default=0.0)  # in hours
+    confidence_at_decision = Column(Float, default=0.0)
+    trust_at_decision = Column(Float, default=0.0)
+    market_regime = Column(String(50), default="NORMAL")
+    replay_id = Column(String(100), default="INITIAL")
+    symbol = Column(String(20), nullable=False, index=True)
+    features = Column(JSON, default=dict)
+    timestamp = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+
+class LearningPattern(Base):
+    __tablename__ = "learning_patterns"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pattern_type = Column(String(30), nullable=False)  # "SUCCESS", "FAILURE"
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    historical_frequency = Column(Integer, default=0)
+    historical_precision = Column(Float, default=0.0)
+    supporting_decisions = Column(JSON, default=list)
+    supporting_events = Column(JSON, default=list)
+    related_graph_nodes = Column(JSON, default=list)
+    related_projections = Column(JSON, default=list)
+    confidence = Column(Float, default=0.0)
+    trust = Column(Float, default=0.0)
+    conditions = Column(JSON, default=dict)
+    replay_id = Column(String(100), default="INITIAL", index=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        onupdate=func.now(),
+    )
+
+
+class AdvisorWeightHistory(Base):
+    __tablename__ = "advisor_weight_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    advisor_name = Column(String(50), nullable=False, index=True)
+    old_weight = Column(Float, nullable=False)
+    new_weight = Column(Float, nullable=False)
+    pnl_impact = Column(Float, default=0.0)
+    reason = Column(Text)
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+
+class AdvisorLearningHistory(Base):
+    __tablename__ = "advisor_learning_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    advisor_name = Column(String(50), nullable=False, index=True)
+    win_rate = Column(Float, default=0.0)
+    historical_accuracy = Column(Float, default=0.0)
+    precision = Column(Float, default=0.0)
+    recall = Column(Float, default=0.0)
+    average_confidence = Column(Float, default=0.0)
+    calibration_trend = Column(JSON, default=list)  # list of historical calibration datapoints
+    weight_evolution = Column(JSON, default=list)  # list of historical weight evolution datapoints
+    learning_timeline = Column(JSON, default=list)  # advisor specific timeline entries
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+
+class LearningHistoryEntry(Base):
+    __tablename__ = "learning_history_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)  # "WEIGHT_UPDATE", "PATTERN_DETECTED", "OUTCOME_ANALYZED", "REPLAY_COMPLETED"
+    description = Column(Text, nullable=False)
+    timestamp = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+
+# ------------------------------------------------------------------
 # TRADE STATUS CONSTANTS
 # ------------------------------------------------------------------
 
@@ -317,9 +418,24 @@ PARTIALLY_FILLED = "PARTIALLY_FILLED"
 
 ORDER_STATUSES = frozenset({PENDING, FILLED, PARTIALLY_FILLED, CANCEL})
 TRADE_STATUSES = frozenset({OPEN, TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
-FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED, CANCEL})
+FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED})
 ORDER_FINAL_STATUSES = frozenset({FILLED, CANCEL})
 TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
+
+from contextlib import contextmanager
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = get_session()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 # ------------------------------------------------------------------
 # HELPERS

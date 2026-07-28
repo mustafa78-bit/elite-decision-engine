@@ -134,9 +134,16 @@ def db_session(session_factory, monkeypatch):
     The session is bound to the outer transaction managed by
     ``db_connection``, so all changes are rolled back automatically.
     """
+    import sys
     monkeypatch.setattr("database.get_session", session_factory)
     monkeypatch.setattr("execution.trade_engine.get_session", session_factory)
     monkeypatch.setattr("core.engine.get_session", session_factory)
+
+    # Dynamically patch get_session across all currently loaded modules
+    for mod_name in list(sys.modules.keys()):
+        mod = sys.modules[mod_name]
+        if hasattr(mod, "get_session") and mod_name != "database":
+            mod.get_session = session_factory
 
     session = session_factory()
     yield session
@@ -173,6 +180,12 @@ def api_client(session_factory, monkeypatch):
 
     from api.main import app
     from auth.jwt import create_access_token
+
+    # Re-apply patching after importing api.main to ensure all dynamically loaded route modules are caught
+    for mod_name in list(sys.modules.keys()):
+        mod = sys.modules[mod_name]
+        if hasattr(mod, "get_session") and mod_name != "database":
+            mod.get_session = session_factory
 
     token = create_access_token({"sub": "1", "username": "test"})
     client = TestClient(app)
