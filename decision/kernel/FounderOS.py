@@ -172,7 +172,20 @@ class FounderOS:
     # --- Core Executive Query APIs ---
 
     def query(self, question_key: str) -> dict[str, Any]:
-        """Instantly answer the 10 key executive questions."""
+        """Instantly answer the 10 key executive questions and SPRINT 11 Founder Workflows."""
+
+        # Check if query is a natural language Turkish or English greeting/summary request
+        norm_q = question_key.lower().strip().replace("?", "").replace(".", "")
+        if "özetle" in norm_q or "what should i know" in norm_q or "know today" in norm_q or "good morning" in norm_q or "günaydın" in norm_q:
+            brief = self.generate_brief()
+            answer = f"{brief.executive_summary}\n\n**Market Structure:** {brief.market_summary}\n\n**Portfolio Allocation:** {brief.portfolio_summary}\n\n**Learning Summary:** {brief.learning_summary}\n\n**Calibration:** {brief.calibration_summary}"
+            return {
+                "question": question_key,
+                "answer": answer,
+                "actionability": "Review pending recommended actions: " + ", ".join(brief.recommended_actions),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
         q_map = {
             "what_changed_overnight": {
                 "answer": "Market regime shifted to a highly focused Bullish mode. Whale derivative funding turned slightly premium. Replaced 2 defensive trailing stop limits.",

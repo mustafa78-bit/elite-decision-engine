@@ -86,6 +86,38 @@
         "symbol": "ETH"
       },
       "recorded_at": "2026-07-28T07:39:50.067706+00:00"
+    },
+    {
+      "action": "OLLO Query: NEXUS, bug\u00fcn piyasada bilmem gereken her \u015feyi \u00f6zetle.",
+      "result": "INSTANT_EXECUTIVE_MATCH",
+      "recorded_at": "2026-07-28T08:41:17.524308+00:00"
+    },
+    {
+      "action": "OLLO Query: What should I know today?",
+      "result": "INSTANT_EXECUTIVE_MATCH",
+      "recorded_at": "2026-07-28T08:41:17.525620+00:00"
+    },
+    {
+      "action": "Query: What deserves attention?",
+      "response_snippet": "A cluster of 4 whales entered spot bids for BTC. This corresponds to the historic 'High Volume Conso",
+      "recorded_at": "2026-07-28T08:42:06.802882+00:00"
+    },
+    {
+      "action_type": "MANUAL_REJECT",
+      "details": {
+        "symbol": "ETH"
+      },
+      "recorded_at": "2026-07-28T08:42:06.811038+00:00"
+    },
+    {
+      "action": "OLLO Query: NEXUS, bug\u00fcn piyasada bilmem gereken her \u015feyi \u00f6zetle.",
+      "result": "INSTANT_EXECUTIVE_MATCH",
+      "recorded_at": "2026-07-28T08:42:07.092444+00:00"
+    },
+    {
+      "action": "OLLO Query: What should I know today?",
+      "result": "INSTANT_EXECUTIVE_MATCH",
+      "recorded_at": "2026-07-28T08:42:07.093215+00:00"
     }
   ]
 }

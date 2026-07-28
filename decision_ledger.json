@@ -38,7 +38,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949698+00:00"
+        "timestamp": "2026-07-28T08:42:06.653051+00:00"
       },
       {
         "source": "Indicators",
@@ -47,7 +47,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949705+00:00"
+        "timestamp": "2026-07-28T08:42:06.653058+00:00"
       },
       {
         "source": "Indicators",
@@ -56,7 +56,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949710+00:00"
+        "timestamp": "2026-07-28T08:42:06.653063+00:00"
       },
       {
         "source": "TrustEngine",
@@ -65,7 +65,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949715+00:00"
+        "timestamp": "2026-07-28T08:42:06.653069+00:00"
       }
     ],
     "reasoning": [
@@ -74,7 +74,7 @@
         "description": "Initial technical signal score evaluated at 0.82",
         "impact": 0.82,
         "status": "SUCCESS",
-        "timestamp": "2026-07-28T07:39:49.949681+00:00"
+        "timestamp": "2026-07-28T08:42:06.653040+00:00"
       }
     ],
     "timeline": [
@@ -83,73 +83,73 @@
         "description": "Received request to evaluate ETHUSDT LONG",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949645+00:00"
+        "timestamp": "2026-07-28T08:42:06.652946+00:00"
       },
       {
         "stage": "Understand",
         "description": "Consolidated metrics for ETHUSDT at price $3000.00",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949664+00:00"
+        "timestamp": "2026-07-28T08:42:06.652969+00:00"
       },
       {
         "stage": "Connect",
         "description": "Queried Knowledge Graph 2.0; found 0 related entities",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949672+00:00"
+        "timestamp": "2026-07-28T08:42:06.653025+00:00"
       },
       {
         "stage": "Trust",
         "description": "Assessed system trust levels: score=0.90",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949726+00:00"
+        "timestamp": "2026-07-28T08:42:06.653128+00:00"
       },
       {
         "stage": "Learn",
         "description": "Extracted 1 past learning outcome insights",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949735+00:00"
+        "timestamp": "2026-07-28T08:42:06.653140+00:00"
       },
       {
         "stage": "Calibrate",
         "description": "Applied calibration scaling to confidence ratings",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949739+00:00"
+        "timestamp": "2026-07-28T08:42:06.653146+00:00"
       },
       {
         "stage": "Decide",
         "description": "Action recommendation formulated: STRONG_APPROVE",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949747+00:00"
+        "timestamp": "2026-07-28T08:42:06.653156+00:00"
       },
       {
         "stage": "Explain",
         "description": "Synthesized explanation briefs and warnings",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949760+00:00"
+        "timestamp": "2026-07-28T08:42:06.653168+00:00"
       },
       {
         "stage": "Remember",
         "description": "Committed decision metadata and cognitive traces to memory index (ID: 88f454c2c3b3d22c9db186a2096db4bf9946a461a62533cd1656bfdcf6ed101d)",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949860+00:00"
+        "timestamp": "2026-07-28T08:42:06.653358+00:00"
       },
       {
         "stage": "Improve",
         "description": "Registered decision with learning loops for outcome auditing",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:49.949867+00:00"
+        "timestamp": "2026-07-28T08:42:06.653369+00:00"
       }
     ],
-    "created_at": "2026-07-28T07:39:49.949954+00:00",
+    "created_at": "2026-07-28T08:42:06.654121+00:00",
     "execution_status": "PENDING",
     "outcome": null,
     "evaluation": null
@@ -190,7 +190,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249164+00:00"
+        "timestamp": "2026-07-28T08:42:07.027512+00:00"
       },
       {
         "source": "Indicators",
@@ -199,7 +199,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249169+00:00"
+        "timestamp": "2026-07-28T08:42:07.027518+00:00"
       },
       {
         "source": "TrustEngine",
@@ -208,7 +208,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249174+00:00"
+        "timestamp": "2026-07-28T08:42:07.027524+00:00"
       }
     ],
     "reasoning": [
@@ -217,7 +217,7 @@
         "description": "Initial technical signal score evaluated at 0.75",
         "impact": 0.75,
         "status": "SUCCESS",
-        "timestamp": "2026-07-28T07:39:50.249155+00:00"
+        "timestamp": "2026-07-28T08:42:07.027501+00:00"
       }
     ],
     "timeline": [
@@ -226,73 +226,73 @@
         "description": "Received request to evaluate BTCUSDT LONG",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249122+00:00"
+        "timestamp": "2026-07-28T08:42:07.027455+00:00"
       },
       {
         "stage": "Understand",
         "description": "Consolidated metrics for BTCUSDT at price $0.00",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249137+00:00"
+        "timestamp": "2026-07-28T08:42:07.027477+00:00"
       },
       {
         "stage": "Connect",
         "description": "Queried Knowledge Graph 2.0; found 0 related entities",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249145+00:00"
+        "timestamp": "2026-07-28T08:42:07.027488+00:00"
       },
       {
         "stage": "Trust",
         "description": "Assessed system trust levels: score=0.85",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249179+00:00"
+        "timestamp": "2026-07-28T08:42:07.027530+00:00"
       },
       {
         "stage": "Learn",
         "description": "Extracted 0 past learning outcome insights",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249184+00:00"
+        "timestamp": "2026-07-28T08:42:07.027536+00:00"
       },
       {
         "stage": "Calibrate",
         "description": "Applied calibration scaling to confidence ratings",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249189+00:00"
+        "timestamp": "2026-07-28T08:42:07.027543+00:00"
       },
       {
         "stage": "Decide",
         "description": "Action recommendation formulated: STRONG_APPROVE",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249196+00:00"
+        "timestamp": "2026-07-28T08:42:07.027552+00:00"
       },
       {
         "stage": "Explain",
         "description": "Synthesized explanation briefs and warnings",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249204+00:00"
+        "timestamp": "2026-07-28T08:42:07.027561+00:00"
       },
       {
         "stage": "Remember",
         "description": "Committed decision metadata and cognitive traces to memory index (ID: c0a6106656399ef14b201a4454053b1b51a719f6c651bb26db0ecdbc1b9ff0b6)",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249272+00:00"
+        "timestamp": "2026-07-28T08:42:07.027692+00:00"
       },
       {
         "stage": "Improve",
         "description": "Registered decision with learning loops for outcome auditing",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.249277+00:00"
+        "timestamp": "2026-07-28T08:42:07.027701+00:00"
       }
     ],
-    "created_at": "2026-07-28T07:39:50.249560+00:00",
+    "created_at": "2026-07-28T08:42:07.028445+00:00",
     "execution_status": "PENDING",
     "outcome": null,
     "evaluation": null
@@ -331,7 +331,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258125+00:00"
+        "timestamp": "2026-07-28T08:42:07.039627+00:00"
       },
       {
         "source": "Indicators",
@@ -340,7 +340,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258130+00:00"
+        "timestamp": "2026-07-28T08:42:07.039633+00:00"
       },
       {
         "source": "TrustEngine",
@@ -349,7 +349,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258134+00:00"
+        "timestamp": "2026-07-28T08:42:07.039637+00:00"
       }
     ],
     "reasoning": [
@@ -358,7 +358,7 @@
         "description": "Initial technical signal score evaluated at 0.70",
         "impact": 0.7,
         "status": "SUCCESS",
-        "timestamp": "2026-07-28T07:39:50.258118+00:00"
+        "timestamp": "2026-07-28T08:42:07.039618+00:00"
       }
     ],
     "timeline": [
@@ -367,73 +367,73 @@
         "description": "Received request to evaluate BTCUSDT LONG",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258099+00:00"
+        "timestamp": "2026-07-28T08:42:07.039594+00:00"
       },
       {
         "stage": "Understand",
         "description": "Consolidated metrics for BTCUSDT at price $0.00",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258105+00:00"
+        "timestamp": "2026-07-28T08:42:07.039601+00:00"
       },
       {
         "stage": "Connect",
         "description": "Queried Knowledge Graph 2.0; found 0 related entities",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258111+00:00"
+        "timestamp": "2026-07-28T08:42:07.039608+00:00"
       },
       {
         "stage": "Trust",
         "description": "Assessed system trust levels: score=0.85",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258139+00:00"
+        "timestamp": "2026-07-28T08:42:07.039643+00:00"
       },
       {
         "stage": "Learn",
         "description": "Extracted 0 past learning outcome insights",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258144+00:00"
+        "timestamp": "2026-07-28T08:42:07.039648+00:00"
       },
       {
         "stage": "Calibrate",
         "description": "Applied calibration scaling to confidence ratings",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258148+00:00"
+        "timestamp": "2026-07-28T08:42:07.039654+00:00"
       },
       {
         "stage": "Decide",
         "description": "Action recommendation formulated: APPROVE",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258154+00:00"
+        "timestamp": "2026-07-28T08:42:07.039661+00:00"
       },
       {
         "stage": "Explain",
         "description": "Synthesized explanation briefs and warnings",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258162+00:00"
+        "timestamp": "2026-07-28T08:42:07.039671+00:00"
       },
       {
         "stage": "Remember",
         "description": "Committed decision metadata and cognitive traces to memory index (ID: 2c67a4ae9f0066f8047fe903d4be10f13728d07d7c2474ac081dba5acc9f0c1b)",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258209+00:00"
+        "timestamp": "2026-07-28T08:42:07.039738+00:00"
       },
       {
         "stage": "Improve",
         "description": "Registered decision with learning loops for outcome auditing",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.258215+00:00"
+        "timestamp": "2026-07-28T08:42:07.039744+00:00"
       }
     ],
-    "created_at": "2026-07-28T07:39:50.258463+00:00",
+    "created_at": "2026-07-28T08:42:07.040500+00:00",
     "execution_status": "PENDING",
     "outcome": null,
     "evaluation": null
@@ -472,7 +472,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259548+00:00"
+        "timestamp": "2026-07-28T08:42:07.042575+00:00"
       },
       {
         "source": "Indicators",
@@ -481,7 +481,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259553+00:00"
+        "timestamp": "2026-07-28T08:42:07.042580+00:00"
       },
       {
         "source": "TrustEngine",
@@ -490,7 +490,7 @@
         "confidence": 1.0,
         "trust_score": 1.0,
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259558+00:00"
+        "timestamp": "2026-07-28T08:42:07.042585+00:00"
       }
     ],
     "reasoning": [
@@ -499,7 +499,7 @@
         "description": "Initial technical signal score evaluated at 0.70",
         "impact": 0.7,
         "status": "SUCCESS",
-        "timestamp": "2026-07-28T07:39:50.259541+00:00"
+        "timestamp": "2026-07-28T08:42:07.042566+00:00"
       }
     ],
     "timeline": [
@@ -508,73 +508,73 @@
         "description": "Received request to evaluate ETHUSDT LONG",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259521+00:00"
+        "timestamp": "2026-07-28T08:42:07.042543+00:00"
       },
       {
         "stage": "Understand",
         "description": "Consolidated metrics for ETHUSDT at price $0.00",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259528+00:00"
+        "timestamp": "2026-07-28T08:42:07.042550+00:00"
       },
       {
         "stage": "Connect",
         "description": "Queried Knowledge Graph 2.0; found 0 related entities",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259534+00:00"
+        "timestamp": "2026-07-28T08:42:07.042557+00:00"
       },
       {
         "stage": "Trust",
         "description": "Assessed system trust levels: score=0.85",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259563+00:00"
+        "timestamp": "2026-07-28T08:42:07.042590+00:00"
       },
       {
         "stage": "Learn",
         "description": "Extracted 0 past learning outcome insights",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259568+00:00"
+        "timestamp": "2026-07-28T08:42:07.042596+00:00"
       },
       {
         "stage": "Calibrate",
         "description": "Applied calibration scaling to confidence ratings",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259573+00:00"
+        "timestamp": "2026-07-28T08:42:07.042601+00:00"
       },
       {
         "stage": "Decide",
         "description": "Action recommendation formulated: STRONG_APPROVE",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259578+00:00"
+        "timestamp": "2026-07-28T08:42:07.042607+00:00"
       },
       {
         "stage": "Explain",
         "description": "Synthesized explanation briefs and warnings",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259586+00:00"
+        "timestamp": "2026-07-28T08:42:07.042617+00:00"
       },
       {
         "stage": "Remember",
         "description": "Committed decision metadata and cognitive traces to memory index (ID: 5925adc1b72c505d204f8048603b93bf6c69d5427dd64c626a41b0b5131a37fc)",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259630+00:00"
+        "timestamp": "2026-07-28T08:42:07.042752+00:00"
       },
       {
         "stage": "Improve",
         "description": "Registered decision with learning loops for outcome auditing",
         "source": "DecisionKernel",
         "details": {},
-        "timestamp": "2026-07-28T07:39:50.259636+00:00"
+        "timestamp": "2026-07-28T08:42:07.042761+00:00"
       }
     ],
-    "created_at": "2026-07-28T07:39:50.259880+00:00",
+    "created_at": "2026-07-28T08:42:07.043247+00:00",
     "execution_status": "PENDING",
     "outcome": null,
     "evaluation": null

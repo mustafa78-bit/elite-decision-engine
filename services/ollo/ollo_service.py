@@ -89,7 +89,7 @@ class OLLOService:
         start = time.perf_counter()
         profile = get_profile(room_id)
 
-        # Check if query matches a core executive question from FounderOS
+        # Check if query matches a core executive question from FounderOS or SPRINT 11
         KNOWN_EXECUTIVE_KEYS = {
             "what_changed_overnight",
             "what_deserves_attention",
@@ -103,7 +103,9 @@ class OLLOService:
             "what_should_i_absolutely_avoid_today",
         }
         norm_key = query.lower().replace("?", "").replace(" ", "_").replace("'", "")
-        if norm_key in KNOWN_EXECUTIVE_KEYS:
+        is_executive = (norm_key in KNOWN_EXECUTIVE_KEYS) or any(k in norm_key for k in ("özetle", "know_today", "good_morning", "günaydın"))
+
+        if is_executive:
             fos = FounderOS()
             executive_ans = fos.query(query)
 
