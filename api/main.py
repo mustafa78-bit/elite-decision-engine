@@ -37,6 +37,9 @@ from api.routes.market_live import router as market_live_router
 from api.routes.open_interest import router as open_interest_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
+from api.routes.nexus_os import router as nexus_os_router
+from api.routes.ollo import router as ollo_router
+from api.routes.paper import router as paper_router
 from api.routes.paper_trading import router as paper_trading_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
@@ -168,6 +171,9 @@ app.include_router(market_live_router)
 app.include_router(open_interest_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
+app.include_router(nexus_os_router)
+app.include_router(ollo_router)
+app.include_router(paper_router)
 app.include_router(paper_trading_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
@@ -294,6 +300,17 @@ async def ws_preferences(websocket: WebSocket) -> None:
         await manager.disconnect(websocket)
         raise
 
+
+_ollo_service: Optional = None
+
+try:
+    from services.ai.provider_factory import create_ai_service
+    from services.ollo.ollo_service import OLLOService
+    _ai_svc = create_ai_service()
+    _ollo_service = OLLOService(ai_service=_ai_svc)
+    logger.info("OLLO / NEXUS OS Service initialized successfully.")
+except Exception as e:
+    logger.warning("OLLO / NEXUS OS Service initialization failed: %s", e)
 
 _evidence_engine: Optional = None
 

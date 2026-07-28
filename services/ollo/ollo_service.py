@@ -83,14 +83,60 @@ class OLLOService:
 
     def query(self, query: str, room_id: str = "command_deck") -> OLLOResponse:
         start = time.perf_counter()
+
+        # 1. Update Ephemeral Context Manager from query
+        from services.ollo.os import context_manager, memory_layer, intent_router, explainability_layer, command_system, conversation_timeline
+        context_manager.update_from_query(query)
+        active_context = context_manager.to_dict()
+
+        # 2. Retrieve Permanent Concept Memories
+        permanent_memories = memory_layer.memory.to_dict()
+
+        # 3. Route & Dispatch Matched Tools
+        dispatch_result = intent_router.dispatch(query)
+        intent = dispatch_result["intent"]
+        tool_outputs = dispatch_result["tool_outputs"]
+
+        # 4. Generate Structured Explanation Grounded in Structured Data
+        signal_id = None
+        for to in tool_outputs:
+            if to["tool"] == "Market Scanner" and to["output"].get("success"):
+                signals = to["output"]["data"].get("signals", [])
+                if signals:
+                    signal_id = signals[0].get("id")
+        explanation = explainability_layer.generate_explanation(
+            signal_id=signal_id,
+            raw_evidence={"reasons": [to["tool"] for to in tool_outputs] if tool_outputs else None}
+        )
+
+        # 5. Create Executable Operating System Command
+        cmd = command_system.create_command(query)
+        action_dict = cmd.to_dict() if cmd else None
+
+        # 6. Record interaction in Cognitive Conversation Timeline
+        conversation_timeline.add_entry(
+            conversation=query,
+            intent=intent,
+            decision=explanation,
+            action=action_dict,
+            outcome=dispatch_result,
+            signal_id=signal_id,
+        )
+
+        # 7. Formulate rich final prompt with prompt context
         profile = get_profile(room_id)
-        plan = self._planner.plan_query(room_id, query)
-        context = self._context.build(plan.context_keys, room=room_id)
-
-        from services.ollo.prompts.rooms import room_query
-
         system_prompt = _profile_prompt(profile)
-        user_prompt = room_query(room_id, context.to_dict(), query)
+        user_prompt = f"""[NEXUS COGNITIVE OS CONTEXT]
+Active Ephemeral Context: {active_context}
+Permanent Concept Memories: {permanent_memories}
+Resolved Intent: {intent}
+Executed Tools Outputs: {tool_outputs}
+Grounded Structured Explanation: {explanation}
+Generated System Action: {action_dict}
+
+User Query: {query}
+
+Synthesize a professional and cohesive Chief Investment Officer statement referencing this verified context. Do not invent any data."""
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -98,17 +144,12 @@ class OLLOService:
         ]
 
         logger.info(
-            "OLLO query | room=%s | profile=%s | context=%s | query_len=%s",
-            room_id, profile.room_id, context.summary_line(), len(query),
+            "NEXUS OS query | room=%s | intent=%s | tools=%s",
+            room_id, intent, [to["tool"] for to in tool_outputs],
         )
 
         result = self._ai.chat(messages)
         elapsed = (time.perf_counter() - start) * 1000
-
-        logger.info(
-            "OLLO query result | room=%s | duration_ms=%s | tokens_in=%s | tokens_out=%s | retries=%s",
-            room_id, round(elapsed, 2), result.tokens_in, result.tokens_out, result.retries,
-        )
 
         self._memory.record_recommendation(query, room_id, result.content)
 
@@ -121,6 +162,17 @@ class OLLOService:
             tokens_in=result.tokens_in,
             tokens_out=result.tokens_out,
         )
+
+        # Attach custom OS metadata for API discoverability
+        response.sections.append({
+            "heading": "NEXUS OS Metadata",
+            "bullets": [
+                f"Intent: {intent}",
+                f"Context: {active_context}",
+                f"Action: {action_dict.get('description') if action_dict else 'None'}",
+                f"Confidence: {explanation.get('confidence')}",
+            ]
+        })
 
         return response
 

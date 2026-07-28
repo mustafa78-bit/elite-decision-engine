@@ -1,0 +1,46 @@
+{
+  "founder_preferences": {
+    "name": "Senior Partner",
+    "favorite_markets": [
+      "BTC",
+      "ETH",
+      "SOL"
+    ],
+    "ui_layout": "Command Deck"
+  },
+  "risk_preferences": {
+    "risk_profile": "moderate",
+    "max_exposure_limit": 50000.0,
+    "max_daily_loss_limit": 500.0
+  },
+  "strategy_preferences": {
+    "preferred_strategies": [
+      "ema_cross",
+      "breakout"
+    ],
+    "favorite_indicators": [
+      "EMA",
+      "RSI",
+      "ATR"
+    ],
+    "default_timeframe": "1h"
+  },
+  "observed_behaviors": [
+    "Prefers entering positions during high volatility regimes.",
+    "Tends to monitor open trades more heavily during weekends."
+  ],
+  "repeated_mistakes": [
+    "Entering trades without waiting for BTC health validation.",
+    "Widening stop losses on short-term trend reversals.",
+    "Failing to wait for candle close",
+    "Over-leveraging on highly volatile breakout attempts."
+  ],
+  "successful_patterns": [
+    "Strictly taking profit at predetermined TP1 and TP2 levels.",
+    "De-risking portfolio when market regime transitions to highly volatile/bearish."
+  ],
+  "long_term_objectives": {
+    "monthly_return_target_pct": 10.0,
+    "max_drawdown_tolerance_pct": 5.0
+  }
+}
