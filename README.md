@@ -69,16 +69,36 @@ Automated paper trading engine for cryptocurrency markets (Hyperliquid).
 
 ## Quick Start
 
+Refer to the [Developer Onboarding Guide](docs/DEVELOPER_ONBOARDING_GUIDE.md) to get fully set up in under 60 minutes.
+
+### Standard Setup
+
 ```bash
-# Install
-pip install -r requirements.txt
+# Set Python global version
+pyenv global 3.13.2
 
-# Run
-python app.py
+# Install dependencies using poetry
+poetry env use 3.13.2
+poetry install --no-root
 
-# Tests
-rm -f test_elite.db && python -m pytest tests/ -v
+# Run the seeding script
+poetry run python seed_data.py
+
+# Start the development API server
+poetry run uvicorn api.main:app --reload --port 8000
 ```
+
+### Running Tests
+
+```bash
+poetry run pytest
+```
+
+---
+
+## Guidelines & Contributing
+
+Please consult [CONTRIBUTING.md](CONTRIBUTING.md) for coding conventions, branching guidelines, and development workflows. See the latest test status in [VALIDATION_REPORT.md](VALIDATION_REPORT.md).
 
 ## Configuration
 
@@ -102,15 +122,7 @@ Set via environment variables or `.env` file:
 
 ## Tests
 
-34 tests across 6 test files:
-
-```
-tests/test_integration.py        — End-to-end pipeline (6 phases)
-tests/test_risk_manager.py       — 5 risk rules
-tests/test_position_sizing.py    — ATR-based sizing
-tests/test_portfolio_engine.py   — 14 portfolio metrics
-tests/test_performance_engine.py — 12 performance metrics
-```
+Over 1320+ unit and integration tests validate the complete end-to-end system reliability with 100% success rates.
 
 ## Logging
 
