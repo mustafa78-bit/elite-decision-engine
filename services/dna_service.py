@@ -77,7 +77,8 @@ class DecisionDNAService:
                     session.flush()
 
             # Analyze Trades
-            trades = session.query(Trade).all() # Simplification for mock/test scoped DB
+            # Note: Trades do not have user_id columns in this single-user architecture, so we query them globally.
+            trades = session.query(Trade).all()
             closed_trades = [t for t in trades if t.status in ["CLOSED", "TP_HIT", "SL_HIT"]]
 
             wins = len([t for t in closed_trades if t.pnl and t.pnl > 0])
@@ -100,6 +101,7 @@ class DecisionDNAService:
                 profile.average_holding_duration_seconds = round(sum(durations) / len(durations), 1)
 
             # Signals to determine strategy preference
+            # Note: Signals do not have user_id columns in this single-user architecture, so we query them globally.
             signals = session.query(Signal).all()
             strategies = set()
             for s in signals:

@@ -67,6 +67,7 @@ class CognitiveBiasService:
                     detected.append(bias)
 
             # 2. Revenge Trading Detector
+            # Note: Trades do not have user_id columns in this single-user architecture, so we query them globally.
             if trade.created_at:
                 past_trades = (
                     session.query(Trade)
