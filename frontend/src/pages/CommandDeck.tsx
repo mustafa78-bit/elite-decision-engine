@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
+import { useNavigate } from "react-router-dom"
 import { useSubsystems } from "../hooks/useSubsystems"
 import { computeMissionStatus } from "../types/mission"
 import OLLOCommander from "../components/hq/OLLOCommander"
@@ -60,6 +61,7 @@ function ProgressLine({ value, label, color }: { value: number; label: string; c
 }
 
 export default function CommandDeck() {
+  const navigate = useNavigate()
   const [showLoading, setShowLoading] = useState(true)
 
   const {
@@ -294,6 +296,29 @@ export default function CommandDeck() {
           <div className="hq-section">
             <div className="max-w-2xl mx-auto">
               <MissionFlow nodes={flowNodes} />
+            </div>
+          </div>
+
+          {/* Decision Transition Card */}
+          <div className="max-w-xl mx-auto px-4 pb-12">
+            <div className="border border-[var(--accent-blue)]/20 bg-[var(--accent-blue)]/5 rounded-xl p-6 space-y-4 shadow-[0_0_20px_rgba(79,140,255,0.05)]">
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-[var(--accent-blue)] uppercase tracking-widest font-mono block">
+                  Next Decision Phase
+                </span>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                  Ready to evaluate today's highest-priority opportunities?
+                </h3>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Identify the best candidates for deeper analysis.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/scanner")}
+                className="w-full sm:w-auto px-4 py-2 bg-[var(--accent-blue)] hover:bg-[var(--accent-blue)]/90 text-white rounded-lg text-xs font-semibold font-mono tracking-wider uppercase transition-all shadow-[0_0_12px_rgba(79,140,255,0.2)]"
+              >
+                Review Opportunities →
+              </button>
             </div>
           </div>
         </div>

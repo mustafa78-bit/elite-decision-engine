@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "../components/ui/button";
 
 import type { PaperTradingData } from "../api/paper";
 import { fetchPaperTrading } from "../api/paper";
@@ -8,6 +10,7 @@ import PaperPerformanceCard from "../components/paper/PaperPerformanceCard";
 import PaperPositionTable from "../components/paper/PaperPositionTable";
 
 export default function PaperTrading() {
+  const navigate = useNavigate();
   const [data, setData] = useState<PaperTradingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +77,30 @@ export default function PaperTrading() {
 
       <PaperPositionTable trades={data.open} title="Open Trades" />
       <PaperPositionTable trades={data.closed} title="Closed Trades" />
+
+      {/* Decision Transition Card */}
+      <div className="pt-6">
+        <div className="border border-[var(--accent-blue)]/20 bg-[var(--accent-blue)]/5 rounded-xl p-6 space-y-4 shadow-[0_0_20px_rgba(79,140,255,0.05)]">
+          <div className="space-y-1">
+            <span className="text-[9px] font-bold text-[var(--accent-blue)] uppercase tracking-widest font-mono block">
+              Next Decision Phase
+            </span>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              Position executed or closed?
+            </h3>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Capture the reasoning behind today's decision to improve future performance.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={() => navigate("/journal")}
+            className="font-bold font-mono tracking-wider uppercase"
+          >
+            Record Your Thinking →
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -15,7 +15,7 @@ Usage:
 import os
 
 os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production")
-os.environ.setdefault("API_ENV", "test")
+os.environ["API_ENV"] = "test"
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -172,6 +172,12 @@ def api_client(session_factory, monkeypatch):
             mod.get_session = session_factory
 
     from api.main import app
+
+    for mod_name in list(sys.modules.keys()):
+        mod = sys.modules[mod_name]
+        if hasattr(mod, "get_session") and mod_name != "database":
+            mod.get_session = session_factory
+
     from auth.jwt import create_access_token
 
     token = create_access_token({"sub": "1", "username": "test"})

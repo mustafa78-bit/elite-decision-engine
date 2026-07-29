@@ -68,7 +68,7 @@ if not DATABASE_URL:
     )
 
 DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
 CORS_ORIGIN_REGEX = os.getenv("CORS_ORIGIN_REGEX", r"^https?://localhost(:\d+)?$")
 
 # Scoring weights for the composite pipeline score (must sum to 1.0)
