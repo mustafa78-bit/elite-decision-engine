@@ -65,6 +65,7 @@ from api.routes.counterfactuals import router as counterfactuals_router
 from api.routes.coaching import router as coaching_router
 from api.routes.market_memory import router as market_memory_router
 from api.routes.strategic_intelligence import router as strategic_intelligence_router
+from api.routes.autonomous import router as autonomous_router
 from api.routes.scanner import router as scanner_router
 from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
@@ -206,6 +207,7 @@ app.include_router(counterfactuals_router)
 app.include_router(coaching_router)
 app.include_router(market_memory_router)
 app.include_router(strategic_intelligence_router)
+app.include_router(autonomous_router)
 app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
