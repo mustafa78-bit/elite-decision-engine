@@ -1,4 +1,5 @@
 import logging
+from contextlib import contextmanager
 
 from sqlalchemy import (
     create_engine,
@@ -70,6 +71,40 @@ class Signal(Base):
     status = Column(String(30), default="OPEN")
 
     reason = Column(Text)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+
+# ------------------------------------------------------------------
+# DECISION MEMORY TABLE
+# ------------------------------------------------------------------
+
+
+class DecisionMemory(Base):
+    __tablename__ = "decision_memories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    decision_id = Column(String(50), unique=True, index=True, nullable=False)
+    signal_id = Column(Integer, nullable=True, index=True)
+    trade_id = Column(Integer, nullable=True, index=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    side = Column(String(10), nullable=False)
+    timeframe = Column(String(10), nullable=True)
+
+    # DNA Snapshot features: e.g., trend_score, btc_score, risk_score, confidence, final_score
+    decision_dna = Column(JSON, default=dict)
+
+    # Context features: e.g. price, ohlcv, volatility, indicators, regime
+    context = Column(JSON, default=dict)
+
+    # Reasons: list of strings representing reasoning chains
+    reasoning_chain = Column(JSON, default=list)
+
+    # Actual outcome, e.g. result: WIN/LOSS, pnl, exit_price, duration_seconds
+    outcome = Column(JSON, default=dict)
 
     created_at = Column(
         DateTime(timezone=True),
@@ -317,7 +352,7 @@ PARTIALLY_FILLED = "PARTIALLY_FILLED"
 
 ORDER_STATUSES = frozenset({PENDING, FILLED, PARTIALLY_FILLED, CANCEL})
 TRADE_STATUSES = frozenset({OPEN, TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
-FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED, CANCEL})
+FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED})
 ORDER_FINAL_STATUSES = frozenset({FILLED, CANCEL})
 TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
@@ -327,6 +362,20 @@ TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
 def get_session():
     return SessionLocal()
+
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def create_tables():
