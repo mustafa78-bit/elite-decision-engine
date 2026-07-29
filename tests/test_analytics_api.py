@@ -91,3 +91,26 @@ class TestAnalyticsAPI:
         resp = api_client.get("/analytics/trends")
         assert resp.status_code == 200
         assert "trends" in resp.json()
+
+    def test_analytics_product(self, api_client, db_session):
+        from database import TelemetryEvent
+        from datetime import datetime, timezone
+
+        # Add some telemetry events
+        db_session.add(TelemetryEvent(screen="morning_brief", action="opened", duration=15.0))
+        db_session.add(TelemetryEvent(screen="decision_center", action="decision_opened", duration=30.0))
+        db_session.add(TelemetryEvent(screen="execution", action="trade_executed", duration=5.0))
+        db_session.add(TelemetryEvent(screen="journal", action="journal_written", duration=45.0))
+        db_session.add(TelemetryEvent(screen="end_of_day", action="end_of_day_completed", duration=10.0))
+        db_session.add(TelemetryEvent(screen="replay", action="replay_viewed", duration=60.0))
+        db_session.flush()
+
+        resp = api_client.get("/analytics/product")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["daily_active_days"] == 1
+        assert body["workflow_completion_rate"] > 0
+        assert body["drop_off_points"]["morning_brief"] == 1
+        assert body["avg_decision_time_seconds"] == 30.0
+        assert body["avg_journal_completion_seconds"] == 45.0
+        assert body["replay_usage_count"] == 1

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, HTTPException
 from fastapi.responses import JSONResponse
 
 from dto.analytics import AnalyticsDTO
+from database import get_session
 
 logger = logging.getLogger(__name__)
 
@@ -143,3 +144,96 @@ def get_performance_trends(request: Request):
     except Exception as e:
         logger.error("Performance trends failed: %s", e)
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@router.get("/analytics/product")
+def get_product_analytics():
+    """Endpoint for internal Product Analytics layer metrics."""
+    session = get_session()
+    from database import TelemetryEvent
+    try:
+        events = session.query(TelemetryEvent).all()
+        if not events:
+            return {
+                "daily_active_days": 0,
+                "workflow_completion_rate": 0.0,
+                "drop_off_points": {
+                    "morning_brief": 0,
+                    "scanner": 0,
+                    "decision_center": 0,
+                    "execution": 0,
+                    "journal": 0,
+                    "replay": 0,
+                    "end_of_day": 0,
+                },
+                "avg_decision_time_seconds": 0.0,
+                "avg_journal_completion_seconds": 0.0,
+                "replay_usage_count": 0,
+                "personal_insights_usage_count": 0,
+                "ai_recommendation_acceptance_rate": 0.0,
+            }
+
+        # Daily active days
+        active_days = set()
+        for e in events:
+            if e.timestamp:
+                day_str = e.timestamp.strftime("%Y-%m-%d")
+                active_days.add(day_str)
+        daily_active_days = len(active_days)
+
+        # Drop-off points & Step counts
+        drop_off = {
+            "morning_brief": len([e for e in events if "morning" in e.screen or "morning" in e.action]),
+            "scanner": len([e for e in events if "scanner" in e.screen or "scanner" in e.action]),
+            "decision_center": len([e for e in events if "decision" in e.screen or "decision" in e.action]),
+            "execution": len([e for e in events if "execution" in e.screen or "trade" in e.action]),
+            "journal": len([e for e in events if "journal" in e.screen or "journal" in e.action]),
+            "replay": len([e for e in events if "replay" in e.screen or "replay" in e.action]),
+            "end_of_day": len([e for e in events if "end_of_day" in e.screen or "end_of_day" in e.action]),
+        }
+
+        # Avg decision time
+        decision_durations = [e.duration for e in events if "decision" in e.action and e.duration is not None]
+        avg_decision_time = sum(decision_durations) / len(decision_durations) if decision_durations else 0.0
+
+        # Avg journal completion time
+        journal_durations = [e.duration for e in events if "journal" in e.action and e.duration is not None]
+        avg_journal_completion = sum(journal_durations) / len(journal_durations) if journal_durations else 0.0
+
+        # Replay and insights count
+        replay_usage = len([e for e in events if "replay" in e.action])
+        personal_insights_usage = len([e for e in events if "personal_insights" in e.screen or "personal" in e.action])
+
+        # AI recommendation acceptance rate
+        decision_count = len([e for e in events if "decision" in e.action])
+        trade_count = len([e for e in events if "trade" in e.action or "execution" in e.screen])
+        ai_acceptance = round((trade_count / decision_count * 100), 2) if decision_count > 0 else 0.0
+        ai_acceptance = min(100.0, ai_acceptance)
+
+        # Workflow completion rate
+        # For each active day, check if vital steps are performed.
+        required_actions = ["morning_brief_opened", "decision_opened", "trade_executed", "journal_written", "end_of_day_completed"]
+        day_completion_rates = []
+        for day in active_days:
+            day_events = [e for e in events if e.timestamp and e.timestamp.strftime("%Y-%m-%d") == day]
+            day_actions = {f"{e.screen}_{e.action}" for e in day_events}
+            completed_count = sum(1 for req in required_actions if any(req in act for act in day_actions))
+            rate = (completed_count / len(required_actions)) * 100
+            day_completion_rates.append(rate)
+        workflow_rate = round(sum(day_completion_rates) / len(day_completion_rates), 2) if day_completion_rates else 0.0
+
+        return {
+            "daily_active_days": daily_active_days,
+            "workflow_completion_rate": workflow_rate,
+            "drop_off_points": drop_off,
+            "avg_decision_time_seconds": round(avg_decision_time, 2),
+            "avg_journal_completion_seconds": round(avg_journal_completion, 2),
+            "replay_usage_count": replay_usage,
+            "personal_insights_usage_count": personal_insights_usage,
+            "ai_recommendation_acceptance_rate": ai_acceptance,
+        }
+    except Exception as e:
+        logger.error("Failed to compute product analytics: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to calculate product analytics")
+    finally:
+        session.close()

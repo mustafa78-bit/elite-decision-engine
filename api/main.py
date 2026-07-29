@@ -37,8 +37,10 @@ from api.routes.market_live import router as market_live_router
 from api.routes.open_interest import router as open_interest_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
+from api.routes.paper import router as paper_router
 from api.routes.paper_trading import router as paper_trading_router
 from api.routes.performance import router as performance_router
+from api.routes.telemetry import router as telemetry_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.regime import router as regime_router
 from api.routes.risk import router as risk_router
@@ -112,10 +114,25 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     rid = getattr(request.state, "request_id", "N/A")
-    logger.exception("[%s] Unhandled exception on %s %s", rid, request.method, request.url.path)
+    from utils.error_intelligence import capture_exception
+    structured = capture_exception(
+        exc=exc,
+        module_name="api.main",
+        request=request,
+        severity="HIGH",
+        recoverable=True,
+    )
     response = JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error", "request_id": rid},
+        content={
+            "detail": "Internal server error",
+            "request_id": rid,
+            "error_info": {
+                "error_type": structured["error_type"],
+                "message": structured["message"],
+                "severity": structured["severity"],
+            }
+        },
     )
     response.headers["X-Request-ID"] = rid
     return response
@@ -168,8 +185,10 @@ app.include_router(market_live_router)
 app.include_router(open_interest_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
+app.include_router(paper_router)
 app.include_router(paper_trading_router)
 app.include_router(performance_router)
+app.include_router(telemetry_router)
 app.include_router(portfolio_router)
 app.include_router(regime_router)
 app.include_router(risk_router)
