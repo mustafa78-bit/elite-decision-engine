@@ -20,13 +20,18 @@ logger = logging.getLogger(__name__)
 
 _is_sqlite = DATABASE_URL.startswith("sqlite")
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=not _is_sqlite,
-    pool_size=1 if _is_sqlite else 10,
-    max_overflow=0 if _is_sqlite else 20,
-    connect_args={"check_same_thread": False} if _is_sqlite else {},
-)
+if _is_sqlite:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20,
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -436,6 +441,80 @@ class MarketRegimeSnap(Base):
     volatility_metric = Column(Float)
     rsi_14 = Column(Float)
     funding_rate = Column(Float, default=0.0)
+
+
+# ------------------------------------------------------------------
+# ENTERPRISE ORGANIZATIONS TABLE
+# ------------------------------------------------------------------
+
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    tenant_id = Column(String(50), unique=True, nullable=False, index=True)
+    status = Column(String(20), default="ACTIVE") # ACTIVE, SUSPENDED, DELETED
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ------------------------------------------------------------------
+# USER ORGANIZATION ROLE TABLE (RBAC)
+# ------------------------------------------------------------------
+
+class UserOrganizationRole(Base):
+    __tablename__ = "user_organization_roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    role = Column(String(30), nullable=False) # ADMIN, TRADER, OBSERVER
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ------------------------------------------------------------------
+# TEAM WORKSPACES TABLE
+# ------------------------------------------------------------------
+
+class TeamWorkspace(Base):
+    __tablename__ = "team_workspaces"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    config = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ------------------------------------------------------------------
+# ENTERPRISE API KEYS TABLE
+# ------------------------------------------------------------------
+
+class EnterpriseAPIKey(Base):
+    __tablename__ = "enterprise_api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    key_hash = Column(String(64), nullable=False, unique=True, index=True) # SHA-256
+    name = Column(String(50))
+    is_active = Column(Boolean, default=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ------------------------------------------------------------------
+# ENTERPRISE AUDIT LOGS TABLE
+# ------------------------------------------------------------------
+
+class EnterpriseAuditLog(Base):
+    __tablename__ = "enterprise_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    user_id = Column(Integer, nullable=True, index=True)
+    action = Column(String(50), nullable=False) # e.g. POSITION_CLOSE, KEY_REVOKE
+    details = Column(JSON, default=dict)
+    ip_address = Column(String(45), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 # ------------------------------------------------------------------

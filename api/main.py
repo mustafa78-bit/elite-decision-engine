@@ -59,6 +59,7 @@ from api.routes.timeline import router as timeline_router
 from api.routes.dna import router as dna_router
 from api.routes.bias import router as bias_router
 from api.routes.dqs import router as dqs_router
+from api.routes.organizations import router as organizations_router
 from api.routes.simulator import router as simulator_router
 from api.routes.debate import router as debate_router
 from api.routes.counterfactuals import router as counterfactuals_router
@@ -200,6 +201,7 @@ app.include_router(watchlists_router)
 app.include_router(timeline_router)
 app.include_router(dna_router)
 app.include_router(bias_router)
+app.include_router(organizations_router)
 app.include_router(dqs_router)
 app.include_router(simulator_router)
 app.include_router(debate_router)
