@@ -146,6 +146,33 @@ class CognitiveBiasLog(Base):
         server_default=func.now(),
     )
 
+
+# ------------------------------------------------------------------
+# COUNTERFACTUAL ANALYSIS TABLE
+# ------------------------------------------------------------------
+
+class CounterfactualAnalysis(Base):
+    __tablename__ = "counterfactual_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trade_id = Column(Integer, nullable=False, index=True)
+
+    actual_pnl = Column(Float, nullable=False)
+    no_trade_delta = Column(Float, default=0.0)
+
+    half_size_pnl = Column(Float)
+    tight_stop_pnl = Column(Float)
+    split_tp_pnl = Column(Float)
+    delayed_entry_pnl = Column(Float)
+
+    optimal_scenario = Column(String(100))
+    optimal_potential_pnl = Column(Float)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
 # ------------------------------------------------------------------
 # TRADE TABLE
 # ------------------------------------------------------------------
