@@ -127,6 +127,12 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(120), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
+    role = Column(String(20), default="Viewer")
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String(100), nullable=True)
+    failed_login_attempts = Column(Integer, default=0)
+    locked_until = Column(DateTime(timezone=True), nullable=True)
+    refresh_token = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -317,7 +323,7 @@ PARTIALLY_FILLED = "PARTIALLY_FILLED"
 
 ORDER_STATUSES = frozenset({PENDING, FILLED, PARTIALLY_FILLED, CANCEL})
 TRADE_STATUSES = frozenset({OPEN, TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
-FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED, CANCEL})
+FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED})
 ORDER_FINAL_STATUSES = frozenset({FILLED, CANCEL})
 TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
@@ -327,6 +333,22 @@ TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
 def get_session():
     return SessionLocal()
+
+
+from contextlib import contextmanager
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def create_tables():
