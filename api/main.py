@@ -62,6 +62,9 @@ from api.routes.dqs import router as dqs_router
 from api.routes.simulator import router as simulator_router
 from api.routes.debate import router as debate_router
 from api.routes.counterfactuals import router as counterfactuals_router
+from api.routes.coaching import router as coaching_router
+from api.routes.market_memory import router as market_memory_router
+from api.routes.strategic_intelligence import router as strategic_intelligence_router
 from api.routes.scanner import router as scanner_router
 from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
@@ -200,6 +203,9 @@ app.include_router(dqs_router)
 app.include_router(simulator_router)
 app.include_router(debate_router)
 app.include_router(counterfactuals_router)
+app.include_router(coaching_router)
+app.include_router(market_memory_router)
+app.include_router(strategic_intelligence_router)
 app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)

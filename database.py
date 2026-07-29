@@ -173,6 +173,31 @@ class CounterfactualAnalysis(Base):
         server_default=func.now(),
     )
 
+
+# ------------------------------------------------------------------
+# COACHING RECOMMENDATIONS TABLE
+# ------------------------------------------------------------------
+
+class CoachingRecommendation(Base):
+    __tablename__ = "coaching_recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+
+    category = Column(String(50)) # PATTERN_BREAK, HABIT_STRENGTHENING
+    feedback = Column(Text, nullable=False)
+
+    related_bias_ids = Column(JSON, default=list)
+    related_trade_ids = Column(JSON, default=list)
+
+    suggested_action = Column(String(255))
+    dismissed = Column(Boolean, default=False)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
 # ------------------------------------------------------------------
 # TRADE TABLE
 # ------------------------------------------------------------------
@@ -394,6 +419,23 @@ class DecisionExplanation(Base):
         DateTime(timezone=True),
         server_default=func.now(),
     )
+
+
+# ------------------------------------------------------------------
+# MARKET REGIME SNAP TABLE (Market Memory Engine)
+# ------------------------------------------------------------------
+
+class MarketRegimeSnap(Base):
+    __tablename__ = "market_regime_snaps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    symbol = Column(String(20), nullable=False)
+
+    regime_type = Column(String(30), nullable=False) # BULL, BEAR, SIDEWAYS, RANGE, DEAD, RECOVERY
+    volatility_metric = Column(Float)
+    rsi_14 = Column(Float)
+    funding_rate = Column(Float, default=0.0)
 
 
 # ------------------------------------------------------------------

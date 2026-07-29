@@ -15,7 +15,21 @@ class CounterfactualService:
         self.is_test = session_factory is not None
         self.dna_service = DecisionDNAService(session_factory=self.session_factory)
 
-    def analyze_counterfactuals(self, trade_id: int, user_id: int = 1) -> CounterfactualAnalysis:
+    def _to_dict(self, analysis: CounterfactualAnalysis) -> dict[str, Any]:
+        return {
+            "id": analysis.id,
+            "trade_id": analysis.trade_id,
+            "actual_pnl": analysis.actual_pnl,
+            "no_trade_delta": analysis.no_trade_delta,
+            "half_size_pnl": analysis.half_size_pnl,
+            "tight_stop_pnl": analysis.tight_stop_pnl,
+            "split_tp_pnl": analysis.split_tp_pnl,
+            "delayed_entry_pnl": analysis.delayed_entry_pnl,
+            "optimal_scenario": analysis.optimal_scenario,
+            "optimal_potential_pnl": analysis.optimal_potential_pnl
+        }
+
+    def analyze_counterfactuals(self, trade_id: int, user_id: int = 1) -> dict[str, Any]:
         session = self.session_factory()
         try:
             # Retrieve completed trade
@@ -26,7 +40,7 @@ class CounterfactualService:
             # Check if analysis already exists
             existing = session.query(CounterfactualAnalysis).filter(CounterfactualAnalysis.trade_id == trade_id).first()
             if existing:
-                return existing
+                return self._to_dict(existing)
 
             actual_pnl = trade.pnl or 0.0
 
@@ -76,7 +90,7 @@ class CounterfactualService:
                 trade_id, actual_pnl, optimal_scenario, optimal_potential_pnl
             )
 
-            return analysis
+            return self._to_dict(analysis)
         except Exception as e:
             if not self.is_test:
                 session.rollback()

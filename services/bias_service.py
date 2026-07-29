@@ -13,15 +13,28 @@ class CognitiveBiasService:
         self.session_factory = session_factory or get_session
         self.is_test = session_factory is not None
 
-    def get_logs_for_user(self, user_id: int) -> List[CognitiveBiasLog]:
+    def _to_dict(self, log: CognitiveBiasLog) -> dict[str, Any]:
+        return {
+            "id": log.id,
+            "decision_id": log.decision_id,
+            "user_id": log.user_id,
+            "bias_type": log.bias_type,
+            "confidence": log.confidence,
+            "evidence": log.evidence or {},
+            "explanation": log.explanation,
+            "suggested_improvement": log.suggested_improvement,
+        }
+
+    def get_logs_for_user(self, user_id: int) -> List[dict[str, Any]]:
         session = self.session_factory()
         try:
-            return session.query(CognitiveBiasLog).filter(CognitiveBiasLog.user_id == user_id).all()
+            logs = session.query(CognitiveBiasLog).filter(CognitiveBiasLog.user_id == user_id).all()
+            return [self._to_dict(log) for log in logs]
         finally:
             if not self.is_test:
                 session.close()
 
-    def detect_biases_for_trade(self, user_id: int, trade_id: int) -> List[CognitiveBiasLog]:
+    def detect_biases_for_trade(self, user_id: int, trade_id: int) -> List[dict[str, Any]]:
         session = self.session_factory()
         detected = []
         try:
@@ -30,7 +43,6 @@ class CognitiveBiasService:
                 return []
 
             # 1. FOMO Detector
-            # Triggered if entered price is > 3% above signal entry trigger, or with very quick entry
             signal = None
             if trade.signal_id:
                 signal = session.query(Signal).filter(Signal.id == trade.signal_id).first()
@@ -53,10 +65,8 @@ class CognitiveBiasService:
                     )
                     session.add(bias)
                     detected.append(bias)
-                    logger.info("TELEMETRY: [Cognitive Bias] Detected FOMO on trade %s with confidence 0.9", trade_id)
 
             # 2. Revenge Trading Detector
-            # Triggered if trade is opened within 15 mins of another trade closing as SL_HIT
             if trade.created_at:
                 past_trades = (
                     session.query(Trade)
@@ -83,11 +93,9 @@ class CognitiveBiasService:
                             )
                             session.add(bias)
                             detected.append(bias)
-                            logger.info("TELEMETRY: [Cognitive Bias] Detected REVENGE_TRADING on trade %s with confidence 0.85", trade_id)
                             break
 
             # 3. Overconfidence Detector
-            # Triggered if user entered a trade with very high confidence score but low system score
             if signal and signal.confidence and signal.score:
                 if signal.confidence >= 90.0 and signal.score < 0.6:
                     bias = CognitiveBiasLog(
@@ -104,7 +112,6 @@ class CognitiveBiasService:
                     )
                     session.add(bias)
                     detected.append(bias)
-                    logger.info("TELEMETRY: [Cognitive Bias] Detected OVERCONFIDENCE on trade %s with confidence 0.8", trade_id)
 
             if not self.is_test:
                 session.commit()
@@ -114,7 +121,9 @@ class CognitiveBiasService:
             for b in detected:
                 if not self.is_test:
                     session.refresh(b)
-            return detected
+
+            logger.info("TELEMETRY: [CognitiveBias] Run bias detection. Detected: %s", len(detected))
+            return [self._to_dict(log) for log in detected]
         except Exception as e:
             if not self.is_test:
                 session.rollback()

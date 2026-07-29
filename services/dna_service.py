@@ -13,7 +13,22 @@ class DecisionDNAService:
         self.session_factory = session_factory or get_session
         self.is_test = session_factory is not None
 
-    def get_or_create_profile(self, user_id: int) -> DecisionDNA:
+    def _to_dict(self, profile: DecisionDNA) -> dict[str, Any]:
+        return {
+            "id": profile.id,
+            "user_id": profile.user_id,
+            "risk_profile": profile.risk_profile,
+            "decision_speed_seconds": profile.decision_speed_seconds,
+            "average_holding_duration_seconds": profile.average_holding_duration_seconds,
+            "preferred_market_regimes": profile.preferred_market_regimes or [],
+            "preferred_strategies": profile.preferred_strategies or [],
+            "win_loss_ratio": profile.win_loss_ratio,
+            "confidence_calibration_score": profile.confidence_calibration_score,
+            "trading_discipline_score": profile.trading_discipline_score,
+            "behavioral_tendencies": profile.behavioral_tendencies or {},
+        }
+
+    def get_or_create_profile(self, user_id: int) -> dict[str, Any]:
         session = self.session_factory()
         try:
             profile = session.query(DecisionDNA).filter(DecisionDNA.user_id == user_id).first()
@@ -43,12 +58,12 @@ class DecisionDNAService:
                 logger.info("TELEMETRY: [DecisionDNA] Initialized new profile for user %s", user_id)
             else:
                 logger.info("TELEMETRY: [DecisionDNA] Retrieved existing profile for user %s", user_id)
-            return profile
+            return self._to_dict(profile)
         finally:
             if not self.is_test:
                 session.close()
 
-    def update_profile_from_history(self, user_id: int) -> DecisionDNA:
+    def update_profile_from_history(self, user_id: int) -> dict[str, Any]:
         session = self.session_factory()
         try:
             profile = session.query(DecisionDNA).filter(DecisionDNA.user_id == user_id).first()
@@ -108,7 +123,7 @@ class DecisionDNAService:
             else:
                 session.flush()
             logger.info("TELEMETRY: [DecisionDNA] Rebuilt and calibrated profile for user %s from history", user_id)
-            return profile
+            return self._to_dict(profile)
         except Exception as e:
             if not self.is_test:
                 session.rollback()

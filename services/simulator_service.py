@@ -44,10 +44,10 @@ class DecisionSimulatorService:
         alternative_outcomes = []
 
         # Consume DNA traits
-        if dna.risk_profile == "CONSERVATIVE" and expected_risk_usd > 1000.0:
+        if dna["risk_profile"] == "CONSERVATIVE" and expected_risk_usd > 1000.0:
             primary_risks.append("Position size exceeds Conservative user risk profile threshold.")
             sim_confidence -= 10.0
-        elif dna.risk_profile == "AGGRESSIVE":
+        elif dna["risk_profile"] == "AGGRESSIVE":
             sim_confidence += 5.0
 
         if rr_ratio < 1.5:
@@ -56,7 +56,7 @@ class DecisionSimulatorService:
         else:
             supporting_evidence.append(f"Risk/Reward ratio is strong ({round(rr_ratio, 2)}).")
 
-        supporting_evidence.append(f"Aligned with preferred strategies: {', '.join(dna.preferred_strategies or [])}")
+        supporting_evidence.append(f"Aligned with preferred strategies: {', '.join(dna['preferred_strategies'] or [])}")
 
         # Alternative outcomes simulation
         # Scenario A: Tight stop pullback

@@ -37,10 +37,10 @@ class AIDebateService:
             "Risk Officer: Funding rate volatility suggests warning."
         ]
 
-        if dna.risk_profile == "CONSERVATIVE":
+        if dna["risk_profile"] == "CONSERVATIVE":
             consensus_score = 0.60
             minority_opinion = "Risk Officer strongly argues to scale down position due to conservative user profile."
-        elif dna.risk_profile == "AGGRESSIVE":
+        elif dna["risk_profile"] == "AGGRESSIVE":
             consensus_score = 0.85
             minority_opinion = "Bear Analyst raises minor concern on volume exhaustion."
 

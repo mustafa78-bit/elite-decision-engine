@@ -72,10 +72,10 @@ def test_counterfactual_engine_win(db_session):
     db_session.flush()
 
     analysis = svc.analyze_counterfactuals(trade_id=t.id, user_id=1)
-    assert analysis.trade_id == t.id
-    assert analysis.actual_pnl == 1000.0
-    assert analysis.half_size_pnl == 500.0
-    assert analysis.optimal_scenario == "DELAYED_ENTRY"
+    assert analysis["trade_id"] == t.id
+    assert analysis["actual_pnl"] == 1000.0
+    assert analysis["half_size_pnl"] == 500.0
+    assert analysis["optimal_scenario"] == "DELAYED_ENTRY"
 
 
 def test_counterfactual_engine_loss(db_session):
@@ -87,9 +87,9 @@ def test_counterfactual_engine_loss(db_session):
     db_session.flush()
 
     analysis = svc.analyze_counterfactuals(trade_id=t.id, user_id=1)
-    assert analysis.actual_pnl == -500.0
-    assert analysis.no_trade_delta == 500.0
-    assert analysis.optimal_scenario == "TIGHT_STOP_LOSS"
+    assert analysis["actual_pnl"] == -500.0
+    assert analysis["no_trade_delta"] == 500.0
+    assert analysis["optimal_scenario"] == "TIGHT_STOP_LOSS"
 
 
 # ─── Wave 2 API Integration Tests ───────────────────────────────────────────

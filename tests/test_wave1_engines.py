@@ -10,16 +10,17 @@ def test_dna_get_or_create_profile(db_session):
 
     profile = svc.get_or_create_profile(user_id=42)
     assert profile is not None
-    assert profile.user_id == 42
-    assert profile.risk_profile == "MODERATE"
-    assert profile.trading_discipline_score == 100.0
+    assert profile["user_id"] == 42
+    assert profile["risk_profile"] == "MODERATE"
+    assert profile["trading_discipline_score"] == 100.0
 
     # Ensure get_or_create returns existing if already present
-    profile.risk_profile = "CONSERVATIVE"
+    dna = db_session.query(DecisionDNA).filter(DecisionDNA.user_id == 42).first()
+    dna.risk_profile = "CONSERVATIVE"
     db_session.commit()
 
     profile2 = svc.get_or_create_profile(user_id=42)
-    assert profile2.risk_profile == "CONSERVATIVE"
+    assert profile2["risk_profile"] == "CONSERVATIVE"
 
 
 def test_dna_rebuild_from_history(db_session):
@@ -55,9 +56,9 @@ def test_dna_rebuild_from_history(db_session):
     db_session.flush()
 
     profile = svc.update_profile_from_history(user_id=1)
-    assert profile.win_loss_ratio == 1.0 # 1 win, 1 loss
-    assert profile.preferred_strategies == ["EMA_CROSS"]
-    assert profile.trading_discipline_score == 95.0 # penalty of 5.0 for 1 SL_HIT
+    assert profile["win_loss_ratio"] == 1.0 # 1 win, 1 loss
+    assert profile["preferred_strategies"] == ["EMA_CROSS"]
+    assert profile["trading_discipline_score"] == 95.0 # penalty of 5.0 for 1 SL_HIT
 
 
 # ─── Epic 2 — Cognitive Bias Detection Tests ─────────────────────────────────
@@ -77,8 +78,8 @@ def test_bias_fomo_detection(db_session):
 
     biases = svc.detect_biases_for_trade(user_id=1, trade_id=t.id)
     assert len(biases) == 1
-    assert biases[0].bias_type == "FOMO"
-    assert biases[0].confidence == 0.9
+    assert biases[0]["bias_type"] == "FOMO"
+    assert biases[0]["confidence"] == 0.9
 
 
 def test_bias_revenge_trading_detection(db_session):
@@ -97,8 +98,8 @@ def test_bias_revenge_trading_detection(db_session):
 
     biases = svc.detect_biases_for_trade(user_id=1, trade_id=t2.id)
     assert len(biases) == 1
-    assert biases[0].bias_type == "REVENGE_TRADING"
-    assert biases[0].confidence == 0.85
+    assert biases[0]["bias_type"] == "REVENGE_TRADING"
+    assert biases[0]["confidence"] == 0.85
 
 
 # ─── Epic 10 — Decision Quality Score Tests ──────────────────────────────────

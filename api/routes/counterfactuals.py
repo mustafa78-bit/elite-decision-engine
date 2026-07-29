@@ -31,16 +31,16 @@ def analyze_trade(trade_id: int, user_id: int = 1):
     try:
         analysis = svc.analyze_counterfactuals(trade_id, user_id)
         return CounterfactualResponse(
-            id=analysis.id,
-            trade_id=analysis.trade_id,
-            actual_pnl=analysis.actual_pnl,
-            no_trade_delta=analysis.no_trade_delta,
-            half_size_pnl=analysis.half_size_pnl,
-            tight_stop_pnl=analysis.tight_stop_pnl,
-            split_tp_pnl=analysis.split_tp_pnl,
-            delayed_entry_pnl=analysis.delayed_entry_pnl,
-            optimal_scenario=analysis.optimal_scenario,
-            optimal_potential_pnl=analysis.optimal_potential_pnl,
+            id=analysis["id"],
+            trade_id=analysis["trade_id"],
+            actual_pnl=analysis["actual_pnl"],
+            no_trade_delta=analysis["no_trade_delta"],
+            half_size_pnl=analysis["half_size_pnl"],
+            tight_stop_pnl=analysis["tight_stop_pnl"],
+            split_tp_pnl=analysis["split_tp_pnl"],
+            delayed_entry_pnl=analysis["delayed_entry_pnl"],
+            optimal_scenario=analysis["optimal_scenario"],
+            optimal_potential_pnl=analysis["optimal_potential_pnl"],
         )
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
