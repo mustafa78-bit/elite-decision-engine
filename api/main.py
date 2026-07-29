@@ -430,8 +430,11 @@ async def _periodic_broadcast() -> None:
     while True:
         try:
             await asyncio.sleep(30)
-            await _broadcast_market()
-            await _broadcast_risk()
+            if manager.client_count() > 0:
+                await _broadcast_market()
+                await _broadcast_risk()
+            else:
+                logger.debug("No active websocket clients, skipping periodic broadcast metrics")
         except asyncio.CancelledError:
             logger.info("Periodic broadcast cancelled")
             raise

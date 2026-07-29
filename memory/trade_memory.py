@@ -33,8 +33,9 @@ class TradeMemoryEntry:
 class TradeMemory:
     """Persistent trade memory system storing setup, conditions, results, and lessons."""
 
-    def __init__(self, session_factory: Callable[[], Any] = get_session) -> None:
+    def __init__(self, session_factory: Callable[[], Any] = get_session, max_cache_size: int = 500) -> None:
         self._cache: dict[int, TradeMemoryEntry] = {}
+        self._max_cache_size = max_cache_size
         self.session_factory = session_factory
 
     def record(
@@ -72,6 +73,9 @@ class TradeMemory:
                 tags=tags or [],
                 created_at=entry.created_at.isoformat() if entry.created_at else None,
             )
+            if len(self._cache) >= self._max_cache_size and entry.id not in self._cache:
+                oldest_id = next(iter(self._cache))
+                self._cache.pop(oldest_id, None)
             self._cache[entry.id] = mem
             return entry.id
         except Exception as e:
@@ -150,6 +154,9 @@ class TradeMemory:
                 tags=notes.get("tags", []),
                 created_at=entry.created_at.isoformat() if entry.created_at else None,
             )
+            if len(self._cache) >= self._max_cache_size and memory_id not in self._cache:
+                oldest_id = next(iter(self._cache))
+                self._cache.pop(oldest_id, None)
             self._cache[memory_id] = mem
             return mem
         finally:

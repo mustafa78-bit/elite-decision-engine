@@ -86,13 +86,14 @@ class Signal(Base):
 
     approved = Column(Boolean, default=False)
 
-    status = Column(String(30), default="OPEN")
+    status = Column(String(30), default="OPEN", index=True)
 
     reason = Column(Text)
 
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        index=True,
     )
 
 
@@ -212,9 +213,9 @@ class Trade(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    signal_id = Column(Integer)
+    signal_id = Column(Integer, index=True)
 
-    symbol = Column(String(20))
+    symbol = Column(String(20), index=True)
     side = Column(String(10))
 
     entry = Column(Float)
@@ -227,7 +228,7 @@ class Trade(Base):
 
     pnl = Column(Float, default=0)
 
-    status = Column(String(30), default="OPEN")
+    status = Column(String(30), default="OPEN", index=True)
 
     exit_price = Column(Float)
 
@@ -240,6 +241,7 @@ class Trade(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
+        index=True,
     )
 
 
@@ -286,8 +288,8 @@ class Notification(Base):
     user_id = Column(Integer, nullable=True, index=True)
     event_type = Column(String(30), nullable=False, index=True)
     payload = Column(JSON, default=dict)
-    read = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 # ------------------------------------------------------------------
 # WATCHLIST TABLE

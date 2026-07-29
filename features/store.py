@@ -25,12 +25,27 @@ class FeatureStore:
     keyed by ``(symbol, feature_type)``.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, max_size: int = 5000) -> None:
         self._store: dict[tuple[str, str], FeatureEntry] = {}
+        self._max_size = max_size
+
+    def _prune_expired(self) -> None:
+        now = time.time()
+        expired = [
+            key for key, entry in self._store.items()
+            if entry.ttl is not None and (now - entry.timestamp) > entry.ttl
+        ]
+        for k in expired:
+            self._store.pop(k, None)
 
     def set(self, symbol: str, feature_type: str, value: Any, ttl: Optional[float] = None) -> None:
         """Store a feature with optional TTL in seconds."""
+        self._prune_expired()
         key = (symbol.upper(), feature_type)
+        if len(self._store) >= self._max_size and key not in self._store:
+            oldest_key = min(self._store.keys(), key=lambda k: self._store[k].timestamp)
+            self._store.pop(oldest_key, None)
+
         self._store[key] = FeatureEntry(
             symbol=symbol.upper(),
             feature_type=feature_type,

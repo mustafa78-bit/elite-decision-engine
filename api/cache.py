@@ -9,21 +9,33 @@ logger = logging.getLogger(__name__)
 
 
 class DashboardCache:
-    def __init__(self, default_ttl: int = 30):
+    def __init__(self, default_ttl: int = 30, max_size: int = 1000):
         self._cache: dict[str, tuple[float, Any]] = {}
         self._default_ttl = default_ttl
+        self._max_size = max_size
+
+    def _prune_expired(self) -> None:
+        now = time.time()
+        expired = [k for k, (ts, _) in self._cache.items() if now - ts > self._default_ttl]
+        for k in expired:
+            self._cache.pop(k, None)
 
     def get(self, key: str) -> Optional[Any]:
+        self._prune_expired()
         entry = self._cache.get(key)
         if entry is None:
             return None
         ts, value = entry
         if time.time() - ts > self._default_ttl:
-            del self._cache[key]
+            self._cache.pop(key, None)
             return None
         return value
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+        self._prune_expired()
+        if len(self._cache) >= self._max_size and key not in self._cache:
+            oldest_key = min(self._cache.keys(), key=lambda k: self._cache[k][0])
+            self._cache.pop(oldest_key, None)
         self._cache[key] = (time.time(), value)
 
     def invalidate(self, key: str) -> None:
