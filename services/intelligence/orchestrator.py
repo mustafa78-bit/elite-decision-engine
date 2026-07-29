@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import deque
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 
@@ -14,6 +15,45 @@ from services.intelligence.bus import (
 from services.intelligence.ranker import OpportunityRankingEngine
 
 logger = logging.getLogger(__name__)
+
+# Circular buffer timeline store for Wave 3 API retrievals to prevent memory leaks
+_GLOBAL_TIMELINE: deque = deque(maxlen=1000)
+
+
+def _timeline_logger_listener(event_type: str, payload: Any, context: UnifiedIntelligenceContext) -> None:
+    """Listens globally to CrossServiceEventBus and captures formatted timeline events."""
+    summary = ""
+    if event_type == "pipeline_started":
+        summary = f"Pipeline execution started for asset {context.symbol}."
+    elif event_type == "MemoryMatched":
+        summary = f"Identified {payload.get('matches', 0)} historical decision matches with average success of {payload.get('success_rate', 0.0)}%."
+    elif event_type == "PatternMatched":
+        summary = f"Matched technical pattern: '{payload.get('pattern')}' with score of {payload.get('score', 0.0)}."
+    elif event_type == "DebateCompleted":
+        summary = f"Council Debate finished with consensus score of {payload.get('consensus', 0.0)}%."
+    elif event_type == "CounterfactualCompleted":
+        summary = f"Counterfactual scenario simulated: best alternative action is '{payload.get('best_action')}'."
+    elif event_type == "ConfidenceCalculated":
+        summary = f"Consolidated decision confidence calculated: {payload.get('confidence', 0.0)}%."
+    elif event_type == "OpportunityRanked":
+        summary = f"Normalized Executive Opportunity Score computed: {payload.get('score', 0.0)}."
+    elif event_type == "RecommendationGenerated":
+        summary = f"Generated ultimate decision recommendation for symbol {payload.get('symbol')} with opportunity score of {payload.get('opportunity_score', 0.0)}."
+    elif event_type == "pipeline_completed":
+        summary = "Pipeline orchestration cycle finished successfully."
+    else:
+        summary = f"Event '{event_type}' emitted."
+
+    event_item = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "correlation_id": context.correlation_id,
+        "event_type": event_type,
+        "summary": summary,
+        "payload": payload,
+        "symbol": context.symbol,
+        "market_price": context.market_price,
+    }
+    _GLOBAL_TIMELINE.append(event_item)
 
 
 class IntelligenceOrchestrator:
@@ -34,6 +74,9 @@ class IntelligenceOrchestrator:
         self.event_bus = event_bus or CrossServiceEventBus()
         self.priority_resolver = priority_resolver or PriorityResolver()
         self.ranker = ranker or OpportunityRankingEngine()
+
+        # Connect our global timeline capture hook
+        self.event_bus.register_global_listener(_timeline_logger_listener)
 
         # Circuit breaker state: Map of service name -> consecutive failure count
         self._consecutive_failures: Dict[str, int] = {}

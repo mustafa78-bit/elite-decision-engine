@@ -117,3 +117,48 @@ Emits precise events onto `CrossServiceEventBus` for telemetry ingestion:
 - `PatternMatched`
 - `DebateCompleted`
 - `CounterfactualCompleted`
+
+---
+
+## 8. Sprint 21 Wave 3 — Executive Intelligence Experience
+
+### Executive Intelligence Dashboard
+Provides a single dashboard screen built for fast reading and decision making. Key sections:
+- **Executive Summary**: Core summary answering "What should I know right now?".
+- **Top Opportunities**: Highest prioritized opportunity list with Executive Opportunity Scores.
+- **Portfolio Intelligence**: Realized/unrealized PnL, open/closed positions, win rate, and drawdown.
+- **Active Risks**: Dynamic hazard and safety checks with warning details.
+- **Market Regime**: Detected regime types, volatility states, and session contexts.
+- **Confidence Distribution**: Detailed breakdown of calibration factors, DNA, and consensus inputs.
+- **Decision Memory Insights**: success rate matches and average historical PnL.
+- **Pattern Discovery Highlights**: Exceptional bullish and range pattern occurrences.
+- **System Health**: Health of integrated service dependencies.
+
+### Intelligence Timeline
+Chronological, timestamped record of every cognitive milestone. Every timeline card includes:
+- **Timestamp**
+- **Correlation ID**
+- **Event Type** (e.g. `MemoryMatched`, `PatternMatched`, `DebateCompleted`)
+- **Summary** (concise explanation of what the subsystem computed)
+- **Linked Asset Recommendation** (associated symbol, pricing, and score)
+
+### Autonomous Executive Briefings
+Qualitative reports generated either on-demand or daily. It synthesizes top opportunities, maximum risks, regime shifts, and structured actionable recommendations into high-density briefings.
+
+### Platform Intelligence Analytics
+Exposes diagnostic metrics assessing the platform itself:
+- **Decision Accuracy** (expected vs actual outcome matches)
+- **Confidence Calibration** (Expected Calibration Error (ECE) and Brier scores)
+- **Pattern Discovery Rate** (unique patterns discovered over time)
+- **Memory Match Rate** (frequency of historical matches)
+- **Pipeline Latency** (high-resolution coordination time)
+- **Event Throughput** (total events published on the Event Bus)
+- **Service Dependency Health** (registered, enabled, active, and degraded services)
+
+### Mandated Explainability (Why? Why Now? Why Not?)
+Every executive recommendation is grounded in clear answers to the following cognitive queries:
+- **Why?**: Underlying technical indicators, EMA crossovers, and matched historical success.
+- **Why Now?**: Immediate catalysts (breakouts, whale inflows, or extreme council debate consensus).
+- **Why Not?**: Conflicting indicators, high Expected Calibration Error, drift indexes, or risk exposure limits.
+- **Calibration Factor**: scale factor adjustments resolving drift error.
+- **Evidence**: supporting versus conflicting evidence datasets.

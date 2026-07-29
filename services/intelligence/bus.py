@@ -26,6 +26,17 @@ class CrossServiceEventBus:
 
     def __init__(self):
         self._subscribers: Dict[str, Set[Callable[[Any, UnifiedIntelligenceContext], None]]] = {}
+        self._global_listeners: Set[Callable[[str, Any, UnifiedIntelligenceContext], None]] = set()
+
+    def register_global_listener(self, callback: Callable[[str, Any, UnifiedIntelligenceContext], None]) -> None:
+        """Registers a global listener callback that intercepts every published event."""
+        self._global_listeners.add(callback)
+        logger.debug("Global listener registered on CrossServiceEventBus.")
+
+    def unregister_global_listener(self, callback: Callable[[str, Any, UnifiedIntelligenceContext], None]) -> None:
+        """Unregisters a global listener callback."""
+        self._global_listeners.discard(callback)
+        logger.debug("Global listener removed from CrossServiceEventBus.")
 
     def subscribe(self, event_type: str, callback: Callable[[Any, UnifiedIntelligenceContext], None]) -> None:
         """Subscribes a callback handler to an event topic."""
@@ -42,6 +53,13 @@ class CrossServiceEventBus:
 
     def publish(self, event_type: str, payload: Any, context: UnifiedIntelligenceContext) -> None:
         """Publishes an event payload to all topic subscribers synchronously."""
+        # Invoke global listeners first
+        for listener in list(self._global_listeners):
+            try:
+                listener(event_type, payload, context)
+            except Exception as e:
+                logger.error("Error invoking global listener for topic '%s': %s", event_type, e, exc_info=True)
+
         subscribers = self._subscribers.get(event_type, set())
         if not subscribers:
             return
