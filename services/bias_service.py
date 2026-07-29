@@ -77,7 +77,10 @@ class CognitiveBiasService:
                 )
                 for pt in past_trades:
                     if pt.status == "SL_HIT" and pt.closed_at:
-                        time_diff_min = (trade.created_at - pt.closed_at).total_seconds() / 60.0
+                        # Defensive timezone normalization to prevent TypeError
+                        t_created = trade.created_at.replace(tzinfo=None) if trade.created_at.tzinfo else trade.created_at
+                        pt_closed = pt.closed_at.replace(tzinfo=None) if pt.closed_at.tzinfo else pt.closed_at
+                        time_diff_min = (t_created - pt_closed).total_seconds() / 60.0
                         if 0 <= time_diff_min <= 15.0:
                             bias = CognitiveBiasLog(
                                 user_id=user_id,
