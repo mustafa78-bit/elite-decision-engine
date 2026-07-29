@@ -92,14 +92,31 @@ class RiskPayload:
 
 
 @dataclass
+class PipelineMetrics:
+    pipeline_id: str = ""
+    correlation_id: str = ""
+    total_latency_ms: float = 0.0
+    per_service_latency_ms: Dict[str, float] = field(default_factory=dict)
+    slowest_service: Optional[str] = None
+    failure_count: int = 0
+    confidence_distribution: List[float] = field(default_factory=list)
+    memory_matches: List[int] = field(default_factory=list)
+    pattern_matches: List[str] = field(default_factory=list)
+
+
+@dataclass
 class UnifiedIntelligenceContext:
     execution_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    correlation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     symbol: str = "BTC"
     market_price: float = 0.0
     metrics: Dict[str, Any] = field(default_factory=dict)
     service_states: Dict[str, str] = field(default_factory=dict)
     timings: Dict[str, float] = field(default_factory=dict)
+
+    # Dedicated Pipeline Metrics container
+    pipeline_metrics: PipelineMetrics = field(default_factory=PipelineMetrics)
 
     # 12 Subsystem Payload slots
     dna: DnaPayload = field(default_factory=DnaPayload)
@@ -118,12 +135,24 @@ class UnifiedIntelligenceContext:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "execution_id": self.execution_id,
+            "correlation_id": self.correlation_id,
             "timestamp": self.timestamp.isoformat(),
             "symbol": self.symbol,
             "market_price": self.market_price,
             "metrics": self.metrics,
             "service_states": self.service_states,
             "timings": self.timings,
+            "pipeline_metrics": {
+                "pipeline_id": self.pipeline_metrics.pipeline_id,
+                "correlation_id": self.pipeline_metrics.correlation_id,
+                "total_latency_ms": self.pipeline_metrics.total_latency_ms,
+                "per_service_latency_ms": self.pipeline_metrics.per_service_latency_ms,
+                "slowest_service": self.pipeline_metrics.slowest_service,
+                "failure_count": self.pipeline_metrics.failure_count,
+                "confidence_distribution": self.pipeline_metrics.confidence_distribution,
+                "memory_matches": self.pipeline_metrics.memory_matches,
+                "pattern_matches": self.pipeline_metrics.pattern_matches,
+            },
             "dna": {
                 "decision_dna_score": self.dna.decision_dna_score,
                 "traits": self.dna.traits,

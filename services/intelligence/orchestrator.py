@@ -5,12 +5,13 @@ import time
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 
-from services.intelligence.context import UnifiedIntelligenceContext
+from services.intelligence.context import UnifiedIntelligenceContext, PipelineMetrics
 from services.intelligence.bus import (
     IntelligenceServiceContract,
     CrossServiceEventBus,
     PriorityResolver,
 )
+from services.intelligence.ranker import OpportunityRankingEngine
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +28,12 @@ class IntelligenceOrchestrator:
         services: Optional[List[IntelligenceServiceContract]] = None,
         event_bus: Optional[CrossServiceEventBus] = None,
         priority_resolver: Optional[PriorityResolver] = None,
+        ranker: Optional[OpportunityRankingEngine] = None,
     ):
         self.services = services or []
         self.event_bus = event_bus or CrossServiceEventBus()
         self.priority_resolver = priority_resolver or PriorityResolver()
+        self.ranker = ranker or OpportunityRankingEngine()
 
         # Circuit breaker state: Map of service name -> consecutive failure count
         self._consecutive_failures: Dict[str, int] = {}
@@ -50,6 +53,8 @@ class IntelligenceOrchestrator:
 
         # 1. Resolve execution order
         resolved_services = self.priority_resolver.resolve(self.services)
+
+        failures_count = 0
 
         # 2. Iterate through resolved services and execute
         for service in resolved_services:
@@ -73,11 +78,15 @@ class IntelligenceOrchestrator:
                 context.service_states[name] = "SUCCESS"
                 self._consecutive_failures[name] = 0  # reset failures
 
+                # Publish extended domain events based on service completion
+                self._publish_service_completion_events(name, context)
+
                 self.event_bus.publish("service_success", {"service": name}, context)
 
             except Exception as e:
                 logger.error("Failed executing intelligence service %s: %s", name, e, exc_info=True)
                 context.service_states[name] = "DEGRADED"
+                failures_count += 1
 
                 # Update circuit breaker tracking
                 failures = self._consecutive_failures.get(name, 0) + 1
@@ -96,12 +105,82 @@ class IntelligenceOrchestrator:
         total_duration_ms = (time.perf_counter() - total_start) * 1000.0
         context.timings["total_coordination"] = round(total_duration_ms, 2)
 
-        # Calculate a global threat score and confidence metric
+        # 3. Calculate dynamic indicators
         context.metrics["overall_threat_score"] = self._compute_overall_threat(context)
-        context.metrics["aggregated_confidence"] = self._compute_aggregated_confidence(context)
+
+        aggregated_conf = self._compute_aggregated_confidence(context)
+        context.metrics["aggregated_confidence"] = aggregated_conf
+        self.event_bus.publish("ConfidenceCalculated", {"confidence": aggregated_conf}, context)
+
+        # 4. Compute Executive Opportunity score
+        opportunity_score = self.ranker.calculate_score(context)
+        context.metrics["executive_opportunity_score"] = opportunity_score
+        self.event_bus.publish("OpportunityRanked", {"score": opportunity_score}, context)
+
+        # Emit terminal Recommendation event
+        self.event_bus.publish("RecommendationGenerated", {
+            "symbol": symbol,
+            "opportunity_score": opportunity_score,
+            "confidence": aggregated_conf,
+        }, context)
+
+        # 5. Populate Pipeline Metrics
+        self._populate_pipeline_metrics(context, total_duration_ms, failures_count)
 
         self.event_bus.publish("pipeline_completed", context.metrics, context)
         return context
+
+    def _publish_service_completion_events(self, service_name: str, context: UnifiedIntelligenceContext) -> None:
+        """Publishes specific intelligence events when a subsystem succeeds."""
+        if service_name == "decision_memory" and context.decision_memory.matched_decisions:
+            self.event_bus.publish("MemoryMatched", {
+                "matches": len(context.decision_memory.matched_decisions),
+                "success_rate": context.decision_memory.success_rate_matched,
+            }, context)
+        elif service_name == "pattern_discovery" and context.pattern.pattern_name:
+            self.event_bus.publish("PatternMatched", {
+                "pattern": context.pattern.pattern_name,
+                "score": context.pattern.pattern_score,
+            }, context)
+        elif service_name == "ai_debate" and context.debate.arguments:
+            self.event_bus.publish("DebateCompleted", {
+                "consensus": context.debate.council_consensus,
+                "arguments": context.debate.arguments,
+            }, context)
+        elif service_name == "counterfactual" and context.counterfactual.scenario_scores:
+            self.event_bus.publish("CounterfactualCompleted", {
+                "best_action": context.counterfactual.best_alternative_action,
+                "expected_delta": context.counterfactual.expected_value_delta,
+            }, context)
+
+    def _populate_pipeline_metrics(self, context: UnifiedIntelligenceContext, total_latency_ms: float, failure_count: int) -> None:
+        """Constructs detailed executing metadata metrics of the completed pipeline."""
+        metrics = context.pipeline_metrics
+        metrics.pipeline_id = context.execution_id
+        metrics.correlation_id = context.correlation_id
+        metrics.total_latency_ms = round(total_latency_ms, 2)
+        metrics.per_service_latency_ms = {k: v for k, v in context.timings.items() if k != "total_coordination"}
+        metrics.failure_count = failure_count
+
+        # Find slowest service
+        slowest_name = None
+        slowest_time = -1.0
+        for k, v in metrics.per_service_latency_ms.items():
+            if v > slowest_time:
+                slowest_time = v
+                slowest_name = k
+        metrics.slowest_service = slowest_name
+
+        # Confidence distribution
+        conf_dist = []
+        if context.service_states.get("decision_dna") == "SUCCESS":
+            conf_dist.append(context.dna.decision_dna_score)
+        if context.service_states.get("ai_debate") == "SUCCESS":
+            conf_dist.append(context.debate.council_consensus)
+        metrics.confidence_distribution = conf_dist
+
+        metrics.memory_matches = context.decision_memory.matched_decisions
+        metrics.pattern_matches = [context.pattern.pattern_name] if context.pattern.pattern_name else []
 
     def _compute_overall_threat(self, context: UnifiedIntelligenceContext) -> float:
         """Derives a deterministic overall threat score [0.0 - 100.0] based on risk and drift indicators."""
@@ -115,9 +194,9 @@ class IntelligenceOrchestrator:
         contributions = []
         if context.service_states.get("decision_dna") == "SUCCESS":
             contributions.append(context.dna.decision_dna_score)
-        if context.service_states.get("calibration") == "SUCCESS":
+        if context.service_states.get("confidence_calibration") == "SUCCESS":
             contributions.append(context.calibration.confidence_scale_factor * 100.0)
-        if context.service_states.get("debate") == "SUCCESS":
+        if context.service_states.get("ai_debate") == "SUCCESS":
             contributions.append(context.debate.council_consensus)
 
         if not contributions:

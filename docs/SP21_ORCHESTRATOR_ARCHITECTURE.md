@@ -74,3 +74,46 @@ class IntelligenceServiceContract(Protocol):
 ## 6. Observability & Performance Budget
 - **Performance Budget**: Target maximum processing duration of **50ms** for the orchestration coordination layer. Downstream long-running tasks are mockable or scheduled asynchronously.
 - **Telemetry**: Each execution records high-resolution timings (using `time.perf_counter()`) and exports a structured diagnostic payload to the logger.
+
+---
+
+## 7. Sprint 21 Wave 2 — Core Reasoning Integration
+
+### Executive Opportunity Ranking Engine
+Computes a normalized **Executive Opportunity Score** (0 to 100) combining diverse dimensions:
+- **Technical Strength**: close vs EMA alignment and score trends.
+- **Risk Profile**: allowed constraints and maximum position sizes.
+- **Decision Memory similarity**: average matched historical PnL and success rate.
+- **Pattern Discovery confidence**: pattern occurrence score.
+- **Market Regime**: similarity to stable/volatile regime clusters.
+- **AI Debate outcome**: consensus alignment among Council agents.
+- **Counterfactual Analysis**: delta expected value vs alternative actions.
+- **Confidence Calibration**: Expected Calibration Error (ECE) and scale factors.
+- **Drift status**: PSI score alerts.
+
+### Intelligence Registry
+Decouples service instantiation from the execution layer:
+- **Automatic Registration**: Services register themselves automatically or via dependency loaders.
+- **Configuration Toggle**: Services are easily enabled/disabled through static configuration matrices.
+- **Version Awareness**: Enables multiple concurrent registry components for testing different models.
+- **Health Reporting**: Continuously tracks successes, degrades, timeouts, and circuit breaker trip metrics per service.
+
+### Extended Pipeline Metrics
+Detailed metadata captured for every execution cycle:
+- **Pipeline ID** (`execution_id`)
+- **Correlation ID** (context tracking cross-service invocations)
+- **Total latency** (high-resolution coordination time)
+- **Per-service latency** (individual timings)
+- **Slowest service** (for latency budget bottlenecks)
+- **Failure count** (service execution failures)
+- **Matches** (Decision and Pattern matches)
+
+### Extended Event Bus Model
+Emits precise events onto `CrossServiceEventBus` for telemetry ingestion:
+- `RecommendationGenerated`
+- `ConfidenceCalculated`
+- `OpportunityRanked`
+- `MemoryMatched`
+- `PatternMatched`
+- `DebateCompleted`
+- `CounterfactualCompleted`
