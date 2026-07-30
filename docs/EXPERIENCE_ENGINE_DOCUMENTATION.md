@@ -16,29 +16,30 @@ It separates itself entirely from static memory, backtesting, historical replay,
 - **Fields**: `id`, `timestamp`, `symbol`, `timeframe`, `state_snapshot` (JSON indicators snapshot), `action_taken` (LONG, SHORT, REJECT), `outcome` (Float PnL), `realized_at` (DateTime outcome known).
 - **Service**: `ExperienceSubstrateService` implements absolute walk-forward lookups (`timestamp <= target_time`) ensuring zero lookahead/hindsight leakage.
 
-### XI-2: Instinct State
-- **Purpose**: Synthesizes a continuously evolving behavioral disposition vector representing situational intuition.
+### XI-2: Instinct State (Incremental $O(1)$ Evolution)
+- **Purpose**: Synthesizes a continuously evolving, stateful behavioral disposition vector representing situational intuition.
+- **Incrementalism**: Rather than replaying history or performing database scans, the Instinct State is evolved incrementally on the fly inside `update_instinct_incrementally` in $O(1)$ constant time for every newly realized experience.
 - **Disposition Vector**:
-  - `courage`: Willingness to act when General Knowledge is highly divergent.
-  - `defensiveness`: Active risk-aversion, scaling up on consecutive losses and decaying during winning streaks.
+  - `courage`: Evolving willingness to counter standard rules.
+  - `defensiveness`: Active risk-aversion, scaling up dynamically on losses and decaying during wins.
   - `conviction`: Situational certainty based on recent chronological outcomes.
   - `adaptability`: Speed of instinct shifts when experiencing regime transitions.
-- **Service**: `InstinctStateService` recalculates and evolves these stateful multipliers chronologically. Auxiliar statistics (win rate, profit factor) contribute to but do not define the instinct.
+- **Auxiliary Statistics**: Aggregated fields (win rate, profit factor, total trades, average PnL) contribute to instinct but *do not* define it.
 
-### XI-3: Familiarity Signal
-- **Purpose**: Determines the situational familiarity of current market snapshots.
-- **Optimization**: To avoid turning the signal into a costly database retrieval engine, `FamiliaritySignalService` directly consults the distilled `InstinctState` and its active disposition vectors rather than scanning the raw `ExperienceSubstrate` on every request.
+### XI-3: Familiarity Signal (Pre-Distilled, Extensible Design)
+- **Purpose**: Determines situational familiarity of current market snapshots.
+- **Database Shield**: To avoid turning the engine into a database retrieval scanner, it directly consults the distilled `InstinctState` (single-row lookup) rather than querying the entire `ExperienceSubstrate` history.
+- **Extensible Architecture**: Structured using a dynamic evaluator registry (`FamiliaritySignalService.register_evaluator()`) to allow future dimensions (e.g., volatility profile, market structure) to be integrated without structural redesign.
 
 ### XI-4: Experience vs Knowledge
-- **Purpose**: Contrats general rule-based pre-trained models (Knowledge: *"What should happen?"*) with lived empirical results (Experience: *"What has actually happened?"*).
-- **Principle**: Keeps these dimensions entirely independent without merging them into a single score, allowing multi-dimensional cognitive decision matching.
-- **Service**: `ExperienceVsKnowledgeService` exposes an independent contrast matrix of the two separate axes.
+- **Purpose**: Contrasts general rule-based pre-trained models (Knowledge: *"What should happen?"*) with lived empirical results (Experience: *"What has actually happened?"*).
+- **Principle**: Keeps these dimensions entirely independent without merging them into a single score, maintaining separate axes of decision matching.
 
-### XI-5: Experience Sufficiency
+### XI-5: Experience Sufficiency (Governance Managed)
 - **Purpose**: Prevents premature instinct-based decisions by checking if an environment has logged enough chronological duration and observations.
-- **Thresholds**: Evaluates minimum logged events (minimum 5) and exposure duration (minimum 24 hours of chronological living).
+- **Governance**: Policy thresholds (`MIN_EVENTS`, `MIN_HOURS`) are loaded dynamically from `ExperiencePolicy` and can be adjusted by Governance in real-time without code changes.
 
-### XI-6: Graduation & Governance
+### XI-6: Graduation & Governance (Recommendation Only)
 - **Purpose**: Unlocks active operational multipliers when an environment becomes highly experienced and proficient.
 - **Rule**: Graduation **never self-promotes**. The service may only recommend graduation (`status = "RECOMMENDED"`).
 - **Governance**: Only explicit administrative/Governor approval (`approve_graduation`) activates graduation and overrides active position/risk multipliers.
@@ -56,7 +57,8 @@ All routes are read-oriented by default. Writing to the substrate occurs interna
 - `GET /api/v1/experience/graduation/recommendation`: Recommends graduation level.
 - `POST /api/v1/experience/governance/approve`: Explicit Governance promotion action.
 - `POST /api/v1/experience/governance/reject`: Explicit Governance demotion/revocation action.
-- `POST /api/v1/experience/test-produce`: Controlled simulation/testing utility.
+- `POST /api/v1/experience/governance/policy`: Dynamic modification of thresholds under Governance.
+- `POST /api/v1/experience/test-produce`: Controlled simulation/testing utility. **Watertight Blockade**: Exclusively available when `API_ENV == "development"`, returning `403 Forbidden` in production env.
 
 ---
 
@@ -66,5 +68,6 @@ Located at `/experience-engine` in the frontend page `frontend/src/pages/Experie
 - **Evolving Instinct**: Displays the four key disposition metrics (Courage, Defensiveness, Conviction, Adaptability) as glowing telemetry blocks.
 - **Lived Timeline**: Features a vertical glowing walk-forward experience path showing sequential trades.
 - **Familiarity**: Visualizes situation familiarity dials.
+- **Governance Policy Editor**: Allows dynamic adjustment of `MIN_EVENTS` and `MIN_HOURS` thresholds directly on the UI.
 - **Governance Center**: Allows the operator to explicitly approve or reject graduation recommendations, directly modifying governing bounds.
-- **Sandbox Experience Simulator**: Contains an interactive trigger allowing developers/operators to manually inject experiences into the chronological substrate and witness instinct and sufficiency states evolve in real-time.
+- **Sandbox Experience Simulator**: Conditioned on development mode, displaying a watertight "Inactive in Production" state if not in development.

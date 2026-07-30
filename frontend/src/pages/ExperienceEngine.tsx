@@ -68,6 +68,10 @@ export default function ExperienceEngine() {
   const [testOutcome, setOutcome] = useState("0.15");
   const [testRegime, setRegime] = useState("TREND");
 
+  // Load Policies
+  const [policyMinEvents, setPolicyMinEvents] = useState(5);
+  const [policyMinHours, setPolicyMinHours] = useState(24);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -135,6 +139,23 @@ export default function ExperienceEngine() {
     }
   }
 
+  // Governance policy dynamic adjustment
+  async function handleUpdatePolicy() {
+    try {
+      await apiFetch("/experience/governance/policy", {
+        method: "POST",
+        body: JSON.stringify({
+          min_events: policyMinEvents,
+          min_hours: policyMinHours,
+        }),
+      });
+      addGlobalToast("Governance Policy updated successfully", "success");
+      loadData();
+    } catch {
+      addGlobalToast("Failed to update policy thresholds", "error");
+    }
+  }
+
   // Controlled simulation: producing raw walk-forward experience
   async function handleProduceTest() {
     try {
@@ -159,8 +180,8 @@ export default function ExperienceEngine() {
       });
       addGlobalToast("Chronological experience generated in walk-forward substrate", "success");
       loadData();
-    } catch {
-      addGlobalToast("Simulation error producing test experience", "error");
+    } catch (err: any) {
+      addGlobalToast("Shield Active: Experience Simulator is inactive in Production environments", "error");
     }
   }
 
@@ -376,12 +397,12 @@ export default function ExperienceEngine() {
                 <div className="text-xs space-y-2 border-t border-slate-900 pt-3">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Total events encountered:</span>
-                    <span className="font-mono text-slate-300">{sufficiency?.total_events || 0} / 5</span>
+                    <span className="font-mono text-slate-300">{sufficiency?.total_events || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Chronological exposure:</span>
                     <span className="font-mono text-slate-300">
-                      {sufficiency ? sufficiency.duration_hours.toFixed(1) : 0} / 24 hours
+                      {sufficiency ? sufficiency.duration_hours.toFixed(1) : 0} hours
                     </span>
                   </div>
                 </div>
@@ -450,11 +471,51 @@ export default function ExperienceEngine() {
               </CardContent>
             </Card>
 
+            {/* GOVERNANCE POLICY THRESHOLDS ADJUSTMENT */}
+            <Card className="bg-slate-950/70 border border-slate-900">
+              <CardHeader className="border-b border-slate-900 pb-2">
+                <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Governance Policy Editor
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-slate-500 block mb-1">Min Events</label>
+                    <input
+                      type="number"
+                      value={policyMinEvents}
+                      onChange={(e) => setPolicyMinEvents(parseInt(e.target.value) || 0)}
+                      className="bg-slate-950 border border-slate-800 text-slate-300 rounded p-1 w-full text-center font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-500 block mb-1">Min Hours</label>
+                    <input
+                      type="number"
+                      value={policyMinHours}
+                      onChange={(e) => setPolicyMinHours(parseFloat(e.target.value) || 0)}
+                      className="bg-slate-950 border border-slate-800 text-slate-300 rounded p-1 w-full text-center font-mono"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={handleUpdatePolicy}
+                  className="w-full bg-purple-950/50 hover:bg-purple-900/50 text-purple-300 border border-purple-800 text-xs py-1"
+                >
+                  Apply Threshold Policies
+                </Button>
+              </CardContent>
+            </Card>
+
             {/* CONTROLLED TESTING UTILITY */}
             <Card className="bg-slate-950/70 border border-slate-900">
               <CardHeader className="border-b border-slate-900 pb-3">
-                <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Experience Simulator
+                <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest flex justify-between items-center">
+                  <span>Experience Simulator</span>
+                  <Badge className="bg-blue-950 text-blue-300 border border-blue-900 text-[9px]">
+                    DEV ONLY
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-3">

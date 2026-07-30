@@ -41,7 +41,10 @@ class ExperienceSubstrate(Base):
 
 
 class InstinctState(Base):
-    """The stateful, synthesized instinct profiles representing behavioral dispositions."""
+    """The stateful, synthesized instinct profiles representing behavioral dispositions.
+
+    Tracks incremental statistics to support real-time stateful evolution without expensive database scans.
+    """
 
     __tablename__ = "instinct_states"
 
@@ -59,6 +62,21 @@ class InstinctState(Base):
     total_trades = Column(Integer, default=0)
     avg_pnl = Column(Float, default=0.0)
     vibe_score = Column(Float, default=0.0)
+
+    # Stateful fields to support true mathematical incremental updates without DB scans
+    gross_wins = Column(Float, default=0.0)
+    gross_losses = Column(Float, default=0.0)
+    win_count = Column(Integer, default=0)
+    loss_count = Column(Integer, default=0)
+    cumulative_pnl = Column(Float, default=0.0)
+
+    # Store list of recent outcomes to update vibe score incrementally
+    recent_outcomes = Column(JSON, nullable=False, default=list)
+
+    # Tracking chronological bounds (Exposure check)
+    first_experience_time = Column(DateTime(timezone=True), nullable=True)
+    last_experience_time = Column(DateTime(timezone=True), nullable=True)
+    unique_regimes_encountered = Column(JSON, nullable=False, default=list)
 
     last_updated = Column(
         DateTime(timezone=True),

@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from config import API_ENV
 from database import get_session
+from core.experience.policy import ExperiencePolicy, GraduationPolicy
 from core.experience.service import (
     ExperienceSubstrateService,
     InstinctStateService,
@@ -50,6 +52,14 @@ class GovernanceApprovalRequest(BaseModel):
     symbol: str
     timeframe: str
     governor_name: str
+
+
+class PolicyUpdateRequest(BaseModel):
+    min_events: Optional[int] = None
+    min_hours: Optional[float] = None
+    win_rate: Optional[float] = None
+    profit_factor: Optional[float] = None
+    min_trades: Optional[int] = None
 
 
 class ProduceTestExperienceRequest(BaseModel):
@@ -106,6 +116,7 @@ def get_instinct(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ISO datetime format for current_time")
 
+    # Incrementally evolving Instinct state is computed/updated chronologically on demand
     instinct = InstinctStateService.compute_and_update_instinct(db, symbol, timeframe, t)
     return {
         "id": instinct.id,
@@ -206,7 +217,7 @@ def get_graduation_recommendation(
     }
 
 
-# --- ACTIVE GOVERNANCE WRITE ACTIONS (Explicit Approvals) ---
+# --- ACTIVE GOVERNANCE ACTIONS (Approvals & Policy Modifications) ---
 
 @router.post("/governance/approve", status_code=status.HTTP_200_OK)
 def approve_graduation_governance(
@@ -254,6 +265,42 @@ def reject_graduation_governance(
     }
 
 
+@router.post("/governance/policy", status_code=status.HTTP_200_OK)
+def update_governance_policy(req: PolicyUpdateRequest):
+    """Dynamically modify Experience/Graduation thresholds under Governance."""
+    config_exp = {}
+    if req.min_events is not None:
+        config_exp["MIN_EVENTS"] = req.min_events
+    if req.min_hours is not None:
+        config_exp["MIN_HOURS"] = req.min_hours
+
+    config_grad = {}
+    if req.win_rate is not None:
+        config_grad["WIN_RATE"] = req.win_rate
+    if req.profit_factor is not None:
+        config_grad["PROFIT_FACTOR"] = req.profit_factor
+    if req.min_trades is not None:
+        config_grad["MIN_TRADES"] = req.min_trades
+
+    if config_exp:
+        ExperiencePolicy.update_policy(config_exp)
+    if config_grad:
+        GraduationPolicy.update_policy(config_grad)
+
+    return {
+        "message": "Governance policy thresholds updated successfully",
+        "experience_policy": {
+            "MIN_EVENTS": ExperiencePolicy.get_min_events(),
+            "MIN_HOURS": ExperiencePolicy.get_min_hours(),
+        },
+        "graduation_policy": {
+            "WIN_RATE": GraduationPolicy.get_win_rate(),
+            "PROFIT_FACTOR": GraduationPolicy.get_profit_factor(),
+            "MIN_TRADES": GraduationPolicy.get_min_trades(),
+        }
+    }
+
+
 # --- CONTROLLED TESTING UTILITY ---
 
 @router.post("/test-produce", status_code=status.HTTP_201_CREATED)
@@ -261,7 +308,16 @@ def test_produce_experience(
     req: ProduceTestExperienceRequest,
     db: Session = Depends(get_db),
 ):
-    """Controlled testing utility to manually produce experience substrate entries (Mocking production of chronological living)."""
+    """Controlled testing utility to manually produce experience substrate entries (Mocking production of chronological living).
+
+    Watertight blockade: Inactive in production env.
+    """
+    if API_ENV == "production":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Development simulator and test produce endpoints are inactive in production env."
+        )
+
     try:
         ts = datetime.fromisoformat(req.timestamp)
         real_t = datetime.fromisoformat(req.realized_at) if req.realized_at else None
