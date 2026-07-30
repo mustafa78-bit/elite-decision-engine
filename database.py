@@ -330,6 +330,8 @@ def get_session():
 
 
 def create_tables():
+    # Import experience models to register them on Base before create_all
+    from core.experience.models import ExperienceSubstrate, InstinctState, ExperienceGraduation
     Base.metadata.create_all(bind=engine)
 
 

@@ -343,6 +343,7 @@ The `CoordinatorService` acts as a registry for intelligence sources. Currently 
 | — | Product Completion Sprint — Release Candidate | `818c4ee` | DONE |
 | — | Project Memory System v1.0 | `580b88f` | DONE |
 | — | Project Memory System v2.0 | `c6f9e83` | DONE |
+| Sprint XI | Experience Engine | *Lived Substrate & Distilled Instinct* | DONE |
 
 ---
 
