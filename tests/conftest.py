@@ -14,7 +14,7 @@ Usage:
 
 import os
 
-os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production")
+os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production-key-at-least-32-bytes")
 os.environ.setdefault("API_ENV", "test")
 import pytest
 from fastapi.testclient import TestClient
