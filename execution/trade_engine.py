@@ -18,9 +18,11 @@ class TradeEngine:
         self,
         tp_sl: Optional[TPSLEngine] = None,
         notifications: Optional[NotificationDispatcher] = None,
+        session_factory=None,
     ) -> None:
         self.tp_sl = tp_sl or TPSLEngine()
-        self.notifications = notifications or NotificationDispatcher()
+        self.session_factory = session_factory
+        self.notifications = notifications or NotificationDispatcher(session_factory=self.session_factory)
 
     def create_trade(
         self,
@@ -42,7 +44,11 @@ class TradeEngine:
                 atr, signal.symbol, signal.side,
             )
 
-        session = get_session()
+        session_factory = self.session_factory
+        if session_factory is None:
+            import database
+            session_factory = database.get_session
+        session = session_factory()
         try:
             levels = self.tp_sl.calculate(
                 entry=entry or 0,

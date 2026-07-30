@@ -76,7 +76,7 @@ class PaperExecutor:
         self.logger = logger or logging.getLogger(__name__)
         self._pnl_percentages: dict[int, float] = {}
         self._realized_pnl: dict[int, float] = {}
-        self.notifications = notifications or NotificationDispatcher()
+        self.notifications = notifications or NotificationDispatcher(session_factory=self.session_factory)
         self.market_service = market_service
 
     def open_trade(

@@ -1,4 +1,5 @@
 import logging
+from contextlib import contextmanager
 
 from sqlalchemy import (
     create_engine,
@@ -317,7 +318,7 @@ PARTIALLY_FILLED = "PARTIALLY_FILLED"
 
 ORDER_STATUSES = frozenset({PENDING, FILLED, PARTIALLY_FILLED, CANCEL})
 TRADE_STATUSES = frozenset({OPEN, TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
-FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED, CANCEL})
+FINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED})
 ORDER_FINAL_STATUSES = frozenset({FILLED, CANCEL})
 TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
@@ -327,6 +328,39 @@ TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
 def get_session():
     return SessionLocal()
+
+
+@contextmanager
+def session_scope():
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+# ------------------------------------------------------------------
+# EVENT LEDGER TABLE
+# ------------------------------------------------------------------
+
+class EventLedger(Base):
+    __tablename__ = "event_ledger"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)
+    symbol = Column(String(20), nullable=True, index=True)
+    signal_id = Column(Integer, nullable=True, index=True)
+    trade_id = Column(Integer, nullable=True, index=True)
+    description = Column(Text, nullable=True)
+    details = Column(JSON, default=dict)
+    timestamp = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
 
 
 def create_tables():

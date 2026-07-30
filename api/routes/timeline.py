@@ -43,3 +43,14 @@ def get_global_timeline(
         limit=limit, offset=offset,
         event_type=event_type, symbol=symbol,
     )
+
+
+@router.get("/founder/timeline")
+def get_founder_timeline(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """Retrieve the high-density chronological Founder Activity Narrative sequence derived from the Ledger."""
+    from core.timeline import FounderTimelineService
+    svc = FounderTimelineService()
+    return svc.get_founder_timeline(limit=limit, offset=offset)
