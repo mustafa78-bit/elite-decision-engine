@@ -38,6 +38,7 @@ from api.routes.open_interest import router as open_interest_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
 from api.routes.paper_trading import router as paper_trading_router
+from api.routes.paper import router as paper_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
 from api.routes.regime import router as regime_router
@@ -59,6 +60,7 @@ from api.routes.scanner import router as scanner_router
 from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
+from api.routes.nexus_brain import router as nexus_brain_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -169,6 +171,7 @@ app.include_router(open_interest_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
 app.include_router(paper_trading_router)
+app.include_router(paper_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
 app.include_router(regime_router)
@@ -190,6 +193,7 @@ app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
+app.include_router(nexus_brain_router)
 
 manager = WebSocketManager()
 
