@@ -782,7 +782,53 @@ export default function CommandDeck({ wsRooms, context }: CommandDeckProps) {
           <div className="relative flex flex-col items-center justify-center select-none pointer-events-none z-10 scale-90 md:scale-100">
 
             {/* Base radial glow */}
-            <div className="absolute w-[360px] h-[360px] rounded-full bg-cyan-500/[0.025] blur-[80px] pointer-events-none -z-10 animate-pulse" />
+            <div className="absolute w-[360px] h-[360px] rounded-full bg-cyan-500/[0.02] blur-[100px] pointer-events-none -z-10 animate-pulse" />
+
+            {/* Horizontal, Perspective-Warped Holographic Luminous Platform */}
+            <div
+              className="absolute bottom-[-15px] w-[390px] h-[140px] pointer-events-none -z-10 flex items-center justify-center"
+              style={{
+                perspective: "1000px",
+              }}
+            >
+              <div
+                className="relative w-full h-full rounded-full"
+                style={{
+                  transform: "rotateX(75deg)",
+                  transformStyle: "preserve-3d",
+                }}
+              >
+                {/* Ambient Floor Glow under the ring */}
+                <div className="absolute inset-[-40px] rounded-full bg-cyan-500/[0.08] blur-[30px] animate-pulse" />
+
+                {/* Primary Outer Luminous Ring with glow shadow */}
+                <div className="absolute inset-0 rounded-full border-2 border-cyan-400/40 bg-cyan-950/20 shadow-[0_0_50px_rgba(6,182,212,0.6),inset_0_0_30px_rgba(6,182,212,0.3)] animate-pulse" />
+
+                {/* Secondary Outer Sharp Accent Ring */}
+                <div className="absolute inset-[-4px] rounded-full border border-white/20" />
+
+                {/* Tech Dashboard Dotted Ring with rotating animation */}
+                <div
+                  className="absolute inset-[12px] rounded-full border-2 border-dashed border-cyan-300/50"
+                  style={{
+                    animation: "spin 25s linear infinite",
+                  }}
+                />
+
+                {/* Inner Bright Power Ring */}
+                <div className="absolute inset-[24px] rounded-full border border-white bg-cyan-400/10 shadow-[0_0_25px_rgba(255,255,255,0.8)]" />
+
+                {/* Core Power Core Hole & Radial lines */}
+                <div className="absolute inset-[44px] rounded-full bg-cyan-900/40 border border-cyan-400/50 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-white blur-sm opacity-80 shadow-[0_0_30px_#22d3ee]" />
+                </div>
+
+                {/* Projected Holographic Lines (Upward feel) */}
+                <div className="absolute inset-0 rounded-full overflow-hidden opacity-30">
+                  <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(6,182,212,0.15)_1px,transparent_1px)] bg-[size:100%_8px]" />
+                </div>
+              </div>
+            </div>
 
             {/* Main Brain Breathing Component */}
             <motion.div
@@ -1044,7 +1090,7 @@ export default function CommandDeck({ wsRooms, context }: CommandDeckProps) {
         </div>
       </footer>
 
-      {/* Styled custom scrollbars directly */}
+      {/* Styled custom scrollbars & keyframes directly */}
       <style>{`
         .custom-scroll::-webkit-scrollbar {
           width: 3px;
@@ -1058,6 +1104,14 @@ export default function CommandDeck({ wsRooms, context }: CommandDeckProps) {
         }
         .custom-scroll::-webkit-scrollbar-thumb:hover {
           background: rgba(6, 182, 212, 0.3);
+        }
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
 
