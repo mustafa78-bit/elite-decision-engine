@@ -156,13 +156,21 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
 
         <Route
+          path="/command-deck"
+          element={
+            <AuthGuard>
+              <CommandDeck wsRooms={wsRooms} context={outletContext} />
+            </AuthGuard>
+          }
+        />
+
+        <Route
           element={
             <AuthGuard>
               <Layout wsRooms={wsRooms} context={outletContext} />
             </AuthGuard>
           }
         >
-          <Route path="/command-deck" element={<CommandDeck />} />
           <Route path="/overview" element={<Overview />} />
           <Route path="/dashboard" element={<Navigate to="/command-deck" replace />} />
           <Route path="/scanner" element={<Scanner />} />
