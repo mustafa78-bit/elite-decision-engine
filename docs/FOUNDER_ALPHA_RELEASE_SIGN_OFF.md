@@ -1,18 +1,18 @@
 # 🏛️ NEXUS Founder Alpha Release Sign-Off Report
 
-> **Sprint 23 — Epic 7: Founder Alpha Preparation**
+> **Sprint 23 — Epic 8: Final Release Review**
 > **Status**: APPROVED & GO
 > **Date**: 2026-07-29
-> **Lead Engineer**: Jules (Lead Software Engineer)
+> **Release Owner**: Jules (Lead Software Engineer)
 > **Target Release**: Founder Alpha v1.0.0-RC1
 
 ---
 
 ## 1. Executive Summary
 
-This document serves as the official **Go / No-Go Assessment and Release Sign-Off** for the NEXUS Decision Operating System's closed Founder Alpha launch.
+This document serves as the official **Go / No-Go Assessment, Release Ownership, and Release Sign-Off** for the NEXUS Decision Operating System's closed Founder Alpha launch.
 
-Following the completion of the rigorous stabilization and quality assurance passes, 100% of the platform quality gates have been satisfied. The system is highly stable, performant, and secure, making it completely ready for direct production deployment and active operational onboarding.
+Following the completion of the rigorous stabilization, quality assurance, and documentation passes, 100% of the platform quality gates have been satisfied. The system is highly stable, performant, and secure, making it completely ready for direct production deployment and active operational onboarding.
 
 ---
 
@@ -52,7 +52,40 @@ All 6 active WebSocket rooms successfully connect, broadcast, and automatically 
 
 ---
 
-## 4. Go / No-Go Decision Matrix
+## 4. Rollback & Deployment Strategy
+
+To ensure zero downtime and mitigate any unforeseen runtime disruptions during deployment:
+
+### Deployment Pipeline
+1. **Blue/Green Environment Swapping**: Production server runs under a split-traffic layout. New release builds are pushed directly to the Green container slot.
+2. **Health Check Verification**: Auto-trigger end-to-end `/health/details` checks on the Green slot. Only proceed if state reads `ONLINE`.
+3. **Traffic Rerouting**: Switch primary ingress gateways to the Green slots via proxy rules.
+
+### Rollback Strategy
+If any post-deployment anomalies or core exceptions are detected:
+- **Instant Rollback**: Proxy ingress is dynamically reverted back to the previous stable Blue container container slot instantly.
+- **State Preservation**: The append-only event ledger stores all transactions in real-time, preventing transaction or ledger state loss during rollback triggers.
+
+---
+
+## 5. Known Issues Register
+
+Minor, non-blocking visual/UX items that are postponed to the post-Alpha phase:
+
+- **Correlation Matrix Symbols**: The widget currently renders default assets. Integration to custom user watchlists is scheduled for post-Alpha.
+- **Interactive Price Chart Default**: Order Panel default parameters are hardcoded to test values to assist onboarding testers.
+
+---
+
+## 6. Post-Release Monitoring Plan
+
+Active monitoring channels are established post-launch:
+- **FastAPI Telemetry**: System performance analytics under `/monitoring` are checked hourly.
+- **Log Rotation**: Core rotating file handlers in `/logs/` are capped to 10MB to maintain optimized server storage bounds.
+
+---
+
+## 7. Go / No-Go Decision Matrix
 
 An analytical review of the platform against the target production release gate criteria:
 
@@ -75,7 +108,7 @@ There are no blocking issues, unmitigated security risks, or code regressions pr
 
 ---
 
-## 5. Release Candidate Sign-Off
+## 8. Release Candidate Sign-Off
 
 I hereby certify that the NEXUS Decision Operating System codebase has met all technical and qualitative DOD criteria for the closed Founder Alpha launch.
 
