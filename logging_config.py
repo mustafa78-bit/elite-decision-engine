@@ -126,6 +126,13 @@ def setup_logging(log_dir="logs"):
     for h in handlers:
         root.addHandler(h)
 
+    # Third-party HTTP client libraries log at INFO/DEBUG by default, which
+    # both floods logs and triggers a known httpx/starlette TestClient
+    # incompatibility (httpx's request-logging call formats status_code with
+    # %d, but starlette's TestClient transport can hand back to it as a str).
+    for noisy_logger in ("httpx", "httpcore"):
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
+
 
 def log_state(logger_name: str, component: str, state: str, **extra) -> None:
     logger = logging.getLogger(logger_name)
