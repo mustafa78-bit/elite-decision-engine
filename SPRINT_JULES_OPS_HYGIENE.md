@@ -1,10 +1,35 @@
+STANDING RULES (apply to this entire sprint):
+
+1. Never trust this repo's own markdown docs (KNOWN_LIMITATIONS.md, TECHNICAL_DEBT.md,
+   MASTER_BOOK.md, PROJECT_STATUS.md, etc.) as ground truth. They have repeatedly been
+   found stale or simply wrong. Verify every claim — including claims in THIS sprint
+   doc — against the actual current code and by running the actual test with a full
+   traceback (`pytest path::test --tb=long`) before acting on it.
+
+2. Never modify a test's assertion to match broken/wrong code just to turn it green.
+   If you believe a test is outdated or asserting the wrong thing, say so explicitly
+   in your summary with your reasoning.
+
+3. You must work on your own branch and open a Pull Request against `main`. Never
+   push directly to `main`. Do not report a task as "done" until there is a real PR
+   with a real diff — a chat summary of what you did is not sufficient for review.
+
+4. Before claiming any test count/status, actually run the suite yourself
+   (`pytest tests/ -q` and `npm run test` in `frontend/`) and paste the real final
+   line in your summary.
+
+5. In your final summary, list the exact files you changed, one line per file
+   describing the change and why.
+
 # Sprint: Ops Hygiene (CI coverage + doc accuracy)
 
 ## Context
 
-This is independent of the other active sprints (test-suite stabilization, crystal brain hero) — it doesn't touch any file those touch, safe to run in parallel.
+This is independent of the other active sprints — it doesn't touch any file those touch, safe to run in parallel.
 
-**This repo's own docs are currently unreliable** — that's exactly what part 2 of this sprint fixes. `KNOWN_LIMITATIONS.md`, `TECHNICAL_DEBT.md`, and `MASTER_BOOK.md` were checked against the actual code and several "critical bug" claims in them turned out to be false or already fixed (an ATR column typo claim, a missing `pandas_ta` dependency claim, and a ConfidenceEngine "double-scaling" claim were all disproven by reading the real code). Don't repeat that mistake in reverse — every claim you write in this sprint must be something you personally verified against current code/tests, not copied from an existing doc or assumed.
+As of this writing, `pytest tests/ -q` on `review-ui` passes fully clean: 1325 passed, 1 skipped, 0 failed. Frontend `npm run test` passes 106/106. Confirm this yourself as your baseline before starting.
+
+**This repo's own docs are currently unreliable** — that's exactly what part 2 of this sprint fixes. `KNOWN_LIMITATIONS.md`, `TECHNICAL_DEBT.md`, and `MASTER_BOOK.md` were checked against the actual code and several "critical bug" claims in them turned out to be false or already fixed (an ATR column typo claim, a missing `pandas_ta` dependency claim, and a ConfidenceEngine "double-scaling" claim were all disproven by reading the real code). A real bug WAS later found and fixed elsewhere (a logging filter in `logging_config.py` that stringified numeric log args, breaking `%d`/`%f` format specifiers across many modules) — that's fixed now too, don't re-report it. Don't repeat the doc-trust mistake in reverse — every claim you write in this sprint must be something you personally verified against current code/tests, not copied from an existing doc or assumed.
 
 ## Part 1 — CI: add frontend test coverage
 
