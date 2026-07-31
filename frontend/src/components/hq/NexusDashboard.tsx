@@ -47,10 +47,18 @@ export const NexusDashboard: React.FC = () => {
           0%, 100% { height: 6px; }
           50% { height: 28px; }
         }
+        @keyframes neural-pulse {
+          0% { stroke-dashoffset: 260; }
+          100% { stroke-dashoffset: 0; }
+        }
         .animate-brain { animation: pulse-slow 5s ease-in-out infinite; }
         .animate-ripple-1 { animation: ripple 4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite; }
         .animate-ripple-2 { animation: ripple 4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite 1.3s; }
         .animate-ripple-3 { animation: ripple 4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite 2.6s; }
+        .neural-line {
+          stroke-dasharray: 10 250;
+          animation: neural-pulse linear infinite;
+        }
         .glass-panel {
           background: rgba(15, 23, 42, 0.55);
           backdrop-filter: blur(16px);
@@ -192,6 +200,14 @@ export const NexusDashboard: React.FC = () => {
               <path d="M 105,25 C 130,30 155,45 158,70 C 160,90 145,105 130,115 C 120,120 108,128 105,132" fill="none" stroke="url(#brainGlow)" strokeWidth="1.5" />
               <path d="M 110,40 C 125,45 145,60 145,75 C 145,90 130,100 115,105" fill="none" stroke="url(#brainGlow)" strokeWidth="1.2" strokeDasharray="3,2" />
               <path d="M 115,55 C 130,60 138,70 135,85 C 132,95 120,98 112,90" fill="none" stroke="url(#brainGlow)" strokeWidth="1" />
+
+              {/* Traveling neural light pulses - overlaid on the gyri paths above */}
+              <path className="neural-line" style={{ animationDuration: '3.1s', animationDelay: '0s' }} d="M 95,25 C 70,30 45,45 42,70 C 40,90 55,105 70,115 C 80,120 92,128 95,132" fill="none" stroke="#a5f3fc" strokeWidth="1.8" strokeLinecap="round" />
+              <path className="neural-line" style={{ animationDuration: '2.4s', animationDelay: '0.6s' }} d="M 90,40 C 75,45 55,60 55,75 C 55,90 70,100 85,105" fill="none" stroke="#a5f3fc" strokeWidth="1.5" strokeLinecap="round" />
+              <path className="neural-line" style={{ animationDuration: '2.9s', animationDelay: '1.1s' }} d="M 85,55 C 70,60 62,70 65,85 C 68,95 80,98 88,90" fill="none" stroke="#a5f3fc" strokeWidth="1.3" strokeLinecap="round" />
+              <path className="neural-line" style={{ animationDuration: '3.4s', animationDelay: '0.3s' }} d="M 105,25 C 130,30 155,45 158,70 C 160,90 145,105 130,115 C 120,120 108,128 105,132" fill="none" stroke="#a5f3fc" strokeWidth="1.8" strokeLinecap="round" />
+              <path className="neural-line" style={{ animationDuration: '2.6s', animationDelay: '0.9s' }} d="M 110,40 C 125,45 145,60 145,75 C 145,90 130,100 115,105" fill="none" stroke="#a5f3fc" strokeWidth="1.5" strokeLinecap="round" />
+              <path className="neural-line" style={{ animationDuration: '3.2s', animationDelay: '1.5s' }} d="M 115,55 C 130,60 138,70 135,85 C 132,95 120,98 112,90" fill="none" stroke="#a5f3fc" strokeWidth="1.3" strokeLinecap="round" />
 
               {/* Neural Nodes & Connections */}
               <circle cx="100" cy="50" r="3" fill="#67e8f9" className="animate-ping" />
