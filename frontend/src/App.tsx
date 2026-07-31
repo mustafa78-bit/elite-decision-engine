@@ -52,6 +52,7 @@ const OpenInterestPage = lazy(() => import("./pages/OpenInterestPage"));
 const HeroDashboard = lazy(() => import("./pages/HeroDashboard"));
 const TradingWorkspace = lazy(() => import("./pages/TradingWorkspace"));
 const AIExperience = lazy(() => import("./pages/AIExperience"));
+const MarketSimulator = lazy(() => import("./pages/MarketSimulator"));
 
 const MAX_EVENTS = 100;
 
@@ -196,6 +197,7 @@ function AppRoutes() {
           <Route path="/hero-dashboard" element={<HeroDashboard />} />
           <Route path="/trading-workspace" element={<TradingWorkspace />} />
           <Route path="/ai-experience" element={<AIExperience />} />
+          <Route path="/simulator" element={<MarketSimulator />} />
           <Route path="/professional-workspace" element={<Navigate to="/execution" replace />} />
         </Route>
 
