@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
@@ -78,6 +78,7 @@ logger = logging.getLogger(__name__)
 origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
 
 _background_tasks: set[asyncio.Task] = set()
+_ollo_service: Optional[Any] = None
 
 
 @asynccontextmanager
@@ -85,10 +86,39 @@ async def lifespan(app: FastAPI):
     from logging_config import setup_logging
     setup_logging()
     logger.info("Application starting up")
+
+    # Initialize OLLO Service
+    global _ollo_service
+    try:
+        from services.ai.provider_factory import create_ai_service
+        from services.ollo.ollo_service import OLLOService
+        _ai_svc = create_ai_service()
+        _ollo_service = OLLOService(_ai_svc)
+        logger.info("OLLO Service initialized successfully")
+    except Exception as e:
+        logger.warning("OLLO Service initialization failed: %s", e)
+
+    # Start Telegram Bot if configured
+    from services.telegram.bot import TelegramBotManager
+    bot_manager = TelegramBotManager.get_instance()
+    bot_started = bot_manager.setup()
+    if bot_started:
+        # Run bot startup as a background task
+        bot_task = asyncio.create_task(bot_manager.start())
+        _background_tasks.add(bot_task)
+
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
+
     yield
+
     logger.info("Application shutting down")
+    if bot_started:
+        try:
+            await bot_manager.stop()
+        except Exception as e:
+            logger.warning("Telegram Bot shutdown error: %s", e)
+
     task.cancel()
     for t in _background_tasks:
         if not t.done():
