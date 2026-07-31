@@ -40,10 +40,19 @@ class _SensitiveDataFilter(logging.Filter):
         if hasattr(record, 'msg') and isinstance(record.msg, str):
             for pattern, replacement in _SENSITIVE_PATTERNS:
                 record.msg = pattern.sub(replacement, record.msg)
-        if record.args:
+        if record.args and isinstance(record.args, tuple):
             cleaned = []
             for arg in record.args:
-                s = str(arg)
+                if not isinstance(arg, str):
+                    # Non-string args (int, float, etc.) must stay their original
+                    # type - format specifiers like %d/%f reject stringified
+                    # numbers, and stringifying here caused a TypeError on every
+                    # logger call that passed a real number (e.g. "%d active"
+                    # in api/websocket/manager.py, "%.0fms" in
+                    # monitoring/health.py).
+                    cleaned.append(arg)
+                    continue
+                s = arg
                 for pattern, replacement in _SENSITIVE_PATTERNS:
                     s = pattern.sub(replacement, s)
                 cleaned.append(s)
