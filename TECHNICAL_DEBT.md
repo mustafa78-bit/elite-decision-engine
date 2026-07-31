@@ -1,92 +1,41 @@
 # Technical Debt & Known Issues
 
-## Recently Resolved (Founder Beta Sprint)
+*Last verified against code: July 31, 2026, not just written from memory/assumption*
 
-### Production Readiness
+This document catalogs verified outstanding technical debt items in the NEXUS Decision Operating System.
 
-| ID | Issue | Status |
-|----|-------|--------|
-| P1 | `HealthService.execution()` crashes on ExecutionLoop init failure | ✅ Fixed — graceful degradation |
-| P2 | No `LOG_LEVEL` env var support | ✅ Fixed — `config.py` reads `LOG_LEVEL`, `logging_config.py` uses it |
-| P3 | No sensitive data scrubbing in logs | ✅ Fixed — `_SensitiveDataFilter` redacts secrets in log output |
-| P4 | No `Content-Security-Policy` header | ✅ Fixed — added to security headers middleware |
-| P5 | No `/ready` and `/live` health endpoints | ✅ Fixed — added k8s-style readiness/liveness probes |
-| P6 | No 404 exception handler | ✅ Fixed — returns JSON with path info |
-| P7 | `ENCRYPTION_KEY`, `HL_API_KEY`, `HL_SECRET`, `TELEGRAM_TOKEN` not exported from config | ✅ Fixed — exported as module constants |
-| P8 | `.env.example` incomplete | ✅ Fixed — documented all configurable env vars |
+## Pre-Production Blockers
 
-### Performance
+The previously claimed critical blockers (`ConfidenceEngine` double-scaling, `ATRr_14` typo in indicator, and missing `pandas_ta` in requirements.txt) have been fully resolved. The remaining architectural/structural gaps include:
 
-| ID | Issue | Status |
-|----|-------|--------|
-| P9 | All pages eagerly imported (large initial bundle) | ✅ Fixed — `React.lazy()` + `Suspense` for 35 routes |
-| P10 | Unused `status` state in AppRoutes causes TS warning | ✅ Fixed — removed dead state |
+| ID | Issue | Location | Impact | Workaround / Status |
+|----|-------|----------|--------|---------------------|
+| MC5 | No integrated live signal source / no live data path | `scanner/` | Scanner operates on static/paper data only. | Use paper mock data; require live API integrations pre-production. |
+| DP1 | Confidence hardcoded to 0.0 in DecisionPipeline | `execution/pipeline.py` | Potential issue in customized paths. (Evaluated with `ConfidenceEngine` for regular signals). | Ensure the `ConfidenceEngine` is always injected/active. |
+| DP2 | Scores never saved to Signal database record | `execution/pipeline.py` | Signal history lacks rich component score details. | Add score columns or JSON fields to the `Signal` SQLAlchemy model and persist. |
+| DP4 | No filter chain wired into pipeline | `execution/pipeline.py` | All signals pass through unfiltered without pre-evaluation. | Implement robust multi-stage filter steps. |
 
-### Security
+## Medium Priority
 
-| ID | Issue | Status |
-|----|-------|--------|
-| P11 | Duplicate `useAuth` in `AuthGuard.tsx` bypasses `AuthProvider` context | ✅ Fixed — `AuthGuard` now uses context-based `useAuth` |
+| ID | Issue | Location | Impact | Workaround / Status |
+|----|-------|----------|--------|---------------------|
+| DB1 | No ForeignKey constraint on `Trade.signal_id` | `database.py` | Orphaned trades or database inconsistency is possible. | Ensure manual transactions handle cascading or define direct relational constraints. |
+| DB4 | `update_signal_status()` duplicates | `database.py` | Was previously claimed twice. A single robust definition remains. | Clean and verified; duplicate is completely removed. |
+| RL1 | No per-route rate limiting | `api/rate_limit.py` | Only global rate limiting is currently enforced. | Implement route-specific limits on sensitive write operations. |
+| JW1 | JWT key 30 bytes (< 32 recommended) | `tests/conftest.py` | Triggers PyJWT InsecureKeyLengthWarning in test suite. | Extend test-secret to 32+ bytes. |
+| UT1 | `datetime.utcnow()` usage | Multiple files | Triggers deprecation warnings in Python 3.12+; will break in Python 3.16+. | Change to `datetime.now(timezone.utc)` (active in 19 occurrences). |
 
-### Code Cleanup
+## Low Priority
 
-| ID | Issue | Status |
-|----|-------|--------|
-| P12 | Unused `Base` import in `startup.py` | ✅ Removed |
-| P13 | Unused `RiskManager` import in `monitoring/health.py` | ✅ Removed |
-| P14 | Unused `HealthComponent` dataclass in `monitoring/health.py` | ✅ Removed |
-| P15 | Dead fields `change_24h`, `volume_change` in `api/events.py` | ✅ Removed |
-| P16 | Unused `updateLayout` import in `PreferencesPage.tsx` | ✅ Removed |
-| P17 | `ActionCenter.tsx` passing object to `fetchNotifications(limit: number)` | ✅ Fixed |
+| ID | Issue | Location | Impact | Workaround / Status |
+|----|-------|----------|--------|---------------------|
+| LC1 | 24 empty `__init__.py` files | Multiple dirs | Minor maintenance/file clutter. | Clean up/remove empty packaging files where modules are already registered. |
+| LC2 | Legacy test files with zero assertions | `tests/` | False sense of coverage. | Audit tests and append assertions. |
 
 ---
 
-## Remaining Technical Debt
+## Technical Debt History
 
-### Critical (Pre-Production Blockers)
-
-| ID | Issue | Location | Impact |
-|----|-------|----------|--------|
-| BP2 | `ConfidenceEngine` double-scaling: `confidence * 100` then compared to 0–100 threshold | `core/confidence_engine.py` | Every signal approved as STRONG_APPROVE |
-| BP3 | `ATRr_14` typo in indicator column name | `market_data/indicators.py:25` | All indicator data = 0 |
-| AF1 | `pandas_ta` missing from `requirements.txt` | `requirements.txt` | Runtime crash on import |
-
-### High Priority
-
-| ID | Issue | Location | Impact |
-|----|-------|----------|--------|
-| MC5 | No integrated signal source / no live data path | `scanner/` | Scanner operates on empty data |
-| DP1 | Confidence hardcoded to 0.0 in DecisionPipeline | `execution/pipeline.py` | All signals rejected before threshold check |
-| DP2 | Scores never saved to Signal record | `execution/pipeline.py` | Signal history unusable |
-| DP4 | No filter chain wired into pipeline | `execution/pipeline.py` | All signals pass through unfiltered |
-
-### Medium Priority
-
-| ID | Issue | Location | Impact |
-|----|-------|----------|--------|
-| DB1 | No ForeignKey constraint on `Trade.signal_id` | `database.py` | Orphaned trades possible |
-| DB4 | `update_signal_status()` defined twice | `database.py` | Duplicate function definition |
-| RL1 | No per-route rate limiting | `api/rate_limit.py` | Only global 200/min limit |
-| HT1 | httpx2 incompatible with Python 3.14 logging | `httpx2` library | Test log format failure |
-| JW1 | JWT key 30 bytes (< 32 recommended) | `.env` | Security warning |
-| UT1 | `datetime.utcnow()` usage (32 occurrences) | Multiple files | Deprecation in Python 3.14+ |
-
-### Low Priority
-
-| ID | Issue | Location | Impact |
-|----|-------|----------|--------|
-| LC1 | 24 empty `__init__.py` files | Multiple dirs | Minor maintenance |
-| LC2 | Legacy test files with zero assertions | `tests/` | False sense of coverage |
-
----
-
-## Summary
-
-| Severity | Count | Status |
-|----------|-------|--------|
-| Critical (resolved) | 0 | ✅ All critical items fixed |
-| Critical (remaining) | 3 | BP2, BP3, AF1 — pre-existing, requires refactor |
-| High | 3 | MC5, DP1-2, DP4 — pre-existing architectural gaps |
-| Medium | 5 | DB1, DB4, RL1, HT1, JW1, UT1 |
-| Low | 2 | LC1, LC2 |
-| **Founder Beta Resolved** | **17** | ✅ P1–P17 |
+### Sprit 23 UX / Ops Hygiene Resolved
+- **Frontend CI/CD Tests Coverage**: Added `npm run test` workflow step under the `frontend` job in `.github/workflows/ci.yml`.
+- **Known Limitations & Technical Debt Audit**: Purged disproven/falsely claimed bugs (the ATR column typo, `ConfidenceEngine` double-scaling, and `pandas_ta` requirements claims were all verified as non-existent or previously fixed). Added precise file/line tracking.
