@@ -12,8 +12,22 @@ import {
   Zap,
   Radio,
 } from 'lucide-react';
+import OLLOCommander from './OLLOCommander';
+import type { OLLOResponse, OLLOBriefing } from '../../types/ollo';
 
-export const NexusDashboard: React.FC = () => {
+export interface NexusDashboardProps {
+  olloGreeting: OLLOResponse | null;
+  olloBriefing: OLLOBriefing | null;
+  olloLoading: boolean;
+  olloError: string | null;
+}
+
+export const NexusDashboard: React.FC<NexusDashboardProps> = ({
+  olloGreeting,
+  olloBriefing,
+  olloLoading,
+  olloError,
+}) => {
   const [time, setTime] = useState<string>('');
 
   useEffect(() => {
@@ -312,39 +326,14 @@ export const NexusDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Console Text */}
-        <p className="text-xs md:text-sm text-slate-300 font-sans leading-relaxed">
-          I am analyzing{' '}
-          <span className="text-cyan-300 font-semibold border-b border-cyan-400/40">market structure</span>,{' '}
-          <span className="text-cyan-300 font-semibold border-b border-cyan-400/40">whale behavior</span>, and{' '}
-          <span className="text-cyan-300 font-semibold border-b border-cyan-400/40">multi-layered sentiment</span>{' '}
-          to uncover high-confidence opportunities.
-        </p>
-
-        {/* Audio Waveform Visualization & Step Indicator */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 pt-2 border-t border-cyan-500/10">
-
-          {/* Animated Waveform Bars */}
-          <div className="flex items-center gap-1 h-6">
-            {[40, 75, 30, 90, 60, 100, 45, 80, 55, 95, 35, 70, 85, 40, 60, 90, 50, 30, 80, 65, 45].map((height, i) => (
-              <span
-                key={i}
-                className="w-1 rounded-full bg-gradient-to-t from-cyan-600 to-cyan-300"
-                style={{
-                  height: `${height}%`,
-                  animation: `waveform 1.5s ease-in-out infinite ${i * 0.08}s`,
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Execution Status Step */}
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-            <div className="w-16 bg-slate-800 h-1 rounded-full overflow-hidden border border-cyan-500/20">
-              <div className="bg-cyan-400 h-full w-[65%]" />
-            </div>
-            <span>Step 3: <strong className="text-slate-200">Whale Wallet Analysis</strong> &rarr; Large transaction filtering (0.01s)</span>
-          </div>
+        {/* Live Speech/OLLO Commander Panel */}
+        <div className="flex justify-center w-full">
+          <OLLOCommander
+            greeting={olloGreeting}
+            briefing={olloBriefing}
+            loading={olloLoading}
+            error={olloError}
+          />
         </div>
       </footer>
 

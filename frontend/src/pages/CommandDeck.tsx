@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { useSubsystems } from "../hooks/useSubsystems"
 import { computeMissionStatus } from "../types/mission"
-import OLLOCommander from "../components/hq/OLLOCommander"
-import CrystalBrainHero from "../components/hq/CrystalBrainHero"
-import MissionRing from "../components/hq/MissionRing"
+import { NexusDashboard } from "../components/hq/NexusDashboard"
 import MissionFlow from "../components/hq/MissionFlow"
 import SubsystemHealthBar from "../components/hq/SubsystemHealthBar"
 import HQLoadingScreen from "../components/hq/HQLoadingScreen"
@@ -149,15 +147,6 @@ export default function CommandDeck() {
 
   const currentMission = ollo.briefing?.title || ollo.status.data?.current_mission_profile?.replace(/_/g, " ") || undefined
 
-  const sectors = useMemo(() => [
-    { label: "Scanner", status: scanner.status },
-    { label: "Council", status: council.status },
-    { label: "Risk", status: risk.status },
-    { label: "Portfolio", status: portfolio.status },
-    { label: "Whale", status: whale.status },
-    { label: "Market", status: market.status },
-  ], [scanner.status, council.status, risk.status, portfolio.status, whale.status, market.status])
-
   const flowNodes = useMemo(() => [
     { label: "Scanner" as const, active: scanner.status === "ONLINE", color: statusColor(scanner.status) },
     { label: "Whale" as const, active: whale.status === "ONLINE", color: statusColor(whale.status) },
@@ -198,13 +187,21 @@ export default function CommandDeck() {
       {showLoading && <HQLoadingScreen />}
 
       <motion.div
-        className="h-full flex flex-col"
+        className="h-full flex flex-col overflow-y-auto"
         initial={{ opacity: 0 }}
         animate={{ opacity: showLoading ? 0 : 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        {/* ====== TOP BAR ====== */}
-        <header
+        {/* ====== NEXUS HERO: brain, live status cards, voice/chat console ====== */}
+        <NexusDashboard
+          olloGreeting={ollo.greeting}
+          olloBriefing={ollo.briefing}
+          olloLoading={loading && !ollo.greeting}
+          olloError={ollo.status.error}
+        />
+
+        {/* ====== MISSION STATUS STRIP ====== */}
+        <div
           className="flex items-center justify-between shrink-0"
           style={{
             height: 38,
@@ -277,10 +274,10 @@ export default function CommandDeck() {
               </span>
             )}
           </div>
-        </header>
+        </div>
 
-        {/* ====== CONTENT — split layout with OLLO + Crystal Brain Hero & Merged Side Panels ====== */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-1 xl:grid-cols-4 gap-6 p-6">
+        {/* ====== CONTENT — Evidence, Mission Flow & Merged AI Experience Side Panels ====== */}
+        <div className="flex-1 grid grid-cols-1 xl:grid-cols-4 gap-6 p-6">
 
           {/* Side Panel Left: Signal Feed */}
           <div className="xl:col-span-1 flex flex-col gap-6">
@@ -293,23 +290,8 @@ export default function CommandDeck() {
             </motion.div>
           </div>
 
-          {/* Core Hero Centre Piece: Crystal Brain / OLLO Commander / Mission Ring */}
+          {/* Centre: Recommendation / Evidence / Mission Flow */}
           <div className="xl:col-span-2 flex flex-col items-center gap-6">
-            <div className="relative flex flex-col items-center w-full max-w-xl">
-              {/* Dynamic breathing volumetric Crystal Brain Hero */}
-              <CrystalBrainHero />
-
-              <OLLOCommander
-                greeting={ollo.greeting}
-                briefing={ollo.briefing}
-                loading={loading && !ollo.greeting}
-                error={ollo.status.error}
-              />
-              <div className="mt-6">
-                <MissionRing sectors={sectors} />
-              </div>
-            </div>
-
             {/* Recommendation (Grounded details) */}
             {recommendation && (
               <div className="w-full max-w-xl">
