@@ -13,6 +13,7 @@ export interface OLLOResponse {
   tokens_in: number
   tokens_out: number
   sections: OLLOResponseSection[]
+  intent_route?: string | null
 }
 
 export interface OLLOBriefing {
