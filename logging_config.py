@@ -81,10 +81,6 @@ def _file_handler(path, level, formatter, filter_=None):
 
 
 def setup_logging(log_dir="logs"):
-    # Explicitly set httpx and httpcore loggers to WARNING to avoid formatting format string warnings/TypeErrors in Starlette test client
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-
     api_env = os.getenv("API_ENV", "development")
     is_prod = api_env == "production"
 
