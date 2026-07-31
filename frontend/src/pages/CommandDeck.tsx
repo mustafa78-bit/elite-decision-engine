@@ -192,16 +192,18 @@ export default function CommandDeck() {
         animate={{ opacity: showLoading ? 0 : 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        {/* ====== NEXUS HERO: brain, live status cards, voice/chat console ====== */}
+        {/* ====== NEXUS HERO: just the brain + voice/chat console, no cards ====== */}
         <NexusDashboard
           olloGreeting={ollo.greeting}
           olloBriefing={ollo.briefing}
           olloLoading={loading && !ollo.greeting}
           olloError={ollo.status.error}
+          onEnterCommandDeck={() => document.getElementById("command-deck-panels")?.scrollIntoView({ behavior: "smooth" })}
         />
 
         {/* ====== MISSION STATUS STRIP ====== */}
         <div
+          id="command-deck-panels"
           className="flex items-center justify-between shrink-0"
           style={{
             height: 38,
