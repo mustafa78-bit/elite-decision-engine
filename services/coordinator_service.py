@@ -45,7 +45,7 @@ class IntelligenceRegistry:
             "latency_ms": 0.0,
             "error_count": 0,
         }
-        logger.info("Registered intelligence source: %s (type=%s, weight=%.2f)", name, source_type, weight)
+        logger.info("Registered intelligence source: %s (type=%s, weight=%s)", name, source_type, str(weight))
 
     def unregister(self, name: str) -> None:
         self._sources.pop(name, None)

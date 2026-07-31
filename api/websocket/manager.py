@@ -22,7 +22,7 @@ class WebSocketManager:
             self._clients.add(websocket)
             if room:
                 self._rooms.setdefault(room, set()).add(websocket)
-            logger.info("WebSocket client connected (dev mode, %d active, room=%s)", len(self._clients), room)
+            logger.info("WebSocket client connected (dev mode, %s active, room=%s)", str(len(self._clients)), room)
             return
         token = websocket.query_params.get("token", "")
         if not token:
@@ -36,13 +36,13 @@ class WebSocketManager:
         self._clients.add(websocket)
         if room:
             self._rooms.setdefault(room, set()).add(websocket)
-        logger.info("WebSocket client connected (%d active, room=%s)", len(self._clients), room)
+        logger.info("WebSocket client connected (%s active, room=%s)", str(len(self._clients)), room)
 
     async def disconnect(self, websocket: WebSocket) -> None:
         self._clients.discard(websocket)
         for room_clients in self._rooms.values():
             room_clients.discard(websocket)
-        logger.info("WebSocket client disconnected (%d active)", len(self._clients))
+        logger.info("WebSocket client disconnected (%s active)", str(len(self._clients)))
 
     async def broadcast(self, message: str) -> None:
         stale: list[WebSocket] = []

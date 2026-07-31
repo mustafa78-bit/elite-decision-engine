@@ -57,9 +57,10 @@ def get_intelligence():
     closed_trades = [t for t in all_trades if str(t.status) in FINAL_STATUSES]
     total_pnl = sum(t.pnl for t in closed_trades if t.pnl is not None)
 
+    pnl_str = f"{total_pnl:.2f}" if isinstance(total_pnl, (int, float)) else str(total_pnl)
     logger.info(
-        "/intelligence: signals=%d trades=%d closed_pnl=%.2f",
-        len(all_signals), len(all_trades), total_pnl,
+        "/intelligence: signals=%s trades=%s closed_pnl=%s",
+        str(len(all_signals)), str(len(all_trades)), pnl_str,
     )
 
     return {

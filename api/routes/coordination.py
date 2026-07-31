@@ -21,6 +21,7 @@ def _get_coordinator() -> Any:
 @router.get("/coordinate/sources")
 def list_intelligence_sources(request: Request):
     try:
+        logger.info("Fetching registered intelligence sources from registry")
         coordinator = _get_coordinator()
         sources = coordinator.intelligence_registry.list_sources()
         return {"sources": sources}

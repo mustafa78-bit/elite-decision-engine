@@ -102,10 +102,10 @@ class ConsensusEngine:
             capabilities=[agent.name.lower()],
         )
         logger.info(
-            "Registered agent %s with weight=%.2f priority=%s",
+            "Registered agent %s with weight=%s priority=%s",
             agent.name,
-            self.weights.get(agent.name, 1.0),
-            agent.priority,
+            str(self.weights.get(agent.name, 1.0)),
+            str(agent.priority),
         )
 
     def register_defaults(self) -> None:

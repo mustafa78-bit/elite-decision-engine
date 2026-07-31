@@ -1,4 +1,5 @@
 import logging
+from contextlib import contextmanager
 
 from sqlalchemy import (
     create_engine,
@@ -327,6 +328,20 @@ TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
 def get_session():
     return SessionLocal()
+
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def create_tables():
