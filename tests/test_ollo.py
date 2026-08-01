@@ -15,7 +15,7 @@ Verifies:
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -191,6 +191,58 @@ class TestContextBuilder:
         ctx = self.builder.build(["portfolio_summary", "market_regime"], room="command_deck")
         assert isinstance(ctx.portfolio_summary, dict) or ctx.portfolio_summary is None
         assert isinstance(ctx.market_regime, dict) or ctx.market_regime is None
+
+    def test_load_whale_success_and_failure(self):
+        # 1. Success case using mocks
+        mock_whale_service = MagicMock()
+        mock_whale_service.detect.return_value = [{"type": "WHALE_MOVE", "symbol": "BTC", "severity": "high"}]
+        mock_market_service = MagicMock()
+        mock_asset = MagicMock()
+        mock_asset.is_empty = False
+        mock_asset.indicators = {"volume_score": 0.95, "volatility_score": 0.8}
+        mock_asset.price = 50000.0
+        mock_asset.intelligence = None
+        mock_market_service.get_asset.return_value = mock_asset
+
+        with patch("market.intelligence.whale.WhaleService", return_value=mock_whale_service), \
+             patch("market.services.MarketDataService", return_value=mock_market_service):
+            ctx = self.builder.build(["whale_activity"])
+            assert ctx.whale_activity is not None
+            assert ctx.whale_activity["status"] == "active"
+            assert ctx.whale_activity["signal_count"] == 2  # for both BTC and ETH
+            assert len(ctx.whale_activity["signals"]) == 2
+
+        # 2. Failure case
+        with patch("market.intelligence.whale.WhaleService", side_effect=Exception("Whale service error")):
+            ctx = self.builder.build(["whale_activity"])
+            assert ctx.whale_activity is None
+
+    def test_load_risk_success_and_failure(self):
+        # 1. Success case using mocks
+        from risk.models import RiskDecision, RiskCheckDetail
+
+        checks = [
+            RiskCheckDetail(name="MAX_OPEN_TRADES", passed=True, value=2.0, limit=3.0),
+            RiskCheckDetail(name="PORTFOLIO_EXPOSURE", passed=True, value=100.0, limit=1000.0),
+            RiskCheckDetail(name="DAILY_LOSS_LIMIT", passed=True, value=50.0, limit=500.0),
+        ]
+        mock_decision = RiskDecision(allowed=True, reason="", checks=tuple(checks))
+
+        mock_risk_manager = MagicMock()
+        mock_risk_manager.evaluate_trade.return_value = mock_decision
+
+        with patch("risk_manager.RiskManager", return_value=mock_risk_manager):
+            ctx = self.builder.build(["risk_metrics"])
+            assert ctx.risk_metrics is not None
+            assert ctx.risk_metrics["status"] == "active"
+            assert ctx.risk_metrics["open_trades"] == 2
+            assert ctx.risk_metrics["portfolio_exposure"] == 100.0
+            assert ctx.risk_metrics["daily_loss"] == 50.0
+
+        # 2. Failure case
+        with patch("risk_manager.RiskManager", side_effect=Exception("Risk manager error")):
+            ctx = self.builder.build(["risk_metrics"])
+            assert ctx.risk_metrics is None
 
 
 class TestPersonality:
