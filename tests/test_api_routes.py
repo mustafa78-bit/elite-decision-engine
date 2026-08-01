@@ -32,6 +32,13 @@ def _make_signal(db_session, **overrides):
 
 
 def _make_trade(db_session, signal_id=1, status="OPEN", pnl=None, **overrides):
+    if signal_id is not None:
+        from database import Signal
+        existing_signal = db_session.query(Signal).filter(Signal.id == signal_id).first()
+        if not existing_signal:
+            sig = Signal(id=signal_id, symbol=overrides.get("symbol", "BTCUSDT"), side=overrides.get("side", "LONG"))
+            db_session.add(sig)
+            db_session.flush()
     kwargs = dict(
         signal_id=signal_id,
         symbol="BTCUSDT",
