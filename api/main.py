@@ -62,6 +62,8 @@ from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
 from api.routes.simulator import router as simulator_router
 from api.routes.ollo import router as ollo_router
+from api.routes.council import router as council_router
+from api.routes.whale import router as whale_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -226,6 +228,8 @@ app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
 app.include_router(simulator_router)
 app.include_router(ollo_router)
+app.include_router(council_router)
+app.include_router(whale_router)
 
 manager = WebSocketManager()
 
