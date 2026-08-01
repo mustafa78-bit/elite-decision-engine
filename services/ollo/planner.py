@@ -33,6 +33,7 @@ class Planner:
     def plan_query(self, room_id: str, query: str) -> Plan:
         profile = get_profile(room_id)
         context_keys = list(profile.allowed_context)
+        context_keys.append("recent_conversation")
 
         logger.info(
             "Plan query | room=%s | context=%s",
@@ -63,7 +64,7 @@ class Planner:
             context_keys = [
                 "portfolio_summary", "portfolio_performance",
                 "market_regime", "risk_metrics", "council_latest",
-                "scanner_signals", "whale_activity",
+                "scanner_signals", "whale_activity", "trade_history",
             ]
 
         logger.info(
@@ -81,7 +82,7 @@ class Planner:
 
     def plan_greet(self, room_id: str) -> Plan:
         profile = get_profile(room_id)
-        context_keys = ["portfolio_summary", "risk_metrics"]
+        context_keys = ["portfolio_summary", "risk_metrics", "recent_conversation"]
 
         logger.info(
             "Plan greet | room=%s | context=%s",

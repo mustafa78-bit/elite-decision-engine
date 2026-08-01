@@ -137,13 +137,17 @@ class CommanderMemory:
         finally:
             session.close()
 
-    def recent_recommendations(self, limit: int = 5) -> list[RecommendationRecord]:
+    def recent_recommendations(self, limit: int = 5, room: Optional[str] = None) -> list[RecommendationRecord]:
         session = self.session_factory()
         try:
-            entries = (
+            query = (
                 session.query(CommanderMemoryEntry)
                 .filter(CommanderMemoryEntry.entry_type == "RECOMMENDATION")
-                .order_by(CommanderMemoryEntry.id.desc())
+            )
+            if room is not None:
+                query = query.filter(CommanderMemoryEntry.room == room)
+            entries = (
+                query.order_by(CommanderMemoryEntry.id.desc())
                 .limit(limit)
                 .all()
             )
@@ -161,7 +165,10 @@ class CommanderMemory:
             return records
         except Exception as e:
             logger.error("Failed to retrieve recent recommendations: %s", e)
-            return self._recommendations_cache[-limit:]
+            filtered_cache = self._recommendations_cache
+            if room is not None:
+                filtered_cache = [r for r in filtered_cache if r.room == room]
+            return filtered_cache[-limit:]
         finally:
             session.close()
 
