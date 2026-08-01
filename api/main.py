@@ -61,6 +61,7 @@ from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
 from api.routes.simulator import router as simulator_router
+from api.routes.ollo import router as ollo_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -224,6 +225,7 @@ app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
 app.include_router(simulator_router)
+app.include_router(ollo_router)
 
 manager = WebSocketManager()
 
