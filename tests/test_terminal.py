@@ -87,6 +87,11 @@ class TestTerminalService:
         )
         mock_market.get_asset.return_value = asset
         self.service.market_service = mock_market
+
+        mock_scanner = MagicMock()
+        mock_scanner.top_opportunities.return_value = []
+        self.service.scanner = mock_scanner
+
         overview = self.service.get_overview()
         assert "market" in overview
         assert "portfolio" in overview

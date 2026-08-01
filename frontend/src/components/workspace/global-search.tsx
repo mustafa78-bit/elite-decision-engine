@@ -38,7 +38,6 @@ const searchCategories: { name: string; items: SearchItem[] }[] = [
       { label: "Paper Trading", path: "/paper-trading", icon: "◻" },
       { label: "Trading Control", path: "/trading-control", icon: "◈" },
       { label: "Trading Workspace", path: "/trading-workspace", icon: "▦" },
-      { label: "AI Experience", path: "/ai-experience", icon: "✦" },
       { label: "Professional Workspace", path: "/professional-workspace", icon: "▣" },
       { label: "Preferences", path: "/preferences", icon: "⚙" },
       { label: "Backtest", path: "/backtest", icon: "◈" },

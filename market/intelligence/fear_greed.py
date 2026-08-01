@@ -1,9 +1,10 @@
-"""Fear & Greed Index — computed from market conditions when no external API is available."""
+"""Fear & Greed Index — fetched from real API or computed as fallback."""
 
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+import requests
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -13,6 +14,60 @@ class FearGreedService:
     """Compute Fear & Greed index from available market data."""
 
     def compute(
+        self,
+        rsi: Optional[float] = None,
+        btc_trend: Optional[str] = None,
+        volatility_score: Optional[float] = None,
+        funding_rate: Optional[float] = None,
+    ) -> dict[str, Any]:
+        try:
+            resp = requests.get("https://api.alternative.me/fng/", timeout=5)
+            resp.raise_for_status()
+            data = resp.json()
+            if "data" in data and len(data["data"]) > 0:
+                item = data["data"][0]
+                val = int(item["value"])
+                classification = item["value_classification"]
+                # Convert "Extreme Fear" -> "EXTREME_FEAR", etc.
+                label = classification.upper().replace(" ", "_")
+
+                # Check for label correctness. If not matching expectations, standard maps can be used.
+                valid_labels = {"EXTREME_FEAR", "FEAR", "NEUTRAL", "GREED", "EXTREME_GREED"}
+                if label not in valid_labels:
+                    if "EXTREME" in label and "FEAR" in label:
+                        label = "EXTREME_FEAR"
+                    elif "FEAR" in label:
+                        label = "FEAR"
+                    elif "EXTREME" in label and "GREED" in label:
+                        label = "EXTREME_GREED"
+                    elif "GREED" in label:
+                        label = "GREED"
+                    else:
+                        label = "NEUTRAL"
+
+                confidence = round(1.0 - abs(val - 50) / 100, 2)
+
+                # Extract api's unix timestamp and format as ISO
+                try:
+                    dt = datetime.fromtimestamp(int(item["timestamp"]), tz=timezone.utc)
+                    timestamp_iso = dt.isoformat()
+                except Exception:
+                    timestamp_iso = datetime.now(timezone.utc).isoformat()
+
+                return {
+                    "value": val,
+                    "label": label,
+                    "signals": ["API_SOURCE_ALTERNATIVE_ME"],
+                    "confidence": confidence,
+                    "timestamp": timestamp_iso,
+                }
+            else:
+                raise ValueError("Unexpected API response structure (missing data or empty list)")
+        except Exception as e:
+            logger.warning("FearGreed API request failed, falling back to heuristic: %s", e)
+            return self._compute_heuristic(rsi, btc_trend, volatility_score, funding_rate)
+
+    def _compute_heuristic(
         self,
         rsi: Optional[float] = None,
         btc_trend: Optional[str] = None,
