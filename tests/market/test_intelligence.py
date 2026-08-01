@@ -16,11 +16,52 @@ class TestFearGreedService:
 
     def setup_method(self):
         self.service = FearGreedService()
+        # Patch requests.get to raise an exception by default to test the heuristic/fallback paths
+        self.patcher = patch("market.intelligence.fear_greed.requests.get")
+        self.mock_get = self.patcher.start()
+        self.mock_get.side_effect = Exception("Forced fallback for testing heuristic")
+
+    def teardown_method(self):
+        self.patcher.stop()
 
     def test_default_is_neutral(self):
         result = self.service.compute()
         assert result["value"] == 50
         assert result["label"] == "NEUTRAL"
+
+    def test_api_success(self):
+        self.patcher.stop()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "name": "Fear and Greed Index",
+            "data": [
+                {
+                    "value": "78",
+                    "value_classification": "Extreme Greed",
+                    "timestamp": "1625097600",
+                    "time_until_update": "3600"
+                }
+            ],
+            "metadata": {"error": None}
+        }
+        with patch("market.intelligence.fear_greed.requests.get", return_value=mock_response) as mock_get:
+            result = self.service.compute()
+            mock_get.assert_called_once_with("https://api.alternative.me/fng/", timeout=5)
+            assert result["value"] == 78
+            assert result["label"] == "EXTREME_GREED"
+            assert result["signals"] == ["API_SOURCE_ALTERNATIVE_ME"]
+            assert result["confidence"] == 0.72
+            assert "2021-07-01" in result["timestamp"]
+        self.patcher.start()
+
+    def test_api_failure_fallback(self):
+        self.patcher.stop()
+        with patch("market.intelligence.fear_greed.requests.get", side_effect=Exception("Connection timed out")):
+            result = self.service.compute(rsi=25)
+            assert result["value"] < 50
+            assert "FEAR" in result["label"]
+        self.patcher.start()
 
     def test_oversold_rsi(self):
         result = self.service.compute(rsi=25)
@@ -123,11 +164,60 @@ class TestLiquidityContextAnalyzer:
 
     def setup_method(self):
         self.service = LiquidityContextAnalyzer()
+        # Patch fetch_binance_depth to return None by default to test the heuristic/fallback paths
+        self.patcher = patch("market.intelligence.liquidity.fetch_binance_depth", return_value=None)
+        self.patcher.start()
+
+    def teardown_method(self):
+        self.patcher.stop()
 
     def test_high_liquidity(self):
         result = self.service.analyze("BTC", volume_score=0.9, liquidity="HIGH")
         assert result["level"] == "HIGH"
         assert result["score"] > 0.7
+
+    def test_binance_depth_success_high_liquidity(self):
+        self.patcher.stop()
+        mock_depth = {
+            "lastUpdateId": 12345,
+            "bids": [
+                ["50000.00", "10.0"],  # $500k at best bid
+                ["49800.00", "20.0"],  # $996k at lower bid
+                ["49500.00", "30.0"],  # $1.485M at lower bid
+            ],
+            "asks": [
+                ["50050.00", "10.0"],  # $500.5k at best ask
+                ["50200.00", "20.0"],  # $1.004M at higher ask
+                ["50500.00", "30.0"],  # $1.515M at higher ask
+            ]
+        }
+        with patch("market.intelligence.liquidity.fetch_binance_depth", return_value=mock_depth):
+            result = self.service.analyze("BTC")
+            assert "API_SOURCE_BINANCE_ORDER_BOOK" in result["signals"]
+            assert result["level"] == "HIGH"
+            assert result["score"] > 0.7
+        self.patcher.start()
+
+    def test_binance_depth_success_low_liquidity(self):
+        self.patcher.stop()
+        # Mock low liquidity with wide spread
+        mock_depth = {
+            "lastUpdateId": 12345,
+            "bids": [
+                ["49000.00", "0.01"],  # Very shallow and wide spread
+            ],
+            "asks": [
+                ["51000.00", "0.01"],
+            ]
+        }
+        with patch("market.intelligence.liquidity.fetch_binance_depth", return_value=mock_depth):
+            result = self.service.analyze("BTC")
+            assert "API_SOURCE_BINANCE_ORDER_BOOK" in result["signals"]
+            # Wide spread should lower the score and trigger warning
+            assert "WIDE_SPREAD_WARNING" in result["signals"]
+            assert result["level"] == "LOW"
+            assert result["score"] < 0.4
+        self.patcher.start()
 
     def test_low_liquidity(self):
         result = self.service.analyze("BTC", volume_score=0.2, liquidity="LOW")
