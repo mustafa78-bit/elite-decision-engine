@@ -11,6 +11,7 @@ from sqlalchemy import (
     Boolean,
     Text,
     JSON,
+    ForeignKey,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -86,7 +87,7 @@ class Trade(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    signal_id = Column(Integer)
+    signal_id = Column(Integer, ForeignKey("signals.id"), nullable=True)
 
     symbol = Column(String(20))
     side = Column(String(10))
