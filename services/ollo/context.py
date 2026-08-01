@@ -43,7 +43,7 @@ _CONTEXT_LOADERS: dict[str, str] = {
     "scanner_signals": "scanner.core.ScannerEngine",
     "market_regime": "scoring.regime_ai.RegimeAI",
     "risk_metrics": "risk_manager",
-    "whale_activity": "market.intelligence.whale.WhaleAnalyzer",
+    "whale_activity": "market.intelligence.whale.WhaleService",
     "council_latest": "council.consensus.ConsensusEngine",
     "council_full": "council.consensus.ConsensusEngine",
 }
@@ -77,7 +77,7 @@ class ContextBuilder:
             return self._load_regime()
         if loader_path == "risk_manager":
             return self._load_risk()
-        if loader_path == "market.intelligence.whale.WhaleAnalyzer":
+        if loader_path == "market.intelligence.whale.WhaleService":
             return self._load_whale()
         if loader_path == "council.consensus.ConsensusEngine":
             return self._load_council(key)
@@ -142,17 +142,105 @@ class ContextBuilder:
     def _load_risk(self) -> Any:
         try:
             from risk_manager import RiskManager
+            from config import MAX_OPEN_TRADES, MAX_PORTFOLIO_EXPOSURE, MAX_DAILY_LOSS
+
+            class DummyCandidate:
+                def __init__(self, symbol: str = "BTC", entry: float = 0.0) -> None:
+                    self.symbol = symbol
+                    self.entry = entry
+
             rm = RiskManager()
-            return {"status": "loaded"}
+            candidate = DummyCandidate()
+            decision = rm.evaluate_trade(candidate)
+
+            metrics = {
+                "allowed": decision.allowed,
+                "reason": decision.reason,
+                "open_trades": 0,
+                "max_open_trades": MAX_OPEN_TRADES,
+                "portfolio_exposure": 0.0,
+                "max_portfolio_exposure": MAX_PORTFOLIO_EXPOSURE,
+                "daily_loss": 0.0,
+                "max_daily_loss": MAX_DAILY_LOSS,
+                "status": "active"
+            }
+
+            for check in decision.checks:
+                if check.name == "MAX_OPEN_TRADES":
+                    metrics["open_trades"] = int(check.value) if check.value is not None else 0
+                elif check.name == "PORTFOLIO_EXPOSURE":
+                    metrics["portfolio_exposure"] = check.value if check.value is not None else 0.0
+                elif check.name == "DAILY_LOSS_LIMIT":
+                    metrics["daily_loss"] = check.value if check.value is not None else 0.0
+
+            present_check_names = {check.name for check in decision.checks}
+            need_exposure = "PORTFOLIO_EXPOSURE" not in present_check_names
+            need_daily_loss = "DAILY_LOSS_LIMIT" not in present_check_names
+
+            if need_exposure or need_daily_loss:
+                from database import Trade, FINAL_STATUSES
+                session = rm.session_factory()
+                try:
+                    if need_exposure:
+                        total_exposure = session.query(Trade.entry).filter(Trade.status == "OPEN").all()
+                        metrics["portfolio_exposure"] = round(sum(r.entry for r in total_exposure if r.entry is not None), 2)
+
+                    if need_daily_loss:
+                        today_start = datetime.now(timezone.utc).replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        )
+                        daily_losses = (
+                            session.query(Trade.pnl)
+                            .filter(
+                                Trade.status.in_(FINAL_STATUSES),
+                                Trade.closed_at >= today_start,
+                            )
+                            .all()
+                        )
+                        total_loss = sum(r.pnl for r in daily_losses if r.pnl is not None and r.pnl < 0)
+                        metrics["daily_loss"] = round(abs(total_loss), 2)
+                finally:
+                    session.close()
+
+            return metrics
         except Exception as e:
             logger.warning("Risk load failed: %s", e)
             return None
 
     def _load_whale(self) -> Any:
         try:
-            from market.intelligence.whale import WhaleAnalyzer
-            wa = WhaleAnalyzer()
-            return {"status": "loaded"}
+            from market.intelligence.whale import WhaleService
+            from market.services import MarketDataService
+
+            ws = WhaleService()
+            mds = MarketDataService()
+
+            target_symbols = ["BTC", "ETH"]
+            all_signals = []
+
+            for symbol in target_symbols:
+                asset = mds.get_asset(symbol)
+                if asset and not asset.is_empty:
+                    volume_score = asset.indicators.get("volume_score")
+                    volatility_score = asset.indicators.get("volatility_score")
+                    price = asset.price
+
+                    if asset.intelligence and getattr(asset.intelligence, "whales", None):
+                        all_signals.extend(asset.intelligence.whales)
+                    else:
+                        signals = ws.detect(
+                            symbol=symbol,
+                            volume_score=volume_score,
+                            volatility_score=volatility_score,
+                            price=price
+                        )
+                        all_signals.extend(signals)
+
+            return {
+                "signals": all_signals,
+                "signal_count": len(all_signals),
+                "status": "active"
+            }
         except Exception as e:
             logger.warning("Whale load failed: %s", e)
             return None
