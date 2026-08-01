@@ -712,3 +712,24 @@ def test_db_tables_in_health_details(api_client):
     assert resp.status_code == 200
     tbl = resp.json().get("database_tables", {})
     assert "status" in tbl
+
+
+# ─── Council ───────────────────────────────────────────────────────────────
+
+
+def test_get_council_status_endpoint(api_client):
+    resp = api_client.get("/council")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "agents" in body
+    assert "agent_count" in body
+
+
+# ─── Whale Activity ────────────────────────────────────────────────────────
+
+
+def test_get_whale_activity_endpoint(api_client):
+    resp = api_client.get("/whale/activity")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)
