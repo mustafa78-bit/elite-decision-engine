@@ -244,6 +244,66 @@ class TestContextBuilder:
             ctx = self.builder.build(["risk_metrics"])
             assert ctx.risk_metrics is None
 
+    def test_load_trade_history_success_and_failure(self):
+        # 1. Success case using mock
+        mock_tm = MagicMock()
+        mock_tm.stats.return_value = {
+            "total_entries": 10,
+            "wins": 6,
+            "losses": 4,
+            "win_rate_pct": 60.0,
+            "total_pnl": 150.0,
+            "top_tags": [{"tag": "breakout", "count": 3}]
+        }
+
+        from memory.trade_memory import TradeMemoryEntry
+        mock_trades = [
+            TradeMemoryEntry(symbol="BTCUSDT", side="BUY", result="WIN", pnl=100.0, lessons=["Stick to plan"]),
+            TradeMemoryEntry(symbol="ETHUSDT", side="SELL", result="LOSS", pnl=-50.0, lessons=["Stop loss respected"]),
+            TradeMemoryEntry(symbol="SOLUSDT", side="BUY", result="PENDING", pnl=0.0, lessons=[]),
+        ]
+        mock_tm.list.return_value = mock_trades
+
+        with patch("memory.trade_memory.TradeMemory", return_value=mock_tm):
+            ctx = self.builder.build(["trade_history"])
+            assert ctx.trade_history is not None
+            assert ctx.trade_history["stats"]["win_rate_pct"] == 60.0
+            assert len(ctx.trade_history["recent_closed_trades"]) == 2
+            assert ctx.trade_history["recent_closed_trades"][0]["symbol"] == "BTCUSDT"
+            assert ctx.trade_history["recent_closed_trades"][1]["result"] == "LOSS"
+
+        # 2. Failure case
+        with patch("memory.trade_memory.TradeMemory", side_effect=Exception("Database error")):
+            ctx = self.builder.build(["trade_history"])
+            assert ctx.trade_history is None
+
+    def test_load_recent_conversation_success_and_failure(self):
+        # 1. Success case using mock
+        mock_mem = MagicMock()
+        mock_mem.recent_recommendations.return_value = [
+            RecommendationRecord(query="Hello", room="command_deck", response_text="Hi back " * 50, timestamp="2026-08-01")
+        ]
+        mock_mem.last_briefing.return_value = BriefingRecord(kind="morning", text="Briefing text " * 50, timestamp="2026-08-01")
+
+        with patch("services.ollo.memory.CommanderMemory", return_value=mock_mem):
+            ctx = self.builder.build(["recent_conversation"], room="command_deck")
+            assert ctx.recent_conversation is not None
+            exchanges = ctx.recent_conversation["recent_exchanges"]
+            assert len(exchanges) == 1
+            assert len(exchanges[0]["response_text"]) == 203  # 200 + '...'
+            assert exchanges[0]["response_text"].endswith("...")
+
+            briefing = ctx.recent_conversation["last_briefing"]
+            assert briefing is not None
+            assert briefing["kind"] == "morning"
+            assert len(briefing["text"]) == 203  # 200 + '...'
+            assert briefing["text"].endswith("...")
+
+        # 2. Failure case
+        with patch("services.ollo.memory.CommanderMemory", side_effect=Exception("Database down")):
+            ctx = self.builder.build(["recent_conversation"], room="command_deck")
+            assert ctx.recent_conversation is None
+
 
 class TestPersonality:
     """Personality system prompt is professional."""
@@ -428,6 +488,26 @@ class TestCommanderMemory:
         for i in range(10):
             mem.record_recommendation(f"Q{i}", "room", f"R{i}")
         assert len(mem.recent_recommendations(limit=3)) == 3
+
+    def test_recent_recommendations_room_filtering(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.record_recommendation("Q1", "command_deck", "R1")
+        mem.record_recommendation("Q2", "scanner", "R2")
+        mem.record_recommendation("Q3", "command_deck", "R3")
+
+        # room filtering works
+        deck_recs = mem.recent_recommendations(room="command_deck")
+        assert len(deck_recs) == 2
+        assert deck_recs[0].query == "Q1"
+        assert deck_recs[1].query == "Q3"
+
+        scanner_recs = mem.recent_recommendations(room="scanner")
+        assert len(scanner_recs) == 1
+        assert scanner_recs[0].query == "Q2"
+
+        # no argument retrieves all
+        all_recs = mem.recent_recommendations()
+        assert len(all_recs) == 3
 
     def test_cross_instance_persistence(self, session_factory):
         mem1 = CommanderMemory(session_factory=session_factory)

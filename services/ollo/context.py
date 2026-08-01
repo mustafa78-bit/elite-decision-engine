@@ -21,6 +21,8 @@ class OLLOContext:
     whale_activity: Optional[dict] = None
     council_latest: Optional[dict] = None
     council_full: Optional[dict] = None
+    trade_history: Optional[dict] = None
+    recent_conversation: Optional[dict] = None
     room: str = ""
     collected_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -46,6 +48,8 @@ _CONTEXT_LOADERS: dict[str, str] = {
     "whale_activity": "market.intelligence.whale.WhaleService",
     "council_latest": "council.consensus.ConsensusEngine",
     "council_full": "council.consensus.ConsensusEngine",
+    "trade_history": "memory.trade_memory.TradeMemory",
+    "recent_conversation": "services.ollo.memory.CommanderMemory",
 }
 
 
@@ -59,7 +63,7 @@ class ContextBuilder:
                 if loader is None:
                     ctx.errors.append(f"No loader for context key: {key}")
                     continue
-                data = self._load(key, loader)
+                data = self._load(key, loader, room=room)
                 if data is not None:
                     setattr(ctx, key, data)
             except Exception as e:
@@ -68,7 +72,7 @@ class ContextBuilder:
                 ctx.errors.append(msg)
         return ctx
 
-    def _load(self, key: str, loader_path: str) -> Any:
+    def _load(self, key: str, loader_path: str, room: str = "") -> Any:
         if loader_path == "services.portfolio_service.PortfolioService":
             return self._load_portfolio(key)
         if loader_path == "scanner.core.ScannerEngine":
@@ -81,6 +85,10 @@ class ContextBuilder:
             return self._load_whale()
         if loader_path == "council.consensus.ConsensusEngine":
             return self._load_council(key)
+        if loader_path == "memory.trade_memory.TradeMemory":
+            return self._load_trade_history()
+        if loader_path == "services.ollo.memory.CommanderMemory":
+            return self._load_recent_conversation(room)
         return None
 
     def _load_portfolio(self, key: str) -> Any:
@@ -258,4 +266,68 @@ class ContextBuilder:
             }
         except Exception as e:
             logger.warning("Council load failed: %s", e)
+            return None
+
+    def _load_trade_history(self) -> Any:
+        try:
+            from memory.trade_memory import TradeMemory
+            tm = TradeMemory()
+            stats = tm.stats()
+            # list returns TradeMemoryEntry objects
+            all_trades = tm.list(limit=20)
+            closed_trades = [t for t in all_trades if t.result != "PENDING"][:5]
+            recent_closed_trades = [
+                {
+                    "symbol": t.symbol,
+                    "side": t.side,
+                    "result": t.result,
+                    "pnl": t.pnl,
+                    "lessons": t.lessons,
+                }
+                for t in closed_trades
+            ]
+            return {
+                "stats": stats,
+                "recent_closed_trades": recent_closed_trades,
+            }
+        except Exception as e:
+            logger.warning("Trade history load failed: %s", e)
+            return None
+
+    def _load_recent_conversation(self, room: str) -> Any:
+        try:
+            from services.ollo.memory import CommanderMemory
+            mem = CommanderMemory()
+            recs = mem.recent_recommendations(limit=3, room=room)
+            last_briefing_rec = mem.last_briefing()
+
+            recent_exchanges = []
+            for r in recs:
+                # Truncate response_text to roughly 200 chars
+                truncated_resp = r.response_text
+                if truncated_resp and len(truncated_resp) > 200:
+                    truncated_resp = truncated_resp[:200] + "..."
+                recent_exchanges.append({
+                    "query": r.query,
+                    "response_text": truncated_resp,
+                    "timestamp": r.timestamp,
+                })
+
+            last_briefing = None
+            if last_briefing_rec:
+                truncated_text = last_briefing_rec.text
+                if truncated_text and len(truncated_text) > 200:
+                    truncated_text = truncated_text[:200] + "..."
+                last_briefing = {
+                    "kind": last_briefing_rec.kind,
+                    "text": truncated_text,
+                    "timestamp": last_briefing_rec.timestamp,
+                }
+
+            return {
+                "recent_exchanges": recent_exchanges,
+                "last_briefing": last_briefing,
+            }
+        except Exception as e:
+            logger.warning("Recent conversation load failed: %s", e)
             return None
