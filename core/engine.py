@@ -1,57 +1,49 @@
-import time
-from database import update_signal_status
-from database import get_session, Signal
+import asyncio
+import logging
+
 from config import CHECK_INTERVAL
-from filters.btc_filter import BTCHealthFilter
+from database import Signal, get_session, update_signal_status
+from execution.execution_loop import ExecutionLoop
+
+logger = logging.getLogger(__name__)
 
 
 class DecisionEngine:
 
-    def __init__(self):
-        print("Decision Engine initialized")
-        self.btc = BTCHealthFilter()
+    def __init__(self, execution_loop=None):
+        logger.info("Decision Engine initialized")
+        self.execution_loop = execution_loop or ExecutionLoop()
 
     def get_open_signals(self):
         session = get_session()
-
         try:
-            return (
-                session.query(Signal)
-                .filter(Signal.status == "OPEN")
-                .all()
-            )
+            return session.query(Signal).filter(Signal.status == "OPEN").all()
         finally:
             session.close()
 
     def process_signal(self, signal):
 
-        print("=" * 50)
-        print(f"Coin      : {signal.symbol}")
-        print(f"Side      : {signal.side}")
-        print(f"Timeframe : {signal.timeframe}")
+        try:
+            logger.info("Processing signal %s %s %s", signal.symbol, signal.side, signal.timeframe)
+            update_signal_status(signal.id, "PROCESSING")
 
-        if signal.side.upper() == "LONG":
-            if not self.btc.is_healthy():
-                print("RED -> BTC market sağlıklı değil.")
-                print("=" * 50)
-                return
+            self.execution_loop.run_once([signal])
+        except Exception as e:
+            logger.exception("Signal processing failed: %s", e)
+            update_signal_status(signal.id, "REJECTED")
 
-        print("APPROVED")
-        print("=" * 50)
-
-    def run(self):
+    async def run(self):
 
         while True:
 
             signals = self.get_open_signals()
 
             if len(signals) == 0:
-                print("Bekleyen sinyal yok.")
-
+                logger.info("No open signals found.")
             else:
-                print(f"{len(signals)} adet yeni sinyal bulundu.")
+                logger.info("Found %s open signal(s).", len(signals))
 
                 for signal in signals:
                     self.process_signal(signal)
 
-            time.sleep(CHECK_INTERVAL)
+            await asyncio.sleep(CHECK_INTERVAL)

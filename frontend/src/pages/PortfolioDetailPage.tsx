@@ -1,0 +1,165 @@
+import { useCallback, useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
+import { Badge } from "../components/ui/badge";
+import { fetchPortfolioFull } from "../api/portfolio_detail";
+import type { PortfolioFullDTO } from "../types/api/portfolio";
+
+export default function PortfolioDetailPage() {
+  const [data, setData] = useState<PortfolioFullDTO | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await fetchPortfolioFull();
+      setData(res);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 rounded p-8 text-center cursor-pointer" onClick={load}>
+        <p className="text-xs text-[var(--accent-red)] font-mono">Failed to load portfolio. Click to retry.</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="border border-dashed border-[var(--border-subtle)] rounded p-8 text-center">
+        <p className="text-xs text-[var(--text-muted)] font-mono uppercase tracking-widest">
+          No portfolio data
+        </p>
+      </div>
+    );
+  }
+
+  const { summary, distribution, risk } = data;
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
+        Portfolio Detail
+      </h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total PnL</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className={`text-lg font-mono ${summary.total_pnl >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
+              ${summary.total_pnl.toFixed(2)}
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Win Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-lg font-mono text-[var(--text-primary)]">
+              {summary.win_rate.toFixed(1)}%
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Profit Factor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-lg font-mono text-[var(--text-primary)]">
+              {summary.profit_factor.toFixed(2)}
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sharpe</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className={`text-lg font-mono ${risk.sharpe >= 1 ? "text-[var(--accent-green)]" : "text-[var(--accent-yellow)]"}`}>
+              {risk.sharpe.toFixed(2)}
+            </span>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Max Drawdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-lg font-mono text-[var(--accent-red)]">
+              -${risk.max_drawdown.toFixed(2)}
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Calmar</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-lg font-mono text-[var(--text-primary)]">
+              {risk.calmar.toFixed(2)}
+            </span>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recovery Factor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-lg font-mono text-[var(--text-primary)]">
+              {risk.recovery_factor.toFixed(2)}
+            </span>
+          </CardContent>
+        </Card>
+      </div>
+
+      {distribution.by_symbol && Object.keys(distribution.by_symbol).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribution by Symbol</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(distribution.by_symbol).map(([sym, val]) => (
+                <Badge key={sym} variant="info">
+                  {sym}: {typeof val === "number" ? val.toFixed(1) : String(val)}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

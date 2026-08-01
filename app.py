@@ -1,16 +1,30 @@
-from database import create_tables
+import asyncio
+import logging
+import sys
+
 from core.engine import DecisionEngine
+from database import create_tables
+from startup import StartupValidator
+from logging_config import setup_logging
 
 
 def main():
 
+    setup_logging()
+    logger = logging.getLogger("app")
+
+    validator = StartupValidator()
+    if not validator.run():
+        logger.critical("Engine startup validation failed. Exiting.")
+        sys.exit(1)
+
     create_tables()
 
-    print("🚀 Elite Decision Engine Started")
+    logger.info("Elite Decision Engine Started")
 
     engine = DecisionEngine()
 
-    engine.run()
+    asyncio.run(engine.run())
 
 
 if __name__ == "__main__":
