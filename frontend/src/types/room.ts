@@ -93,7 +93,7 @@ const ROOMS: Record<string, RoomDefinition> = {
     },
     olloMessage: 'AI agents deliberating. Awaiting consensus signals.',
     olloWelcome: 'Entering the AI Council chamber. Agents are assembled.',
-    parentPaths: ['/decisions', '/signals', '/intelligence', '/ai-experience', '/regime'],
+    parentPaths: ['/decisions', '/signals', '/intelligence', '/regime'],
     particles: { density: 25, minSize: 1, maxSize: 3, speed: 4, driftX: 8, driftY: -30, behavior: 'rise' },
   },
   riskRoom: {

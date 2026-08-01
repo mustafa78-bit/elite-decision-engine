@@ -22,6 +22,7 @@ from scanner.strategies import (
     TrendStrategy,
 )
 from scanner.watchlist import WatchlistEngine
+from market_data.universe import get_top_volume_symbols
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class OpportunityScanner:
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.ranker = ranker or OpportunityRanker()
-        self.symbols = symbols or _DEFAULT_SYMBOLS
+        self.symbols = symbols if symbols is not None else get_top_volume_symbols()
 
         self.trend = TrendStrategy()
         self.momentum = MomentumStrategy()

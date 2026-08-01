@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
@@ -37,6 +37,7 @@ from api.routes.market_live import router as market_live_router
 from api.routes.open_interest import router as open_interest_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
+from api.routes.paper import router as paper_router
 from api.routes.paper_trading import router as paper_trading_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
@@ -59,7 +60,10 @@ from api.routes.scanner import router as scanner_router
 from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
+from api.routes.simulator import router as simulator_router
 from api.routes.ollo import router as ollo_router
+from api.routes.council import router as council_router
+from api.routes.whale import router as whale_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
@@ -77,6 +81,7 @@ logger = logging.getLogger(__name__)
 origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
 
 _background_tasks: set[asyncio.Task] = set()
+_ollo_service: Optional[Any] = None
 
 
 @asynccontextmanager
@@ -84,10 +89,39 @@ async def lifespan(app: FastAPI):
     from logging_config import setup_logging
     setup_logging()
     logger.info("Application starting up")
+
+    # Initialize OLLO Service
+    global _ollo_service
+    try:
+        from services.ai.provider_factory import create_ai_service
+        from services.ollo.ollo_service import OLLOService
+        _ai_svc = create_ai_service()
+        _ollo_service = OLLOService(_ai_svc)
+        logger.info("OLLO Service initialized successfully")
+    except Exception as e:
+        logger.warning("OLLO Service initialization failed: %s", e)
+
+    # Start Telegram Bot if configured
+    from services.telegram.bot import TelegramBotManager
+    bot_manager = TelegramBotManager.get_instance()
+    bot_started = bot_manager.setup()
+    if bot_started:
+        # Run bot startup as a background task
+        bot_task = asyncio.create_task(bot_manager.start())
+        _background_tasks.add(bot_task)
+
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
+
     yield
+
     logger.info("Application shutting down")
+    if bot_started:
+        try:
+            await bot_manager.stop()
+        except Exception as e:
+            logger.warning("Telegram Bot shutdown error: %s", e)
+
     task.cancel()
     for t in _background_tasks:
         if not t.done():
@@ -169,6 +203,7 @@ app.include_router(market_live_router)
 app.include_router(open_interest_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
+app.include_router(paper_router)
 app.include_router(paper_trading_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
@@ -191,7 +226,10 @@ app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
+app.include_router(simulator_router)
 app.include_router(ollo_router)
+app.include_router(council_router)
+app.include_router(whale_router)
 
 manager = WebSocketManager()
 

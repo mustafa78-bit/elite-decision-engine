@@ -112,6 +112,26 @@ class OLLOService:
 
         self._memory.record_recommendation(query, room_id, result.content)
 
+        # Detect route intents based on simple keyword extraction (English + Turkish)
+        intent_route = None
+        q_lower = query.lower()
+        if any(kw in q_lower for kw in ["portföy", "portfolio", "portfoy"]):
+            intent_route = "/portfolio"
+        elif any(kw in q_lower for kw in ["risk", "exposure"]):
+            intent_route = "/risk"
+        elif any(kw in q_lower for kw in ["taram", "scanner", "taray"]):
+            intent_route = "/scanner"
+        elif any(kw in q_lower for kw in ["analitik", "analytics", "analiz"]):
+            intent_route = "/analytics"
+        elif any(kw in q_lower for kw in ["journal", "gunluk", "günlük"]):
+            intent_route = "/journal"
+        elif any(kw in q_lower for kw in ["sinyal", "signal"]):
+            intent_route = "/signals"
+        elif any(kw in q_lower for kw in ["karar", "decision"]):
+            intent_route = "/decisions"
+        elif any(kw in q_lower for kw in ["market", "piyasa"]):
+            intent_route = "/market"
+
         response = parse_response(
             raw_text=result.content,
             room=room_id,
@@ -120,6 +140,7 @@ class OLLOService:
             duration_ms=elapsed,
             tokens_in=result.tokens_in,
             tokens_out=result.tokens_out,
+            intent_route=intent_route,
         )
 
         return response

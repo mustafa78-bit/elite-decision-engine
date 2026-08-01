@@ -22,6 +22,7 @@ class OLLOResponse:
     tokens_in: Optional[int] = None
     tokens_out: Optional[int] = None
     sections: list[dict] = field(default_factory=list)
+    intent_route: Optional[str] = None
 
     def to_dict(self) -> dict:
         return {
@@ -36,6 +37,7 @@ class OLLOResponse:
                 "out": self.tokens_out,
             },
             "sections": self.sections,
+            "intent_route": self.intent_route,
         }
 
 
@@ -89,6 +91,7 @@ def parse_response(
     duration_ms: float = 0.0,
     tokens_in: Optional[int] = None,
     tokens_out: Optional[int] = None,
+    intent_route: Optional[str] = None,
 ) -> OLLOResponse:
     text = raw_text.strip()
     sections = _extract_sections(text)
@@ -101,6 +104,7 @@ def parse_response(
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         sections=sections,
+        intent_route=intent_route,
     )
 
 

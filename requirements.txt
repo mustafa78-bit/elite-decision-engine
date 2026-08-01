@@ -12,3 +12,4 @@ sqlalchemy
 starlette
 uvicorn
 websockets
+python-telegram-bot
