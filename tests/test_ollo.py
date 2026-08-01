@@ -385,45 +385,58 @@ class TestOLLOService:
 class TestCommanderMemory:
     """Commander memory stores and retrieves records."""
 
-    def setup_method(self):
-        self.mem = CommanderMemory()
-
-    def test_initial_state(self):
-        s = self.mem.status()
+    def test_initial_state(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        s = mem.status()
         assert s["briefings_stored"] == 0
         assert s["recommendations_stored"] == 0
 
-    def test_record_and_retrieve_briefing(self):
-        self.mem.record_briefing("morning", "Briefing text")
-        briefings = self.mem.recent_briefings()
+    def test_record_and_retrieve_briefing(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.record_briefing("morning", "Briefing text")
+        briefings = mem.recent_briefings()
         assert len(briefings) == 1
         assert briefings[0].kind == "morning"
 
-    def test_last_briefing(self):
-        self.mem.record_briefing("morning", "Morning text")
-        self.mem.record_briefing("evening", "Evening text")
-        assert self.mem.last_briefing().kind == "evening"
-        assert self.mem.last_briefing("morning").text == "Morning text"
+    def test_last_briefing(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.record_briefing("morning", "Morning text")
+        mem.record_briefing("evening", "Evening text")
+        assert mem.last_briefing().kind == "evening"
+        assert mem.last_briefing("morning").text == "Morning text"
 
-    def test_last_briefing_empty(self):
-        assert self.mem.last_briefing() is None
+    def test_last_briefing_empty(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        assert mem.last_briefing() is None
 
-    def test_record_and_retrieve_recommendation(self):
-        self.mem.record_recommendation("Query text", "command_deck", "Response text")
-        recs = self.mem.recent_recommendations()
+    def test_record_and_retrieve_recommendation(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.record_recommendation("Query text", "command_deck", "Response text")
+        recs = mem.recent_recommendations()
         assert len(recs) == 1
         assert recs[0].query == "Query text"
         assert recs[0].room == "command_deck"
 
-    def test_preferences(self):
-        self.mem.set_preference("briefing_style", "concise")
-        assert self.mem.get_preference("briefing_style") == "concise"
-        assert self.mem.get_preference("nonexistent") is None
+    def test_preferences(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.set_preference("briefing_style", "concise")
+        assert mem.get_preference("briefing_style") == "concise"
+        assert mem.get_preference("nonexistent") is None
 
-    def test_recent_recommendations_limit(self):
+    def test_recent_recommendations_limit(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
         for i in range(10):
-            self.mem.record_recommendation(f"Q{i}", "room", f"R{i}")
-        assert len(self.mem.recent_recommendations(limit=3)) == 3
+            mem.record_recommendation(f"Q{i}", "room", f"R{i}")
+        assert len(mem.recent_recommendations(limit=3)) == 3
+
+    def test_cross_instance_persistence(self, session_factory):
+        mem1 = CommanderMemory(session_factory=session_factory)
+        mem1.record_briefing("morning", "Briefing from instance 1")
+
+        mem2 = CommanderMemory(session_factory=session_factory)
+        briefings = mem2.recent_briefings()
+        assert len(briefings) == 1
+        assert briefings[0].text == "Briefing from instance 1"
 
     def test_briefing_record_dataclass(self):
         r = BriefingRecord(kind="morning", text="Brief")
