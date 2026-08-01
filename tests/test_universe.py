@@ -131,8 +131,22 @@ def test_provider_fallback_to_stale_cache_on_failure(mock_binance_data):
         assert res2 == ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"]
 
 
-def test_global_get_top_volume_symbols_and_scanner_integration(mock_binance_data):
-    """Test global helper get_top_volume_symbols and OpportunityScanner default initialization."""
+def test_global_get_top_volume_symbols_and_scanner_integration(mock_binance_data, monkeypatch):
+    """Test global helper get_top_volume_symbols and OpportunityScanner default initialization.
+
+    Uses a fresh BinanceUniverseProvider swapped into the module-level singleton for
+    the duration of this test, then restores the original. Without this, this test
+    (uniquely among this file's tests) mutates the shared process-wide singleton's
+    cache, leaking mocked state into any other test in the suite that constructs an
+    OpportunityScanner() without explicit symbols - or, worse, causing an unrelated
+    test to be the first to touch the real (unmocked) singleton and make a live
+    network call to Binance.
+    """
+    import market_data.universe as universe_module
+
+    fresh_provider = BinanceUniverseProvider(cache_interval=universe_module.CACHE_INTERVAL_SECONDS)
+    monkeypatch.setattr(universe_module, "_provider", fresh_provider)
+
     mock_response = MagicMock()
     mock_response.json.return_value = mock_binance_data
     mock_response.raise_for_status = MagicMock()
