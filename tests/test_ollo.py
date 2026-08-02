@@ -15,7 +15,7 @@ Verifies:
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -192,6 +192,58 @@ class TestContextBuilder:
         assert isinstance(ctx.portfolio_summary, dict) or ctx.portfolio_summary is None
         assert isinstance(ctx.market_regime, dict) or ctx.market_regime is None
 
+    def test_load_whale_success_and_failure(self):
+        # 1. Success case using mocks
+        mock_whale_service = MagicMock()
+        mock_whale_service.detect.return_value = [{"type": "WHALE_MOVE", "symbol": "BTC", "severity": "high"}]
+        mock_market_service = MagicMock()
+        mock_asset = MagicMock()
+        mock_asset.is_empty = False
+        mock_asset.indicators = {"volume_score": 0.95, "volatility_score": 0.8}
+        mock_asset.price = 50000.0
+        mock_asset.intelligence = None
+        mock_market_service.get_asset.return_value = mock_asset
+
+        with patch("market.intelligence.whale.WhaleService", return_value=mock_whale_service), \
+             patch("market.services.MarketDataService", return_value=mock_market_service):
+            ctx = self.builder.build(["whale_activity"])
+            assert ctx.whale_activity is not None
+            assert ctx.whale_activity["status"] == "active"
+            assert ctx.whale_activity["signal_count"] == 2  # for both BTC and ETH
+            assert len(ctx.whale_activity["signals"]) == 2
+
+        # 2. Failure case
+        with patch("market.intelligence.whale.WhaleService", side_effect=Exception("Whale service error")):
+            ctx = self.builder.build(["whale_activity"])
+            assert ctx.whale_activity is None
+
+    def test_load_risk_success_and_failure(self):
+        # 1. Success case using mocks
+        from risk.models import RiskDecision, RiskCheckDetail
+
+        checks = [
+            RiskCheckDetail(name="MAX_OPEN_TRADES", passed=True, value=2.0, limit=3.0),
+            RiskCheckDetail(name="PORTFOLIO_EXPOSURE", passed=True, value=100.0, limit=1000.0),
+            RiskCheckDetail(name="DAILY_LOSS_LIMIT", passed=True, value=50.0, limit=500.0),
+        ]
+        mock_decision = RiskDecision(allowed=True, reason="", checks=tuple(checks))
+
+        mock_risk_manager = MagicMock()
+        mock_risk_manager.evaluate_trade.return_value = mock_decision
+
+        with patch("risk_manager.RiskManager", return_value=mock_risk_manager):
+            ctx = self.builder.build(["risk_metrics"])
+            assert ctx.risk_metrics is not None
+            assert ctx.risk_metrics["status"] == "active"
+            assert ctx.risk_metrics["open_trades"] == 2
+            assert ctx.risk_metrics["portfolio_exposure"] == 100.0
+            assert ctx.risk_metrics["daily_loss"] == 50.0
+
+        # 2. Failure case
+        with patch("risk_manager.RiskManager", side_effect=Exception("Risk manager error")):
+            ctx = self.builder.build(["risk_metrics"])
+            assert ctx.risk_metrics is None
+
 
 class TestPersonality:
     """Personality system prompt is professional."""
@@ -333,45 +385,58 @@ class TestOLLOService:
 class TestCommanderMemory:
     """Commander memory stores and retrieves records."""
 
-    def setup_method(self):
-        self.mem = CommanderMemory()
-
-    def test_initial_state(self):
-        s = self.mem.status()
+    def test_initial_state(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        s = mem.status()
         assert s["briefings_stored"] == 0
         assert s["recommendations_stored"] == 0
 
-    def test_record_and_retrieve_briefing(self):
-        self.mem.record_briefing("morning", "Briefing text")
-        briefings = self.mem.recent_briefings()
+    def test_record_and_retrieve_briefing(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.record_briefing("morning", "Briefing text")
+        briefings = mem.recent_briefings()
         assert len(briefings) == 1
         assert briefings[0].kind == "morning"
 
-    def test_last_briefing(self):
-        self.mem.record_briefing("morning", "Morning text")
-        self.mem.record_briefing("evening", "Evening text")
-        assert self.mem.last_briefing().kind == "evening"
-        assert self.mem.last_briefing("morning").text == "Morning text"
+    def test_last_briefing(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.record_briefing("morning", "Morning text")
+        mem.record_briefing("evening", "Evening text")
+        assert mem.last_briefing().kind == "evening"
+        assert mem.last_briefing("morning").text == "Morning text"
 
-    def test_last_briefing_empty(self):
-        assert self.mem.last_briefing() is None
+    def test_last_briefing_empty(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        assert mem.last_briefing() is None
 
-    def test_record_and_retrieve_recommendation(self):
-        self.mem.record_recommendation("Query text", "command_deck", "Response text")
-        recs = self.mem.recent_recommendations()
+    def test_record_and_retrieve_recommendation(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.record_recommendation("Query text", "command_deck", "Response text")
+        recs = mem.recent_recommendations()
         assert len(recs) == 1
         assert recs[0].query == "Query text"
         assert recs[0].room == "command_deck"
 
-    def test_preferences(self):
-        self.mem.set_preference("briefing_style", "concise")
-        assert self.mem.get_preference("briefing_style") == "concise"
-        assert self.mem.get_preference("nonexistent") is None
+    def test_preferences(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
+        mem.set_preference("briefing_style", "concise")
+        assert mem.get_preference("briefing_style") == "concise"
+        assert mem.get_preference("nonexistent") is None
 
-    def test_recent_recommendations_limit(self):
+    def test_recent_recommendations_limit(self, session_factory):
+        mem = CommanderMemory(session_factory=session_factory)
         for i in range(10):
-            self.mem.record_recommendation(f"Q{i}", "room", f"R{i}")
-        assert len(self.mem.recent_recommendations(limit=3)) == 3
+            mem.record_recommendation(f"Q{i}", "room", f"R{i}")
+        assert len(mem.recent_recommendations(limit=3)) == 3
+
+    def test_cross_instance_persistence(self, session_factory):
+        mem1 = CommanderMemory(session_factory=session_factory)
+        mem1.record_briefing("morning", "Briefing from instance 1")
+
+        mem2 = CommanderMemory(session_factory=session_factory)
+        briefings = mem2.recent_briefings()
+        assert len(briefings) == 1
+        assert briefings[0].text == "Briefing from instance 1"
 
     def test_briefing_record_dataclass(self):
         r = BriefingRecord(kind="morning", text="Brief")
