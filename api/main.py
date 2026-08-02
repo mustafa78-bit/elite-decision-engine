@@ -65,15 +65,20 @@ from api.routes.ollo import router as ollo_router
 from api.routes.council import router as council_router
 from api.routes.whale import router as whale_router
 from api.websocket.manager import WebSocketManager
-from config import API_ENV, CORS_ORIGINS, DEBUG
+from config import API_ENV, AUTO_TRADING_ENABLED, CORS_ORIGINS, DEBUG, SCAN_INTERVAL_SECONDS
+from core.engine import DecisionEngine
 from database import FINAL_STATUSES, Trade, get_session
+from execution.execution_loop import ExecutionLoop
+from execution.paper import PaperExecutor as PaperDomainExecutor
 from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
 from market.services import MarketDataService
+from scanner.core import OpportunityScanner
 from scoring.regime_ai import RegimeAI
 from scoring.risk_engine import RiskEngine
+from services.signal_generator import generate_signals
 
 
 logger = logging.getLogger(__name__)
@@ -109,6 +114,21 @@ async def lifespan(app: FastAPI):
         # Run bot startup as a background task
         bot_task = asyncio.create_task(bot_manager.start())
         _background_tasks.add(bot_task)
+
+    if AUTO_TRADING_ENABLED:
+        scan_task = asyncio.create_task(_scan_and_generate_signals())
+        _background_tasks.add(scan_task)
+
+        decision_engine = DecisionEngine(
+            execution_loop=ExecutionLoop(trade_journal=PaperDomainExecutor())
+        )
+        engine_task = asyncio.create_task(decision_engine.run())
+        _background_tasks.add(engine_task)
+
+        logger.info(
+            "AUTO_TRADING_ENABLED=true: scan-and-signal and decision-engine "
+            "background tasks started"
+        )
 
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
@@ -440,6 +460,27 @@ async def _broadcast_risk() -> None:
         await manager.broadcast(serialize(event))
     except Exception:
         logger.exception("Risk broadcast failed")
+
+
+async def _scan_and_generate_signals() -> None:
+    while True:
+        try:
+            await asyncio.sleep(SCAN_INTERVAL_SECONDS)
+
+            def _run_scan():
+                return OpportunityScanner().scan()
+
+            opportunities = await asyncio.to_thread(_run_scan)
+            created = await asyncio.to_thread(generate_signals, opportunities)
+            logger.info(
+                "Auto-trading scan: %d new signal(s) created from %d opportunity(ies)",
+                created, len(opportunities),
+            )
+        except asyncio.CancelledError:
+            logger.info("Scan-and-signal task cancelled")
+            raise
+        except Exception:
+            logger.exception("Scan-and-signal task iteration failed")
 
 
 async def _periodic_broadcast() -> None:

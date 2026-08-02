@@ -162,6 +162,7 @@ class OpportunityScanner:
 
         return ScanResult(
             symbol=symbol,
+            price=asset.price,
             trend_score=trend_score,
             momentum_score=momentum_score,
             breakout_score=breakout_score,
