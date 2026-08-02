@@ -134,9 +134,20 @@ def db_session(session_factory, monkeypatch):
     The session is bound to the outer transaction managed by
     ``db_connection``, so all changes are rolled back automatically.
     """
+    import sys
+    import database
+
+    # 1. Patch database.get_session first so any subsequent imports get the patched version
     monkeypatch.setattr("database.get_session", session_factory)
-    monkeypatch.setattr("execution.trade_engine.get_session", session_factory)
-    monkeypatch.setattr("core.engine.get_session", session_factory)
+
+    # 2. Iterate and patch already loaded modules
+    for mod_name in list(sys.modules.keys()):
+        mod = sys.modules[mod_name]
+        if hasattr(mod, "get_session") and mod_name != "database":
+            try:
+                setattr(mod, "get_session", session_factory)
+            except Exception:
+                pass
 
     session = session_factory()
     yield session

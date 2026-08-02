@@ -36,7 +36,7 @@ class DecisionEngine:
 
         while True:
 
-            signals = self.get_open_signals()
+            signals = await asyncio.to_thread(self.get_open_signals)
 
             if len(signals) == 0:
                 logger.info("No open signals found.")
@@ -44,6 +44,6 @@ class DecisionEngine:
                 logger.info("Found %s open signal(s).", len(signals))
 
                 for signal in signals:
-                    self.process_signal(signal)
+                    await asyncio.to_thread(self.process_signal, signal)
 
             await asyncio.sleep(CHECK_INTERVAL)

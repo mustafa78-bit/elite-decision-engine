@@ -43,6 +43,8 @@ class OpportunityRanker:
                 strategy=self._best_strategy(r),
                 score=composite,
                 confidence=min(composite * 100, 99.0),
+                price=r.price,
+                trend_score=r.trend_score,
                 features=r.features,
                 signals=r.signals,
             )

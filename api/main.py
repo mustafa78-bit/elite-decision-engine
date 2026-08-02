@@ -60,7 +60,7 @@ from api.routes.terminal import router as terminal_router
 from api.routes.portfolio_detail import router as portfolio_detail_router
 from api.routes.evidence import router as evidence_router
 from api.websocket.manager import WebSocketManager
-from config import API_ENV, CORS_ORIGINS, DEBUG
+from config import API_ENV, CORS_ORIGINS, DEBUG, AUTO_TRADING_ENABLED, SCAN_INTERVAL_SECONDS
 from database import FINAL_STATUSES, Trade, get_session
 from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
@@ -78,6 +78,43 @@ origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
 _background_tasks: set[asyncio.Task] = set()
 
 
+async def _periodic_scan_and_signal() -> None:
+    from scanner.core import OpportunityScanner
+    from services.signal_generator import generate_signals_from_opportunities
+    scanner = OpportunityScanner()
+    while True:
+        try:
+            logger.info("Auto trading: Starting periodic scan and signal generation.")
+            opportunities = await asyncio.to_thread(scanner.scan)
+            logger.info("Auto trading: Scan complete. Found %d opportunities.", len(opportunities))
+            await asyncio.to_thread(generate_signals_from_opportunities, opportunities)
+            await asyncio.sleep(SCAN_INTERVAL_SECONDS)
+        except asyncio.CancelledError:
+            logger.info("Periodic scan and signal task cancelled.")
+            raise
+        except Exception:
+            logger.exception("Periodic scan and signal task iteration failed.")
+            await asyncio.sleep(30)
+
+
+async def _run_decision_engine_loop() -> None:
+    from core.engine import DecisionEngine
+    from execution.execution_loop import ExecutionLoop
+    from execution.paper import PaperExecutor as PaperDomainExecutor
+    while True:
+        try:
+            logger.info("Auto trading: Starting decision engine loop.")
+            execution_loop = ExecutionLoop(trade_journal=PaperDomainExecutor())
+            engine = DecisionEngine(execution_loop=execution_loop)
+            await engine.run()
+        except asyncio.CancelledError:
+            logger.info("Decision engine loop task cancelled.")
+            raise
+        except Exception:
+            logger.exception("Decision engine loop task crashed, restarting in 10s...")
+            await asyncio.sleep(10)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from logging_config import setup_logging
@@ -85,6 +122,16 @@ async def lifespan(app: FastAPI):
     logger.info("Application starting up")
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
+
+    if AUTO_TRADING_ENABLED:
+        logger.info("AUTO_TRADING_ENABLED is True. Starting auto-trading background tasks.")
+        scan_task = asyncio.create_task(_periodic_scan_and_signal())
+        engine_task = asyncio.create_task(_run_decision_engine_loop())
+        _background_tasks.add(scan_task)
+        _background_tasks.add(engine_task)
+    else:
+        logger.info("AUTO_TRADING_ENABLED is False. Auto-trading background tasks will not start.")
+
     yield
     logger.info("Application shutting down")
     task.cancel()
