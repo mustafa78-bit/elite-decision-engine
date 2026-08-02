@@ -30,7 +30,7 @@ class RiskAgent(BaseAgent):
         priority: int = 5,
         risk_engine: Optional[RiskEngine] = None,
     ) -> None:
-        super().__init__(name=name, weight=weight, priority=priority)
+        super().__init__(name=name, weight=weight, priority=priority, is_directional=False)
         self.risk_engine = risk_engine or RiskEngine()
 
     def evaluate(

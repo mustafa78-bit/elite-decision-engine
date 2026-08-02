@@ -10,6 +10,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 from market.intelligence.news import NewsService
@@ -102,6 +103,8 @@ class NewsAgent(BaseAgent):
             reasoning.append("Neutral news sentiment")
 
         reasoning.append(f"{article_count} news articles analyzed")
+
+        direction = normalize_direction(direction, side)
 
         headlines = [a.get("headline", "") for a in news_articles[:5]]
 
