@@ -56,9 +56,9 @@ class MacroAgent(BaseAgent):
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"
@@ -85,7 +85,6 @@ class MacroAgent(BaseAgent):
 
         funding_rate = funding.get("annualized_rate", 0)
         funding_level = funding.get("level", "NEUTRAL")
-        funding_risk = funding.get("risk_score", 0.5)
 
         oi_value = open_interest.get("value", 0)
         oi_trend_name = open_interest.get("trend", "FLAT")
@@ -93,7 +92,6 @@ class MacroAgent(BaseAgent):
 
         fg_label = fear_greed.get("label", "NEUTRAL")
         fg_value = fear_greed.get("value", 50)
-        fg_confidence = fear_greed.get("confidence", 0.5)
 
         liq_score = liquidity.get("score", 0.5)
         liq_level = liquidity.get("level", "NEUTRAL")

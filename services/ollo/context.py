@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -11,21 +11,21 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class OLLOContext:
-    portfolio_summary: Optional[dict] = None
-    portfolio_distribution: Optional[dict] = None
-    portfolio_performance: Optional[dict] = None
-    portfolio_risk: Optional[dict] = None
-    scanner_signals: Optional[dict] = None
-    market_regime: Optional[dict] = None
-    risk_metrics: Optional[dict] = None
-    whale_activity: Optional[dict] = None
-    council_latest: Optional[dict] = None
-    council_full: Optional[dict] = None
-    trade_history: Optional[dict] = None
-    recent_conversation: Optional[dict] = None
+    portfolio_summary: dict | None = None
+    portfolio_distribution: dict | None = None
+    portfolio_performance: dict | None = None
+    portfolio_risk: dict | None = None
+    scanner_signals: dict | None = None
+    market_regime: dict | None = None
+    risk_metrics: dict | None = None
+    whale_activity: dict | None = None
+    council_latest: dict | None = None
+    council_full: dict | None = None
+    trade_history: dict | None = None
+    recent_conversation: dict | None = None
     room: str = ""
     collected_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     errors: list[str] = field(default_factory=list)
 
@@ -149,8 +149,8 @@ class ContextBuilder:
 
     def _load_risk(self) -> Any:
         try:
+            from config import MAX_DAILY_LOSS, MAX_OPEN_TRADES, MAX_PORTFOLIO_EXPOSURE
             from risk_manager import RiskManager
-            from config import MAX_OPEN_TRADES, MAX_PORTFOLIO_EXPOSURE, MAX_DAILY_LOSS
 
             class DummyCandidate:
                 def __init__(self, symbol: str = "BTC", entry: float = 0.0) -> None:
@@ -186,7 +186,7 @@ class ContextBuilder:
             need_daily_loss = "DAILY_LOSS_LIMIT" not in present_check_names
 
             if need_exposure or need_daily_loss:
-                from database import Trade, FINAL_STATUSES
+                from database import FINAL_STATUSES, Trade
                 session = rm.session_factory()
                 try:
                     if need_exposure:
@@ -194,7 +194,7 @@ class ContextBuilder:
                         metrics["portfolio_exposure"] = round(sum(r.entry for r in total_exposure if r.entry is not None), 2)
 
                     if need_daily_loss:
-                        today_start = datetime.now(timezone.utc).replace(
+                        today_start = datetime.now(UTC).replace(
                             hour=0, minute=0, second=0, microsecond=0
                         )
                         daily_losses = (

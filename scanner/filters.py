@@ -16,10 +16,10 @@ class MarketFilter:
     def should_filter(
         self,
         result: ScanResult,
-        btc_trend: Optional[str] = None,
-        market_session: Optional[str] = None,
-        fear_greed_label: Optional[str] = None,
-    ) -> tuple[bool, Optional[str]]:
+        btc_trend: str | None = None,
+        market_session: str | None = None,
+        fear_greed_label: str | None = None,
+    ) -> tuple[bool, str | None]:
         trend = result.features.get("trend", "NEUTRAL")
 
         if btc_trend == "BEARISH" and trend in ("BULLISH", "MILD_BULLISH"):
@@ -47,8 +47,8 @@ class FalseSignalFilter:
     def should_filter(
         self,
         result: ScanResult,
-        volume_score: Optional[float] = None,
-    ) -> tuple[bool, Optional[str]]:
+        volume_score: float | None = None,
+    ) -> tuple[bool, str | None]:
         if abs(result.breakout_score) > 0.3:
             vol = volume_score or result.features.get("volume_score")
             if vol is not None and vol < self.LOW_VOLUME_BREAKOUT_THRESHOLD:

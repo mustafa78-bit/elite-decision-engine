@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -14,15 +14,15 @@ class OLLOResponse:
     text: str
     room: str = ""
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     provider: str = ""
     model: str = ""
     duration_ms: float = 0.0
-    tokens_in: Optional[int] = None
-    tokens_out: Optional[int] = None
+    tokens_in: int | None = None
+    tokens_out: int | None = None
     sections: list[dict] = field(default_factory=list)
-    intent_route: Optional[str] = None
+    intent_route: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -47,13 +47,13 @@ class OLLOBriefing:
     title: str
     text: str
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     provider: str = ""
     model: str = ""
     duration_ms: float = 0.0
-    tokens_in: Optional[int] = None
-    tokens_out: Optional[int] = None
+    tokens_in: int | None = None
+    tokens_out: int | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -89,9 +89,9 @@ def parse_response(
     provider: str = "",
     model: str = "",
     duration_ms: float = 0.0,
-    tokens_in: Optional[int] = None,
-    tokens_out: Optional[int] = None,
-    intent_route: Optional[str] = None,
+    tokens_in: int | None = None,
+    tokens_out: int | None = None,
+    intent_route: str | None = None,
 ) -> OLLOResponse:
     text = raw_text.strip()
     sections = _extract_sections(text)
@@ -114,8 +114,8 @@ def parse_briefing(
     provider: str = "",
     model: str = "",
     duration_ms: float = 0.0,
-    tokens_in: Optional[int] = None,
-    tokens_out: Optional[int] = None,
+    tokens_in: int | None = None,
+    tokens_out: int | None = None,
 ) -> OLLOBriefing:
     title = KIND_TITLES.get(kind, "Briefing")
     return OLLOBriefing(
@@ -133,7 +133,7 @@ def parse_briefing(
 def _extract_sections(text: str) -> list[dict]:
     sections: list[dict] = []
     lines = text.split("\n")
-    current_section: Optional[str] = None
+    current_section: str | None = None
     current_bullets: list[str] = []
 
     for line in lines:

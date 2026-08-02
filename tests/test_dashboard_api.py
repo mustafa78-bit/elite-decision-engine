@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timezone
+
 import pytest
-from database import Trade, Signal, Notification
-from datetime import datetime, timezone
+
+from database import Notification, Signal, Trade
 
 
 class TestDashboardAPI:
@@ -28,7 +30,7 @@ class TestDashboardAPI:
         assert body["total_trades"] == 0
 
     def test_dashboard_portfolio_with_trades(self, api_client, db_session):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for pnl in [1000, 2000, -500]:
             db_session.add(Trade(
                 symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,

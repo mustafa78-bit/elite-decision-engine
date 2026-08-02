@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
 
@@ -66,7 +66,7 @@ class MonitoringDashboardWidgetDTO:
     database_status: str = "connected"
     collector_status: str = "unknown"
     websocket_clients: int = 0
-    last_error: Optional[str] = None
+    last_error: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

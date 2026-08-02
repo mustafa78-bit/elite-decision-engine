@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from statistics import mean, stdev
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, Trade, get_session
@@ -40,8 +41,8 @@ class PerformanceEngine:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
-        initial_equity: Optional[float] = None,
+        session_factory: Callable[[], Any] | None = None,
+        initial_equity: float | None = None,
         risk_free_rate: float = _RFR,
     ) -> None:
         self.session_factory = session_factory or get_session

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -20,19 +20,19 @@ class OpenInterest:
 @dataclass(frozen=True)
 class OpenInterestResult:
     records: tuple[OpenInterest, ...] = ()
-    fetched_at: float = field(default_factory=lambda: datetime.now(timezone.utc).timestamp())
+    fetched_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
 
     @property
     def empty(self) -> bool:
         return len(self.records) == 0
 
     @property
-    def latest(self) -> Optional[OpenInterest]:
+    def latest(self) -> OpenInterest | None:
         if self.records:
             return self.records[-1]
         return None
 
-    def for_symbol(self, symbol: str) -> Optional[OpenInterest]:
+    def for_symbol(self, symbol: str) -> OpenInterest | None:
         for r in self.records:
             if r.symbol == symbol:
                 return r

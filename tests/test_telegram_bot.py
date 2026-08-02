@@ -4,17 +4,17 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from telegram import Update, Message, Chat, User
+from telegram import Chat, Message, Update, User
 from telegram.ext import ContextTypes
 
 from services.telegram.bot import (
     TelegramBotManager,
-    status_command,
-    brief_command,
-    ask_command,
-    send_long_message,
-    authorized_only,
     allowed_ids,
+    ask_command,
+    authorized_only,
+    brief_command,
+    send_long_message,
+    status_command,
 )
 
 

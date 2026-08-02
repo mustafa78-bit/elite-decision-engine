@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import logging
-from datetime import datetime, timezone
 import json
+import logging
 import xml.etree.ElementTree as ET
-import requests
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,8 @@ class NewsService:
         self,
         symbol: str,
         price: float = 0.0,
-        price_change_24h: Optional[float] = None,
-        btc_trend: Optional[str] = None,
+        price_change_24h: float | None = None,
+        btc_trend: str | None = None,
     ) -> list[dict[str, Any]]:
         """Fetch headlines from real crypto RSS feeds and classify sentiment using NVIDIA LLM or rules."""
         articles: list[dict[str, Any]] = []
@@ -107,7 +108,7 @@ class NewsService:
                 seen_titles.add(title_clean)
                 published = entry.get("published")
                 if not published:
-                    published = datetime.now(timezone.utc).isoformat()
+                    published = datetime.now(UTC).isoformat()
 
                 filtered_headlines.append({
                     "source": "RSS",
@@ -128,7 +129,7 @@ class NewsService:
                 seen_titles.add(title_clean)
                 published = entry.get("published")
                 if not published:
-                    published = datetime.now(timezone.utc).isoformat()
+                    published = datetime.now(UTC).isoformat()
 
                 filtered_headlines.append({
                     "source": "RSS_GENERAL",
@@ -209,7 +210,7 @@ Do not include any other text, explainers, or Markdown block markers like ```jso
                 "headline": f"{symbol} moved {abs(price_change_24h):.1f}% in 24h",
                 "sentiment": direction,
                 "relevance": 0.8,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             })
 
         if btc_trend:
@@ -219,7 +220,7 @@ Do not include any other text, explainers, or Markdown block markers like ```jso
                 "headline": f"BTC trend is {trend_label}",
                 "sentiment": "positive" if btc_trend == "BULLISH" else "negative" if btc_trend == "BEARISH" else "neutral",
                 "relevance": 0.5,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             })
 
         return articles

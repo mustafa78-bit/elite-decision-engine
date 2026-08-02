@@ -79,7 +79,7 @@ class TestBinanceExchange:
             ex._signed_request("GET", "/api/v3/account")
 
     def test_positions_with_paper_order(self, db_session, monkeypatch):
-        from database import Trade, PaperOrder, Signal
+        from database import PaperOrder, Signal, Trade
         # Seed Signal for DB integrity if checked
         sig = Signal(id=1, symbol="BTCUSDT", side="BUY", approved=True)
         db_session.add(sig)
@@ -111,7 +111,7 @@ class TestBinanceExchange:
         assert pos.current_price == Decimal("51050")
 
     def test_positions_no_paper_order(self, db_session, monkeypatch):
-        from database import Trade, Signal
+        from database import Signal, Trade
         sig = Signal(id=2, symbol="ETHUSDT", side="BUY", approved=True)
         db_session.add(sig)
         db_session.flush()
@@ -136,7 +136,7 @@ class TestBinanceExchange:
         assert pos.current_price == Decimal("3055")
 
     def test_positions_ticker_exception(self, db_session, monkeypatch):
-        from database import Trade, Signal
+        from database import Signal, Trade
         sig = Signal(id=3, symbol="SOLUSDT", side="BUY", approved=True)
         db_session.add(sig)
         db_session.flush()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from market.intelligence.binance_client import fetch_binance_depth
@@ -18,9 +18,9 @@ class LiquidityContextAnalyzer:
     def analyze(
         self,
         symbol: str,
-        volume_score: Optional[float] = None,
-        liquidity: Optional[str] = None,
-        atr: Optional[float] = None,
+        volume_score: float | None = None,
+        liquidity: str | None = None,
+        atr: float | None = None,
         price: float = 0.0,
     ) -> dict[str, Any]:
         try:
@@ -83,7 +83,7 @@ class LiquidityContextAnalyzer:
                 "score": score,
                 "level": level,
                 "signals": signals,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
         except Exception as e:
@@ -93,9 +93,9 @@ class LiquidityContextAnalyzer:
     def _analyze_heuristic(
         self,
         symbol: str,
-        volume_score: Optional[float] = None,
-        liquidity: Optional[str] = None,
-        atr: Optional[float] = None,
+        volume_score: float | None = None,
+        liquidity: str | None = None,
+        atr: float | None = None,
         price: float = 0.0,
     ) -> dict[str, Any]:
         liquidity_score = 0.5
@@ -141,5 +141,5 @@ class LiquidityContextAnalyzer:
             "score": liquidity_score,
             "level": level,
             "signals": signals,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }

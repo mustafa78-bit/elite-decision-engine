@@ -12,7 +12,7 @@ from council.base import (
     AgentReport,
     BaseAgent,
 )
-from council.consensus import ConsensusEngine, CouncilReport, DEFAULT_WEIGHTS
+from council.consensus import DEFAULT_WEIGHTS, ConsensusEngine, CouncilReport
 
 
 class _BullishAgent(BaseAgent):

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 from database import Watchlist, get_session
 
@@ -9,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class WatchlistService:
-    def __init__(self, session_factory: Optional[Callable[[], Any]] = None):
+    def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
-    def list_watchlists(self, user_id: Optional[int] = None) -> list[dict[str, Any]]:
+    def list_watchlists(self, user_id: int | None = None) -> list[dict[str, Any]]:
         session = self.session_factory()
         try:
             q = session.query(Watchlist)
@@ -23,7 +24,7 @@ class WatchlistService:
         finally:
             session.close()
 
-    def get_watchlist(self, watchlist_id: int) -> Optional[dict[str, Any]]:
+    def get_watchlist(self, watchlist_id: int) -> dict[str, Any] | None:
         session = self.session_factory()
         try:
             row = session.query(Watchlist).filter(Watchlist.id == watchlist_id).first()
@@ -31,7 +32,7 @@ class WatchlistService:
         finally:
             session.close()
 
-    def create_watchlist(self, name: str, symbols: Optional[list[str]] = None, user_id: Optional[int] = None) -> dict[str, Any]:
+    def create_watchlist(self, name: str, symbols: list[str] | None = None, user_id: int | None = None) -> dict[str, Any]:
         session = self.session_factory()
         try:
             row = Watchlist(name=name, symbols=symbols or [], user_id=user_id)
@@ -45,7 +46,7 @@ class WatchlistService:
         finally:
             session.close()
 
-    def update_watchlist(self, watchlist_id: int, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def update_watchlist(self, watchlist_id: int, data: dict[str, Any]) -> dict[str, Any] | None:
         session = self.session_factory()
         try:
             row = session.query(Watchlist).filter(Watchlist.id == watchlist_id).first()
@@ -87,10 +88,10 @@ class WatchlistService:
         finally:
             session.close()
 
-    def add_symbol(self, watchlist_id: int, symbol: str) -> Optional[dict[str, Any]]:
+    def add_symbol(self, watchlist_id: int, symbol: str) -> dict[str, Any] | None:
         return self.update_watchlist(watchlist_id, {"add_symbols": [symbol]})
 
-    def remove_symbol(self, watchlist_id: int, symbol: str) -> Optional[dict[str, Any]]:
+    def remove_symbol(self, watchlist_id: int, symbol: str) -> dict[str, Any] | None:
         return self.update_watchlist(watchlist_id, {"remove_symbols": [symbol]})
 
     def _to_dict(self, row: Watchlist) -> dict[str, Any]:

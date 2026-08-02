@@ -4,9 +4,10 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from simulator.models import (
     AIDecisionMode,
@@ -39,14 +40,14 @@ SPEED_MULTIPLIERS: dict[SimSpeed, float] = {
 class SimulatorEngine:
     def __init__(
         self,
-        replay_engine: Optional[MarketReplayEngine] = None,
-        report_generator: Optional[ReportGenerator] = None,
-        council_engine: Optional[Any] = None,
-        evidence_engine: Optional[Any] = None,
-        paper_executor: Optional[Any] = None,
-        explain_engine: Optional[Any] = None,
-        position_sizer: Optional[Any] = None,
-        market_service: Optional[Any] = None,
+        replay_engine: MarketReplayEngine | None = None,
+        report_generator: ReportGenerator | None = None,
+        council_engine: Any | None = None,
+        evidence_engine: Any | None = None,
+        paper_executor: Any | None = None,
+        explain_engine: Any | None = None,
+        position_sizer: Any | None = None,
+        market_service: Any | None = None,
     ) -> None:
         self._replay = replay_engine or MarketReplayEngine()
         self._reports = report_generator or ReportGenerator()
@@ -57,8 +58,8 @@ class SimulatorEngine:
         self._sizer = position_sizer
         self._market = market_service
 
-        self._state: Optional[SimulatorState] = None
-        self._task: Optional[asyncio.Task] = None
+        self._state: SimulatorState | None = None
+        self._task: asyncio.Task | None = None
         self._paused = asyncio.Event()
         self._paused.set()
         self._stopped = asyncio.Event()
@@ -70,7 +71,7 @@ class SimulatorEngine:
         self._timeline_listeners: list[Callable[[TimelineEvent], None]] = []
 
     @property
-    def state(self) -> Optional[SimulatorState]:
+    def state(self) -> SimulatorState | None:
         return self._state
 
     @property
@@ -135,7 +136,7 @@ class SimulatorEngine:
             self._add_timeline("SIMULATION_RESUME", "Simulation resumed")
             self._emit_state()
 
-    def stop(self) -> Optional[SimulatorState]:
+    def stop(self) -> SimulatorState | None:
         if self._state is None:
             return None
         self._stopped.set()
@@ -153,7 +154,7 @@ class SimulatorEngine:
         self._state = None
         self._task = None
 
-    def step_candle(self) -> Optional[SimulatedCandle]:
+    def step_candle(self) -> SimulatedCandle | None:
         if self._state is None or self._state.status != SimStatus.PAUSED:
             return None
         candle = self._replay.step()
@@ -181,8 +182,8 @@ class SimulatorEngine:
         take_profit: float,
         quantity: float,
         leverage: float = 1.0,
-        trailing_stop: Optional[float] = None,
-    ) -> Optional[SimulatedTrade]:
+        trailing_stop: float | None = None,
+    ) -> SimulatedTrade | None:
         if self._state is None:
             return None
         trade = self._create_trade(side, entry_price, stop_loss, take_profit, quantity, leverage, trailing_stop, manual=True)
@@ -193,7 +194,7 @@ class SimulatorEngine:
             self._emit_state()
         return trade
 
-    def close_trade(self, trade_id: str, exit_price: Optional[float] = None) -> bool:
+    def close_trade(self, trade_id: str, exit_price: float | None = None) -> bool:
         if self._state is None:
             return False
         for t in self._state.trades:
@@ -205,7 +206,7 @@ class SimulatorEngine:
                 return True
         return False
 
-    def close_all_trades(self, exit_price: Optional[float] = None) -> int:
+    def close_all_trades(self, exit_price: float | None = None) -> int:
         closed = 0
         for t in list(self._state.trades if self._state else []):
             if t.status == "OPEN":
@@ -237,7 +238,6 @@ class SimulatorEngine:
             return
         config = state.config
         speed = SPEED_MULTIPLIERS.get(config.speed, 1.0)
-        start_time = time.monotonic()
         founder_metrics: dict[str, Any] = {
             "ai_latency_ms": [], "decision_latency_ms": [], "evidence_latency_ms": [],
         }
@@ -322,7 +322,7 @@ class SimulatorEngine:
             "price": candle.close,
         })
 
-    def _run_ai_decision(self, candle: SimulatedCandle) -> Optional[SimulatedDecision]:
+    def _run_ai_decision(self, candle: SimulatedCandle) -> SimulatedDecision | None:
         state = self._state
         if state is None:
             return None
@@ -499,11 +499,11 @@ class SimulatorEngine:
         take_profit: float,
         quantity: float,
         leverage: float = 1.0,
-        trailing_stop: Optional[float] = None,
+        trailing_stop: float | None = None,
         manual: bool = False,
-        decision_id: Optional[str] = None,
-        entry_decision: Optional[dict[str, Any]] = None,
-    ) -> Optional[SimulatedTrade]:
+        decision_id: str | None = None,
+        entry_decision: dict[str, Any] | None = None,
+    ) -> SimulatedTrade | None:
         if self._state is None:
             return None
         slippage = entry_price * (self._state.config.slippage_bps / 10000.0)
@@ -558,7 +558,7 @@ class SimulatorEngine:
             self._state.status = status
 
     def _add_timeline(
-        self, event_type: str, title: str, severity: str = "info", data: Optional[dict[str, Any]] = None
+        self, event_type: str, title: str, severity: str = "info", data: dict[str, Any] | None = None
     ) -> None:
         if self._state is None:
             return
@@ -628,7 +628,7 @@ class SimulatorEngine:
         except ImportError:
             return None
 
-    def _estimate_atr(self) -> Optional[float]:
+    def _estimate_atr(self) -> float | None:
         candles = self._replay.get_range(max(0, self._replay.index - 14), 14)
         if len(candles) < 2:
             return None

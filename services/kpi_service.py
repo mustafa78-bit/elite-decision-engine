@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
-from database import FINAL_STATUSES, Trade, Signal, get_session
+from database import FINAL_STATUSES, Signal, Trade, get_session
 from dto.analytics import KPIDTO
 
 logger = logging.getLogger(__name__)
 
 
 class KPIService:
-    def __init__(self, session_factory: Optional[Callable[[], Any]] = None):
+    def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
     def get_kpis(self) -> list[KPIDTO]:
@@ -22,7 +23,7 @@ class KPIService:
         finally:
             session.close()
 
-    def _compute(self, trades: list[Trade], signals: Optional[list[Signal]] = None) -> list[KPIDTO]:
+    def _compute(self, trades: list[Trade], signals: list[Signal] | None = None) -> list[KPIDTO]:
         closed = [t for t in trades if t.status in FINAL_STATUSES]
         open_t = [t for t in trades if t.status == "OPEN"]
         wins = [t for t in closed if t.pnl and t.pnl > 0]

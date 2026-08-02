@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -23,14 +23,14 @@ class OHLCVResult:
     symbol: str
     timeframe: str
     candles: tuple[OHLCV, ...]
-    fetched_at: float = field(default_factory=lambda: datetime.now(timezone.utc).timestamp())
+    fetched_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
 
     @property
     def empty(self) -> bool:
         return len(self.candles) == 0
 
     @property
-    def latest(self) -> Optional[OHLCV]:
+    def latest(self) -> OHLCV | None:
         if self.candles:
             return self.candles[-1]
         return None
@@ -104,12 +104,12 @@ def validate_ohlcv_result(result: OHLCVResult) -> list[str]:
 
 def check_timestamp_freshness(
     result: OHLCVResult,
-    now: Optional[float] = None,
+    now: float | None = None,
     max_age_seconds: float = 7200.0,
-) -> tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     if not result.candles:
         return False, "No candle data to check freshness"
-    now = now or datetime.now(timezone.utc).timestamp()
+    now = now or datetime.now(UTC).timestamp()
     latest_ts = result.candles[-1].timestamp
     if latest_ts > 1e12:
         latest_ts = latest_ts / 1000

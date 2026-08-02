@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional, Set, Any
+from typing import Any, Optional
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-from config import TELEGRAM_TOKEN, TELEGRAM_ALLOWED_CHAT_IDS
+from config import TELEGRAM_ALLOWED_CHAT_IDS, TELEGRAM_TOKEN
 from monitoring.health import HealthService
 
 logger = logging.getLogger(__name__)
 
 # Parse TELEGRAM_ALLOWED_CHAT_IDS into a set of integers or strings
-allowed_ids: Set[Any] = set()
+allowed_ids: set[Any] = set()
 if TELEGRAM_ALLOWED_CHAT_IDS:
     for item in TELEGRAM_ALLOWED_CHAT_IDS.split(","):
         item = item.strip()
@@ -41,15 +41,15 @@ def authorized_only(func):
 
 async def send_long_message(update: Update, text: str):
     """Automatically splits and sends messages longer than 4096 characters to prevent failures."""
-    MAX_LENGTH = 4096
-    if len(text) <= MAX_LENGTH:
+    max_length = 4096
+    if len(text) <= max_length:
         await update.message.reply_text(text, parse_mode="HTML")
         return
 
     chunks = []
     current_chunk = ""
     for line in text.split("\n"):
-        if len(current_chunk) + len(line) + 1 > MAX_LENGTH:
+        if len(current_chunk) + len(line) + 1 > max_length:
             chunks.append(current_chunk)
             current_chunk = line
         else:
@@ -61,15 +61,15 @@ async def send_long_message(update: Update, text: str):
         chunks.append(current_chunk)
 
     for chunk in chunks:
-        if len(chunk) > MAX_LENGTH:
+        if len(chunk) > max_length:
             # Fallback character-based split for abnormally long lines
-            for i in range(0, len(chunk), MAX_LENGTH):
-                await update.message.reply_text(chunk[i:i + MAX_LENGTH], parse_mode="HTML")
+            for i in range(0, len(chunk), max_length):
+                await update.message.reply_text(chunk[i:i + max_length], parse_mode="HTML")
         else:
             await update.message.reply_text(chunk, parse_mode="HTML")
 
 
-_ollo_service: Optional[Any] = None
+_ollo_service: Any | None = None
 
 
 def get_ollo_service() -> Any:
@@ -191,10 +191,10 @@ async def ask_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 class TelegramBotManager:
-    _instance: Optional[TelegramBotManager] = None
+    _instance: TelegramBotManager | None = None
 
     def __init__(self):
-        self.application: Optional[Application] = None
+        self.application: Application | None = None
 
     @classmethod
     def get_instance(cls) -> TelegramBotManager:

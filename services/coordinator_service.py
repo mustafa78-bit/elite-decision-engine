@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from dto.coordination import (
@@ -41,7 +41,7 @@ class IntelligenceRegistry:
             "weight": weight,
             "priority": priority,
             "available": True,
-            "last_updated": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(UTC).isoformat(),
             "latency_ms": 0.0,
             "error_count": 0,
         }
@@ -50,7 +50,7 @@ class IntelligenceRegistry:
     def unregister(self, name: str) -> None:
         self._sources.pop(name, None)
 
-    def get(self, name: str) -> Optional[dict[str, Any]]:
+    def get(self, name: str) -> dict[str, Any] | None:
         return self._sources.get(name)
 
     def list_sources(self) -> list[dict[str, Any]]:
@@ -79,7 +79,7 @@ class IntelligenceRegistry:
         src = self._sources.get(name)
         if src:
             src["latency_ms"] = latency_ms
-            src["last_updated"] = datetime.now(timezone.utc).isoformat()
+            src["last_updated"] = datetime.now(UTC).isoformat()
 
 
 class AISourceRegistry:
@@ -94,7 +94,7 @@ class AISourceRegistry:
         version: str = "1.0",
         weight: float = 1.0,
         priority: int = 5,
-        capabilities: Optional[list[str]] = None,
+        capabilities: list[str] | None = None,
     ) -> None:
         self._sources[name] = {
             "name": name,
@@ -155,7 +155,7 @@ class CoordinatorService:
         self._errors_last_hour = 0
         self._last_error_reset = time.time()
 
-    def evaluate(self, signal: Any, scores: Optional[dict[str, Any]] = None) -> CoordinatorReportDTO:
+    def evaluate(self, signal: Any, scores: dict[str, Any] | None = None) -> CoordinatorReportDTO:
         start = time.perf_counter()
         self._evaluation_count += 1
 
@@ -181,7 +181,7 @@ class CoordinatorService:
         )
 
     def _aggregate_confidences(
-        self, signal: Any, scores: Optional[dict[str, Any]]
+        self, signal: Any, scores: dict[str, Any] | None
     ) -> list[ConfidenceAggregationDTO]:
         results: list[ConfidenceAggregationDTO] = []
 
@@ -277,7 +277,7 @@ class CoordinatorService:
     def _rank_recommendations(
         self,
         signal: Any,
-        scores: Optional[dict[str, Any]],
+        scores: dict[str, Any] | None,
         consensus: ConsensusScoreDTO,
     ) -> list[RecommendationRankingDTO]:
         result: list[RecommendationRankingDTO] = []

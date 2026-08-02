@@ -174,7 +174,7 @@ class TestIntelligenceProviderProtocol:
             def fetch_all(self):
                 return []
 
-            def fetch_for_symbol(self, symbol: str) -> Optional[dict]:
+            def fetch_for_symbol(self, symbol: str) -> dict | None:
                 return None
 
             def check_freshness(self, symbol: str) -> dict:

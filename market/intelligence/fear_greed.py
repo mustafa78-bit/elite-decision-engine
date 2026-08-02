@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-import requests
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +16,10 @@ class FearGreedService:
 
     def compute(
         self,
-        rsi: Optional[float] = None,
-        btc_trend: Optional[str] = None,
-        volatility_score: Optional[float] = None,
-        funding_rate: Optional[float] = None,
+        rsi: float | None = None,
+        btc_trend: str | None = None,
+        volatility_score: float | None = None,
+        funding_rate: float | None = None,
     ) -> dict[str, Any]:
         try:
             resp = requests.get("https://api.alternative.me/fng/", timeout=5)
@@ -49,10 +50,10 @@ class FearGreedService:
 
                 # Extract api's unix timestamp and format as ISO
                 try:
-                    dt = datetime.fromtimestamp(int(item["timestamp"]), tz=timezone.utc)
+                    dt = datetime.fromtimestamp(int(item["timestamp"]), tz=UTC)
                     timestamp_iso = dt.isoformat()
                 except Exception:
-                    timestamp_iso = datetime.now(timezone.utc).isoformat()
+                    timestamp_iso = datetime.now(UTC).isoformat()
 
                 return {
                     "value": val,
@@ -69,10 +70,10 @@ class FearGreedService:
 
     def _compute_heuristic(
         self,
-        rsi: Optional[float] = None,
-        btc_trend: Optional[str] = None,
-        volatility_score: Optional[float] = None,
-        funding_rate: Optional[float] = None,
+        rsi: float | None = None,
+        btc_trend: str | None = None,
+        volatility_score: float | None = None,
+        funding_rate: float | None = None,
     ) -> dict[str, Any]:
         score = 50.0
         signals: list[str] = []
@@ -132,5 +133,5 @@ class FearGreedService:
             "label": label,
             "signals": signals,
             "confidence": round(1.0 - abs(score - 50) / 100, 2),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }

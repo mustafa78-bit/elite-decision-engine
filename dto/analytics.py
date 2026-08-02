@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
 
@@ -172,11 +172,11 @@ class AnalyticsDTO:
     daily: list[DailyAnalyticsDTO] = field(default_factory=list)
     weekly: list[WeeklyAnalyticsDTO] = field(default_factory=list)
     monthly: list[MonthlyAnalyticsDTO] = field(default_factory=list)
-    win_loss: Optional[WinLossAnalyticsDTO] = None
+    win_loss: WinLossAnalyticsDTO | None = None
     by_symbol: list[SymbolAnalyticsDTO] = field(default_factory=list)
     by_strategy: list[StrategyAnalyticsDTO] = field(default_factory=list)
-    risk: Optional[RiskAnalyticsDTO] = None
-    drawdown: Optional[DrawdownAnalyticsDTO] = None
+    risk: RiskAnalyticsDTO | None = None
+    drawdown: DrawdownAnalyticsDTO | None = None
     heatmap: list[HeatmapDataDTO] = field(default_factory=list)
     trends: list[PerformanceTrendDTO] = field(default_factory=list)
     kpis: list[KPIDTO] = field(default_factory=list)

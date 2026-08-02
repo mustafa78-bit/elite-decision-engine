@@ -12,9 +12,9 @@ Verifies:
 import pandas as pd
 import pytest
 
+from core.confidence_engine import ConfidenceEngine
 from execution.execution_loop import ExecutionLoop, ExecutionLoopResult
 from execution.pipeline import DecisionPipeline
-from core.confidence_engine import ConfidenceEngine
 
 
 class MockRiskManager:
@@ -24,7 +24,7 @@ class MockRiskManager:
         return True, ""
 
     def evaluate_trade(self, candidate):
-        from risk.models import RiskDecision, RiskCheckDetail, risk_decision_from_checks
+        from risk.models import RiskCheckDetail, RiskDecision, risk_decision_from_checks
         return risk_decision_from_checks([
             RiskCheckDetail(name="MOCK", passed=True, detail=""),
         ])
@@ -259,7 +259,6 @@ class TestExecutionLoopAI:
             regime_ai=FakeRegimeAI(),
             trade_memory=trade_memory,
         )
-        loop = self._make_loop(pipeline=pipeline)
         signal = FakeSignal(sid=1)
         candidate = pipeline.evaluate(signal)
         assert candidate is not None
@@ -296,7 +295,7 @@ class TestExecutionLoopProcessSignal:
             return False, "mock rejection"
 
         def evaluate_trade(self, candidate):
-            from risk.models import RiskDecision, RiskCheckDetail, risk_decision_from_checks
+            from risk.models import RiskCheckDetail, RiskDecision, risk_decision_from_checks
             return risk_decision_from_checks([
                 RiskCheckDetail(name="MOCK", passed=False, detail="mock rejection"),
             ])

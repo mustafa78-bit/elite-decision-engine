@@ -1,6 +1,7 @@
 """Tests for CacheManager."""
 
 import time
+
 from market.cache import CacheManager
 
 

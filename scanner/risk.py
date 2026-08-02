@@ -13,9 +13,9 @@ class RiskScorer:
 
     def score(
         self,
-        volatility_class: Optional[str] = None,
-        risk_feature: Optional[str] = None,
-        atr_pct: Optional[float] = None,
+        volatility_class: str | None = None,
+        risk_feature: str | None = None,
+        atr_pct: float | None = None,
         liquidity_score: float = 0.0,
         reversal_score: float = 0.0,
     ) -> tuple[float, list[str]]:

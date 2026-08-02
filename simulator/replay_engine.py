@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime, timezone
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -22,7 +23,7 @@ TIMEFRAME_MS = {
 
 
 class MarketReplayEngine:
-    def __init__(self, data_provider: Optional[Any] = None):
+    def __init__(self, data_provider: Any | None = None):
         self._data_provider = data_provider
         self._candles: list[SimulatedCandle] = []
         self._index: int = 0
@@ -33,13 +34,13 @@ class MarketReplayEngine:
         self._regime_cache: dict[int, MarketRegime] = {}
 
     @property
-    def current(self) -> Optional[SimulatedCandle]:
+    def current(self) -> SimulatedCandle | None:
         if 0 <= self._index < len(self._candles):
             return self._candles[self._index]
         return None
 
     @property
-    def previous(self) -> Optional[SimulatedCandle]:
+    def previous(self) -> SimulatedCandle | None:
         if 1 <= self._index < len(self._candles):
             return self._candles[self._index - 1]
         return None
@@ -72,9 +73,9 @@ class MarketReplayEngine:
         self,
         symbol: str,
         timeframe: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        data: Optional[pd.DataFrame] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        data: pd.DataFrame | None = None,
     ) -> int:
         self._symbol = symbol.upper()
         self._timeframe = timeframe
@@ -103,7 +104,7 @@ class MarketReplayEngine:
         )
         return len(self._candles)
 
-    def step(self) -> Optional[SimulatedCandle]:
+    def step(self) -> SimulatedCandle | None:
         if self._index >= len(self._candles):
             return None
         candle = self._candles[self._index]
@@ -118,19 +119,19 @@ class MarketReplayEngine:
         self._regime_cache[self._index] = regime
         return candle
 
-    def step_back(self) -> Optional[SimulatedCandle]:
+    def step_back(self) -> SimulatedCandle | None:
         if self._index <= 0:
             return None
         self._index -= 1
         return self._candles[self._index]
 
-    def seek(self, candle_index: int) -> Optional[SimulatedCandle]:
+    def seek(self, candle_index: int) -> SimulatedCandle | None:
         if candle_index < 0 or candle_index >= len(self._candles):
             return None
         self._index = candle_index
         return self._candles[self._index]
 
-    def seek_to_timestamp(self, timestamp: int) -> Optional[SimulatedCandle]:
+    def seek_to_timestamp(self, timestamp: int) -> SimulatedCandle | None:
         for i, c in enumerate(self._candles):
             if c.timestamp >= timestamp:
                 self._index = i
@@ -169,8 +170,8 @@ class MarketReplayEngine:
         return MarketRegime.SIDEWAYS
 
     def _fetch_data(
-        self, symbol: str, timeframe: str, start_date: Optional[str], end_date: Optional[str]
-    ) -> Optional[pd.DataFrame]:
+        self, symbol: str, timeframe: str, start_date: str | None, end_date: str | None
+    ) -> pd.DataFrame | None:
         try:
             if hasattr(self._data_provider, "get_ohlcv"):
                 coin = symbol.replace("USDT", "")
@@ -189,14 +190,14 @@ class MarketReplayEngine:
         return None
 
     def _generate_synthetic(
-        self, symbol: str, timeframe: str, start_date: Optional[str], end_date: Optional[str]
+        self, symbol: str, timeframe: str, start_date: str | None, end_date: str | None
     ) -> pd.DataFrame:
         import random
 
         logger.info("Generating synthetic data for %s %s", symbol, timeframe)
         start_ts: int
         end_ts: int
-        now = int(datetime.now(timezone.utc).timestamp() * 1000)
+        now = int(datetime.now(UTC).timestamp() * 1000)
         if start_date:
             try:
                 start_ts = int(datetime.fromisoformat(start_date).timestamp() * 1000)

@@ -31,7 +31,7 @@ class BinanceUniverseProvider:
         self._cached_symbols: list[str] | None = None
         self._last_updated: float = 0.0
 
-    def get_top_volume_symbols(self, n: Optional[int] = None) -> list[str]:
+    def get_top_volume_symbols(self, n: int | None = None) -> list[str]:
         """Fetch and return top N Binance USDT symbols sorted by 24h quote volume.
 
         If fetching fails, fall back to the cached list, or to _DEFAULT_SYMBOLS if cache is empty.
@@ -99,6 +99,6 @@ class BinanceUniverseProvider:
 _provider = BinanceUniverseProvider()
 
 
-def get_top_volume_symbols(n: Optional[int] = None) -> list[str]:
+def get_top_volume_symbols(n: int | None = None) -> list[str]:
     """Helper function to get top volume symbols using the global provider singleton."""
     return _provider.get_top_volume_symbols(n)

@@ -1,7 +1,8 @@
 """Tests for user registration and login."""
 
 import pytest
-from auth.service import register_user, login_user
+
+from auth.service import login_user, register_user
 
 
 class TestRegister:

@@ -1,6 +1,7 @@
-from database import Trade, Signal
 import pytest
 from sqlalchemy.exc import IntegrityError
+
+from database import Signal, Trade
 
 
 def test_trade_signal_id_foreign_key_constraint(db_session):

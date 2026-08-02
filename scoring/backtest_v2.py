@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from statistics import mean, stdev
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
@@ -165,12 +166,12 @@ class BacktestEngineV2:
         if not trades:
             return WalkForwardResult()
 
-        sorted_trades = sorted(trades, key=lambda t: t.created_at or datetime.min.replace(tzinfo=timezone.utc))
+        sorted_trades = sorted(trades, key=lambda t: t.created_at or datetime.min.replace(tzinfo=UTC))
         if not sorted_trades[0].created_at:
             return WalkForwardResult()
 
         earliest = sorted_trades[0].created_at
-        latest = sorted_trades[-1].created_at or datetime.now(timezone.utc)
+        latest = sorted_trades[-1].created_at or datetime.now(UTC)
 
         from datetime import timedelta
         windows: list[WalkForwardWindow] = []
@@ -182,8 +183,8 @@ class BacktestEngineV2:
             test_start = train_end
             test_end = test_start + timedelta(days=test_size_days)
 
-            train_trades = [t for t in sorted_trades if train_start <= (t.created_at or datetime.min.replace(tzinfo=timezone.utc)) < train_end]
-            test_trades = [t for t in sorted_trades if test_start <= (t.created_at or datetime.min.replace(tzinfo=timezone.utc)) < test_end]
+            train_trades = [t for t in sorted_trades if train_start <= (t.created_at or datetime.min.replace(tzinfo=UTC)) < train_end]
+            test_trades = [t for t in sorted_trades if test_start <= (t.created_at or datetime.min.replace(tzinfo=UTC)) < test_end]
 
             wf = WalkForwardWindow(
                 train_start=train_start.isoformat(),

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from config import ACCOUNT_EQUITY, RISK_PER_TRADE_PERCENT
 from database import get_session
@@ -16,7 +17,7 @@ from risk.models import (
     summarize_decision,
 )
 from risk_manager import RiskManager
-from scoring.regime_ai import get_regime_ai
+from scoring.regime_ai import RegimeAI, get_regime_ai
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +44,10 @@ class ExecutionGuard:
 
     def __init__(
         self,
-        exchange: Optional[ExchangeAdapter] = None,
-        regime_engine: Optional["RegimeAI"] = None,
+        exchange: ExchangeAdapter | None = None,
+        regime_engine: RegimeAI | None = None,
         session_factory: Callable[[], Any] = get_session,
-        market_service: Optional[Any] = None,
+        market_service: Any | None = None,
     ) -> None:
         self.exchange = exchange
         self.regime_engine = regime_engine or get_regime_ai()
@@ -134,8 +135,8 @@ class ExecutionGuard:
                 atr = float(indicators.get("atr", 0))
                 atr_pct = (atr / price) * 100 if price > 0 else 0
             else:
-                from market_data.indicators import IndicatorEngine
                 from market_data.collector import HyperliquidCollector
+                from market_data.indicators import IndicatorEngine
                 collector = HyperliquidCollector()
                 df = collector.get_ohlcv(symbol=symbol, timeframe="1h", limit=100)
                 if not df.empty:
@@ -222,7 +223,7 @@ class ExecutionGuard:
         self,
         entry_price: float,
         stop_price: float,
-        account_equity: Optional[float] = None,
+        account_equity: float | None = None,
     ) -> float:
         """Calculate position size based on risk-per-trade."""
         equity = account_equity or float(ACCOUNT_EQUITY)

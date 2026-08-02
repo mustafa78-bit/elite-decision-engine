@@ -2,6 +2,7 @@
 
 import pytest
 
+from market_data.funding.collector import FundingCollector
 from market_data.funding.models import (
     FundingRate,
     FundingResult,
@@ -10,7 +11,6 @@ from market_data.funding.models import (
     interpret_funding_risk,
     validate_funding_rate,
 )
-from market_data.funding.collector import FundingCollector
 
 
 class TestFundingRate:

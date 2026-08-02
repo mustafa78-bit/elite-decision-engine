@@ -7,36 +7,36 @@ from uuid import uuid4
 import pytest
 
 from decision.evidence import (
+    ENGINE_VERSIONS,
+    REGISTRY,
+    Conflict,
+    EvidenceBuilder,
+    EvidenceCategory,
     EvidenceEngine,
     EvidenceItem,
     EvidenceReport,
-    EvidenceBuilder,
     SourceTrace,
-    EvidenceCategory,
+    build_timeline,
     calculate_confidence,
+    calculate_decision_quality,
     calculate_evidence_strength,
     calculate_explainability,
-    calculate_decision_quality,
-    get_category,
-    REGISTRY,
-    ENGINE_VERSIONS,
-    get_version,
-    Conflict,
     detect_conflicts,
-    build_timeline,
+    get_category,
+    get_version,
     timeline_summary,
 )
+from decision.evidence.confidence import SEVERITY_WEIGHTS, SOURCE_WEIGHTS, STRENGTH_WEIGHTS
 from decision.evidence.parser import (
+    parse_council_report,
     parse_decision_result,
+    parse_explain_result,
+    parse_market_regime,
+    parse_portfolio_summary,
     parse_risk_decision,
     parse_scanner_opportunity,
-    parse_council_report,
-    parse_portfolio_summary,
-    parse_market_regime,
     parse_whale_result,
-    parse_explain_result,
 )
-from decision.evidence.confidence import SEVERITY_WEIGHTS, SOURCE_WEIGHTS, STRENGTH_WEIGHTS
 
 
 class TestSourceTrace:

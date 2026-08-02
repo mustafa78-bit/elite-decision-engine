@@ -26,13 +26,13 @@ class IntelligenceService:
 
     def __init__(
         self,
-        funding_collector: Optional[FundingCollector] = None,
-        oi_collector: Optional[OpenInterestCollector] = None,
-        fear_greed: Optional[FearGreedService] = None,
-        news: Optional[NewsService] = None,
-        whale: Optional[WhaleService] = None,
-        exchange_flow: Optional[ExchangeFlowService] = None,
-        liquidity: Optional[LiquidityContextAnalyzer] = None,
+        funding_collector: FundingCollector | None = None,
+        oi_collector: OpenInterestCollector | None = None,
+        fear_greed: FearGreedService | None = None,
+        news: NewsService | None = None,
+        whale: WhaleService | None = None,
+        exchange_flow: ExchangeFlowService | None = None,
+        liquidity: LiquidityContextAnalyzer | None = None,
     ) -> None:
         self.funding_collector = funding_collector or FundingCollector()
         self.oi_collector = oi_collector or OpenInterestCollector()
@@ -114,7 +114,7 @@ class IntelligenceService:
         asset.intelligence = bundle
         return asset
 
-    def _get_funding(self, symbol: str) -> Optional[dict[str, Any]]:
+    def _get_funding(self, symbol: str) -> dict[str, Any] | None:
         try:
             rate = self.funding_collector.fetch_for_symbol(symbol)
             if rate is not None:
@@ -129,7 +129,7 @@ class IntelligenceService:
             logger.debug("Funding unavailable for %s: %s", symbol, e)
         return None
 
-    def _get_open_interest(self, symbol: str) -> Optional[dict[str, Any]]:
+    def _get_open_interest(self, symbol: str) -> dict[str, Any] | None:
         try:
             oi_data = self.oi_collector.fetch_with_trend(symbol)
             if oi_data.get("value", 0) > 0:
@@ -139,7 +139,7 @@ class IntelligenceService:
         return None
 
     @staticmethod
-    def _estimate_24h_change(asset: Asset) -> Optional[float]:
+    def _estimate_24h_change(asset: Asset) -> float | None:
         ohlcv = asset.ohlcv
         if ohlcv is not None and len(ohlcv) >= 24:
             price_now = float(ohlcv["close"].iloc[-1])

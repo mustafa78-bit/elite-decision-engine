@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime, timezone
 from typing import Any
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 # ------------------------------------------------------------------

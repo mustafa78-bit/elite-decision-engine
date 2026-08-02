@@ -29,16 +29,16 @@ class NewsAgent(BaseAgent):
         name: str = "News",
         weight: float = 1.0,
         priority: int = 3,
-        news_service: Optional[NewsService] = None,
+        news_service: NewsService | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority)
         self.news_service = news_service or NewsService()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"

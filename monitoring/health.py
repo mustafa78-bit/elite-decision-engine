@@ -1,8 +1,8 @@
 import logging
 import time
-from config import API_ENV, CHECK_INTERVAL, MIN_SCORE, MAX_OPEN_TRADES
-from database import FINAL_STATUSES
-from database import get_session
+
+from config import API_ENV, CHECK_INTERVAL, MAX_OPEN_TRADES, MIN_SCORE
+from database import FINAL_STATUSES, get_session
 
 logger = logging.getLogger(__name__)
 
@@ -194,9 +194,12 @@ class HealthService:
     def risk() -> dict:
         try:
             from config import (
-                MAX_OPEN_TRADES, MAX_EXPOSURE_PER_SYMBOL,
-                MAX_PORTFOLIO_EXPOSURE, MAX_DAILY_LOSS,
-                MAX_POSITION_SIZE_USD, ACCOUNT_EQUITY,
+                ACCOUNT_EQUITY,
+                MAX_DAILY_LOSS,
+                MAX_EXPOSURE_PER_SYMBOL,
+                MAX_OPEN_TRADES,
+                MAX_PORTFOLIO_EXPOSURE,
+                MAX_POSITION_SIZE_USD,
             )
             return {
                 "status": "ok",
