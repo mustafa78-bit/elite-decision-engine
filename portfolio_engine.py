@@ -76,14 +76,14 @@ class PortfolioEngine:
         total_pnl = sum(t.pnl for t in closed_trades if t.pnl is not None)
 
         today_start = datetime.now(timezone.utc).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+            hour=0, minute=0, second=0, microsecond=0
         )
         daily_pnl = sum(
             t.pnl
             for t in closed_trades
             if t.pnl is not None
             and t.closed_at is not None
-            and t.closed_at >= today_start
+            and (t.closed_at if t.closed_at.tzinfo is not None else t.closed_at.replace(tzinfo=timezone.utc)) >= today_start
         )
 
         avg_win = sum(t.pnl for t in winning) / win_count if win_count > 0 else 0.0
@@ -106,11 +106,9 @@ class PortfolioEngine:
             sym = t.symbol or "?"
             allocation[sym] = allocation.get(sym, 0) + (t.entry or 0)
 
-        unrealized_pnl = sum(
-            (t.entry or 0) * 0.01 for t in open_trades
-        )
+        unrealized_pnl = sum(t.pnl or 0 for t in open_trades)
 
-        equity = self.initial_equity + total_pnl
+        equity = self.initial_equity + total_pnl + unrealized_pnl
 
         loss_count_for_rate = loss_count if (win_count + loss_count) > 0 else 1
         loss_rate = (loss_count / (win_count + loss_count) * 100) if (win_count + loss_count) > 0 else 0.0
