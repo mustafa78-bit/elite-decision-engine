@@ -11,6 +11,7 @@ import type { SubsystemStatus } from "../types/system"
 // Merged components/imports from AIExperience
 import { SignalFeed } from "../components/ai/signal-feed"
 import { AnalysisDashboard } from "../components/ai/analysis-dashboard"
+import ScannerOpportunitiesPanel from "../components/dashboard/ScannerOpportunitiesPanel"
 import { apiFetch } from "../api/client"
 
 interface SignalData {
@@ -281,7 +282,7 @@ export default function CommandDeck() {
         {/* ====== CONTENT — Evidence, Mission Flow & Merged AI Experience Side Panels ====== */}
         <div className="flex-1 grid grid-cols-1 xl:grid-cols-4 gap-6 p-6">
 
-          {/* Side Panel Left: Signal Feed */}
+          {/* Side Panel Left: Signal Feed + Ranked Opportunities */}
           <div className="xl:col-span-1 flex flex-col gap-6">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -289,6 +290,14 @@ export default function CommandDeck() {
               transition={{ delay: 0.1 }}
             >
               <SignalFeed signals={signalItems} />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <ScannerOpportunitiesPanel />
             </motion.div>
           </div>
 
