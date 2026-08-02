@@ -51,6 +51,28 @@ class TestProbabilityEngine:
         prob2, _ = self.engine.estimate(composite_score=0.0)
         assert prob2 >= 0
 
+    def test_short_probability_btc_bearish_boost(self):
+        prob_neutral, _ = self.engine.estimate(composite_score=0.5, side="SHORT")
+        prob_bearish, _ = self.engine.estimate(composite_score=0.5, btc_trend="BEARISH", side="SHORT")
+        assert prob_bearish > prob_neutral
+
+    def test_short_probability_btc_bullish_penalty(self):
+        prob_neutral, _ = self.engine.estimate(composite_score=0.5, side="SHORT")
+        prob_bullish, _ = self.engine.estimate(composite_score=0.5, btc_trend="BULLISH", side="SHORT")
+        assert prob_bullish < prob_neutral
+
+    def test_short_probability_greed_shorting_opportunity(self):
+        prob, signals = self.engine.estimate(composite_score=0.5, fear_greed_value=70, side="SHORT")
+        assert "GREED_SHORTING_OPPORTUNITY" in signals
+
+    def test_short_probability_extreme_greed_opportunity(self):
+        prob, signals = self.engine.estimate(composite_score=0.5, fear_greed_value=90, side="SHORT")
+        assert "EXTREME_GREED_OPPORTUNITY" in signals
+
+    def test_short_probability_funding_long_edge(self):
+        prob, signals = self.engine.estimate(composite_score=0.5, funding_level="HIGH_LONG", side="SHORT")
+        assert "HIGH_FUNDING_LONG_EDGE" in signals
+
 
 class TestRiskScorer:
 

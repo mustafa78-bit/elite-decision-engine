@@ -20,27 +20,31 @@ class TrendStrategy:
         if ema20 <= 0 or ema50 <= 0:
             return 0.0, signals
 
-        score = 0.0
+        score_long = 0.0
+        score_short = 0.0
 
         if ema20 > ema50 > ema200:
-            score += 0.8
+            score_long += 0.8
             signals.append("BULLISH_TREND_ALIGNED")
         elif ema20 > ema50:
-            score += 0.5
+            score_long += 0.5
             signals.append("BULLISH_TREND_WEAK")
         elif ema20 < ema50 < ema200:
-            score += 0.8
+            score_short += 0.8
             signals.append("BEARISH_TREND_ALIGNED")
         elif ema20 < ema50:
-            score += 0.5
+            score_short += 0.5
             signals.append("BEARISH_TREND_WEAK")
 
         trend = features.get("trend", "NEUTRAL")
-        if trend in ("BULLISH",):
-            score += 0.2
+        if trend == "BULLISH":
+            score_long += 0.2
             signals.append("FEATURE_BULLISH")
-        elif trend in ("BEARISH",):
-            score += 0.2
+        elif trend == "BEARISH":
+            score_short += 0.2
             signals.append("FEATURE_BEARISH")
 
-        return round(min(score, 1.0), 4), signals
+        if score_long >= score_short:
+            return round(min(score_long, 1.0), 4), signals
+        else:
+            return -round(min(score_short, 1.0), 4), signals

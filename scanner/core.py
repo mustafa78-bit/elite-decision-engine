@@ -228,6 +228,7 @@ class OpportunityScanner:
                 btc_trend=r.btc_trend or None,
                 funding_level=r.funding_level or None,
                 fear_greed_value=self._parse_fear_greed(r),
+                side=opp.side,
             )
             opp.probability_score = prob
             opp.probability_signals = prob_signals
