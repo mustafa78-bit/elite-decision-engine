@@ -10,6 +10,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 from scoring.regime_ai import RegimeAI
@@ -87,6 +88,8 @@ class TrendAgent(BaseAgent):
         direction = DIRECTION_MAP.get(regime, DIRECTION_NEUTRAL)
         if direction == DIRECTION_NEUTRAL:
             direction = TREND_MAP.get(trend, DIRECTION_NEUTRAL)
+
+        direction = normalize_direction(direction, side)
 
         reasoning: list[str] = []
         if regime != "UNKNOWN":

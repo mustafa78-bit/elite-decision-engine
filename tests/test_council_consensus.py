@@ -151,3 +151,64 @@ class TestConsensusEngine:
         assert stats["agent_count"] == 1
         assert stats["evaluations"] == 1
         assert "A" in stats["agents"]
+
+
+class _RiskVetoAgent(BaseAgent):
+    def __init__(self, name: str = "Risk", direction: str = DIRECTION_PASS):
+        super().__init__(name=name, is_directional=False)
+        self._direction = direction
+
+    def evaluate(self, signal=None, scores=None, market_data=None, **kwargs):
+        return AgentReport(
+            agent_name=self.name,
+            symbol=kwargs.get("symbol", "?"),
+            direction=self._direction,
+            confidence=0.9,
+            score=0.2,
+            reasoning=["High risk situation"],
+        )
+
+
+class TestConsensusVetoAndAgreement:
+    def test_consensus_risk_veto(self):
+        ce = ConsensusEngine(weights={"Bullish": 1.0, "Risk": 1.0})
+        ce.register_agent(_BullishAgent("Bullish"))
+        ce.register_agent(_RiskVetoAgent("Risk", DIRECTION_PASS))
+
+        # Risk PASS veto must override Bullish and force final consensus_direction to DIRECTION_PASS
+        report = ce.evaluate(signal=None, symbol="BTCUSDT")
+        assert report.consensus_direction == DIRECTION_PASS
+        assert report.consensus_score == 0.0
+        assert report.risk_veto is True
+        assert report.risk_veto_reason == "High risk situation"
+
+    def test_consensus_risk_no_veto_if_not_pass(self):
+        ce = ConsensusEngine(weights={"Bullish": 1.0, "Risk": 1.0})
+        ce.register_agent(_BullishAgent("Bullish"))
+        ce.register_agent(_RiskVetoAgent("Risk", DIRECTION_NEUTRAL))
+
+        report = ce.evaluate(signal=None, symbol="BTCUSDT")
+        assert report.consensus_direction == DIRECTION_BULLISH
+        assert report.risk_veto is False
+
+    def test_consensus_risk_non_directional_exclusion(self):
+        ce = ConsensusEngine(weights={"Bearish1": 1.0, "Bearish2": 1.0, "Risk": 1.0})
+        ce.register_agent(_BearishAgent("Bearish1"))
+        ce.register_agent(_BearishAgent("Bearish2"))
+        ce.register_agent(_RiskVetoAgent("Risk", DIRECTION_BULLISH)) # Non-directional BULLISH (e.g. Risk is low)
+
+        report = ce.evaluate(signal=None, symbol="BTCUSDT")
+        # Risk (non-directional) must be excluded from directional sharing tally,
+        # so Bearish wins despite Risk voting Bullish
+        assert report.consensus_direction == DIRECTION_BEARISH
+
+    def test_consensus_agreement_level_split(self):
+        ce = ConsensusEngine(weights={"A": 1.0, "B": 1.0, "C": 1.0, "D": 1.0})
+        ce.register_agent(_BullishAgent("A"))
+        ce.register_agent(_BullishAgent("B"))
+        ce.register_agent(_BearishAgent("C"))
+        ce.register_agent(_BearishAgent("D"))
+
+        report = ce.evaluate(signal=None, symbol="BTCUSDT")
+        # Split (2 bullish vs 2 bearish) must not be "strong"
+        assert report.agreement_level in ("moderate", "weak")

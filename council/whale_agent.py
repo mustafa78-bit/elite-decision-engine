@@ -10,6 +10,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 from market.intelligence.whale import WhaleService
@@ -97,7 +98,7 @@ class WhaleAgent(BaseAgent):
 
         if "WHALE_MOVE" in types:
             if high_severity:
-                direction = DIRECTION_BULLISH if side.upper() == "LONG" else DIRECTION_BEARISH
+                direction = DIRECTION_BULLISH
                 reasoning.append("High-confidence whale movement detected")
             else:
                 reasoning.append("Moderate whale movement — monitor closely")
@@ -106,7 +107,9 @@ class WhaleAgent(BaseAgent):
             reasoning.append("Unusually high volume — possible institutional activity")
 
         if high_severity and confidence > 0.7:
-            direction = DIRECTION_BULLISH if side.upper() == "LONG" else DIRECTION_BEARISH
+            direction = DIRECTION_BULLISH
+
+        direction = normalize_direction(direction, side)
 
         return AgentReport(
             agent_name=self.name,

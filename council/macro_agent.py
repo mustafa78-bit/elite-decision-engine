@@ -10,6 +10,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 
@@ -163,6 +164,8 @@ class MacroAgent(BaseAgent):
             direction = DIRECTION_BULLISH
         elif bearish_count > bullish_count:
             direction = DIRECTION_BEARISH
+
+        direction = normalize_direction(direction, side)
 
         return AgentReport(
             agent_name=self.name,

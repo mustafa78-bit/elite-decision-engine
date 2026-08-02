@@ -119,3 +119,27 @@ class _TestConcreteAgent(BaseAgent):
 
 def _create_test_agent(raise_error: bool = False) -> _TestConcreteAgent:
     return _TestConcreteAgent(raise_error=raise_error)
+
+
+class TestNormalizeDirection:
+    def test_normalize_direction_long(self) -> None:
+        from council.base import normalize_direction
+        # On LONG, directions should remain unchanged
+        assert normalize_direction(DIRECTION_BULLISH, "LONG") == DIRECTION_BULLISH
+        assert normalize_direction(DIRECTION_BEARISH, "LONG") == DIRECTION_BEARISH
+        assert normalize_direction(DIRECTION_NEUTRAL, "LONG") == DIRECTION_NEUTRAL
+        assert normalize_direction(DIRECTION_PASS, "LONG") == DIRECTION_PASS
+
+    def test_normalize_direction_short(self) -> None:
+        from council.base import normalize_direction
+        # On SHORT, BULLISH <-> BEARISH must flip; NEUTRAL/PASS unchanged
+        assert normalize_direction(DIRECTION_BULLISH, "SHORT") == DIRECTION_BEARISH
+        assert normalize_direction(DIRECTION_BEARISH, "SHORT") == DIRECTION_BULLISH
+        assert normalize_direction(DIRECTION_NEUTRAL, "SHORT") == DIRECTION_NEUTRAL
+        assert normalize_direction(DIRECTION_PASS, "SHORT") == DIRECTION_PASS
+
+    def test_normalize_direction_default_side(self) -> None:
+        from council.base import normalize_direction
+        # Unrecognized or empty side defaults to LONG (unchanged)
+        assert normalize_direction(DIRECTION_BULLISH, "") == DIRECTION_BULLISH
+        assert normalize_direction(DIRECTION_BEARISH, None) == DIRECTION_BEARISH
