@@ -89,7 +89,7 @@ class HyperliquidExchange(ExchangeAdapter):
 
     def positions(self, symbol: Optional[str] = None) -> list[Position]:
         if self.paper_mode:
-            from database import Trade, get_session
+            from database import Trade, PaperOrder, get_session
             session = get_session()
             try:
                 query = session.query(Trade).filter(Trade.status == "OPEN")
@@ -97,13 +97,48 @@ class HyperliquidExchange(ExchangeAdapter):
                     query = query.filter(Trade.symbol == symbol)
                 trades = query.all()
                 result: list[Position] = []
+                ticker_cache = {}
                 for t in trades:
+                    # Look up matching PaperOrder for the open Trade
+                    orders = session.query(PaperOrder).filter(PaperOrder.trade_id == t.id).all()
+                    qty = Decimal("0")
+                    if orders:
+                        # Prioritize: FILLED, PARTIALLY_FILLED, PENDING, other. Tie-breaker: largest id (most recent)
+                        status_weights = {
+                            "FILLED": 4,
+                            "PARTIALLY_FILLED": 3,
+                            "PENDING": 2,
+                        }
+                        sorted_orders = sorted(
+                            orders,
+                            key=lambda o: (status_weights.get(str(o.status).upper(), 1), o.id or 0),
+                            reverse=True
+                        )
+                        best_order = sorted_orders[0]
+                        val = best_order.filled_quantity if best_order.filled_quantity is not None else best_order.quantity
+                        qty = Decimal(str(val or 0))
+                    else:
+                        logger.debug("Quantity is unknown for trade id %s; no matching PaperOrder found.", t.id)
+
+                    # Ticker fetching with per-symbol caching within this call
+                    sym = str(t.symbol)
+                    current_price = Decimal(str(t.entry))
+                    if sym not in ticker_cache:
+                        try:
+                            ticker_cache[sym] = self.ticker(sym).last
+                        except Exception as e:
+                            logger.warning("Failed to fetch current price for %s: %s", sym, e)
+                            ticker_cache[sym] = None
+
+                    if ticker_cache[sym] is not None:
+                        current_price = ticker_cache[sym]
+
                     result.append(Position(
-                        symbol=str(t.symbol),
+                        symbol=sym,
                         side=str(t.side),
-                        quantity=Decimal("1"),
+                        quantity=qty,
                         entry_price=Decimal(str(t.entry)),
-                        current_price=Decimal(str(t.entry)),
+                        current_price=current_price,
                         unrealized_pnl=Decimal(str(t.pnl or 0)),
                     ))
                 return result
