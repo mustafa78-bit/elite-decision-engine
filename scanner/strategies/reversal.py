@@ -24,21 +24,22 @@ class ReversalStrategy:
         rsi = indicators.get("rsi", 50)
         price = asset.price
 
-        score = 0.0
+        score_long = 0.0
+        score_short = 0.0
 
         momentum = features.get("momentum", "NEUTRAL")
 
         if momentum == "OVERSOLD":
-            score += 0.5
+            score_long += 0.5
             signals.append("OVERSOLD_REVERSAL")
             if rsi < 25:
-                score += 0.2
+                score_long += 0.2
                 signals.append("EXTREME_OVERSOLD")
         elif momentum == "OVERBOUGHT":
-            score += 0.5
+            score_short += 0.5
             signals.append("OVERBOUGHT_REVERSAL")
             if rsi > 75:
-                score += 0.2
+                score_short += 0.2
                 signals.append("EXTREME_OVERBOUGHT")
 
         closes = ohlcv["close"].values
@@ -46,10 +47,13 @@ class ReversalStrategy:
         price_low = min(closes[-self.MIN_LOOKBACK:])
 
         if momentum == "OVERBOUGHT" and price >= price_high * 0.98:
-            score += 0.3
+            score_short += 0.3
             signals.append("PRICE_AT_RESISTANCE")
         elif momentum == "OVERSOLD" and price <= price_low * 1.02:
-            score += 0.3
+            score_long += 0.3
             signals.append("PRICE_AT_SUPPORT")
 
-        return round(min(score, 1.0), 4), signals
+        if score_long >= score_short:
+            return round(min(score_long, 1.0), 4), signals
+        else:
+            return -round(min(score_short, 1.0), 4), signals

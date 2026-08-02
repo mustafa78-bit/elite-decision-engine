@@ -1,4 +1,4 @@
-"""Exchange flow analysis — computed from market conditions."""
+"""Exchange flow analysis — heuristic proxy, not real on-chain data."""
 
 from __future__ import annotations
 

@@ -32,6 +32,12 @@ def _make_signal(db_session, **overrides):
 
 
 def _make_trade(db_session, signal_id=1, status="OPEN", pnl=None, **overrides):
+    if signal_id is not None:
+        existing_signal = db_session.query(Signal).filter(Signal.id == signal_id).first()
+        if not existing_signal:
+            sig = Signal(id=signal_id, symbol=overrides.get("symbol", "BTCUSDT"), side=overrides.get("side", "LONG"))
+            db_session.add(sig)
+            db_session.flush()
     kwargs = dict(
         signal_id=signal_id,
         symbol="BTCUSDT",
@@ -288,14 +294,14 @@ def test_delete_journal(api_client):
 
 def test_update_journal_missing(api_client):
     resp = api_client.put("/journal/99999", json={"result": "WIN"})
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 def test_delete_journal_missing(api_client):
     resp = api_client.delete("/journal/99999")
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 # ─── Backtest ──────────────────────────────────────────────────────────────
@@ -712,3 +718,24 @@ def test_db_tables_in_health_details(api_client):
     assert resp.status_code == 200
     tbl = resp.json().get("database_tables", {})
     assert "status" in tbl
+
+
+# ─── Council ───────────────────────────────────────────────────────────────
+
+
+def test_get_council_status_endpoint(api_client):
+    resp = api_client.get("/council")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "agents" in body
+    assert "agent_count" in body
+
+
+# ─── Whale Activity ────────────────────────────────────────────────────────
+
+
+def test_get_whale_activity_endpoint(api_client):
+    resp = api_client.get("/whale/activity")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)

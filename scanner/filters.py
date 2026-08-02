@@ -26,11 +26,11 @@ class MarketFilter:
             return True, "BTC_BEARISH_CONTRADICTS_BULLISH_TREND"
 
         if fear_greed_label in ("EXTREME_GREED",) and trend == "BULLISH":
-            if result.momentum_score > 0.5 and result.reversal_score > 0.3:
+            if abs(result.momentum_score) > 0.5 and abs(result.reversal_score) > 0.3:
                 return True, "EXTREME_GREED_WITH_REVERSAL_SIGNAL"
 
         if fear_greed_label in ("EXTREME_FEAR",) and trend == "BEARISH":
-            if result.reversal_score > 0.5:
+            if abs(result.reversal_score) > 0.5:
                 return True, "EXTREME_FEAR_PANIC_SELLING"
 
         if market_session == "CLOSED":
@@ -49,12 +49,12 @@ class FalseSignalFilter:
         result: ScanResult,
         volume_score: Optional[float] = None,
     ) -> tuple[bool, Optional[str]]:
-        if result.breakout_score > 0.3:
+        if abs(result.breakout_score) > 0.3:
             vol = volume_score or result.features.get("volume_score")
             if vol is not None and vol < self.LOW_VOLUME_BREAKOUT_THRESHOLD:
                 return True, "LOW_VOLUME_BREAKOUT"
 
-        if result.trend_score > 0.3 and result.reversal_score > 0.4:
+        if abs(result.trend_score) > 0.3 and abs(result.reversal_score) > 0.4:
             return True, "TREND_REVERSAL_CONFLICT"
 
         if result.signals.count("RSI_OVERBOUGHT") > 0 and result.signals.count("RSI_BULLISH") > 0:

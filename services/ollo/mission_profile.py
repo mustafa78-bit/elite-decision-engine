@@ -36,7 +36,7 @@ COMMAND_DECK = MissionProfile(
     purpose="Central headquarters overview. Monitor portfolio, market regime, risk, and active missions.",
     tone="strategic",
     priority=1,
-    allowed_context=["portfolio_summary", "market_regime", "risk_metrics", "council_latest"],
+    allowed_context=["portfolio_summary", "market_regime", "risk_metrics", "council_latest", "trade_history"],
     allowed_tools=["greet", "briefing", "query"],
     briefing_style="executive_summary",
 )
@@ -94,7 +94,7 @@ MISSION_ARCHIVE = MissionProfile(
     purpose="Review past trades, historical performance, and completed missions.",
     tone="reflective",
     priority=5,
-    allowed_context=["portfolio_summary", "portfolio_performance"],
+    allowed_context=["portfolio_summary", "portfolio_performance", "trade_history"],
     allowed_tools=["query"],
     briefing_style="historical",
 )

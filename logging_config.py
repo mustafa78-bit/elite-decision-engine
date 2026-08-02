@@ -40,17 +40,22 @@ class _SensitiveDataFilter(logging.Filter):
         if hasattr(record, 'msg') and isinstance(record.msg, str):
             for pattern, replacement in _SENSITIVE_PATTERNS:
                 record.msg = pattern.sub(replacement, record.msg)
-        if record.args:
+        if record.args and isinstance(record.args, tuple):
             cleaned = []
             for arg in record.args:
-                if isinstance(arg, str):
-                    s = arg
-                    for pattern, replacement in _SENSITIVE_PATTERNS:
-                        s = pattern.sub(replacement, s)
-                    cleaned.append(s)
-                else:
-                    # Keep original types to prevent formatting TypeErrors (e.g., %d, %f)
+                if not isinstance(arg, str):
+                    # Non-string args (int, float, etc.) must stay their original
+                    # type - format specifiers like %d/%f reject stringified
+                    # numbers, and stringifying here caused a TypeError on every
+                    # logger call that passed a real number (e.g. "%d active"
+                    # in api/websocket/manager.py, "%.0fms" in
+                    # monitoring/health.py).
                     cleaned.append(arg)
+                    continue
+                s = arg
+                for pattern, replacement in _SENSITIVE_PATTERNS:
+                    s = pattern.sub(replacement, s)
+                cleaned.append(s)
             record.args = tuple(cleaned)
         return True
 
@@ -129,6 +134,13 @@ def setup_logging(log_dir="logs"):
     root.handlers.clear()
     for h in handlers:
         root.addHandler(h)
+
+    # Third-party HTTP client libraries log at INFO/DEBUG by default, which
+    # both floods logs and triggers a known httpx/starlette TestClient
+    # incompatibility (httpx's request-logging call formats status_code with
+    # %d, but starlette's TestClient transport can hand back to it as a str).
+    for noisy_logger in ("httpx", "httpcore"):
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
 
 
 def log_state(logger_name: str, component: str, state: str, **extra) -> None:
