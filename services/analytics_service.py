@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Any, Optional
 
 from database import FINAL_STATUSES, Trade, get_session
 from dto.analytics import (
+    KPIDTO,
     AnalyticsDTO,
     DailyAnalyticsDTO,
     DrawdownAnalyticsDTO,
     HeatmapDataDTO,
-    KPIDTO,
     MonthlyAnalyticsDTO,
     PerformanceTrendDTO,
     RiskAnalyticsDTO,
@@ -31,9 +32,9 @@ class AnalyticsService:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
-        portfolio_engine: Optional[Any] = None,
-        performance_engine: Optional[Any] = None,
+        session_factory: Callable[[], Any] | None = None,
+        portfolio_engine: Any | None = None,
+        performance_engine: Any | None = None,
     ):
         self.session_factory = session_factory or get_session
         self._portfolio = portfolio_engine
@@ -244,7 +245,7 @@ class AnalyticsService:
             sym = t.symbol or "UNKNOWN"
             symbol_exposure[sym] = symbol_exposure.get(sym, 0) + (t.entry or 0)
 
-        from config import MAX_OPEN_TRADES, MAX_PORTFOLIO_EXPOSURE, MAX_DAILY_LOSS, MAX_EXPOSURE_PER_SYMBOL
+        from config import MAX_DAILY_LOSS, MAX_EXPOSURE_PER_SYMBOL, MAX_OPEN_TRADES, MAX_PORTFOLIO_EXPOSURE
 
         return RiskAnalyticsDTO(
             max_open_trades=MAX_OPEN_TRADES,
@@ -271,7 +272,6 @@ class AnalyticsService:
         peak = 0.0
         max_dd = 0.0
         cumulative = 0.0
-        dd_start = 0.0
         in_drawdown = False
         recovery_count = 0
         total_recovery_time = 0.0
@@ -376,7 +376,7 @@ class AnalyticsService:
         ]
 
     def _daily_loss(self, trades: list[Trade]) -> float:
-        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+        today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
         return round(
             sum(
                 abs(t.pnl or 0)

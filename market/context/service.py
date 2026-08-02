@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from market.cache import CacheManager
@@ -18,8 +18,8 @@ class ContextService:
 
     def __init__(
         self,
-        provider: Optional[HyperliquidProvider] = None,
-        cache: Optional[CacheManager] = None,
+        provider: HyperliquidProvider | None = None,
+        cache: CacheManager | None = None,
         cache_ttl: float = 300,
     ) -> None:
         self.provider = provider or HyperliquidProvider()
@@ -54,14 +54,14 @@ class ContextService:
             "btc_ema20": round(ema20, 2),
             "btc_ema50": round(ema50, 2),
             "available": True,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         self.cache.set(cache_key, ctx, ttl=self._cache_ttl)
         return ctx
 
     def get_market_session(self) -> str:
         """Return current market session: ASIAN, LONDON, NY, or CLOSED."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         hour = now.hour
         if 0 <= hour < 8:
             return "ASIAN"
@@ -96,5 +96,5 @@ class ContextService:
             "btc": btc,
             "session": session,
             "funding": funding,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }

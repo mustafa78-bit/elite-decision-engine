@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
 
@@ -17,7 +17,7 @@ class PortfolioSummaryDTO:
     sharpe_ratio: float = 0.0
     max_drawdown: float = 0.0
     current_drawdown: float = 0.0
-    avg_trade_duration: Optional[str] = None
+    avg_trade_duration: str | None = None
     best_trade_pnl: float = 0.0
     worst_trade_pnl: float = 0.0
 
@@ -27,9 +27,9 @@ class PortfolioSummaryDTO:
 
 @dataclass
 class PortfolioDistributionDTO:
-    by_symbol: Optional[list[dict[str, Any]]] = None
-    by_side: Optional[dict[str, int]] = None
-    by_strategy: Optional[list[dict[str, Any]]] = None
+    by_symbol: list[dict[str, Any]] | None = None
+    by_side: dict[str, int] | None = None
+    by_strategy: list[dict[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -37,11 +37,11 @@ class PortfolioDistributionDTO:
 
 @dataclass
 class PortfolioPerformanceDTO:
-    equity_curve: Optional[list[dict[str, Any]]] = None
-    monthly_pnl: Optional[list[dict[str, Any]]] = None
-    daily_pnl: Optional[list[dict[str, Any]]] = None
-    drawdown_curve: Optional[list[dict[str, Any]]] = None
-    rolling_sharpe: Optional[list[dict[str, Any]]] = None
+    equity_curve: list[dict[str, Any]] | None = None
+    monthly_pnl: list[dict[str, Any]] | None = None
+    daily_pnl: list[dict[str, Any]] | None = None
+    drawdown_curve: list[dict[str, Any]] | None = None
+    rolling_sharpe: list[dict[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -51,7 +51,7 @@ class PortfolioPerformanceDTO:
 class PortfolioRiskDTO:
     current_exposure: float = 0.0
     max_exposure: float = 0.0
-    symbol_concentration: Optional[dict[str, float]] = None
+    symbol_concentration: dict[str, float] | None = None
     risk_per_trade: float = 0.0
     var_95: float = 0.0
     expected_downside: float = 0.0

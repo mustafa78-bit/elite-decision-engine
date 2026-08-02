@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from market.services import MarketDataService
+from market_data.universe import get_top_volume_symbols
 from scanner.confidence import ConfidenceScorer
 from scanner.dto import ScannerDashboardDTO, opportunity_to_dto
 from scanner.filters import FalseSignalFilter, MarketFilter
@@ -33,19 +34,19 @@ class OpportunityScanner:
 
     def __init__(
         self,
-        market_service: Optional[MarketDataService] = None,
-        ranker: Optional[OpportunityRanker] = None,
-        symbols: Optional[list[str]] = None,
-        probability_engine: Optional[ProbabilityEngine] = None,
-        risk_scorer: Optional[RiskScorer] = None,
-        confidence_scorer: Optional[ConfidenceScorer] = None,
-        market_filter: Optional[MarketFilter] = None,
-        false_signal_filter: Optional[FalseSignalFilter] = None,
-        watchlist_engine: Optional[WatchlistEngine] = None,
+        market_service: MarketDataService | None = None,
+        ranker: OpportunityRanker | None = None,
+        symbols: list[str] | None = None,
+        probability_engine: ProbabilityEngine | None = None,
+        risk_scorer: RiskScorer | None = None,
+        confidence_scorer: ConfidenceScorer | None = None,
+        market_filter: MarketFilter | None = None,
+        false_signal_filter: FalseSignalFilter | None = None,
+        watchlist_engine: WatchlistEngine | None = None,
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.ranker = ranker or OpportunityRanker()
-        self.symbols = symbols or _DEFAULT_SYMBOLS
+        self.symbols = symbols if symbols is not None else get_top_volume_symbols()
 
         self.trend = TrendStrategy()
         self.momentum = MomentumStrategy()
@@ -62,9 +63,9 @@ class OpportunityScanner:
 
     def scan(
         self,
-        symbols: Optional[list[str]] = None,
+        symbols: list[str] | None = None,
         timeframe: str = "1h",
-        watchlist: Optional[str] = None,
+        watchlist: str | None = None,
     ) -> list[Opportunity]:
         """Scan symbols and return ranked opportunities."""
         target_symbols = symbols or self.symbols
@@ -128,7 +129,7 @@ class OpportunityScanner:
             {"id": "top-mean-reversions", "label": "Top Mean Reversions", "description": "Mean reversion opportunities"},
         ]
 
-    def _scan_symbol(self, symbol: str, timeframe: str) -> Optional[ScanResult]:
+    def _scan_symbol(self, symbol: str, timeframe: str) -> ScanResult | None:
         try:
             asset = self.market_service.get_asset(symbol, timeframe)
         except Exception as e:
@@ -196,7 +197,7 @@ class OpportunityScanner:
             filtered.append(r)
         return filtered
 
-    def _check_market_filter(self, r: ScanResult) -> Optional[str]:
+    def _check_market_filter(self, r: ScanResult) -> str | None:
         should_filter, reason = self.market_filter.should_filter(
             r,
             btc_trend=r.btc_trend or None,
@@ -205,7 +206,7 @@ class OpportunityScanner:
         )
         return reason if should_filter else None
 
-    def _check_false_signal(self, r: ScanResult) -> Optional[str]:
+    def _check_false_signal(self, r: ScanResult) -> str | None:
         volume_score = r.intelligence.get("liquidity_context", {}).get("score")
         should_filter, reason = self.false_signal_filter.should_filter(r, volume_score=volume_score)
         return reason if should_filter else None
@@ -270,7 +271,6 @@ class OpportunityScanner:
         from collections import Counter
         top_signals = [s for s, _ in Counter(all_signals).most_common(10)]
 
-        btc_trends = [o.features.get("trend", "") for o in top if o.features]
         btc_context = self.market_service.get_context()
         fg = btc_context.get("funding", {})
 
@@ -289,10 +289,10 @@ class OpportunityScanner:
                 "avg_risk": round(sum(o.risk_score for o in top) / max(len(top), 1), 4),
                 "avg_confidence": round(sum(o.confidence for o in top) / max(len(top), 1), 2),
             },
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
         )
 
     @staticmethod
-    def _parse_fear_greed(r: ScanResult) -> Optional[float]:
+    def _parse_fear_greed(r: ScanResult) -> float | None:
         fg = r.intelligence.get("fear_greed", {})
         return fg.get("value") if fg else None

@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Query
 
 from config import (
+    ACCOUNT_EQUITY,
     MAX_DAILY_LOSS,
     MAX_EXPOSURE_PER_SYMBOL,
     MAX_OPEN_TRADES,
-    MAX_POSITION_SIZE_USD,
     MAX_PORTFOLIO_EXPOSURE,
-    ACCOUNT_EQUITY,
+    MAX_POSITION_SIZE_USD,
     RISK_PER_TRADE_PERCENT,
 )
 from database import FINAL_STATUSES, Trade, get_session
@@ -42,7 +42,7 @@ def get_risk():
 
     portfolio_exposure = sum(t.entry or 0 for t in open_trades)
 
-    today_start = datetime.now(timezone.utc).replace(
+    today_start = datetime.now(UTC).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     daily_loss = sum(

@@ -288,14 +288,14 @@ def test_delete_journal(api_client):
 
 def test_update_journal_missing(api_client):
     resp = api_client.put("/journal/99999", json={"result": "WIN"})
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 def test_delete_journal_missing(api_client):
     resp = api_client.delete("/journal/99999")
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 # ─── Backtest ──────────────────────────────────────────────────────────────
@@ -445,6 +445,7 @@ def test_get_users_me_with_auth(api_client, db_session):
 
 def test_get_users_me_no_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/users/me")
@@ -600,6 +601,7 @@ def test_register_missing_fields(api_client):
 
 def test_get_signals_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/signals")
@@ -608,6 +610,7 @@ def test_get_signals_requires_auth():
 
 def test_get_risk_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/risk")
@@ -616,6 +619,7 @@ def test_get_risk_requires_auth():
 
 def test_get_portfolio_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/portfolio")
@@ -624,6 +628,7 @@ def test_get_portfolio_requires_auth():
 
 def test_get_performance_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/performance")
@@ -632,6 +637,7 @@ def test_get_performance_requires_auth():
 
 def test_get_position_sizing_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/position-sizing")

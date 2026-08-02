@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from council.base import DIRECTION_BEARISH, DIRECTION_BULLISH, DIRECTION_NEUTRAL, DIRECTION_PASS
+from council.macro_agent import MacroAgent
+from council.news_agent import NewsAgent
+from council.risk_agent import RiskAgent
 from council.technical_agent import TechnicalAgent
 from council.trend_agent import TrendAgent
-from council.risk_agent import RiskAgent
-from council.news_agent import NewsAgent
 from council.whale_agent import WhaleAgent
-from council.macro_agent import MacroAgent
 
 
 @pytest.fixture
@@ -156,7 +156,9 @@ class TestNewsAgent:
         assert report.confidence == 0.0
 
     def test_evaluate_no_bundle(self, mock_signal):
-        agent = NewsAgent()
+        mock_news_service = MagicMock()
+        mock_news_service.analyze.return_value = []
+        agent = NewsAgent(news_service=mock_news_service)
         report = agent.evaluate(signal=mock_signal, intelligence_bundle=None)
         assert report.direction == DIRECTION_NEUTRAL
 
@@ -188,7 +190,9 @@ class TestWhaleAgent:
         assert report.score == 0.5
 
     def test_evaluate_no_bundle(self, mock_signal):
-        agent = WhaleAgent()
+        mock_whale_service = MagicMock()
+        mock_whale_service.detect.return_value = []
+        agent = WhaleAgent(whale_service=mock_whale_service)
         report = agent.evaluate(signal=mock_signal, scores={"volume_score": 0.3})
         assert report.direction == DIRECTION_NEUTRAL
 

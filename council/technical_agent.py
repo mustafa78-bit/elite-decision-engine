@@ -29,16 +29,16 @@ class TechnicalAgent(BaseAgent):
         name: str = "Technical",
         weight: float = 1.0,
         priority: int = 5,
-        scoring_engine: Optional[ScoringEngine] = None,
+        scoring_engine: ScoringEngine | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority)
         self.scoring_engine = scoring_engine or ScoringEngine()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"

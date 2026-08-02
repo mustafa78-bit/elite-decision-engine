@@ -18,8 +18,6 @@ def parse_decision_result(result: Any, symbol: str = "") -> list[EvidenceItem]:
     reasons = getattr(result, "reasons", [])
     warnings = getattr(result, "warnings", [])
 
-    cat = get_category("decision_quality")
-
     items.append(
         EvidenceItem(
             title=f"Decision: {decision}",
@@ -127,7 +125,6 @@ def parse_scanner_opportunity(result: Any) -> list[EvidenceItem]:
 
     symbol = getattr(result, "symbol", "UNKNOWN")
     side = getattr(result, "side", "LONG")
-    score = getattr(result, "score", 0.0)
     confidence = getattr(result, "confidence", 0.0)
     strategy = getattr(result, "strategy", "unknown")
     reason = getattr(result, "reason", "")
@@ -346,7 +343,6 @@ def parse_whale_result(results: Any) -> list[EvidenceItem]:
 def parse_explain_result(result: Any) -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
-    decision = getattr(result, "decision", "")
     confidence = getattr(result, "confidence", 0.0)
     reasons = getattr(result, "reasons", [])
     warnings = getattr(result, "warnings", [])

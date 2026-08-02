@@ -1,8 +1,8 @@
-from services.ollo.prompts.briefing.morning import morning_briefing
+from services.ollo.prompts.briefing.emergency import emergency_briefing
 from services.ollo.prompts.briefing.evening import evening_briefing
 from services.ollo.prompts.briefing.market_update import market_update_briefing
-from services.ollo.prompts.briefing.emergency import emergency_briefing
 from services.ollo.prompts.briefing.mission import mission_briefing
+from services.ollo.prompts.briefing.morning import morning_briefing
 
 BRIEFING_TEMPLATES: dict[str, callable] = {
     "morning": morning_briefing,

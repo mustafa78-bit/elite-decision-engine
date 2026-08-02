@@ -83,7 +83,7 @@ class SessionMemory(ABC):
         ...
 
     @abstractmethod
-    def get_session(self, session_id: str) -> Optional[ConversationMemory]:
+    def get_session(self, session_id: str) -> ConversationMemory | None:
         ...
 
     @abstractmethod
@@ -101,7 +101,7 @@ class InMemorySessionMemory(SessionMemory):
         self._sessions[session_id] = mem
         return mem
 
-    def get_session(self, session_id: str) -> Optional[ConversationMemory]:
+    def get_session(self, session_id: str) -> ConversationMemory | None:
         return self._sessions.get(session_id)
 
     def delete_session(self, session_id: str) -> None:

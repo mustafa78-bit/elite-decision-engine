@@ -1,15 +1,15 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from api.websocket.manager import WebSocketManager
+from auth.jwt import create_access_token
 
 
 @pytest.fixture
 def manager():
     return WebSocketManager()
 
-
-from auth.jwt import create_access_token
 
 _TEST_TOKEN = create_access_token({"sub": "1", "username": "test"})
 

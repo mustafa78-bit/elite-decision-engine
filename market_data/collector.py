@@ -2,8 +2,8 @@ import logging
 import time
 from typing import Any, Optional
 
-import requests
 import pandas as pd
+import requests
 
 from market_data.models import OHLCVResult
 
@@ -32,7 +32,6 @@ class HyperliquidCollector:
             },
         }
 
-        last_error = None
         for attempt in range(1, self.MAX_RETRIES + 1):
             try:
                 response = self._session.post(
@@ -50,7 +49,6 @@ class HyperliquidCollector:
                 )
                 break
             except requests.Timeout as e:
-                last_error = e
                 logger.warning(
                     "Timeout on attempt %s/%s for %s %s: %s",
                     attempt, self.MAX_RETRIES, symbol, timeframe, e,
@@ -60,7 +58,6 @@ class HyperliquidCollector:
                     continue
                 raise
             except (requests.RequestException, ValueError) as e:
-                last_error = e
                 logger.warning(
                     "Request failed on attempt %s/%s for %s %s: %s",
                     attempt, self.MAX_RETRIES, symbol, timeframe, e,

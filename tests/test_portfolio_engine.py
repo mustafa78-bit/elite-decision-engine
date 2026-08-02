@@ -6,18 +6,18 @@ count, cash, win/loss tracking, equity curve, and drawdown.
 
 import pytest
 
-from portfolio import PortfolioEngine, PortfolioSnapshot
 from database import (
+    CANCEL,
     CLOSED,
     OPEN,
+    SL_HIT,
     STOP_LOSS,
     TAKE_PROFIT,
     TP_HIT,
-    SL_HIT,
-    CANCEL,
     PaperTrade,
     Trade,
 )
+from portfolio import PortfolioEngine, PortfolioSnapshot
 
 
 def _make_trade(db_session, **overrides):

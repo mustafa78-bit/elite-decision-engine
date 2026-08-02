@@ -1,6 +1,7 @@
 """Tests for the Elite Scanner Core."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from market.models import Asset, AssetMetadata

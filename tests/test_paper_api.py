@@ -5,9 +5,6 @@ Uses ``api_client`` (which patches ``database.get_session``) and
 """
 
 import logging
-
-logging.getLogger("httpx2").setLevel(logging.WARNING)
-
 from datetime import datetime, timezone
 
 from database import (
@@ -22,6 +19,10 @@ from database import (
     PaperTrade,
     Trade,
 )
+
+logging.getLogger("httpx2").setLevel(logging.WARNING)
+
+logging.getLogger("httpx2").setLevel(logging.WARNING)
 
 
 def _make_paper_order(db_session, **overrides):

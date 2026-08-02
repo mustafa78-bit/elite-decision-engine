@@ -12,7 +12,7 @@ def trading_control():
     session = get_session()
     try:
         open_signals = session.query(Signal).filter(Signal.status == "OPEN").count()
-        approved = session.query(Signal).filter(Signal.approved == True).count()
+        approved = session.query(Signal).filter(Signal.approved.is_(True)).count()
         total_signals = session.query(Signal).count()
 
         open_trades = session.query(Trade).filter(Trade.status == "OPEN").count()

@@ -1,6 +1,7 @@
 """Tests for MarketDataService."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from market.services import MarketDataService
@@ -36,6 +37,7 @@ class TestMarketDataService:
         self.mock_cache.get.return_value = None
         self.mock_provider.get_ohlcv.return_value = df
         result = self.service.get_ohlcv("BTC")
+        assert result is df
         self.mock_provider.get_ohlcv.assert_called_once()
 
     def test_get_asset_empty_ohlcv(self):

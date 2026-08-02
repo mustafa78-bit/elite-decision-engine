@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass
@@ -44,8 +44,8 @@ class RiskContributionDTO:
 
 @dataclass
 class IntelligenceContributionDTO:
-    funding_risk: Optional[dict[str, Any]] = None
-    oi_trend: Optional[dict[str, Any]] = None
+    funding_risk: dict[str, Any] | None = None
+    oi_trend: dict[str, Any] | None = None
     confidence: float = 0.0
     feature_count: int = 0
     available_features: list[str] = field(default_factory=list)
@@ -106,12 +106,12 @@ class DecisionReasoningDTO:
     entry_price: float = 0.0
     status: str = ""
     decision: str = ""
-    confidence_breakdown: Optional[ConfidenceBreakdownDTO] = None
-    risk_contribution: Optional[RiskContributionDTO] = None
-    intelligence_contribution: Optional[IntelligenceContributionDTO] = None
-    market_contribution: Optional[MarketContributionDTO] = None
-    strategy_contribution: Optional[StrategyContributionDTO] = None
-    memory_contribution: Optional[MemoryContributionDTO] = None
+    confidence_breakdown: ConfidenceBreakdownDTO | None = None
+    risk_contribution: RiskContributionDTO | None = None
+    intelligence_contribution: IntelligenceContributionDTO | None = None
+    market_contribution: MarketContributionDTO | None = None
+    strategy_contribution: StrategyContributionDTO | None = None
+    memory_contribution: MemoryContributionDTO | None = None
     human_readable: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -134,7 +134,7 @@ class DecisionTimelineDTO:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
-    def add_event(self, event_name: str, detail: Optional[str] = None) -> None:
+    def add_event(self, event_name: str, detail: str | None = None) -> None:
         self.events.append({
             "event": event_name,
             "timestamp": _now_iso(),
@@ -160,9 +160,9 @@ class DecisionMetadataDTO:
 
 @dataclass
 class DecisionExplanationDTO:
-    reasoning: Optional[DecisionReasoningDTO] = None
-    timeline: Optional[DecisionTimelineDTO] = None
-    metadata: Optional[DecisionMetadataDTO] = None
+    reasoning: DecisionReasoningDTO | None = None
+    timeline: DecisionTimelineDTO | None = None
+    metadata: DecisionMetadataDTO | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = {}

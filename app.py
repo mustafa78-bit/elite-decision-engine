@@ -4,8 +4,8 @@ import sys
 
 from core.engine import DecisionEngine
 from database import create_tables
-from startup import StartupValidator
 from logging_config import setup_logging
+from startup import StartupValidator
 
 
 def main():

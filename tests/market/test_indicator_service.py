@@ -1,6 +1,7 @@
 """Tests for IndicatorService."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from market.indicators import IndicatorService
@@ -49,7 +50,7 @@ class TestIndicatorService:
         service._volume.score = MagicMock(return_value={"score": 0.7})
 
         df = pd.DataFrame({"close": [100.0, 101.0]})
-        result1 = service.get_indicators("BTC", "1h", df)
+        service.get_indicators("BTC", "1h", df)
 
         # Second call: cache hit
         mock_cache.get.return_value = {"ema20": 100.0, "cached": True}

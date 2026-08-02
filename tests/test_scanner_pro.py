@@ -1,6 +1,7 @@
 """Tests for Elite Scanner PRO modules."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from scanner.confidence import ConfidenceScorer

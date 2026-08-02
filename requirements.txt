@@ -12,3 +12,7 @@ sqlalchemy
 starlette
 uvicorn
 websockets
+python-telegram-bot
+
+pytest==9.1.1
+pytest-asyncio==1.4.0

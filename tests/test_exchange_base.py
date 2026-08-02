@@ -1,5 +1,6 @@
 """Tests for exchange adapter layer."""
 
+from datetime import UTC
 from decimal import Decimal
 
 from exchange.base import ExchangeAdapter
@@ -8,14 +9,14 @@ from exchange.exceptions import (
     ExchangeConnectionError,
     ExchangeError,
     ExchangeTimeoutError,
-    InsufficientFunds,
-    InvalidOrder,
+    InsufficientFundsError,
+    InvalidOrderError,
     MarketDataError,
     OrderError,
-    OrderNotFound,
-    PositionNotFound,
+    OrderNotFoundError,
+    PositionNotFoundError,
     RateLimitError,
-    SymbolNotFound,
+    SymbolNotFoundError,
 )
 from exchange.models import Balance, Candle, Order, Position, Ticker
 
@@ -46,7 +47,7 @@ class TestExchangeModels:
 
     def test_candle_fields(self):
         from datetime import datetime, timezone
-        c = Candle(symbol="BTC", timeframe="1h", open=Decimal("100"), high=Decimal("110"), low=Decimal("90"), close=Decimal("105"), volume=Decimal("1000"), timestamp=datetime.now(timezone.utc))
+        c = Candle(symbol="BTC", timeframe="1h", open=Decimal("100"), high=Decimal("110"), low=Decimal("90"), close=Decimal("105"), volume=Decimal("1000"), timestamp=datetime.now(UTC))
         assert c.closed is True
         assert c.timeframe == "1h"
 
@@ -57,22 +58,22 @@ class TestExchangeExceptions:
         assert issubclass(AuthenticationError, ExchangeError)
         assert issubclass(RateLimitError, ExchangeError)
         assert issubclass(OrderError, ExchangeError)
-        assert issubclass(InsufficientFunds, OrderError)
-        assert issubclass(InvalidOrder, OrderError)
-        assert issubclass(OrderNotFound, OrderError)
-        assert issubclass(PositionNotFound, ExchangeError)
-        assert issubclass(SymbolNotFound, ExchangeError)
+        assert issubclass(InsufficientFundsError, OrderError)
+        assert issubclass(InvalidOrderError, OrderError)
+        assert issubclass(OrderNotFoundError, OrderError)
+        assert issubclass(PositionNotFoundError, ExchangeError)
+        assert issubclass(SymbolNotFoundError, ExchangeError)
         assert issubclass(MarketDataError, ExchangeError)
         assert issubclass(ExchangeTimeoutError, ExchangeError)
 
     def test_exception_messages(self):
         try:
-            raise InsufficientFunds("Not enough USDT")
+            raise InsufficientFundsError("Not enough USDT")
         except OrderError as e:
             assert "Not enough USDT" in str(e)
 
     def test_generic_catch(self):
-        for exc_cls in [ExchangeConnectionError, AuthenticationError, RateLimitError, OrderNotFound, PositionNotFound, SymbolNotFound, MarketDataError, ExchangeTimeoutError]:
+        for exc_cls in [ExchangeConnectionError, AuthenticationError, RateLimitError, OrderNotFoundError, PositionNotFoundError, SymbolNotFoundError, MarketDataError, ExchangeTimeoutError]:
             try:
                 raise exc_cls("test")
             except ExchangeError:

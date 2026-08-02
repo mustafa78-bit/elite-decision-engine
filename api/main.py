@@ -1,14 +1,14 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from api.events import (
     CandlePayload,
@@ -25,57 +25,60 @@ from api.events import (
 )
 from api.middleware import auth_middleware
 from api.rate_limit import limiter
-from monitoring.health import HealthService
+from api.routes.analytics import router as analytics_router
 from api.routes.auth import router as auth_router
 from api.routes.backtest import router as backtest_router
+from api.routes.coordination import router as coordination_router
+from api.routes.dashboard import router as dashboard_router
+from api.routes.evidence import router as evidence_router
 from api.routes.execution import router as execution_router
+from api.routes.explanation import router as explanation_router
 from api.routes.funding import router as funding_router
 from api.routes.intelligence import router as intelligence_router
 from api.routes.journal import router as journal_router
+from api.routes.kpi import router as kpi_router
 from api.routes.market import router as market_router
 from api.routes.market_live import router as market_live_router
-from api.routes.open_interest import router as open_interest_router
 from api.routes.monitoring import router as monitoring_router
 from api.routes.notifications import router as notifications_router
+from api.routes.ollo import router as ollo_router
+from api.routes.open_interest import router as open_interest_router
+from api.routes.paper import router as paper_router
 from api.routes.paper_trading import router as paper_trading_router
 from api.routes.performance import router as performance_router
 from api.routes.portfolio import router as portfolio_router
+from api.routes.portfolio_detail import router as portfolio_detail_router
+from api.routes.preferences import router as preferences_router
 from api.routes.regime import router as regime_router
 from api.routes.risk import router as risk_router
+from api.routes.scanner import router as scanner_router
 from api.routes.signals import router as signals_router
 from api.routes.signals_ranking import router as signals_ranking_router
+from api.routes.simulator import router as simulator_router
+from api.routes.terminal import router as terminal_router
+from api.routes.timeline import router as timeline_router
 from api.routes.trading_control import router as trading_control_router
 from api.routes.users import router as users_router
-from api.routes.explanation import router as explanation_router
-from api.routes.analytics import router as analytics_router
-from api.routes.kpi import router as kpi_router
-from api.routes.coordination import router as coordination_router
-from api.routes.dashboard import router as dashboard_router
-from api.routes.widgets import router as widgets_router
-from api.routes.preferences import router as preferences_router
 from api.routes.watchlists import router as watchlists_router
-from api.routes.timeline import router as timeline_router
-from api.routes.scanner import router as scanner_router
-from api.routes.terminal import router as terminal_router
-from api.routes.portfolio_detail import router as portfolio_detail_router
-from api.routes.evidence import router as evidence_router
+from api.routes.widgets import router as widgets_router
 from api.websocket.manager import WebSocketManager
 from config import API_ENV, CORS_ORIGINS, DEBUG
 from database import FINAL_STATUSES, Trade, get_session
+from market.services import MarketDataService
 from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
-from market.services import MarketDataService
+from monitoring.health import HealthService
 from scoring.regime_ai import RegimeAI
 from scoring.risk_engine import RiskEngine
-
 
 logger = logging.getLogger(__name__)
 
 origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
 
 _background_tasks: set[asyncio.Task] = set()
+_ollo_service: Any | None = None
 
 
 @asynccontextmanager
@@ -83,10 +86,39 @@ async def lifespan(app: FastAPI):
     from logging_config import setup_logging
     setup_logging()
     logger.info("Application starting up")
+
+    # Initialize OLLO Service
+    global _ollo_service
+    try:
+        from services.ai.provider_factory import create_ai_service
+        from services.ollo.ollo_service import OLLOService
+        _ai_svc = create_ai_service()
+        _ollo_service = OLLOService(_ai_svc)
+        logger.info("OLLO Service initialized successfully")
+    except Exception as e:
+        logger.warning("OLLO Service initialization failed: %s", e)
+
+    # Start Telegram Bot if configured
+    from services.telegram.bot import TelegramBotManager
+    bot_manager = TelegramBotManager.get_instance()
+    bot_started = bot_manager.setup()
+    if bot_started:
+        # Run bot startup as a background task
+        bot_task = asyncio.create_task(bot_manager.start())
+        _background_tasks.add(bot_task)
+
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
+
     yield
+
     logger.info("Application shutting down")
+    if bot_started:
+        try:
+            await bot_manager.stop()
+        except Exception as e:
+            logger.warning("Telegram Bot shutdown error: %s", e)
+
     task.cancel()
     for t in _background_tasks:
         if not t.done():
@@ -168,6 +200,7 @@ app.include_router(market_live_router)
 app.include_router(open_interest_router)
 app.include_router(monitoring_router)
 app.include_router(notifications_router)
+app.include_router(paper_router)
 app.include_router(paper_trading_router)
 app.include_router(performance_router)
 app.include_router(portfolio_router)
@@ -190,6 +223,8 @@ app.include_router(scanner_router)
 app.include_router(terminal_router)
 app.include_router(portfolio_detail_router)
 app.include_router(evidence_router)
+app.include_router(simulator_router)
+app.include_router(ollo_router)
 
 manager = WebSocketManager()
 
@@ -305,7 +340,7 @@ except Exception as e:
     _evidence_engine = None
     logger.warning("Evidence engine initialization failed: %s", e)
 
-_mip_service: Optional[MarketDataService] = None
+_mip_service: MarketDataService | None = None
 
 
 def get_mip() -> MarketDataService:
@@ -385,7 +420,6 @@ async def _broadcast_risk() -> None:
             session.close()
 
         open_trades = [t for t in all_trades if t.status == "OPEN"]
-        closed_count = len([t for t in all_trades if t.status in FINAL_STATUSES])
 
         risk_engine = RiskEngine()
         risk_score = risk_engine.score({"atr": 0}, {"score": 0})

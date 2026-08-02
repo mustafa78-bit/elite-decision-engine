@@ -45,6 +45,7 @@ class TestOrderManager:
         mgr = OrderManager()
         mgr.set_exchange(HyperliquidExchange())
         order = mgr.create_order(symbol="BTC", side="BUY", order_type="LIMIT", quantity=Decimal("0.1"))
+        assert order.status == "FILLED"
         open_orders = mgr.get_open_orders()
         # Filled orders are not open
         assert len(open_orders) == 0

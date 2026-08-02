@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
-
-from typing import Callable, Any
 
 from database import JournalEntry, get_session
 
@@ -19,15 +18,15 @@ class TradeMemoryEntry:
     symbol: str = ""
     side: str = ""
     entry_price: float = 0.0
-    exit_price: Optional[float] = None
+    exit_price: float | None = None
     pnl: float = 0.0
     result: str = "PENDING"
     entry_reason: str = ""
-    exit_reason: Optional[str] = None
+    exit_reason: str | None = None
     conditions: dict[str, Any] = field(default_factory=dict)
     lessons: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
-    created_at: Optional[str] = None
+    created_at: str | None = None
 
 
 class TradeMemory:
@@ -43,11 +42,13 @@ class TradeMemory:
         side: str,
         entry_price: float,
         entry_reason: str,
-        conditions: Optional[dict[str, Any]] = None,
-        tags: Optional[list[str]] = None,
+        conditions: dict[str, Any] | None = None,
+        tags: list[str] | None = None,
+        trade_id: int | None = None,
+        session: Any | None = None,
     ) -> int:
         """Record a new trade in memory (and journal)."""
-        session = self.session_factory()
+        local_session = session or self.session_factory()
         try:
             entry = JournalEntry(
                 symbol=symbol.upper(),
@@ -59,9 +60,13 @@ class TradeMemory:
                     "conditions": conditions or {},
                     "tags": tags or [],
                 }),
+                trade_id=trade_id,
             )
-            session.add(entry)
-            session.commit()
+            local_session.add(entry)
+            if session is None:
+                local_session.commit()
+            else:
+                local_session.flush()
             mem = TradeMemoryEntry(
                 id=entry.id,
                 symbol=entry.symbol,
@@ -75,11 +80,13 @@ class TradeMemory:
             self._cache[entry.id] = mem
             return entry.id
         except Exception as e:
-            session.rollback()
+            if session is None:
+                local_session.rollback()
             logger.error("Failed to record trade memory: %s", e)
             return 0
         finally:
-            session.close()
+            if session is None:
+                local_session.close()
 
     def close(
         self,
@@ -87,13 +94,14 @@ class TradeMemory:
         exit_price: float,
         pnl: float,
         result: str,
-        exit_reason: Optional[str] = None,
-        lessons: Optional[list[str]] = None,
+        exit_reason: str | None = None,
+        lessons: list[str] | None = None,
+        session: Any | None = None,
     ) -> bool:
         """Close a trade memory entry with result and lessons."""
-        session = self.session_factory()
+        local_session = session or self.session_factory()
         try:
-            entry = session.query(JournalEntry).filter(JournalEntry.id == memory_id).first()
+            entry = local_session.query(JournalEntry).filter(JournalEntry.id == memory_id).first()
             if entry is None:
                 logger.warning("Trade memory entry %s not found", memory_id)
                 return False
@@ -104,10 +112,11 @@ class TradeMemory:
 
             existing = json.loads(entry.notes) if entry.notes else {}
             existing["lessons"] = lessons or []
-            existing["closed_at"] = datetime.now(timezone.utc).isoformat()
+            existing["closed_at"] = datetime.now(UTC).isoformat()
             entry.notes = json.dumps(existing)
 
-            session.commit()
+            if session is None:
+                local_session.commit()
 
             if memory_id in self._cache:
                 mem = self._cache[memory_id]
@@ -119,13 +128,15 @@ class TradeMemory:
 
             return True
         except Exception as e:
-            session.rollback()
+            if session is None:
+                local_session.rollback()
             logger.error("Failed to close trade memory: %s", e)
             return False
         finally:
-            session.close()
+            if session is None:
+                local_session.close()
 
-    def get(self, memory_id: int) -> Optional[TradeMemoryEntry]:
+    def get(self, memory_id: int) -> TradeMemoryEntry | None:
         """Get a trade memory entry by ID."""
         if memory_id in self._cache:
             return self._cache[memory_id]

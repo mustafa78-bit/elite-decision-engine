@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-import requests
 import pandas as pd
+import requests
 
 from config import ACCOUNT_EQUITY
 from exchange.base import ExchangeAdapter
@@ -24,7 +24,7 @@ class HyperliquidExchange(ExchangeAdapter):
 
     def __init__(
         self,
-        collector: Optional[HyperliquidCollector] = None,
+        collector: HyperliquidCollector | None = None,
         paper_mode: bool = True,
     ) -> None:
         self.collector = collector or HyperliquidCollector()
@@ -62,7 +62,7 @@ class HyperliquidExchange(ExchangeAdapter):
                 raise MarketDataError(f"No candles for {symbol}")
             result: list[Candle] = []
             for _, row in df.iterrows():
-                ts = datetime.fromtimestamp(int(row["timestamp"]) / 1000, tz=timezone.utc) if "timestamp" in row else datetime.now(timezone.utc)
+                ts = datetime.fromtimestamp(int(row["timestamp"]) / 1000, tz=UTC) if "timestamp" in row else datetime.now(UTC)
                 result.append(Candle(
                     symbol=symbol,
                     timeframe=timeframe,
@@ -87,7 +87,7 @@ class HyperliquidExchange(ExchangeAdapter):
             )
         ]
 
-    def positions(self, symbol: Optional[str] = None) -> list[Position]:
+    def positions(self, symbol: str | None = None) -> list[Position]:
         if self.paper_mode:
             from database import Trade, get_session
             session = get_session()
@@ -137,7 +137,7 @@ class HyperliquidExchange(ExchangeAdapter):
             return True
         return False
 
-    def order_status(self, order_id: str, symbol: str) -> Optional[Order]:
+    def order_status(self, order_id: str, symbol: str) -> Order | None:
         return self._orders.get(order_id)
 
     def order_history(self, symbol: str, limit: int = 50) -> list[Order]:

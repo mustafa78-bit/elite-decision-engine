@@ -1,19 +1,23 @@
 """Unit tests for the paper trading domain (execution/paper.py)."""
 
-import pytest
 import pandas as pd
+import pytest
 
 from database import (
     CANCEL,
     CLOSED,
     OPEN,
-    TAKE_PROFIT,
     STOP_LOSS,
+    TAKE_PROFIT,
     Trade,
+)
+from database import (
     PaperOrder as PaperOrderModel,
+)
+from database import (
     PaperTrade as PaperTradeModel,
 )
-from execution.paper import PaperPosition, PaperOrder, PaperTrade, PaperExecutor
+from execution.paper import PaperExecutor, PaperOrder, PaperPosition, PaperTrade
 
 
 class _MockCollector:

@@ -17,7 +17,7 @@ class Plan:
     context_keys: list[str]
     prompt_type: str
     prompt_template: str
-    briefing_kind: Optional[str] = None
+    briefing_kind: str | None = None
 
     def to_dict(self) -> dict:
         return {

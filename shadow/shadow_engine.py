@@ -22,7 +22,7 @@ class ShadowResult:
     approved: bool
     guard_passed: bool
     order_placed: bool
-    journal_id: Optional[int] = None
+    journal_id: int | None = None
     reason: str = ""
 
 
@@ -34,10 +34,10 @@ class ShadowEngine:
 
     def __init__(
         self,
-        pipeline: Optional[DecisionPipeline] = None,
-        guard: Optional[ExecutionGuard] = None,
-        order_manager: Optional[OrderManager] = None,
-        exchange: Optional[ExchangeAdapter] = None,
+        pipeline: DecisionPipeline | None = None,
+        guard: ExecutionGuard | None = None,
+        order_manager: OrderManager | None = None,
+        exchange: ExchangeAdapter | None = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
         self.guard = guard or ExecutionGuard()
@@ -161,9 +161,9 @@ class ShadowEngine:
         reason: str,
         score: float = 0.0,
         confidence: float = 0.0,
-        entry_price: Optional[float] = None,
-        order_id: Optional[str] = None,
-    ) -> Optional[int]:
+        entry_price: float | None = None,
+        order_id: str | None = None,
+    ) -> int | None:
         session = get_session()
         try:
             entry = JournalEntry(

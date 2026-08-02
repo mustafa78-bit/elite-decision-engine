@@ -26,19 +26,19 @@ class RiskCheckDetail:
     name: str
     passed: bool
     detail: str = ""
-    value: Optional[float] = None
-    limit: Optional[float] = None
+    value: float | None = None
+    limit: float | None = None
 
 
 @dataclass(frozen=True)
 class RiskDecision:
     allowed: bool
     reason: str = ""
-    rejection_code: Optional[str] = None
+    rejection_code: str | None = None
     checks: tuple[RiskCheckDetail, ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def first_failure(self) -> Optional[RiskCheckDetail]:
+    def first_failure(self) -> RiskCheckDetail | None:
         for c in self.checks:
             if not c.passed:
                 return c
@@ -47,7 +47,7 @@ class RiskDecision:
 
 def risk_decision_from_checks(
     checks: list[RiskCheckDetail],
-    metadata: Optional[dict[str, Any]] = None,
+    metadata: dict[str, Any] | None = None,
 ) -> RiskDecision:
     failures = [c for c in checks if not c.passed]
     if failures:

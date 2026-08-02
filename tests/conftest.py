@@ -31,6 +31,30 @@ setup_logging()
 TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
 
 
+@pytest.fixture(autouse=True)
+def mock_global_coin_universe(request, monkeypatch):
+    """Globally mock the dynamic coin universe Binance network calls to prevent unmocked requests."""
+    if "test_universe" in request.node.nodeid:
+        return
+
+    import sys
+    mock_symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+
+    # 1. Monkeypatch market_data.universe helper and provider functions
+    try:
+        import market_data.universe as universe
+        monkeypatch.setattr(universe, "get_top_volume_symbols", lambda n=None: mock_symbols[:n] if n is not None else mock_symbols)
+        if hasattr(universe, "_provider"):
+            monkeypatch.setattr(universe._provider, "get_top_volume_symbols", lambda n=None: mock_symbols[:n] if n is not None else mock_symbols)
+    except ImportError:
+        pass
+
+    # 2. Walk sys.modules to patch any direct imports of get_top_volume_symbols
+    for mod_name, mod in list(sys.modules.items()):
+        if mod and hasattr(mod, "get_top_volume_symbols") and mod_name != "market_data.universe":
+            monkeypatch.setattr(mod, "get_top_volume_symbols", lambda n=None: mock_symbols[:n] if n is not None else mock_symbols)
+
+
 def _default_engine():
     """Return a shared in-memory SQLite engine used by all tests.
 

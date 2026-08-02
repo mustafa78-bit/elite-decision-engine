@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -25,9 +25,9 @@ def normalize_candle_from_df(
     for _, row in df.iterrows():
         ts_val = row.get(ts_col, 0)
         if isinstance(ts_val, (int, float)) and ts_val > 1e10:
-            ts = datetime.fromtimestamp(ts_val / 1000, tz=timezone.utc)
+            ts = datetime.fromtimestamp(ts_val / 1000, tz=UTC)
         else:
-            ts = datetime.now(timezone.utc)
+            ts = datetime.now(UTC)
         result.append(Candle(
             symbol=symbol,
             timeframe=timeframe,
@@ -44,12 +44,12 @@ def normalize_candle_from_df(
 def normalize_ticker(
     symbol: str,
     last: float,
-    bid: Optional[float] = None,
-    ask: Optional[float] = None,
-    volume_24h: Optional[float] = None,
-    high_24h: Optional[float] = None,
-    low_24h: Optional[float] = None,
-    change_24h: Optional[float] = None,
+    bid: float | None = None,
+    ask: float | None = None,
+    volume_24h: float | None = None,
+    high_24h: float | None = None,
+    low_24h: float | None = None,
+    change_24h: float | None = None,
 ) -> Ticker:
     """Create a normalized Ticker from raw values."""
     return Ticker(

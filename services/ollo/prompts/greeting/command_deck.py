@@ -6,7 +6,7 @@ def command_deck_greeting(context: dict) -> str:
     total_pnl = portfolio.get("total_pnl", 0)
     win_rate = portfolio.get("win_rate", 0)
 
-    parts = [f"Good to see you, Founder. The Command Deck is operational."]
+    parts = ["Good to see you, Founder. The Command Deck is operational."]
     parts.append(f"You have {open_trades} open position{'s' if open_trades != 1 else ''}.")
     parts.append(f"Portfolio PnL stands at ${total_pnl:+,.2f} with a {win_rate:.1f}% win rate.")
 

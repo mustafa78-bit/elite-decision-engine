@@ -3,7 +3,8 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ class DashboardCache:
         self._cache: dict[str, tuple[float, Any]] = {}
         self._default_ttl = default_ttl
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         entry = self._cache.get(key)
         if entry is None:
             return None
@@ -23,7 +24,7 @@ class DashboardCache:
             return None
         return value
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         self._cache[key] = (time.time(), value)
 
     def invalidate(self, key: str) -> None:
@@ -51,7 +52,7 @@ def cached(ttl: int = 30):
     return decorator
 
 
-def invalidate_dashboard_cache(pattern: Optional[str] = None) -> None:
+def invalidate_dashboard_cache(pattern: str | None = None) -> None:
     if pattern:
         keys = [k for k in _dashboard_cache._cache if pattern in k]
         for k in keys:

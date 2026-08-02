@@ -4,7 +4,6 @@ from fastapi import APIRouter
 
 from market_data.funding.collector import FundingCollector
 
-
 logger = logging.getLogger(__name__)
 router = APIRouter()
 

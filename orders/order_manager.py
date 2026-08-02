@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Optional
 
 from exchange.base import ExchangeAdapter
-from exchange.exceptions import ExchangeError, OrderError, OrderNotFound
+from exchange.exceptions import ExchangeError, OrderError, OrderNotFoundError
 from exchange.models import Order
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class OrderManager:
     """High-level order management system (paper mode only)."""
 
-    def __init__(self, exchange: Optional[ExchangeAdapter] = None) -> None:
+    def __init__(self, exchange: ExchangeAdapter | None = None) -> None:
         self.exchange = exchange
         self._history: list[Order] = []
         self._open_orders: dict[str, Order] = {}
@@ -28,12 +28,12 @@ class OrderManager:
         symbol: str,
         side: str,
         order_type: str = "LIMIT",
-        quantity: Optional[Decimal] = None,
-        price: Optional[Decimal] = None,
-        stop_price: Optional[Decimal] = None,
+        quantity: Decimal | None = None,
+        price: Decimal | None = None,
+        stop_price: Decimal | None = None,
         reduce_only: bool = False,
         time_in_force: str = "GTC",
-        client_order_id: Optional[str] = None,
+        client_order_id: str | None = None,
     ) -> Order:
         if self.exchange is None:
             raise ExchangeError("No exchange configured")
@@ -74,7 +74,7 @@ class OrderManager:
             self._open_orders.pop(order_id)
         return cancelled
 
-    def cancel_all(self, symbol: Optional[str] = None) -> int:
+    def cancel_all(self, symbol: str | None = None) -> int:
         if self.exchange is None:
             raise ExchangeError("No exchange configured")
 
@@ -92,12 +92,12 @@ class OrderManager:
                 logger.warning("Failed to cancel order %s: %s", order.id, e)
         return count
 
-    def order_status(self, order_id: str, symbol: str) -> Optional[Order]:
+    def order_status(self, order_id: str, symbol: str) -> Order | None:
         if self.exchange is None:
             raise ExchangeError("No exchange configured")
         return self.exchange.order_status(order_id, symbol.upper())
 
-    def get_open_orders(self, symbol: Optional[str] = None) -> list[Order]:
+    def get_open_orders(self, symbol: str | None = None) -> list[Order]:
         orders = list(self._open_orders.values())
         if symbol:
             orders = [o for o in orders if o.symbol == symbol.upper()]
@@ -105,7 +105,7 @@ class OrderManager:
 
     def get_order_history(
         self,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
         limit: int = 50,
     ) -> list[Order]:
         orders = list(self._history)

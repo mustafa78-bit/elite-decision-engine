@@ -19,9 +19,9 @@ class ProbabilityEngine:
         breakout_score: float = 0.0,
         reversal_score: float = 0.0,
         liquidity_score: float = 0.0,
-        btc_trend: Optional[str] = None,
-        funding_level: Optional[str] = None,
-        fear_greed_value: Optional[float] = None,
+        btc_trend: str | None = None,
+        funding_level: str | None = None,
+        fear_greed_value: float | None = None,
     ) -> tuple[float, list[str]]:
         base = composite_score * 100
         signals: list[str] = []
