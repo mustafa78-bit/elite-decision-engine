@@ -95,19 +95,21 @@ def test_provider_cache_expiry(mock_binance_data):
     mock_response.raise_for_status = MagicMock()
 
     start_time = time.time()
-    with patch("requests.get", return_value=mock_response) as mock_get, \
-         patch("time.time", side_effect=[start_time, start_time + 5, start_time + 15, start_time + 15]):
 
-        # First call: fetches
-        provider.get_top_volume_symbols(n=3)
+    with patch("requests.get", return_value=mock_response) as mock_get:
+        # First call (at t+0): fetches
+        with patch("time.time", return_value=start_time):
+            provider.get_top_volume_symbols(n=3)
         assert mock_get.call_count == 1
 
         # Second call (at t+5, < cache_interval): cached
-        provider.get_top_volume_symbols(n=3)
+        with patch("time.time", return_value=start_time + 5):
+            provider.get_top_volume_symbols(n=3)
         assert mock_get.call_count == 1
 
         # Third call (at t+15, > cache_interval): re-fetches
-        provider.get_top_volume_symbols(n=3)
+        with patch("time.time", return_value=start_time + 15):
+            provider.get_top_volume_symbols(n=3)
         assert mock_get.call_count == 2
 
 
