@@ -5,7 +5,7 @@ from config import ATR_MULTIPLIER
 
 class TPSLEngine:
 
-    def __init__(self, atr_multiplier: Optional[float] = None) -> None:
+    def __init__(self, atr_multiplier: float | None = None) -> None:
         self.atr_multiplier = atr_multiplier if atr_multiplier is not None else ATR_MULTIPLIER
 
     def calculate(self, entry, atr, side):
