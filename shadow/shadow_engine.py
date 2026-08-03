@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Optional
 
 from database import JournalEntry, get_session, update_signal_status
 from exchange.base import ExchangeAdapter
 from execution.pipeline import DecisionPipeline, TradingSignal
 from orders.order_manager import OrderManager
+from position_sizing import PositionSizingEngine
 from risk.execution_guard import ExecutionGuard
 
 logger = logging.getLogger(__name__)
@@ -38,10 +38,12 @@ class ShadowEngine:
         guard: ExecutionGuard | None = None,
         order_manager: OrderManager | None = None,
         exchange: ExchangeAdapter | None = None,
+        position_sizer: PositionSizingEngine | None = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
         self.guard = guard or ExecutionGuard()
         self.order_manager = order_manager or OrderManager()
+        self.position_sizer = position_sizer or PositionSizingEngine()
         self.logger = logger
 
         if exchange is not None:
@@ -73,12 +75,24 @@ class ShadowEngine:
         update_signal_status(signal.id, "APPROVED")
         self.logger.info("Signal %s approved by pipeline", signal.id)
 
+        # Calculate dynamic position size
+        position_size = self.position_sizer.calculate(candidate)
+        quantity = position_size.quantity
+        self.logger.info(
+            "Position sized for %s %s: qty=%s notional=%s risk=%s",
+            candidate.symbol,
+            candidate.side,
+            quantity,
+            position_size.notional_value,
+            position_size.risk_amount,
+        )
+
         # 2. Execution guard
         guard_result = self.guard.evaluate_execution(
             symbol=candidate.symbol,
             side=candidate.side,
             entry_price=float(candidate.entry or 0),
-            quantity=1.0,
+            quantity=quantity,
         )
 
         if not guard_result.allowed:
@@ -110,7 +124,7 @@ class ShadowEngine:
                 symbol=candidate.symbol,
                 side="BUY" if candidate.side == "LONG" else "SELL",
                 order_type="MARKET",
-                quantity=Decimal("1"),
+                quantity=Decimal(str(quantity)),
                 price=entry_price,
             )
             update_signal_status(signal.id, "EXECUTED")
