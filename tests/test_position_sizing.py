@@ -1,7 +1,8 @@
 """Unit tests for the PositionSizingEngine — covers all sizing scenarios."""
 
 import pytest
-from position_sizing import PositionSizingEngine, PositionSize
+
+from position_sizing import PositionSize, PositionSizingEngine
 
 
 class _MockCandidate:

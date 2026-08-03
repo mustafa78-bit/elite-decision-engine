@@ -1,6 +1,6 @@
 """Tests for performance intelligence."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -18,15 +18,15 @@ def sample_trades(db_session):
 
     trades = [
             Trade(symbol="BTC", side="LONG", entry=100.0, status="CLOSED",
-                  pnl=50.0, close_reason="TP_HIT", created_at=datetime.now(timezone.utc)),
+                  pnl=50.0, close_reason="TP_HIT", created_at=datetime.now(UTC)),
             Trade(symbol="ETH", side="SHORT", entry=200.0, status="CLOSED",
-                  pnl=-30.0, close_reason="SL_HIT", created_at=datetime.now(timezone.utc)),
+                  pnl=-30.0, close_reason="SL_HIT", created_at=datetime.now(UTC)),
             Trade(symbol="BTC", side="LONG", entry=150.0, status="CLOSED",
-                  pnl=20.0, close_reason="TP_HIT", created_at=datetime.now(timezone.utc)),
+                  pnl=20.0, close_reason="TP_HIT", created_at=datetime.now(UTC)),
             Trade(symbol="ETH", side="LONG", entry=250.0, status="OPEN",
-                  pnl=None, created_at=datetime.now(timezone.utc)),
+                  pnl=None, created_at=datetime.now(UTC)),
             Trade(symbol="SOL", side="SHORT", entry=50.0, status="CLOSED",
-                  pnl=-10.0, close_reason="SL_HIT", created_at=datetime.now(timezone.utc)),
+                  pnl=-10.0, close_reason="SL_HIT", created_at=datetime.now(UTC)),
     ]
     for t in trades:
         db_session.add(t)

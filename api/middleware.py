@@ -4,9 +4,8 @@ import uuid
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from config import API_ENV
 from auth.jwt import decode_access_token
-
+from config import API_ENV
 
 logger = logging.getLogger(__name__)
 

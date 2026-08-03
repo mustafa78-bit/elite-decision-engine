@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from api.rate_limit import limiter
+
 
 @pytest.fixture(autouse=True)
 def reset_rate_limiter():

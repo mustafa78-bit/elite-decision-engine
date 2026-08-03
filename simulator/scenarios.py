@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 import pandas as pd
@@ -92,7 +92,7 @@ def generate_scenario_data(
     symbol: str = "BTC",
     timeframe: str = "1h",
     num_candles: int = 200,
-    start_price: Optional[float] = None,
+    start_price: float | None = None,
 ) -> pd.DataFrame:
     cfg = SCENARIOS.get(scenario_type)
     if cfg is None:
@@ -105,7 +105,7 @@ def generate_scenario_data(
     seed = hash(f"{symbol}{scenario_type.value}") % 10000
     rng = random.Random(seed)
     ms = {"1m": 60000, "5m": 300000, "15m": 900000, "1h": 3600000, "4h": 14400000, "1d": 86400000}.get(timeframe, 3600000)
-    now = int(datetime.now(timezone.utc).timestamp() * 1000)
+    now = int(datetime.now(UTC).timestamp() * 1000)
     times = [now - (num_candles - i) * ms for i in range(num_candles)]
 
     drift = cfg.get("drift", 0.0)
@@ -116,6 +116,7 @@ def generate_scenario_data(
     for i in range(num_candles):
         d = drift
         v = volatility
+        vol_mult = 1.0
 
         if scenario_type == ScenarioType.FLASH_CRASH:
             crash_start = num_candles // 3
@@ -176,13 +177,13 @@ def generate_scenario_data(
         price *= 1 + ret
         o = round(price / (1 + ret), 2)
         h = round(price * (1 + abs(rng.gauss(0, v * 0.5))), 2)
-        l = round(price * (1 - abs(rng.gauss(0, v * 0.5))), 2)
-        vol = rng.uniform(100, 10000)
+        lo = round(price * (1 - abs(rng.gauss(0, v * 0.5))), 2)
+        vol = rng.uniform(100, 10000) * vol_mult
         data.append({
             "timestamp": times[i],
             "open": o,
             "high": h,
-            "low": l,
+            "low": lo,
             "close": round(price, 2),
             "volume": round(vol, 2),
         })

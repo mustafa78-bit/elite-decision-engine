@@ -1,21 +1,24 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from config import ACCOUNT_EQUITY
 from database import (
+    CANCEL,
     CLOSED,
     OPEN,
+    SL_HIT,
     STOP_LOSS,
     TAKE_PROFIT,
     TP_HIT,
-    SL_HIT,
-    CANCEL,
-    PaperTrade as PaperTradeModel,
     Trade,
     get_session,
+)
+from database import (
+    PaperTrade as PaperTradeModel,
 )
 from portfolio.core import PortfolioSnapshot
 
@@ -30,15 +33,15 @@ class PortfolioEngine:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
-        initial_capital: Optional[float] = None,
+        session_factory: Callable[[], Any] | None = None,
+        initial_capital: float | None = None,
     ) -> None:
         self.session_factory = session_factory or get_session
         self.initial_capital = initial_capital if initial_capital is not None else ACCOUNT_EQUITY
 
     def snapshot(
         self,
-        current_prices: Optional[dict[str, float]] = None,
+        current_prices: dict[str, float] | None = None,
     ) -> PortfolioSnapshot:
         session = self.session_factory()
         try:
@@ -52,7 +55,6 @@ class PortfolioEngine:
         current_prices: dict[str, float],
     ) -> PortfolioSnapshot:
         all_trades = session.query(Trade).all()
-        trade_by_id = {t.id: t for t in all_trades}
 
         all_paper_trades = session.query(PaperTradeModel).all()
         open_paper_trades = [pt for pt in all_paper_trades if pt.status == OPEN]

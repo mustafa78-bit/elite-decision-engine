@@ -1,5 +1,6 @@
 import logging
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,7 +32,7 @@ NVIDIA_BASE_URL: str = os.getenv("NVIDIA_BASE_URL", "")
 
 for var in CRITICAL_VARS:
     if not os.getenv(var):
-        msg = "%s not set. %s" % (var, CRITICAL_VARS[var])
+        msg = f"{var} not set. {CRITICAL_VARS[var]}"
         if API_ENV == "production":
             raise RuntimeError("FATAL: " + msg)
         logger.warning(msg)

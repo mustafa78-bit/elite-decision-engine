@@ -42,7 +42,7 @@ _WARNING_TEMPLATES = {
 class ReasonBuilder:
     """Build structured reasoning from signals, features, and intelligence."""
 
-    def build(self, opportunity: Opportunity, asset: Optional[Asset] = None) -> list[str]:
+    def build(self, opportunity: Opportunity, asset: Asset | None = None) -> list[str]:
         reasons: list[str] = []
 
         for signal in opportunity.signals:

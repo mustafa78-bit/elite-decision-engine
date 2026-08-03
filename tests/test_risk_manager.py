@@ -1,6 +1,6 @@
 """Unit tests for the RiskManager — every risk rule is tested in isolation."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from database import Trade
 from execution.pipeline import TradeCandidate
@@ -101,7 +101,7 @@ class TestRiskManager:
         assert "Portfolio exposure limit" in reason
 
     def test_reject_daily_loss(self, db_session, session_factory):
-        today = datetime.now(timezone.utc)
+        today = datetime.now(UTC)
         _seed_trade(db_session, status="SL_HIT", pnl=-8000.0, closed_at=today, close_reason="SL_HIT")
         _seed_trade(db_session, status="SL_HIT", pnl=-3000.0, closed_at=today, close_reason="SL_HIT")
         mgr = RiskManager(session_factory=session_factory)
@@ -110,7 +110,7 @@ class TestRiskManager:
         assert "Daily loss limit" in reason
 
     def test_ignore_yesterdays_loss(self, db_session, session_factory):
-        yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+        yesterday = datetime.now(UTC) - timedelta(days=1)
         _seed_trade(db_session, status="SL_HIT", pnl=-20000.0, closed_at=yesterday, close_reason="SL_HIT")
         mgr = RiskManager(session_factory=session_factory)
         allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))

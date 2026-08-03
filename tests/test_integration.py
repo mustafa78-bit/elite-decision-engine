@@ -10,12 +10,13 @@ The production database is never touched.
 
 import pandas as pd
 import pytest
+
+from core.confidence_engine import ConfidenceEngine
+from core.engine import DecisionEngine
 from database import Signal, Trade
 from execution.execution_loop import ExecutionLoop
-from execution.pipeline import DecisionPipeline
 from execution.paper_executor import PaperExecutor
-from core.engine import DecisionEngine
-from core.confidence_engine import ConfidenceEngine
+from execution.pipeline import DecisionPipeline
 from risk_manager import RiskManager
 
 
@@ -267,8 +268,8 @@ def test_pipeline_rejects_low_scores(db_session, session_factory):
 
 def test_signal_risk_execution_flow(db_session, session_factory, monkeypatch):
     """Integration: Signal → RiskManager.evaluate_trade → structured decision."""
+    from risk.models import RejectionCode, RiskDecision
     from risk_manager import RiskManager
-    from risk.models import RiskDecision, RejectionCode
 
     monkeypatch.setattr("risk_manager.MAX_OPEN_TRADES", 0)
 

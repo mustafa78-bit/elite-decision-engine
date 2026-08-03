@@ -2,21 +2,20 @@ import logging
 from typing import Any, Optional
 
 from config import SCORE_WEIGHTS
+from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
-from market_data.volume import VolumeEngine
-from market_data.btc_health import BTCHealth
-from market_data.volatility import VolatilityEngine
 from market_data.mtf import MTFEngine
+from market_data.volatility import VolatilityEngine
+from market_data.volume import VolumeEngine
 from scoring.risk_engine import RiskEngine
-
 
 logger = logging.getLogger(__name__)
 
 
 class ScoringEngine:
 
-    def __init__(self, collector: Optional[Any] = None, market_service: Optional[Any] = None):
+    def __init__(self, collector: Any | None = None, market_service: Any | None = None):
         self.collector = collector or HyperliquidCollector()
         self.market_service = market_service
         self.indicators = IndicatorEngine()

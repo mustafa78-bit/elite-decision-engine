@@ -5,12 +5,11 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +43,8 @@ class LiveMarketEngine:
 
     def __init__(
         self,
-        collector: Optional[HyperliquidCollector] = None,
-        indicators: Optional[IndicatorEngine] = None,
+        collector: HyperliquidCollector | None = None,
+        indicators: IndicatorEngine | None = None,
         cache_ttl: float = _CACHE_TTL,
     ) -> None:
         self.collector = collector or HyperliquidCollector()
@@ -56,7 +55,7 @@ class LiveMarketEngine:
     def _cache_key(self, symbol: str, timeframe: str, limit: int) -> str:
         return f"{symbol}:{timeframe}:{limit}"
 
-    def _get_cached(self, key: str) -> Optional[MarketSnapshot]:
+    def _get_cached(self, key: str) -> MarketSnapshot | None:
         entry = self._cache.get(key)
         if entry is None:
             return None
@@ -85,7 +84,7 @@ class LiveMarketEngine:
                 change_24h=0.0,
                 high_24h=0.0,
                 low_24h=0.0,
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 candles=[],
             )
             self._cache[key] = (time.monotonic(), result)
@@ -117,7 +116,7 @@ class LiveMarketEngine:
             change_24h=round(change_24h, 2),
             high_24h=round(high_24h, 2),
             low_24h=round(low_24h, 2),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             candles=candles[-50:],
         )
         self._cache[key] = (time.monotonic(), result)

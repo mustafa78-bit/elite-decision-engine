@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta, timezone
+
 import pytest
-from datetime import datetime, timezone, timedelta
 
 from database import Trade
 from dto.analytics import (
+    KPIDTO,
     AnalyticsDTO,
     DailyAnalyticsDTO,
     DrawdownAnalyticsDTO,
     HeatmapDataDTO,
-    KPIDTO,
     MonthlyAnalyticsDTO,
     PerformanceTrendDTO,
     RiskAnalyticsDTO,
@@ -115,7 +116,7 @@ class TestAnalyticsService:
         assert analytics.drawdown is not None
 
     def test_analytics_service_with_trades(self, db_session):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         trades_data = [
             dict(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
@@ -145,7 +146,7 @@ class TestAnalyticsService:
         assert len(analytics.daily) > 0
 
     def test_symbol_analytics_grouping(self, db_session):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         trades_data = [
             dict(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                  tp1=52000, rr=2.0, status="TP_HIT", pnl=2000.0, created_at=now),
@@ -170,7 +171,7 @@ class TestAnalyticsService:
         assert eth.wins == 1
 
     def test_strategy_analytics_by_side(self, db_session):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for i in range(5):
             db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                                   tp1=52000, rr=2.0, status="TP_HIT", pnl=1000.0, created_at=now))
@@ -189,7 +190,7 @@ class TestAnalyticsService:
         assert short_s.total_trades == 3
 
     def test_drawdown_analytics(self, db_session):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for i, pnl in enumerate([1000, 2000, -500, 1500, -1000, 500]):
             db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                                   tp1=52000, rr=2.0, status="TP_HIT" if pnl > 0 else "SL_HIT",
@@ -210,7 +211,7 @@ class TestAnalyticsService:
         assert kpis[0].value == 0.0
 
     def test_kpi_service_with_data(self, db_session):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for pnl in [1000, 2000, -500]:
             db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                                   tp1=52000, rr=2.0,

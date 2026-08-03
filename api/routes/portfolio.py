@@ -4,7 +4,6 @@ from fastapi import APIRouter
 
 from portfolio_engine import PortfolioEngine
 
-
 router = APIRouter()
 
 

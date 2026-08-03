@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
-from database import FINAL_STATUSES, Signal, Trade, Notification, get_session
+from database import FINAL_STATUSES, Notification, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     KPIDashboardWidgetDTO,
-    PortfolioDashboardWidgetDTO,
     MonitoringDashboardWidgetDTO,
     NotificationDashboardWidgetDTO,
+    PortfolioDashboardWidgetDTO,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class WidgetService:
-    def __init__(self, session_factory: Optional[Callable[[], Any]] = None):
+    def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
     def get_widget(self, widget_type: str, **params) -> dict[str, Any]:
@@ -92,7 +93,7 @@ class WidgetService:
         session = self.session_factory()
         try:
             recent = session.query(Notification).order_by(Notification.created_at.desc()).limit(limit).all()
-            unread = session.query(Notification).filter(Notification.read == False).count()
+            unread = session.query(Notification).filter(Notification.read == False).count()  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
             total = session.query(Notification).count()
             return NotificationDashboardWidgetDTO(
                 unread=unread,

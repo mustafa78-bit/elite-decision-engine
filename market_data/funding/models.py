@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -66,14 +66,14 @@ class FundingRate:
 @dataclass(frozen=True)
 class FundingResult:
     rates: tuple[FundingRate, ...] = ()
-    fetched_at: float = field(default_factory=lambda: datetime.now(timezone.utc).timestamp())
+    fetched_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
 
     @property
     def empty(self) -> bool:
         return len(self.rates) == 0
 
     @property
-    def latest(self) -> Optional[FundingRate]:
+    def latest(self) -> FundingRate | None:
         if self.rates:
             return self.rates[-1]
         return None
@@ -88,7 +88,7 @@ class FundingResult:
         age = self.fetched_at - latest_ts
         return age <= max_age
 
-    def rate_for(self, symbol: str) -> Optional[FundingRate]:
+    def rate_for(self, symbol: str) -> FundingRate | None:
         for r in self.rates:
             if r.symbol == symbol:
                 return r

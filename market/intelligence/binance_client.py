@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
-import requests
 from typing import Any, Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
 
-def fetch_binance_depth(symbol: str) -> Optional[dict[str, Any]]:
+def fetch_binance_depth(symbol: str) -> dict[str, Any] | None:
     """Fetch order book depth for a symbol from Binance using multi-host fallback."""
     symbol_upper = symbol.upper()
     if not symbol_upper.endswith("USDT") and not symbol_upper.endswith("BUSD"):

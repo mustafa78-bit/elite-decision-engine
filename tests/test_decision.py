@@ -1,6 +1,7 @@
 """Tests for Decision Intelligence modules."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from decision.aggregator import DecisionAggregator
@@ -90,7 +91,6 @@ class TestConfidenceEngineV2:
         assert conf > 50
 
     def test_evaluate_asset_short_bearish(self):
-        df = pd.DataFrame({"close": [100] * 50, "volume": [50] * 50})
         asset = Asset(
             symbol="BTC", metadata=AssetMetadata(symbol="BTC"),
             indicators={"rsi": 50},
@@ -187,8 +187,8 @@ class TestReasonBuilder:
         assert any("false" in w.lower() for w in warnings)
 
     def test_build_with_intelligence(self):
-        from scanner.models import Opportunity
         from market.intelligence.models import IntelligenceBundle
+        from scanner.models import Opportunity
         opp = Opportunity(
             symbol="BTCUSDT", side="LONG", strategy="trend",
             score=0.6, confidence=60.0,

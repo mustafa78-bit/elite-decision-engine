@@ -5,8 +5,8 @@ from typing import Optional
 
 from fastapi import WebSocket
 
-from config import API_ENV
 from auth.jwt import decode_access_token
+from config import API_ENV
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class WebSocketManager:
         self._clients: set[WebSocket] = set()
         self._rooms: dict[str, set[WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket, room: Optional[str] = None) -> None:
+    async def connect(self, websocket: WebSocket, room: str | None = None) -> None:
         if API_ENV == "development":
             await websocket.accept()
             self._clients.add(websocket)
@@ -65,7 +65,7 @@ class WebSocketManager:
         for ws in stale:
             await self.disconnect(ws)
 
-    def client_count(self, room: Optional[str] = None) -> int:
+    def client_count(self, room: str | None = None) -> int:
         if room:
             return len(self._rooms.get(room, set()))
         return len(self._clients)

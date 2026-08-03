@@ -1,6 +1,6 @@
 from services.ai.prompts.briefing import briefing_prompt
-from services.ai.prompts.explain import explain_prompt
 from services.ai.prompts.council import council_prompt
+from services.ai.prompts.explain import explain_prompt
 from services.ai.prompts.ollo import ollo_prompt
 from services.ai.prompts.scanner import scanner_prompt
 

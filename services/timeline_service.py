@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from database import Signal, Trade, get_session
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class TimelineService:
-    def __init__(self, session_factory: Optional[Callable[[], Any]] = None):
+    def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
     def signal_timeline(self, signal_id: int) -> list[dict[str, Any]]:
@@ -66,8 +67,8 @@ class TimelineService:
 
     def global_timeline(
         self, limit: int = 50, offset: int = 0,
-        event_type: Optional[str] = None,
-        symbol: Optional[str] = None,
+        event_type: str | None = None,
+        symbol: str | None = None,
     ) -> dict[str, Any]:
         session = self.session_factory()
         try:

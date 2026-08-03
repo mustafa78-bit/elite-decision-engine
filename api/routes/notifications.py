@@ -18,7 +18,7 @@ def get_notifications(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     unread_only: bool = Query(False),
-    event_type: Optional[str] = Query(None),
+    event_type: str | None = Query(None),
 ):
     svc = _get_notification_service()
     return svc.list_notifications(
@@ -51,7 +51,7 @@ def mark_read(notification_id: int):
 
 
 @router.put("/notifications/read-all")
-def mark_all_read(event_type: Optional[str] = Query(None)):
+def mark_all_read(event_type: str | None = Query(None)):
     svc = _get_notification_service()
     count = svc.mark_all_read(event_type=event_type)
     return {"success": True, "marked_count": count}

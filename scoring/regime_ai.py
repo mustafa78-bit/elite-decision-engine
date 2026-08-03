@@ -5,10 +5,10 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
-_shared_regime_ai: Optional["RegimeAI"] = None
+_shared_regime_ai: RegimeAI | None = None
 
 
-def get_regime_ai() -> "RegimeAI":
+def get_regime_ai() -> RegimeAI:
     global _shared_regime_ai
     if _shared_regime_ai is None:
         _shared_regime_ai = RegimeAI()
@@ -18,7 +18,7 @@ def get_regime_ai() -> "RegimeAI":
 class RegimeAI:
     """Improved market regime detector with trend strength, volatility class, and market phase."""
 
-    def detect(self, values: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    def detect(self, values: dict[str, Any] | None = None) -> dict[str, Any]:
         """Detect market regime with enhanced classification."""
         if values is None or not values:
             return {

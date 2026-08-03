@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -33,8 +33,8 @@ class BinanceExchange(ExchangeAdapter):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
+        api_key: str | None = None,
+        api_secret: str | None = None,
         paper_mode: bool = True,
         timeout: int = 20,
     ) -> None:
@@ -47,7 +47,7 @@ class BinanceExchange(ExchangeAdapter):
         self._session = requests.Session()
         self._session.headers.update({"X-MBX-APIKEY": self.api_key})
 
-    def _request(self, method: str, path: str, params: Optional[dict] = None) -> dict | list:
+    def _request(self, method: str, path: str, params: dict | None = None) -> dict | list:
         url = f"{BASE_URL}{path}"
         try:
             resp = self._session.request(method, url, params=params, timeout=self.timeout)
@@ -64,7 +64,7 @@ class BinanceExchange(ExchangeAdapter):
         except requests.exceptions.HTTPError as e:
             raise MarketDataError(str(e)) from e
 
-    def _signed_request(self, method: str, path: str, params: Optional[dict] = None) -> dict | list:
+    def _signed_request(self, method: str, path: str, params: dict | None = None) -> dict | list:
         if not self.api_secret:
             raise AuthenticationError("API secret required for authenticated requests")
         params = params or {}
@@ -122,7 +122,7 @@ class BinanceExchange(ExchangeAdapter):
                 low=Decimal(str(entry[3])),
                 close=Decimal(str(entry[4])),
                 volume=Decimal(str(entry[5])),
-                timestamp=datetime.fromtimestamp(int(entry[0]) / 1000, tz=timezone.utc),
+                timestamp=datetime.fromtimestamp(int(entry[0]) / 1000, tz=UTC),
             ))
         return result
 
@@ -154,9 +154,9 @@ class BinanceExchange(ExchangeAdapter):
         except Exception as e:
             raise MarketDataError(str(e)) from e
 
-    def positions(self, symbol: Optional[str] = None) -> list[Position]:
+    def positions(self, symbol: str | None = None) -> list[Position]:
         if self.paper_mode:
-            from database import Trade, PaperOrder, get_session
+            from database import PaperOrder, Trade, get_session
             session = get_session()
             try:
                 query = session.query(Trade).filter(Trade.status == "OPEN")
@@ -238,7 +238,7 @@ class BinanceExchange(ExchangeAdapter):
             return True
         return False
 
-    def order_status(self, order_id: str, symbol: str) -> Optional[Order]:
+    def order_status(self, order_id: str, symbol: str) -> Order | None:
         return self._orders.get(order_id)
 
     def order_history(self, symbol: str, limit: int = 50) -> list[Order]:

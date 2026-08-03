@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 
 from dto.explanations import (
     ConfidenceBreakdownDTO,

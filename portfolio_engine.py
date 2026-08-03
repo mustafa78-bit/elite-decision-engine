@@ -7,9 +7,10 @@ modification.  Injectable ``session_factory`` for test isolation.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from datetime import UTC, datetime, timezone
+from typing import Any, Optional
 
 from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, Trade, get_session
@@ -45,8 +46,8 @@ class PortfolioEngine:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
-        initial_equity: Optional[float] = None,
+        session_factory: Callable[[], Any] | None = None,
+        initial_equity: float | None = None,
     ) -> None:
         self.session_factory = session_factory or get_session
         self.initial_equity = initial_equity if initial_equity is not None else ACCOUNT_EQUITY
@@ -75,7 +76,7 @@ class PortfolioEngine:
 
         total_pnl = sum(t.pnl for t in closed_trades if t.pnl is not None)
 
-        today_start = datetime.now(timezone.utc).replace(
+        today_start = datetime.now(UTC).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
         daily_pnl = sum(
@@ -83,7 +84,7 @@ class PortfolioEngine:
             for t in closed_trades
             if t.pnl is not None
             and t.closed_at is not None
-            and (t.closed_at if t.closed_at.tzinfo is not None else t.closed_at.replace(tzinfo=timezone.utc)) >= today_start
+            and (t.closed_at if t.closed_at.tzinfo is not None else t.closed_at.replace(tzinfo=UTC)) >= today_start
         )
 
         avg_win = sum(t.pnl for t in winning) / win_count if win_count > 0 else 0.0
@@ -110,7 +111,6 @@ class PortfolioEngine:
 
         equity = self.initial_equity + total_pnl + unrealized_pnl
 
-        loss_count_for_rate = loss_count if (win_count + loss_count) > 0 else 1
         loss_rate = (loss_count / (win_count + loss_count) * 100) if (win_count + loss_count) > 0 else 0.0
         average_pnl = (total_pnl / closed_count) if closed_count > 0 else 0.0
 

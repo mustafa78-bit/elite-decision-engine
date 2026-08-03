@@ -1,7 +1,8 @@
 """Tests for the unified Asset model."""
 
-from market.models import Asset, AssetMetadata, OHLCVData
 import pandas as pd
+
+from market.models import Asset, AssetMetadata, OHLCVData
 
 
 class TestAssetModel:

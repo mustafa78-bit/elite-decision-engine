@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
-from services.preferences_service import PreferencesService
 from dto.preferences import ThemeConfigDTO
+from services.preferences_service import PreferencesService
 
 router = APIRouter()
 

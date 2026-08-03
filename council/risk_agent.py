@@ -28,16 +28,16 @@ class RiskAgent(BaseAgent):
         name: str = "Risk",
         weight: float = 1.0,
         priority: int = 5,
-        risk_engine: Optional[RiskEngine] = None,
+        risk_engine: RiskEngine | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority, is_directional=False)
         self.risk_engine = risk_engine or RiskEngine()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"

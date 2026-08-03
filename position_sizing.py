@@ -32,11 +32,11 @@ class PositionSizingEngine:
 
     def __init__(
         self,
-        account_equity: Optional[float] = None,
-        risk_percentage: Optional[float] = None,
-        atr_multiplier: Optional[float] = None,
-        max_position_usd: Optional[float] = None,
-        min_quantity: Optional[float] = None,
+        account_equity: float | None = None,
+        risk_percentage: float | None = None,
+        atr_multiplier: float | None = None,
+        max_position_usd: float | None = None,
+        min_quantity: float | None = None,
     ) -> None:
         self.account_equity = account_equity if account_equity is not None else ACCOUNT_EQUITY
         self.risk_percentage = risk_percentage if risk_percentage is not None else RISK_PER_TRADE_PERCENT

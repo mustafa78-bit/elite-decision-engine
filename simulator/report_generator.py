@@ -117,10 +117,11 @@ class ReportGenerator:
 
     def export_pdf(self, report: MissionReport) -> bytes:
         try:
+            from io import BytesIO
+
             from reportlab.lib.pagesizes import letter
             from reportlab.lib.styles import getSampleStyleSheet
             from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
-            from io import BytesIO
 
             buf = BytesIO()
             doc = SimpleDocTemplate(buf, pagesize=letter)
@@ -191,9 +192,6 @@ class ReportGenerator:
         score = TrainingScore()
         if not trades:
             return score
-
-        wins = [t for t in trades if t.pnl > 0]
-        losses = [t for t in trades if t.pnl < 0]
 
         score.patience = self._score_patience(trades)
         score.risk = self._score_risk(trades, state.config)

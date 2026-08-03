@@ -1,11 +1,12 @@
 """Tests for Elite Terminal Backend."""
 
 from unittest.mock import MagicMock, patch
+
 import pandas as pd
 
-from services.terminal_service import TerminalService
-from market.models import Asset, AssetMetadata
 from market.intelligence.models import IntelligenceBundle
+from market.models import Asset, AssetMetadata
+from services.terminal_service import TerminalService
 
 
 class TestTerminalService:

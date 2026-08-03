@@ -7,14 +7,16 @@ daily loss, and position size before a trade is opened.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime, timezone
+from typing import Any
 
 from config import (
     MAX_DAILY_LOSS,
     MAX_EXPOSURE_PER_SYMBOL,
     MAX_OPEN_TRADES,
     MAX_PORTFOLIO_EXPOSURE,
+    MAX_POSITION_SIZE_USD,
 )
 from database import FINAL_STATUSES, Trade, get_session
 from risk.models import (
@@ -128,7 +130,7 @@ class RiskManager:
             summarize_decision(decision, "RiskManager")
             return decision
 
-        today_start = datetime.now(timezone.utc).replace(
+        today_start = datetime.now(UTC).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
         daily_losses = (

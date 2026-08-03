@@ -5,7 +5,6 @@ from typing import Any, Optional
 
 from decision.evidence.dto import EvidenceItem
 
-
 CONFLICT_PAIRS: list[tuple[str, str, str]] = [
     ("risk_engine", "scanner", "Risk vs Scanner"),
     ("council", "scanner", "Council vs Scanner"),
@@ -23,8 +22,8 @@ class Conflict:
     description: str
     engine_a: str
     engine_b: str
-    item_a: Optional[EvidenceItem] = None
-    item_b: Optional[EvidenceItem] = None
+    item_a: EvidenceItem | None = None
+    item_b: EvidenceItem | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {

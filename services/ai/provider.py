@@ -14,7 +14,7 @@ class HealthStatus:
     model: str
     latency_ms: float
     provider: str
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -23,10 +23,10 @@ class GenerationResult:
     model: str
     provider: str
     duration_ms: float
-    tokens_in: Optional[int] = None
-    tokens_out: Optional[int] = None
+    tokens_in: int | None = None
+    tokens_out: int | None = None
     retries: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class AIProvider(ABC):

@@ -74,7 +74,7 @@ class TestHyperliquidExchange:
             ex.candles("NONEXISTENT_COIN_12345")
 
     def test_positions_with_paper_order(self, db_session, monkeypatch):
-        from database import Trade, PaperOrder, Signal
+        from database import PaperOrder, Signal, Trade
         # Seed Signal for DB integrity if checked
         sig = Signal(id=1, symbol="BTC", side="BUY", approved=True)
         db_session.add(sig)
@@ -106,7 +106,7 @@ class TestHyperliquidExchange:
         assert pos.current_price == Decimal("51050")
 
     def test_positions_no_paper_order(self, db_session, monkeypatch):
-        from database import Trade, Signal
+        from database import Signal, Trade
         sig = Signal(id=2, symbol="ETH", side="BUY", approved=True)
         db_session.add(sig)
         db_session.flush()
@@ -131,7 +131,7 @@ class TestHyperliquidExchange:
         assert pos.current_price == Decimal("3055")
 
     def test_positions_ticker_exception(self, db_session, monkeypatch):
-        from database import Trade, Signal
+        from database import Signal, Trade
         sig = Signal(id=3, symbol="SOL", side="BUY", approved=True)
         db_session.add(sig)
         db_session.flush()
