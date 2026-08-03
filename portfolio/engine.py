@@ -117,8 +117,9 @@ class PortfolioEngine:
             profit_factor = 0.0
 
         # ── Equity curve & drawdown (from Trade model, PnL × rough qty) ─
-        # Use PaperTrade data for equity curve when available; fall back to
-        # Trade.pnl for trades without PaperTrade records.
+        # Use PaperTrade data for equity curve. If a trade does not have a matching
+        # PaperTrade, we skip its contribution entirely to avoid injecting wrong-magnitude
+        # per-unit price deltas into a dollar-denominated equity curve.
         closed_trades_with_pnl = [
             t for t in closed_trades
             if t.pnl is not None
@@ -135,10 +136,9 @@ class PortfolioEngine:
                 (p for p in closed_paper_trades if p.position_id == t.id),
                 None,
             )
-            if pt is not None:
-                step = float(pt.pnl or 0) * float(pt.quantity or 0)
-            else:
-                step = float(t.pnl or 0)
+            if pt is None:
+                continue
+            step = float(pt.pnl or 0) * float(pt.quantity or 0)
             new_eq = equity_curve[-1] + step
             equity_curve.append(new_eq)
             if new_eq > peak:
@@ -147,6 +147,13 @@ class PortfolioEngine:
                 dd = (peak - new_eq) / peak
                 if dd > max_dd:
                     max_dd = dd
+
+        logger.info(
+            "Portfolio metrics computed. closed_trades=%s, closed_trades_with_pnl=%s. "
+            "win_rate and profit_factor are calculated over the closed_trades_with_pnl subset.",
+            str(len(closed_trades)),
+            str(len(closed_paper_trades)),
+        )
 
         return PortfolioSnapshot(
             total_equity=round(total_equity, 2),
@@ -168,4 +175,5 @@ class PortfolioEngine:
             max_drawdown=round(max_dd * 100, 2),
             equity_curve=[round(e, 2) for e in equity_curve],
             initial_capital=self.initial_capital,
+            closed_trades_with_pnl=len(closed_paper_trades),
         )
