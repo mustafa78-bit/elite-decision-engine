@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -70,8 +71,24 @@ class OrderManager:
 
         logger.info("Cancelling order %s for %s", order_id, symbol)
         cancelled = self.exchange.cancel_order(order_id, symbol.upper())
-        if cancelled and order_id in self._open_orders:
-            self._open_orders.pop(order_id)
+        if cancelled:
+            # Update the order's status to "CANCELED" in both self._open_orders and self._history
+            old_order = self._open_orders.get(order_id)
+            if not old_order:
+                # Fallback: look it up in history
+                for o in self._history:
+                    if o.id == order_id:
+                        old_order = o
+                        break
+
+            if old_order:
+                updated_order = dataclasses.replace(old_order, status="CANCELED")
+                self._open_orders.pop(order_id, None)
+                # Replace in history
+                for i, o in enumerate(self._history):
+                    if o.id == order_id:
+                        self._history[i] = updated_order
+                        break
         return cancelled
 
     def cancel_all(self, symbol: Optional[str] = None) -> int:
@@ -86,7 +103,13 @@ class OrderManager:
         for order in to_cancel:
             try:
                 if self.exchange.cancel_order(order.id, order.symbol):
+                    updated_order = dataclasses.replace(order, status="CANCELED")
                     self._open_orders.pop(order.id, None)
+                    # Replace in history
+                    for i, o in enumerate(self._history):
+                        if o.id == order.id:
+                            self._history[i] = updated_order
+                            break
                     count += 1
             except Exception as e:
                 logger.warning("Failed to cancel order %s: %s", order.id, e)
