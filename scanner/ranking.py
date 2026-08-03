@@ -25,24 +25,34 @@ class OpportunityRanker:
     def rank(self, results: list[ScanResult]) -> list[Opportunity]:
         opportunities: list[Opportunity] = []
         for r in results:
-            composite = (
+            directional_composite = (
                 r.trend_score * self.weights["trend"]
                 + r.momentum_score * self.weights["momentum"]
                 + r.breakout_score * self.weights["breakout"]
                 + r.reversal_score * self.weights["reversal"]
-                + r.liquidity_score * self.weights["liquidity"]
             )
-            r.composite_score = round(composite, 4)
-            if composite <= 0:
+
+            if directional_composite > 0:
+                side = "LONG"
+                composite = directional_composite + r.liquidity_score * self.weights["liquidity"]
+            elif directional_composite < 0:
+                side = "SHORT"
+                composite = directional_composite - r.liquidity_score * self.weights["liquidity"]
+            else:
                 continue
 
-            side = "LONG" if composite > 0 else "SHORT"
+            r.composite_score = round(composite, 4)
+            if abs(composite) <= 0:
+                continue
+
             opp = Opportunity(
                 symbol=r.symbol,
                 side=side,
                 strategy=self._best_strategy(r),
-                score=composite,
-                confidence=min(composite * 100, 99.0),
+                score=round(abs(composite), 4),
+                confidence=min(round(abs(composite) * 100, 2), 99.0),
+                price=r.price,
+                trend_score=r.trend_score,
                 features=r.features,
                 signals=r.signals,
             )
@@ -59,10 +69,10 @@ class OpportunityRanker:
     @staticmethod
     def _best_strategy(r: ScanResult) -> str:
         scores = {
-            "trend": r.trend_score,
-            "momentum": r.momentum_score,
-            "breakout": r.breakout_score,
-            "reversal": r.reversal_score,
+            "trend": abs(r.trend_score),
+            "momentum": abs(r.momentum_score),
+            "breakout": abs(r.breakout_score),
+            "reversal": abs(r.reversal_score),
             "liquidity": r.liquidity_score,
         }
         return max(scores, key=scores.get)

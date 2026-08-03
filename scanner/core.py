@@ -22,6 +22,7 @@ from scanner.strategies import (
     TrendStrategy,
 )
 from scanner.watchlist import WatchlistEngine
+from market_data.universe import get_top_volume_symbols
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class OpportunityScanner:
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.ranker = ranker or OpportunityRanker()
-        self.symbols = symbols or _DEFAULT_SYMBOLS
+        self.symbols = symbols if symbols is not None else get_top_volume_symbols()
 
         self.trend = TrendStrategy()
         self.momentum = MomentumStrategy()
@@ -161,6 +162,7 @@ class OpportunityScanner:
 
         return ScanResult(
             symbol=symbol,
+            price=asset.price,
             trend_score=trend_score,
             momentum_score=momentum_score,
             breakout_score=breakout_score,
@@ -227,6 +229,7 @@ class OpportunityScanner:
                 btc_trend=r.btc_trend or None,
                 funding_level=r.funding_level or None,
                 fear_greed_value=self._parse_fear_greed(r),
+                side=opp.side,
             )
             opp.probability_score = prob
             opp.probability_signals = prob_signals

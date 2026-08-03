@@ -47,6 +47,7 @@ HL_API_KEY: str = os.getenv("HL_API_KEY", "")
 HL_SECRET: str = os.getenv("HL_SECRET", "")
 TELEGRAM_TOKEN: str = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_ALLOWED_CHAT_IDS: str = os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "")
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_USER = os.getenv("POSTGRES_USER")
@@ -107,3 +108,9 @@ ATR_MULTIPLIER = float(os.getenv("ATR_MULTIPLIER", "1.5"))
 assert ATR_MULTIPLIER > 0, f"ATR_MULTIPLIER must be positive, got {ATR_MULTIPLIER}"
 MIN_POSITION_QUANTITY = float(os.getenv("MIN_POSITION_QUANTITY", "0.001"))
 assert MIN_POSITION_QUANTITY > 0, f"MIN_POSITION_QUANTITY must be positive, got {MIN_POSITION_QUANTITY}"
+
+COIN_UNIVERSE_SIZE = int(os.getenv("COIN_UNIVERSE_SIZE", "100"))
+
+AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "false").lower() == "true"
+SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "300"))
+assert SCAN_INTERVAL_SECONDS > 0, f"SCAN_INTERVAL_SECONDS must be positive, got {SCAN_INTERVAL_SECONDS}"

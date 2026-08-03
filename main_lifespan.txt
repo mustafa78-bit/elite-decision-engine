@@ -1,0 +1,60 @@
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from logging_config import setup_logging
+    setup_logging()
+    logger.info("Application starting up")
+
+    # Initialize OLLO Service
+    global _ollo_service
+    try:
+        from services.ai.provider_factory import create_ai_service
+        from services.ollo.ollo_service import OLLOService
+        _ai_svc = create_ai_service()
+        _ollo_service = OLLOService(_ai_svc)
+        logger.info("OLLO Service initialized successfully")
+    except Exception as e:
+        logger.warning("OLLO Service initialization failed: %s", e)
+
+    # Start Telegram Bot if configured
+    from services.telegram.bot import TelegramBotManager
+    bot_manager = TelegramBotManager.get_instance()
+    bot_started = bot_manager.setup()
+    if bot_started:
+        # Run bot startup as a background task
+        bot_task = asyncio.create_task(bot_manager.start())
+        _background_tasks.add(bot_task)
+
+    if AUTO_TRADING_ENABLED:
+        scan_task = asyncio.create_task(_scan_and_generate_signals())
+        _background_tasks.add(scan_task)
+
+        decision_engine = DecisionEngine(
+            execution_loop=ExecutionLoop(trade_journal=PaperDomainExecutor())
+        )
+        engine_task = asyncio.create_task(decision_engine.run())
+        _background_tasks.add(engine_task)
+
+        logger.info(
+            "AUTO_TRADING_ENABLED=true: scan-and-signal and decision-engine "
+            "background tasks started"
+        )
+
+    task = asyncio.create_task(_periodic_broadcast())
+    _background_tasks.add(task)
+
+    yield
+
+    logger.info("Application shutting down")
+    if bot_started:
+        try:
+            await bot_manager.stop()
+        except Exception as e:
+            logger.warning("Telegram Bot shutdown error: %s", e)
+
+    task.cancel()
+    for t in _background_tasks:
+        if not t.done():
+            t.cancel()
+    await asyncio.gather(*_background_tasks, return_exceptions=True)
+    try:

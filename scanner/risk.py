@@ -57,7 +57,7 @@ class RiskScorer:
             risk -= 0.1
             signals.append("HIGH_LIQUIDITY_BOOST")
 
-        if reversal_score > 0.5:
+        if abs(reversal_score) > 0.5:
             risk += 0.1
             signals.append("REVERSAL_RISK")
 

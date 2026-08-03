@@ -1,0 +1,13 @@
+./api/routes/execution.py
+./notifications/dispatcher.py
+./monitoring/health.py
+./execution/paper_executor.py
+./execution/trade_engine.py
+./tests/test_paper_executor_notification.py
+./tests/test_trade_engine.py
+./tests/test_notification_dispatcher.py
+./tests/test_trade_notification.py
+./tests/test_paper_lifecycle.py
+./tests/test_paper_domain.py
+./tests/test_paper_executor.py
+./tests/test_edge_cases.py

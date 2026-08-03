@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from api.rate_limit import limiter
 from services.ollo.mission_profile import PROFILES_BY_ROOM
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,8 @@ def ollo_greet(room: str = "command_deck", request: Request = None):
 
 
 @router.post("/ollo/query")
-def ollo_query(query: str, room: str = "command_deck", request: Request = None):
+@limiter.limit("20/minute")
+def ollo_query(request: Request, query: str, room: str = "command_deck"):
     if not query or not query.strip():
         return JSONResponse(status_code=400, content={"error": "Query is required"})
     svc = _get_ollo()

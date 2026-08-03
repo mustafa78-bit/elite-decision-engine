@@ -21,6 +21,14 @@ from database import (
 
 
 def _make_trade(db_session, **overrides):
+    signal_id = overrides.get("signal_id", 1)
+    if signal_id is not None:
+        from database import Signal
+        existing_signal = db_session.query(Signal).filter(Signal.id == signal_id).first()
+        if not existing_signal:
+            sig = Signal(id=signal_id, symbol=overrides.get("symbol", "BTCUSDT"), side=overrides.get("side", "LONG"))
+            db_session.add(sig)
+            db_session.flush()
     kwargs = dict(
         signal_id=1,
         symbol="BTCUSDT",
@@ -404,3 +412,69 @@ def test_cancelled_trade_not_in_open(db_session, session_factory):
     assert snap.open_trades == 0
     assert snap.position_count == 0
     assert snap.exposure == 0.0
+
+
+# ── Root PortfolioEngine (portfolio_engine.py) tests ────────────────────────
+
+
+def test_root_portfolio_engine_unrealized_and_equity(db_session, session_factory):
+    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
+    from database import Signal
+
+    # Seed Signals to satisfy FK constraint on Trade.signal_id
+    sig1 = Signal(id=101, symbol="BTCUSDT", side="LONG")
+    sig2 = Signal(id=102, symbol="ETHUSDT", side="LONG")
+    db_session.add(sig1)
+    db_session.add(sig2)
+    db_session.flush()
+
+    # Open trade with positive unrealized pnl
+    _make_trade(db_session, id=101, signal_id=101, symbol="BTCUSDT", status="OPEN", pnl=150.0)
+    # Open trade with negative unrealized pnl
+    _make_trade(db_session, id=102, signal_id=102, symbol="ETHUSDT", status="OPEN", pnl=-50.0)
+
+    engine = RootPortfolioEngine(
+        session_factory=session_factory,
+        initial_equity=10000.0,
+    )
+    stats = engine.stats()
+
+    # unrealized_pnl should be 150.0 + (-50.0) = 100.0
+    assert stats.unrealized_pnl == 100.0
+    # equity should be initial_equity + total_pnl + unrealized_pnl = 10000.0 + 0 + 100.0 = 10100.0
+    assert stats.equity == 10100.0
+
+
+def test_root_portfolio_engine_daily_pnl_timezone_aware(db_session, session_factory):
+    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
+    from datetime import datetime, timezone
+    from database import Signal
+
+    # Seed Signal to satisfy FK constraint on Trade.signal_id
+    sig1 = Signal(id=103, symbol="BTCUSDT", side="LONG")
+    db_session.add(sig1)
+    db_session.flush()
+
+    # Closed trade with timezone-aware closed_at
+    aware_now = datetime.now(timezone.utc)
+    _make_trade(
+        db_session,
+        id=103,
+        signal_id=103,
+        symbol="BTCUSDT",
+        status="CLOSED",
+        pnl=250.0,
+        closed_at=aware_now,
+    )
+
+    engine = RootPortfolioEngine(
+        session_factory=session_factory,
+        initial_equity=10000.0,
+    )
+
+    # This should not raise "TypeError: can't compare offset-naive and offset-aware datetimes"
+    stats = engine.stats()
+
+    assert stats.daily_pnl == 250.0
+    assert stats.total_pnl == 250.0
+    assert stats.equity == 10250.0

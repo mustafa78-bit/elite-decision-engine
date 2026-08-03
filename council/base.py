@@ -18,6 +18,28 @@ DIRECTION_NEUTRAL = "NEUTRAL"
 DIRECTION_PASS = "PASS"
 
 
+def normalize_direction(literal_direction: str, side: str) -> str:
+    """Normalize literal direction relative to trade side.
+
+    BULLISH = asset is going up, BEARISH = asset is going down.
+    If trading SHORT, a bearish market condition supports the trade (making it relative-BULLISH),
+    and a bullish market condition opposes the trade (making it relative-BEARISH).
+
+    For side.upper() == 'SHORT': flip BULLISH <-> BEARISH.
+    Otherwise (LONG or default): return literal_direction unchanged.
+    """
+    direction_upper = literal_direction.upper() if literal_direction else DIRECTION_NEUTRAL
+    side_upper = side.upper() if side else "LONG"
+
+    if side_upper == "SHORT":
+        if direction_upper == DIRECTION_BULLISH:
+            return DIRECTION_BEARISH
+        elif direction_upper == DIRECTION_BEARISH:
+            return DIRECTION_BULLISH
+
+    return direction_upper
+
+
 @dataclass
 class AgentReport:
     agent_name: str
@@ -42,10 +64,11 @@ class AgentReport:
 
 
 class BaseAgent(ABC):
-    def __init__(self, name: str, weight: float = 1.0, priority: int = 5):
+    def __init__(self, name: str, weight: float = 1.0, priority: int = 5, is_directional: bool = True):
         self.name = name
         self.weight = weight
         self.priority = priority
+        self.is_directional = is_directional
         self._eval_count = 0
         self._error_count = 0
         self._total_latency = 0.0
