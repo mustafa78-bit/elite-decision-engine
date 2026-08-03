@@ -252,6 +252,48 @@ class TestContextBuilder:
             ctx = self.builder.build(["risk_metrics"])
             assert ctx.risk_metrics is None
 
+    def test_load_risk_exposure_fallback_uses_real_notional(self, db_session, session_factory):
+        """When PORTFOLIO_EXPOSURE is absent from decision.checks (e.g. MAX_OPEN_TRADES
+        already failed), the exposure fallback must use real notional (quantity * entry
+        via PaperTrade), not raw Trade.entry -- same bug already fixed in
+        risk_manager.py itself."""
+        from database import PaperTrade, Trade
+        from risk.models import RiskCheckDetail, RiskDecision
+
+        # High-unit-price BTC trade, but a small real quantity -> small real notional.
+        trade = Trade(symbol="BTCUSDT", side="LONG", entry=150000.0, status="OPEN")
+        db_session.add(trade)
+        db_session.flush()
+        paper_trade = PaperTrade(
+            position_id=trade.id,
+            symbol="BTCUSDT",
+            side="LONG",
+            entry=150000.0,
+            quantity=0.1,
+            status="OPEN",
+        )
+        db_session.add(paper_trade)
+        db_session.flush()
+
+        # Only MAX_OPEN_TRADES present -> PORTFOLIO_EXPOSURE missing from checks,
+        # matching how the real early short-circuit triggers this fallback.
+        mock_decision = RiskDecision(
+            allowed=False,
+            reason="Maximum open trades reached",
+            rejection_code="MAX_OPEN_TRADES",
+            checks=(RiskCheckDetail(name="MAX_OPEN_TRADES", passed=False, value=3.0, limit=3.0),),
+        )
+        mock_risk_manager = MagicMock()
+        mock_risk_manager.evaluate_trade.return_value = mock_decision
+        mock_risk_manager.session_factory = session_factory
+
+        with patch("risk_manager.RiskManager", return_value=mock_risk_manager):
+            ctx = self.builder.build(["risk_metrics"])
+
+        assert ctx.risk_metrics is not None
+        # Real notional (0.1 * 150,000 = 15,000), not raw entry price (150,000).
+        assert ctx.risk_metrics["portfolio_exposure"] == 15000.0
+
     def test_load_trade_history_success_and_failure(self):
         # 1. Success case using mock
         mock_tm = MagicMock()

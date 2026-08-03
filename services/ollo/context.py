@@ -186,12 +186,23 @@ class ContextBuilder:
             need_daily_loss = "DAILY_LOSS_LIMIT" not in present_check_names
 
             if need_exposure or need_daily_loss:
-                from database import FINAL_STATUSES, Trade
+                from database import FINAL_STATUSES, PaperTrade, Trade
                 session = rm.session_factory()
                 try:
                     if need_exposure:
-                        total_exposure = session.query(Trade.entry).filter(Trade.status == "OPEN").all()
-                        metrics["portfolio_exposure"] = round(sum(r.entry for r in total_exposure if r.entry is not None), 2)
+                        portfolio_trades = (
+                            session.query(Trade, PaperTrade)
+                            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+                            .filter(Trade.status == "OPEN")
+                            .all()
+                        )
+                        current_total = 0.0
+                        for trade, paper_trade in portfolio_trades:
+                            if paper_trade is not None:
+                                current_total += (paper_trade.quantity or 0.0) * (paper_trade.entry or 0.0)
+                            else:
+                                current_total += trade.entry or 0.0
+                        metrics["portfolio_exposure"] = round(current_total, 2)
 
                     if need_daily_loss:
                         today_start = datetime.now(UTC).replace(
