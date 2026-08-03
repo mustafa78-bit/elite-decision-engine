@@ -2,15 +2,46 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-from config import TELEGRAM_ALLOWED_CHAT_IDS, TELEGRAM_TOKEN
+from config import TELEGRAM_ALLOWED_CHAT_IDS, TELEGRAM_CHAT_ID, TELEGRAM_TOKEN
 from monitoring.health import HealthService
 
 logger = logging.getLogger(__name__)
+
+
+def chunk_text(text: str) -> list[str]:
+    """Splits a message into chunks of at most 4096 characters to prevent failures."""
+    max_length = 4096
+    if len(text) <= max_length:
+        return [text]
+
+    chunks = []
+    current_chunk = ""
+    for line in text.split("\n"):
+        if len(current_chunk) + len(line) + 1 > max_length:
+            chunks.append(current_chunk)
+            current_chunk = line
+        else:
+            if current_chunk:
+                current_chunk += "\n" + line
+            else:
+                current_chunk = line
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    final_chunks = []
+    for chunk in chunks:
+        if len(chunk) > max_length:
+            # Fallback character-based split for abnormally long lines
+            for i in range(0, len(chunk), max_length):
+                final_chunks.append(chunk[i:i + max_length])
+        else:
+            final_chunks.append(chunk)
+    return final_chunks
 
 # Parse TELEGRAM_ALLOWED_CHAT_IDS into a set of integers or strings
 allowed_ids: set[Any] = set()
@@ -41,32 +72,9 @@ def authorized_only(func):
 
 async def send_long_message(update: Update, text: str):
     """Automatically splits and sends messages longer than 4096 characters to prevent failures."""
-    max_length = 4096
-    if len(text) <= max_length:
-        await update.message.reply_text(text, parse_mode="HTML")
-        return
-
-    chunks = []
-    current_chunk = ""
-    for line in text.split("\n"):
-        if len(current_chunk) + len(line) + 1 > max_length:
-            chunks.append(current_chunk)
-            current_chunk = line
-        else:
-            if current_chunk:
-                current_chunk += "\n" + line
-            else:
-                current_chunk = line
-    if current_chunk:
-        chunks.append(current_chunk)
-
+    chunks = chunk_text(text)
     for chunk in chunks:
-        if len(chunk) > max_length:
-            # Fallback character-based split for abnormally long lines
-            for i in range(0, len(chunk), max_length):
-                await update.message.reply_text(chunk[i:i + max_length], parse_mode="HTML")
-        else:
-            await update.message.reply_text(chunk, parse_mode="HTML")
+        await update.message.reply_text(chunk, parse_mode="HTML")
 
 
 _ollo_service: Any | None = None
@@ -195,12 +203,54 @@ class TelegramBotManager:
 
     def __init__(self):
         self.application: Application | None = None
+        self.loop: asyncio.AbstractEventLoop | None = None
 
     @classmethod
     def get_instance(cls) -> TelegramBotManager:
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
+
+    def set_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Sets the reference to the main thread's event loop."""
+        self.loop = loop
+        logger.info("TelegramBotManager main event loop set successfully.")
+
+    async def send_alert(self, text: str) -> None:
+        """Coroutine to send a proactive message directly to TELEGRAM_CHAT_ID."""
+        if not self.application:
+            logger.debug("Telegram alert skipped: bot not setup")
+            return
+
+        if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+            logger.debug("Telegram alert skipped: token or chat ID not configured")
+            return
+
+        try:
+            chunks = chunk_text(text)
+            for chunk in chunks:
+                await self.application.bot.send_message(
+                    chat_id=TELEGRAM_CHAT_ID,
+                    text=chunk,
+                    parse_mode="HTML"
+                )
+            logger.info("Telegram proactive alert sent successfully.")
+        except Exception as e:
+            logger.warning("Failed to send Telegram alert: %s", e)
+
+    def send_alert_threadsafe(self, text: str) -> None:
+        """Thread-safe method to trigger the send_alert coroutine on the captured main loop."""
+        if not self.application or not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+            logger.debug("Telegram alert skipped: bot or credentials not configured")
+            return
+
+        if not self.loop:
+            logger.warning("Telegram alert skipped: main event loop reference is missing")
+            return
+
+        # Schedule the send_alert coroutine on the captured main loop thread-safely
+        coro = self.send_alert(text)
+        asyncio.run_coroutine_threadsafe(coro, self.loop)
 
     def setup(self) -> bool:
         if not TELEGRAM_TOKEN:
