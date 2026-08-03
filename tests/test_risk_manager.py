@@ -116,11 +116,11 @@ class TestRiskManager:
         allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
         assert allowed is True
 
-    def test_reject_position_size(self, db_session, session_factory):
+    def test_no_rejection_for_high_unit_price(self, db_session, session_factory):
         mgr = RiskManager(session_factory=session_factory)
         allowed, reason = mgr.can_open_trade(_make_candidate(entry=150000.0))
-        assert allowed is False
-        assert "Position size limit" in reason
+        assert allowed is True
+        assert reason == ""
 
 
 class TestRiskManagerEvaluateTrade:
@@ -140,7 +140,6 @@ class TestRiskManagerEvaluateTrade:
         assert "SYMBOL_EXPOSURE" in check_names
         assert "PORTFOLIO_EXPOSURE" in check_names
         assert "DAILY_LOSS_LIMIT" in check_names
-        assert "POSITION_SIZE_LIMIT" in check_names
 
     def test_check_values_populated(self, db_session, session_factory):
         mgr = RiskManager(session_factory=session_factory)

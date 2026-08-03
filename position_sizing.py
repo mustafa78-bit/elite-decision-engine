@@ -60,12 +60,17 @@ class PositionSizingEngine:
         account_risk = self.account_equity * self.risk_percentage / 100.0
         raw_quantity = account_risk / risk_per_unit
 
-        notional = raw_quantity * entry
-        if notional > self.max_position_usd:
+        final = max(raw_quantity, self.min_quantity)
+
+        if final * entry > self.max_position_usd:
             clamped = self.max_position_usd / entry if entry > 0 else 0.0
-            final = max(clamped, self.min_quantity)
-        else:
-            final = max(raw_quantity, self.min_quantity)
+            if clamped < self.min_quantity:
+                logger.warning(
+                    "Min quantity floor %s would exceed max position safety cap %s at entry price %s. "
+                    "Overriding min quantity with clamped value %s to enforce safety cap.",
+                    self.min_quantity, self.max_position_usd, entry, clamped
+                )
+            final = clamped
 
         return PositionSize(
             quantity=round(final, 8),
