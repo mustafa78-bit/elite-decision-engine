@@ -108,6 +108,7 @@ async def lifespan(app: FastAPI):
     # Start Telegram Bot if configured
     from services.telegram.bot import TelegramBotManager
     bot_manager = TelegramBotManager.get_instance()
+    bot_manager.set_event_loop(asyncio.get_running_loop())
     bot_started = bot_manager.setup()
     if bot_started:
         # Run bot startup as a background task
