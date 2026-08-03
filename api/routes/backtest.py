@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 
-from database import Signal, Trade, get_session
+from database import FINAL_STATUSES, Signal, Trade, get_session
 
 router = APIRouter()
 
@@ -29,11 +29,13 @@ def run_backtest(limit: int = Query(200, ge=1, le=1000)):
     rejected = total_signals - approved
 
     total_trades = len(trades)
-    closed_trades = [t for t in trades if t.status == "CLOSED"]
+    closed_trades = [t for t in trades if t.status in FINAL_STATUSES]
     open_trades = [t for t in trades if t.status == "OPEN"] if trades else []
 
-    wins = sum(1 for t in closed_trades if t.pnl and t.pnl > 0)
-    losses = sum(1 for t in closed_trades if t.pnl and t.pnl < 0)
+    closed_trades_perf = [t for t in closed_trades if t.status != "CANCEL"]
+
+    wins = sum(1 for t in closed_trades_perf if t.pnl and t.pnl > 0)
+    losses = sum(1 for t in closed_trades_perf if t.pnl and t.pnl < 0)
     total_pnl = sum(t.pnl or 0 for t in trades)
 
     roi = 0
@@ -42,21 +44,21 @@ def run_backtest(limit: int = Query(200, ge=1, le=1000)):
         gross_risk = trade_capital * total_trades * 0.02
         roi = (total_pnl / gross_risk) * 100 if gross_risk > 0 else 0
 
-    win_rate = (wins / len(closed_trades)) * 100 if closed_trades else 0
+    win_rate = (wins / len(closed_trades_perf)) * 100 if closed_trades_perf else 0
     avg_win = (
-        sum(t.pnl for t in closed_trades if t.pnl and t.pnl > 0) / wins
+        sum(t.pnl for t in closed_trades_perf if t.pnl and t.pnl > 0) / wins
         if wins > 0
         else 0
     )
     avg_loss = (
-        sum(abs(t.pnl) for t in closed_trades if t.pnl and t.pnl < 0) / losses
+        sum(abs(t.pnl) for t in closed_trades_perf if t.pnl and t.pnl < 0) / losses
         if losses > 0
         else 0
     )
 
     profit_factor = avg_win / avg_loss if avg_loss > 0 else 0
 
-    pnls = [t.pnl for t in closed_trades if t.pnl is not None]
+    pnls = [t.pnl for t in closed_trades_perf if t.pnl is not None]
     running_max = 0
     max_drawdown = 0
     cumulative = 0
