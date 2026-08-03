@@ -14,7 +14,6 @@ from config import (
     MAX_DAILY_LOSS,
     MAX_EXPOSURE_PER_SYMBOL,
     MAX_OPEN_TRADES,
-    MAX_POSITION_SIZE_USD,
     MAX_PORTFOLIO_EXPOSURE,
 )
 from database import FINAL_STATUSES, Trade, get_session
@@ -154,22 +153,6 @@ class RiskManager:
             limit=MAX_DAILY_LOSS,
         ))
         if abs_loss >= MAX_DAILY_LOSS:
-            decision = risk_decision_from_checks(checks)
-            summarize_decision(decision, "RiskManager")
-            return decision
-
-        checks.append(RiskCheckDetail(
-            name=RejectionCode.POSITION_SIZE_LIMIT,
-            passed=entry <= MAX_POSITION_SIZE_USD,
-            detail=(
-                f"Position size limit exceeded: "
-                f"{entry:.2f} > {MAX_POSITION_SIZE_USD}"
-                if entry > MAX_POSITION_SIZE_USD else ""
-            ),
-            value=round(entry, 2),
-            limit=MAX_POSITION_SIZE_USD,
-        ))
-        if entry > MAX_POSITION_SIZE_USD:
             decision = risk_decision_from_checks(checks)
             summarize_decision(decision, "RiskManager")
             return decision

@@ -95,3 +95,17 @@ class TestPositionSizing:
         assert result.quantity == 0.001
         assert result.notional_value == pytest.approx(50.0, abs=0.01)
         assert result.risk_amount == 0.0
+
+    def test_min_quantity_vs_max_position_conflict(self):
+        """Test that max_position_usd override is enforced when min_quantity's notional would exceed it."""
+        sizer = PositionSizingEngine(
+            account_equity=1000000,
+            risk_percentage=1.0,
+            atr_multiplier=1.5,
+            max_position_usd=1000.0,
+            min_quantity=0.1,  # at entry=50000.0, notional would be 5000.0, exceeding 1000.0
+        )
+        result = sizer.calculate(_MockCandidate(entry=50000.0, atr=500.0))
+        # It should override the min_quantity (0.1) and clamp to 1000 / 50000.0 = 0.02
+        assert result.quantity == pytest.approx(0.02, abs=1e-8)
+        assert result.notional_value == pytest.approx(1000.0, abs=0.01)

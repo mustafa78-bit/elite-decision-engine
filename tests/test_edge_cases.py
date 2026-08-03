@@ -255,8 +255,8 @@ class TestRiskManagerEdgeCases:
         assert allowed is True
         assert reason == ""
 
-    def test_entry_above_max_size_blocked(self, db_session, session_factory, monkeypatch):
-        monkeypatch.setattr("risk_manager.MAX_POSITION_SIZE_USD", 1000)
+    def test_entry_above_max_size_not_blocked(self, db_session, session_factory, monkeypatch):
+        monkeypatch.setattr("config.MAX_POSITION_SIZE_USD", 1000)
         rm = RiskManager(session_factory=session_factory)
 
         class BigCandidate:
@@ -266,8 +266,8 @@ class TestRiskManagerEdgeCases:
             scores = {}
 
         allowed, reason = rm.can_open_trade(BigCandidate())
-        assert allowed is False
-        assert "exceeded" in reason.lower()
+        assert allowed is True
+        assert reason == ""
 
 
 # ─── ConfidenceEngine edge cases ─────────────────────────────────────────────
