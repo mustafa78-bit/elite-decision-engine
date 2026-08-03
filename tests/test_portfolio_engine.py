@@ -4,20 +4,22 @@ Verifies all portfolio computations: equity, PnL, exposure, position
 count, cash, win/loss tracking, equity curve, and drawdown.
 """
 
+from datetime import UTC
+
 import pytest
 
-from portfolio import PortfolioEngine, PortfolioSnapshot
 from database import (
+    CANCEL,
     CLOSED,
     OPEN,
+    SL_HIT,
     STOP_LOSS,
     TAKE_PROFIT,
     TP_HIT,
-    SL_HIT,
-    CANCEL,
     PaperTrade,
     Trade,
 )
+from portfolio import PortfolioEngine, PortfolioSnapshot
 
 
 def _make_trade(db_session, **overrides):
@@ -418,8 +420,8 @@ def test_cancelled_trade_not_in_open(db_session, session_factory):
 
 
 def test_root_portfolio_engine_unrealized_and_equity(db_session, session_factory):
-    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
     from database import Signal
+    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
 
     # Seed Signals to satisfy FK constraint on Trade.signal_id
     sig1 = Signal(id=101, symbol="BTCUSDT", side="LONG")
@@ -446,9 +448,10 @@ def test_root_portfolio_engine_unrealized_and_equity(db_session, session_factory
 
 
 def test_root_portfolio_engine_daily_pnl_timezone_aware(db_session, session_factory):
-    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
     from datetime import datetime, timezone
+
     from database import Signal
+    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
 
     # Seed Signal to satisfy FK constraint on Trade.signal_id
     sig1 = Signal(id=103, symbol="BTCUSDT", side="LONG")
@@ -456,7 +459,7 @@ def test_root_portfolio_engine_daily_pnl_timezone_aware(db_session, session_fact
     db_session.flush()
 
     # Closed trade with timezone-aware closed_at
-    aware_now = datetime.now(timezone.utc)
+    aware_now = datetime.now(UTC)
     _make_trade(
         db_session,
         id=103,

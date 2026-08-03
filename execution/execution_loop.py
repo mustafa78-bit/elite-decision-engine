@@ -8,8 +8,9 @@ paper trade monitoring stays in ``PaperExecutor``.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 
 from database import update_signal_status
 from execution.paper import PaperExecutor as PaperDomainExecutor
@@ -36,14 +37,14 @@ class ExecutionLoop:
 
     def __init__(
         self,
-        pipeline: Optional[DecisionPipeline] = None,
-        trade_engine: Optional[TradeEngine] = None,
-        paper_executor: Optional[PaperExecutor] = None,
-        risk_manager: Optional[RiskManager] = None,
-        position_sizer: Optional[PositionSizingEngine] = None,
-        logger: Optional[logging.Logger] = None,
-        signal_ranker: Optional[SignalRankingAI] = None,
-        trade_journal: Optional[PaperDomainExecutor] = None,
+        pipeline: DecisionPipeline | None = None,
+        trade_engine: TradeEngine | None = None,
+        paper_executor: PaperExecutor | None = None,
+        risk_manager: RiskManager | None = None,
+        position_sizer: PositionSizingEngine | None = None,
+        logger: logging.Logger | None = None,
+        signal_ranker: SignalRankingAI | None = None,
+        trade_journal: PaperDomainExecutor | None = None,
     ) -> None:
         self.pipeline = pipeline or DecisionPipeline()
         self.trade_engine = trade_engine or TradeEngine()
@@ -110,7 +111,7 @@ class ExecutionLoop:
             monitor_results=monitor_results,
         )
 
-    def process_signal(self, signal: TradingSignal) -> Optional[Any]:
+    def process_signal(self, signal: TradingSignal) -> Any | None:
         """Evaluate one signal and create a trade only when approved."""
 
         if signal is None:
@@ -187,7 +188,7 @@ class ExecutionLoop:
         self.logger.info("Monitored %s open paper trades", len(results))
         return results
 
-    def _create_trade(self, candidate: TradeCandidate) -> Optional[Any]:
+    def _create_trade(self, candidate: TradeCandidate) -> Any | None:
         entry = candidate.entry
         atr = candidate.scores.get("atr")
 

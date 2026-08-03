@@ -13,14 +13,14 @@ class Order:
     side: str
     order_type: str
     quantity: Decimal
-    price: Optional[Decimal] = None
-    stop_price: Optional[Decimal] = None
+    price: Decimal | None = None
+    stop_price: Decimal | None = None
     status: str = "PENDING"
     filled_quantity: Decimal = Decimal("0")
-    avg_fill_price: Optional[Decimal] = None
+    avg_fill_price: Decimal | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
-    client_order_id: Optional[str] = None
+    updated_at: datetime | None = None
+    client_order_id: str | None = None
     reduce_only: bool = False
     time_in_force: str = "GTC"
 
@@ -35,9 +35,9 @@ class Position:
     unrealized_pnl: Decimal = Decimal("0")
     realized_pnl: Decimal = Decimal("0")
     leverage: int = 1
-    liquidation_price: Optional[Decimal] = None
+    liquidation_price: Decimal | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
 
 @dataclass(frozen=True)

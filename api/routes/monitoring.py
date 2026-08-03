@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from database import FINAL_STATUSES, Notification, Trade, Signal, get_session
 from config import API_ENV, DEBUG
+from database import FINAL_STATUSES, Notification, Signal, Trade, get_session
 from monitoring.health import HealthService
 
 router = APIRouter()

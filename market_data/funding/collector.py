@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 import requests
 
-from market_data.funding.models import FundingRate, FundingResult, _FRESHNESS_THRESHOLD_SECONDS, validate_funding_rate
+from market_data.funding.models import _FRESHNESS_THRESHOLD_SECONDS, FundingRate, FundingResult, validate_funding_rate
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class FundingCollector:
             logger.warning("Failed to fetch funding data: %s", e)
             return FundingResult()
 
-    def fetch_for_symbol(self, symbol: str) -> Optional[FundingRate]:
+    def fetch_for_symbol(self, symbol: str) -> FundingRate | None:
         result = self.fetch_all()
         return result.rate_for(symbol)
 
@@ -95,7 +95,6 @@ class FundingCollector:
         result = self.fetch_funding_history(symbol, limit=1)
         if result.empty:
             return {"fresh": False, "reason": "No funding data available"}
-        rate = result.rates[0]
         if result.is_fresh:
             return {"fresh": True, "age_seconds": 0}
         return {"fresh": False, "reason": "Funding data is stale"}

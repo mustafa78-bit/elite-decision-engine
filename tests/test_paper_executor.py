@@ -1,7 +1,9 @@
 """Unit tests for PaperExecutor core logic (no external API dependencies)."""
 
-import pytest
+from datetime import UTC
+
 import pandas as pd
+import pytest
 
 from database import Trade
 from execution.paper_executor import PaperExecutor, PaperTradeRequest
@@ -366,7 +368,7 @@ class TestCloseTradeValidation:
         )
         trade = Trade(
             symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49250.0, tp1=51000.0,
-            status="TP_HIT", exit_price=51000.0, closed_at=datetime.now(timezone.utc),
+            status="TP_HIT", exit_price=51000.0, closed_at=datetime.now(UTC),
         )
         db_session.add(trade)
         db_session.flush()
@@ -410,7 +412,7 @@ class TestMonitorStaleTrade:
             "execution.paper_executor.NotificationDispatcher.emit",
             lambda *a, **kw: None,
         )
-        old = datetime.now(timezone.utc) - timedelta(days=30)
+        old = datetime.now(UTC) - timedelta(days=30)
         trade = Trade(
             symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49250.0, tp1=51000.0,
             status="OPEN", created_at=old,

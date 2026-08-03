@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
 
-class SimStatus(str, Enum):
+class SimStatus(StrEnum):
     IDLE = "IDLE"
     RUNNING = "RUNNING"
     PAUSED = "PAUSED"
@@ -18,7 +18,7 @@ class SimStatus(str, Enum):
     STOPPED = "STOPPED"
 
 
-class SimSpeed(str, Enum):
+class SimSpeed(StrEnum):
     SPEED_1X = "1x"
     SPEED_2X = "2x"
     SPEED_5X = "5x"
@@ -27,13 +27,13 @@ class SimSpeed(str, Enum):
     UNLIMITED = "unlimited"
 
 
-class AIDecisionMode(str, Enum):
+class AIDecisionMode(StrEnum):
     MANUAL = "MANUAL"
     AI_ASSISTED = "AI_ASSISTED"
     FULL_AI = "FULL_AI"
 
 
-class ScenarioType(str, Enum):
+class ScenarioType(StrEnum):
     FLASH_CRASH = "FLASH_CRASH"
     BULL_RUN = "BULL_RUN"
     CAPITULATION = "CAPITULATION"
@@ -46,7 +46,7 @@ class ScenarioType(str, Enum):
     CUSTOM = "CUSTOM"
 
 
-class MarketRegime(str, Enum):
+class MarketRegime(StrEnum):
     BULL = "BULL"
     BEAR = "BEAR"
     SIDEWAYS = "SIDEWAYS"
@@ -59,12 +59,12 @@ class MarketRegime(str, Enum):
 class SimulatorConfig:
     symbol: str = "BTC"
     timeframe: str = "1h"
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    start_date: str | None = None
+    end_date: str | None = None
     initial_capital: float = 10000.0
     ai_mode: AIDecisionMode = AIDecisionMode.FULL_AI
     speed: SimSpeed = SimSpeed.SPEED_1X
-    scenario: Optional[ScenarioType] = None
+    scenario: ScenarioType | None = None
     slippage_bps: int = 5
     fee_rate: float = 0.001
     leverage: float = 1.0
@@ -111,9 +111,9 @@ class SimulatedDecision:
     confidence: float
     evidence_strength: float
     risk_score: float
-    council_report: Optional[dict[str, Any]] = None
-    evidence_report: Optional[dict[str, Any]] = None
-    explanation: Optional[dict[str, Any]] = None
+    council_report: dict[str, Any] | None = None
+    evidence_report: dict[str, Any] | None = None
+    explanation: dict[str, Any] | None = None
     agent_reports: list[dict[str, Any]] = field(default_factory=list)
     conflicts: list[str] = field(default_factory=list)
 
@@ -132,19 +132,19 @@ class SimulatedTrade:
     leverage: float
     stop_loss: float
     take_profit: float
-    trailing_stop: Optional[float] = None
+    trailing_stop: float | None = None
     status: str = "OPEN"
-    exit_price: Optional[float] = None
-    exit_time: Optional[int] = None
+    exit_price: float | None = None
+    exit_time: int | None = None
     pnl: float = 0.0
     pnl_percent: float = 0.0
     fees: float = 0.0
     slippage: float = 0.0
-    close_reason: Optional[str] = None
-    decision_id: Optional[str] = None
-    elite_score: Optional[float] = None
-    entry_decision: Optional[dict[str, Any]] = None
-    exit_decision: Optional[dict[str, Any]] = None
+    close_reason: str | None = None
+    decision_id: str | None = None
+    elite_score: float | None = None
+    entry_decision: dict[str, Any] | None = None
+    exit_decision: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -159,7 +159,7 @@ class TimelineEvent:
     title: str
     description: str
     severity: str = "info"
-    data: Optional[dict[str, Any]] = None
+    data: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -201,8 +201,8 @@ class SimulatorState:
     config: SimulatorConfig = field(default_factory=SimulatorConfig)
     current_candle_index: int = 0
     total_candles: int = 0
-    current_timestamp: Optional[int] = None
-    current_price: Optional[float] = None
+    current_timestamp: int | None = None
+    current_price: float | None = None
     elapsed_seconds: float = 0.0
     candles: list[SimulatedCandle] = field(default_factory=list)
     decisions: list[SimulatedDecision] = field(default_factory=list)
@@ -216,7 +216,7 @@ class SimulatorState:
     total_pnl: float = 0.0
     win_count: int = 0
     loss_count: int = 0
-    founder_metrics: Optional[dict[str, Any]] = None
+    founder_metrics: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -280,7 +280,7 @@ class MissionReport:
     mistakes: list[str]
     lessons: list[str]
     ai_recommendations: list[str]
-    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    generated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)

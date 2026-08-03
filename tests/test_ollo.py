@@ -21,25 +21,33 @@ import pytest
 
 from services.ai import AIService, GenerationResult, HealthStatus
 from services.ollo import (
-    OLLOService,
-    Planner,
-    Plan,
-    ContextBuilder,
-    OLLOContext,
-    get_system_prompt,
-    BriefingGenerator,
-    MissionProfile,
-    get_profile,
     PROFILES_BY_ROOM,
-    OLLOResponse,
-    OLLOBriefing,
-    parse_response,
-    parse_briefing,
-    CommanderMemory,
+    BriefingGenerator,
     BriefingRecord,
+    CommanderMemory,
+    ContextBuilder,
+    MissionProfile,
+    OLLOBriefing,
+    OLLOContext,
+    OLLOResponse,
+    OLLOService,
+    Plan,
+    Planner,
     RecommendationRecord,
+    get_profile,
+    get_system_prompt,
+    parse_briefing,
+    parse_response,
 )
-from services.ollo.mission_profile import COMMAND_DECK, SCANNER, WHALE, PORTFOLIO, RISK_OPERATIONS, MISSION_ARCHIVE, COUNCIL_CHAMBER
+from services.ollo.mission_profile import (
+    COMMAND_DECK,
+    COUNCIL_CHAMBER,
+    MISSION_ARCHIVE,
+    PORTFOLIO,
+    RISK_OPERATIONS,
+    SCANNER,
+    WHALE,
+)
 
 
 class MockAIService:
@@ -219,7 +227,7 @@ class TestContextBuilder:
 
     def test_load_risk_success_and_failure(self):
         # 1. Success case using mocks
-        from risk.models import RiskDecision, RiskCheckDetail
+        from risk.models import RiskCheckDetail, RiskDecision
 
         checks = [
             RiskCheckDetail(name="MAX_OPEN_TRADES", passed=True, value=2.0, limit=3.0),

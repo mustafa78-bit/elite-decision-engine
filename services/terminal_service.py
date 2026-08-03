@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from database import FINAL_STATUSES, Signal, Trade, get_session
@@ -22,9 +22,9 @@ class TerminalService:
 
     def __init__(
         self,
-        market_service: Optional[MarketDataService] = None,
-        scanner: Optional[OpportunityScanner] = None,
-        aggregator: Optional[DecisionAggregator] = None,
+        market_service: MarketDataService | None = None,
+        scanner: OpportunityScanner | None = None,
+        aggregator: DecisionAggregator | None = None,
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.scanner = scanner or OpportunityScanner()
@@ -39,7 +39,7 @@ class TerminalService:
             "recent_signals": self._get_recent_signals(),
             "top_opportunities": self._get_top_opportunities(),
             "risk_status": self._get_risk_status(),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     def get_market(self) -> dict[str, Any]:

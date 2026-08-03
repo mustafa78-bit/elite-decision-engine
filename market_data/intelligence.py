@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from market_data.base import IntelligenceProvider
@@ -24,10 +24,10 @@ class MarketFeature:
     confidence: float = 0.0
     metadata: dict = field(default_factory=dict)
 
-    def is_fresh(self, now: Optional[float] = None, max_age: float = _INTELLIGENCE_FRESHNESS_SECONDS) -> bool:
+    def is_fresh(self, now: float | None = None, max_age: float = _INTELLIGENCE_FRESHNESS_SECONDS) -> bool:
         if self.timestamp <= 0:
             return False
-        now = now or datetime.now(timezone.utc).timestamp()
+        now = now or datetime.now(UTC).timestamp()
         ts = self.timestamp
         if ts > 1e12:
             ts = ts / 1000
@@ -88,7 +88,7 @@ class MissingDataHandler:
         return str(value)
 
     @staticmethod
-    def safe_dict(value: Any, default: Optional[dict] = None) -> Optional[dict]:
+    def safe_dict(value: Any, default: dict | None = None) -> dict | None:
         if isinstance(value, dict):
             return value
         return default
@@ -97,8 +97,8 @@ class MissingDataHandler:
 @dataclass(frozen=True)
 class IntelligenceBundle:
     symbol: str
-    funding_risk: Optional[dict] = None
-    oi_trend: Optional[dict] = None
+    funding_risk: dict | None = None
+    oi_trend: dict | None = None
     availability: FeatureAvailability = field(default_factory=FeatureAvailability)
     errors: tuple[str, ...] = ()
     confidence: float = 0.0
@@ -108,9 +108,9 @@ class IntelligenceBundle:
     def from_bundle(
         cls,
         symbol: str,
-        funding_risk: Optional[dict] = None,
-        oi_trend: Optional[dict] = None,
-        errors: Optional[list[str]] = None,
+        funding_risk: dict | None = None,
+        oi_trend: dict | None = None,
+        errors: list[str] | None = None,
     ) -> IntelligenceBundle:
         has_funding = funding_risk is not None
         has_oi = oi_trend is not None
@@ -140,10 +140,10 @@ class IntelligenceBundle:
         )
 
 
-def _log_intelligence_event(symbol: str, event: str, details: Optional[dict] = None) -> None:
+def _log_intelligence_event(symbol: str, event: str, details: dict | None = None) -> None:
     logger.info(
         "Intelligence [%s] %s | symbol=%s details=%s",
-        datetime.now(timezone.utc).isoformat(),
+        datetime.now(UTC).isoformat(),
         event,
         symbol,
         details or {},
@@ -153,7 +153,7 @@ def _log_intelligence_event(symbol: str, event: str, details: Optional[dict] = N
 def _log_intelligence_error(symbol: str, source: str, error: str) -> None:
     logger.error(
         "Intelligence [%s] ERROR | symbol=%s source=%s error=%s",
-        datetime.now(timezone.utc).isoformat(),
+        datetime.now(UTC).isoformat(),
         symbol,
         source,
         error,
@@ -163,8 +163,8 @@ def _log_intelligence_error(symbol: str, source: str, error: str) -> None:
 class IntelligenceCollector:
     def __init__(
         self,
-        funding_collector: Optional[FundingCollector] = None,
-        oi_collector: Optional[OpenInterestCollector] = None,
+        funding_collector: FundingCollector | None = None,
+        oi_collector: OpenInterestCollector | None = None,
     ):
         self.funding: IntelligenceProvider = funding_collector or FundingCollector()
         self.oi: IntelligenceProvider = oi_collector or OpenInterestCollector()
@@ -172,8 +172,8 @@ class IntelligenceCollector:
 
     def collect(self, symbol: str) -> IntelligenceBundle:
         errors: list[str] = []
-        funding_risk: Optional[dict] = None
-        oi_trend: Optional[dict] = None
+        funding_risk: dict | None = None
+        oi_trend: dict | None = None
 
         try:
             rate = self.funding.fetch_for_symbol(symbol)

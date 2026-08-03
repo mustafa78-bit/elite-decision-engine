@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_engine: Optional[SimulatorEngine] = None
-_session_mgr: Optional[SessionManager] = None
-_ws_manager: Optional[WebSocketManager] = None
-_replay_engine: Optional[MarketReplayEngine] = None
+_engine: SimulatorEngine | None = None
+_session_mgr: SessionManager | None = None
+_ws_manager: WebSocketManager | None = None
+_replay_engine: MarketReplayEngine | None = None
 
 
 def _get_engine() -> SimulatorEngine:
@@ -219,7 +219,7 @@ def manual_trade(
     take_profit: float = Query(gt=0),
     quantity: float = Query(gt=0),
     leverage: float = Query(1.0, ge=1, le=100),
-    trailing_stop: Optional[float] = Query(None, gt=0),
+    trailing_stop: float | None = Query(None, gt=0),
 ):
     eng = _get_engine()
     if eng.state is None:
@@ -232,7 +232,7 @@ def manual_trade(
 
 
 @router.post("/simulator/trade/{trade_id}/close")
-def close_trade(trade_id: str, exit_price: Optional[float] = Query(None, gt=0)):
+def close_trade(trade_id: str, exit_price: float | None = Query(None, gt=0)):
     eng = _get_engine()
     ok = eng.close_trade(trade_id, exit_price)
     if not ok:
@@ -241,7 +241,7 @@ def close_trade(trade_id: str, exit_price: Optional[float] = Query(None, gt=0)):
 
 
 @router.post("/simulator/trades/close-all")
-def close_all_trades(exit_price: Optional[float] = Query(None, gt=0)):
+def close_all_trades(exit_price: float | None = Query(None, gt=0)):
     eng = _get_engine()
     closed = eng.close_all_trades(exit_price)
     return {"closed_count": closed}
@@ -301,7 +301,7 @@ def generate_scenario(
     symbol: str = "BTC",
     timeframe: str = "1h",
     num_candles: int = 200,
-    start_price: Optional[float] = None,
+    start_price: float | None = None,
 ):
     df = generate_scenario_data(scenario_type, symbol, timeframe, num_candles, start_price)
     if df is None or df.empty:

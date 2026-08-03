@@ -21,9 +21,9 @@ class NVIDIAProvider(AIProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        model: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
         timeout: float = _DEFAULT_TIMEOUT,
     ) -> None:
         self._api_key = api_key or ""
@@ -70,7 +70,7 @@ class NVIDIAProvider(AIProvider):
 
     def _chat_completion(self, messages: list[dict[str, Any]], **kwargs: Any) -> GenerationResult:
         start = time.perf_counter()
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         total_attempts = 0
 
         for attempt in range(_MAX_RETRIES):

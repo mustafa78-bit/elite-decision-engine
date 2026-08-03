@@ -4,7 +4,7 @@ import json
 import logging
 import uuid
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -12,9 +12,9 @@ from simulator.models import (
     MissionReport,
     SessionMeta,
     SimStatus,
+    SimulatedTrade,
     SimulatorConfig,
     SimulatorState,
-    SimulatedTrade,
     TrainingScore,
 )
 
@@ -24,18 +24,18 @@ SESSIONS_DIR = Path("simulator/sessions")
 
 
 class SessionManager:
-    def __init__(self, storage_dir: Optional[Path] = None) -> None:
+    def __init__(self, storage_dir: Path | None = None) -> None:
         self._dir = storage_dir or SESSIONS_DIR
         self._dir.mkdir(parents=True, exist_ok=True)
         self._sessions: dict[str, SimulatorState] = {}
-        self._active_id: Optional[str] = None
+        self._active_id: str | None = None
 
     @property
-    def active_id(self) -> Optional[str]:
+    def active_id(self) -> str | None:
         return self._active_id
 
     @property
-    def active(self) -> Optional[SimulatorState]:
+    def active(self) -> SimulatorState | None:
         if self._active_id and self._active_id in self._sessions:
             return self._sessions[self._active_id]
         return None
@@ -72,7 +72,7 @@ class SessionManager:
         except Exception as e:
             logger.error("Failed to save session %s: %s", state.session_id, e)
 
-    def load(self, session_id: str) -> Optional[SimulatorState]:
+    def load(self, session_id: str) -> SimulatorState | None:
         if session_id in self._sessions:
             self._active_id = session_id
             return self._sessions[session_id]
@@ -170,8 +170,8 @@ class SessionManager:
         return {
             "id": state.session_id,
             "name": name or f"Session {state.session_id[:8]}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
             "config": state.config.to_dict(),
             "status": state.status.value,
             "total_trades": len(trades),

@@ -30,16 +30,16 @@ class WhaleAgent(BaseAgent):
         name: str = "Whale",
         weight: float = 1.0,
         priority: int = 3,
-        whale_service: Optional[WhaleService] = None,
+        whale_service: WhaleService | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority)
         self.whale_service = whale_service or WhaleService()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"

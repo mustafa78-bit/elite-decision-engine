@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-import requests
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
+
+import requests
 
 from market_data.funding.collector import FundingCollector
 from market_data.open_interest.collector import OpenInterestCollector
@@ -20,8 +21,8 @@ class WhaleService:
 
     def __init__(
         self,
-        funding_collector: Optional[FundingCollector] = None,
-        oi_collector: Optional[OpenInterestCollector] = None,
+        funding_collector: FundingCollector | None = None,
+        oi_collector: OpenInterestCollector | None = None,
     ) -> None:
         self.funding_collector = funding_collector or FundingCollector()
         self.oi_collector = oi_collector or OpenInterestCollector()
@@ -33,7 +34,7 @@ class WhaleService:
             return clean
         return f"{clean}USDT"
 
-    def _binance_request(self, path: str, params: dict[str, Any]) -> Optional[Any]:
+    def _binance_request(self, path: str, params: dict[str, Any]) -> Any | None:
         """Try querying Binance hosts sequentially to avoid geographic restriction 451 errors."""
         for host in BINANCE_HOSTS:
             url = f"{host}{path}"
@@ -52,8 +53,8 @@ class WhaleService:
     def detect(
         self,
         symbol: str,
-        volume_score: Optional[float] = None,
-        volatility_score: Optional[float] = None,
+        volume_score: float | None = None,
+        volatility_score: float | None = None,
         price: float = 0.0,
     ) -> list[dict[str, Any]]:
         """Detect whale activity signals from real market data."""
@@ -99,7 +100,7 @@ class WhaleService:
                             "severity": severity,
                             "description": f"Detected {large_trades_count} unusually large single trade(s) with max size {max_large_trade:,.2f} USDT",
                             "confidence": round(confidence, 2),
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "timestamp": datetime.now(UTC).isoformat(),
                         })
 
             # 2. Fetch order book depth to calculate bid/ask volume imbalance
@@ -135,7 +136,7 @@ class WhaleService:
                             "severity": severity,
                             "description": f"Strong whale {wall_type} wall detected (order book volume imbalance: {imbalance*100:+.1f}%)",
                             "confidence": round(abs(imbalance), 2),
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "timestamp": datetime.now(UTC).isoformat(),
                         })
 
             # 3. Fetch funding & open interest from Hyperliquid (as extra signals if available)
@@ -156,7 +157,7 @@ class WhaleService:
                             "severity": "high" if abs(latest_rate) >= 0.001 else "medium",
                             "description": f"Extreme funding rate detected ({latest_rate*100:.4f}% per interval), market in extreme {direction}",
                             "confidence": min(abs(latest_rate) * 1000.0, 0.95),
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "timestamp": datetime.now(UTC).isoformat(),
                         })
             except Exception as e:
                 logger.debug("Hyperliquid funding check bypassed for whale detection: %s", e)
@@ -175,7 +176,7 @@ class WhaleService:
                             "severity": "high" if strength >= 0.8 else "medium",
                             "description": f"Whale-driven open interest buildup detected (trend: {trend}, strength: {strength:.2f})",
                             "confidence": round(strength, 2),
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "timestamp": datetime.now(UTC).isoformat(),
                         })
             except Exception as e:
                 logger.debug("Hyperliquid open interest check bypassed for whale detection: %s", e)
@@ -193,7 +194,7 @@ class WhaleService:
                     "severity": "high" if volume_score > 0.95 else "medium",
                     "description": "Unusually high volume detected (heuristic fallback)",
                     "confidence": round(volume_score, 2),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 })
 
             if volume_score and volatility_score:
@@ -205,7 +206,7 @@ class WhaleService:
                         "severity": "high" if combined > 0.85 else "medium",
                         "description": "Potential whale accumulation/distribution (heuristic fallback)",
                         "confidence": round(combined, 2),
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                     })
 
         return signals

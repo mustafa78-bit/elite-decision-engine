@@ -11,7 +11,7 @@ from services.ollo.memory import CommanderMemory
 from services.ollo.mission_profile import get_profile
 from services.ollo.parser import OLLOBriefing, OLLOResponse, parse_response
 from services.ollo.personality import get_system_prompt
-from services.ollo.planner import Planner, Plan
+from services.ollo.planner import Plan, Planner
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +21,10 @@ class OLLOService:
     def __init__(
         self,
         ai_service: AIService,
-        context_builder: Optional[ContextBuilder] = None,
-        planner: Optional[Planner] = None,
-        briefing_generator: Optional[BriefingGenerator] = None,
-        memory: Optional[CommanderMemory] = None,
+        context_builder: ContextBuilder | None = None,
+        planner: Planner | None = None,
+        briefing_generator: BriefingGenerator | None = None,
+        memory: CommanderMemory | None = None,
     ) -> None:
         self._ai = ai_service
         self._context = context_builder or ContextBuilder()
@@ -146,7 +146,6 @@ class OLLOService:
         return response
 
     def briefing(self, kind: str = "morning", room_id: str = "command_deck") -> OLLOBriefing:
-        start = time.perf_counter()
         plan = self._planner.plan_briefing(room_id, kind)
         context = self._context.build(plan.context_keys, room=room_id)
 
@@ -156,7 +155,6 @@ class OLLOService:
         )
 
         briefing = self._briefing.generate(plan, context)
-        elapsed = (time.perf_counter() - start) * 1000
 
         self._memory.record_briefing(kind, briefing.text)
 

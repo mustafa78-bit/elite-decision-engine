@@ -26,7 +26,7 @@ class ExchangeAdapter(ABC):
         ...
 
     @abstractmethod
-    def positions(self, symbol: Optional[str] = None) -> list[Position]:
+    def positions(self, symbol: str | None = None) -> list[Position]:
         ...
 
     @abstractmethod
@@ -38,7 +38,7 @@ class ExchangeAdapter(ABC):
         ...
 
     @abstractmethod
-    def order_status(self, order_id: str, symbol: str) -> Optional[Order]:
+    def order_status(self, order_id: str, symbol: str) -> Order | None:
         ...
 
     @abstractmethod

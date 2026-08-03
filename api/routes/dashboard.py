@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -213,7 +214,7 @@ def dashboard_notifications(request: Request):
     try:
         from database import Notification
 
-        unread = session.query(Notification).filter(Notification.read == False).count()
+        unread = session.query(Notification).filter(Notification.read == False).count()  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
         recent = (
             session.query(Notification)
             .order_by(Notification.created_at.desc())
@@ -255,16 +256,16 @@ def dashboard_hero(request: Request):
         session.close()
 
     try:
-        from portfolio.engine import PortfolioEngine
         from performance.engine import PerformanceEngine
+        from portfolio.engine import PortfolioEngine
         snapshot = PortfolioEngine().snapshot()
         perf = PerformanceEngine().report(snapshot)
 
         market_regime = "UNKNOWN"
         try:
-            from scoring.regime_ai import get_regime_ai
-            from market_data.indicators import IndicatorEngine
             from market_data.collector import HyperliquidCollector
+            from market_data.indicators import IndicatorEngine
+            from scoring.regime_ai import get_regime_ai
             collector = HyperliquidCollector()
             df = collector.get_ohlcv(symbol="BTC", timeframe="1h")
             if not df.empty:
@@ -274,10 +275,8 @@ def dashboard_hero(request: Request):
         except Exception:
             logger.warning("Failed to fetch market regime for hero banner", exc_info=True)
 
+        from explain.core import ExplainInput, ExplainResult
         from explain.engine import ExplainEngine
-        from explain.core import ExplainInput
-
-        from explain.core import ExplainResult
 
         empty_result = ExplainResult()
         result = empty_result
@@ -312,7 +311,7 @@ def dashboard_hero(request: Request):
         tp = float(trade.tp1 or 0) if trade else 0.0
         sl = float(trade.stop or 0) if trade else 0.0
         rr = float(trade.rr or 0) if trade else 0.0
-        ts = signal.created_at.isoformat() if signal and signal.created_at else datetime.now(timezone.utc).isoformat()
+        ts = signal.created_at.isoformat() if signal and signal.created_at else datetime.now(UTC).isoformat()
 
         widget = HeroBannerDTO(
             decision=result.decision,

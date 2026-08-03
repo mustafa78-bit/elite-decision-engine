@@ -2,16 +2,16 @@ import logging
 from contextlib import contextmanager
 
 from sqlalchemy import (
-    create_engine,
+    JSON,
+    Boolean,
     Column,
+    DateTime,
+    Float,
+    ForeignKey,
     Integer,
     String,
-    Float,
-    DateTime,
-    Boolean,
     Text,
-    JSON,
-    ForeignKey,
+    create_engine,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func

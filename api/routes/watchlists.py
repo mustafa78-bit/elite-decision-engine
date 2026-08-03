@@ -14,7 +14,7 @@ def _get_watchlist_service() -> WatchlistService:
 
 
 @router.get("/watchlists")
-def list_watchlists(user_id: Optional[int] = Query(None)):
+def list_watchlists(user_id: int | None = Query(None)):
     svc = _get_watchlist_service()
     return {"watchlists": svc.list_watchlists(user_id=user_id)}
 
@@ -29,7 +29,7 @@ def get_watchlist(watchlist_id: int):
 
 
 @router.post("/watchlists")
-def create_watchlist(name: str = "Default", symbols: str = "", user_id: Optional[int] = Query(None)):
+def create_watchlist(name: str = "Default", symbols: str = "", user_id: int | None = Query(None)):
     svc = _get_watchlist_service()
     symbol_list = [s.strip() for s in symbols.split(",") if s.strip()] if symbols else []
     return svc.create_watchlist(name=name, symbols=symbol_list, user_id=user_id)

@@ -13,3 +13,5 @@ starlette
 uvicorn
 websockets
 python-telegram-bot
+pytest
+pytest-asyncio

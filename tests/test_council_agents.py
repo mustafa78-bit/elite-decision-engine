@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from council.base import DIRECTION_BEARISH, DIRECTION_BULLISH, DIRECTION_NEUTRAL, DIRECTION_PASS
+from council.macro_agent import MacroAgent
+from council.news_agent import NewsAgent
+from council.risk_agent import RiskAgent
 from council.technical_agent import TechnicalAgent
 from council.trend_agent import TrendAgent
-from council.risk_agent import RiskAgent
-from council.news_agent import NewsAgent
 from council.whale_agent import WhaleAgent
-from council.macro_agent import MacroAgent
 
 
 @pytest.fixture

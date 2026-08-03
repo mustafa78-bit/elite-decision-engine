@@ -40,7 +40,7 @@ jobs:
           pip install ruff
 
       - name: Lint
-        run: ruff check . --ignore E501 F401
+        run: ruff check . --ignore E501,F401
 
       - name: Test
         env:

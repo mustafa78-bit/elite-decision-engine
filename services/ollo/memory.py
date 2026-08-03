@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
+
+from database import CommanderMemoryEntry, get_session
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +16,7 @@ class BriefingRecord:
     kind: str
     text: str
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
 
 
@@ -23,7 +26,7 @@ class RecommendationRecord:
     room: str
     response_text: str
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
 
 
@@ -32,9 +35,6 @@ class UserPreference:
     key: str
     value: str
 
-
-from typing import Callable, Any
-from database import get_session, CommanderMemoryEntry
 
 class CommanderMemory:
 
@@ -80,7 +80,7 @@ class CommanderMemory:
                     BriefingRecord(
                         kind=entry.key or "",
                         text=entry.value or "",
-                        timestamp=entry.timestamp or datetime.now(timezone.utc).isoformat(),
+                        timestamp=entry.timestamp or datetime.now(UTC).isoformat(),
                     )
                 )
             self._briefings_cache = records
@@ -91,7 +91,7 @@ class CommanderMemory:
         finally:
             session.close()
 
-    def last_briefing(self, kind: Optional[str] = None) -> Optional[BriefingRecord]:
+    def last_briefing(self, kind: str | None = None) -> BriefingRecord | None:
         session = self.session_factory()
         try:
             query = session.query(CommanderMemoryEntry).filter(CommanderMemoryEntry.entry_type == "BRIEFING")
@@ -103,7 +103,7 @@ class CommanderMemory:
             return BriefingRecord(
                 kind=entry.key or "",
                 text=entry.value or "",
-                timestamp=entry.timestamp or datetime.now(timezone.utc).isoformat(),
+                timestamp=entry.timestamp or datetime.now(UTC).isoformat(),
             )
         except Exception as e:
             logger.error("Failed to retrieve last briefing: %s", e)
@@ -137,7 +137,7 @@ class CommanderMemory:
         finally:
             session.close()
 
-    def recent_recommendations(self, limit: int = 5, room: Optional[str] = None) -> list[RecommendationRecord]:
+    def recent_recommendations(self, limit: int = 5, room: str | None = None) -> list[RecommendationRecord]:
         session = self.session_factory()
         try:
             query = (
@@ -158,7 +158,7 @@ class CommanderMemory:
                         query=entry.query or "",
                         room=entry.room or "",
                         response_text=entry.value or "",
-                        timestamp=entry.timestamp or datetime.now(timezone.utc).isoformat(),
+                        timestamp=entry.timestamp or datetime.now(UTC).isoformat(),
                     )
                 )
             self._recommendations_cache = records
@@ -201,7 +201,7 @@ class CommanderMemory:
         finally:
             session.close()
 
-    def get_preference(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_preference(self, key: str, default: str | None = None) -> str | None:
         session = self.session_factory()
         try:
             entry = (

@@ -2,12 +2,12 @@
 
 import pytest
 
+from market_data.open_interest.collector import OpenInterestCollector
 from market_data.open_interest.models import (
     OpenInterest,
     OpenInterestResult,
     detect_oi_trend,
 )
-from market_data.open_interest.collector import OpenInterestCollector
 
 
 class TestOpenInterest:

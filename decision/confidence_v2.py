@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ConfidenceEngineV2:
     """Enhanced confidence calculation using full Asset intelligence."""
 
-    def evaluate_opportunity(self, opportunity: Opportunity, asset: Optional[Asset] = None) -> float:
+    def evaluate_opportunity(self, opportunity: Opportunity, asset: Asset | None = None) -> float:
         base = opportunity.score * 100
         adjustments: list[float] = []
 

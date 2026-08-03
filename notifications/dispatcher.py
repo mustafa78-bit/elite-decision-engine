@@ -6,7 +6,6 @@ from api.websocket.manager import WebSocketManager
 from database import Notification, get_session
 from notifications.serializer import serialize_event
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +26,7 @@ def _persist_notification(event: str, payload: dict) -> None:
 
 class NotificationDispatcher:
 
-    def __init__(self, websocket_manager: Optional[WebSocketManager] = None) -> None:
+    def __init__(self, websocket_manager: WebSocketManager | None = None) -> None:
         self.websocket_manager = websocket_manager
 
     def emit(self, event, payload):

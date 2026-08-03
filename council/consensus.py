@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from council.base import (
@@ -30,17 +30,17 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CouncilReport:
     symbol: str
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     consensus_direction: str = DIRECTION_NEUTRAL
     consensus_score: float = 0.0
     agreement_level: str = ""
     agent_reports: list[AgentReport] = field(default_factory=list)
-    coordinator_report: Optional[dict[str, Any]] = None
+    coordinator_report: dict[str, Any] | None = None
     agent_count: int = 0
     sources_agreeing: int = 0
     sources_disagreeing: int = 0
     risk_veto: bool = False
-    risk_veto_reason: Optional[str] = None
+    risk_veto_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -80,8 +80,8 @@ class ConsensusEngine:
 
     def __init__(
         self,
-        coordinator: Optional[CoordinatorService] = None,
-        weights: Optional[dict[str, float]] = None,
+        coordinator: CoordinatorService | None = None,
+        weights: dict[str, float] | None = None,
     ) -> None:
         self.coordinator = coordinator or CoordinatorService()
         self.weights = weights or dict(DEFAULT_WEIGHTS)
@@ -125,8 +125,8 @@ class ConsensusEngine:
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> CouncilReport:
         self._eval_count += 1
@@ -140,7 +140,7 @@ class ConsensusEngine:
 
         consensus_direction, consensus_score, agreement, risk_veto, risk_veto_reason = self._compute_consensus(reports, side)
 
-        coordinator_report: Optional[dict[str, Any]] = None
+        coordinator_report: dict[str, Any] | None = None
         try:
             coordinator_report = self.coordinator.evaluate(signal, scores).to_dict()
         except Exception as e:
@@ -168,7 +168,7 @@ class ConsensusEngine:
 
     def _compute_consensus(
         self, reports: list[AgentReport], side: str
-    ) -> tuple[str, float, str, bool, Optional[str]]:
+    ) -> tuple[str, float, str, bool, str | None]:
         if not reports:
             return DIRECTION_NEUTRAL, 0.0, "none", False, None
 
@@ -247,7 +247,7 @@ class ConsensusEngine:
 
         return direction, round(score_normalized, 4), agreement, False, None
 
-    def get_agent(self, name: str) -> Optional[BaseAgent]:
+    def get_agent(self, name: str) -> BaseAgent | None:
         return self.agents.get(name)
 
     @property

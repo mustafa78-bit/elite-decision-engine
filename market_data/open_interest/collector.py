@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from typing import Optional
 
 import requests
@@ -47,7 +48,7 @@ class OpenInterestCollector:
             logger.warning("Failed to fetch open interest: %s", e)
             return OpenInterestResult()
 
-    def fetch_for_symbol(self, symbol: str) -> Optional[OpenInterest]:
+    def fetch_for_symbol(self, symbol: str) -> OpenInterest | None:
         result = self.fetch_all()
         return result.for_symbol(symbol)
 
@@ -70,7 +71,7 @@ class OpenInterestCollector:
         if oi is None:
             return {"fresh": False, "reason": "No OI data available"}
         from datetime import datetime, timezone
-        now = datetime.now(timezone.utc).timestamp()
+        now = datetime.now(UTC).timestamp()
         ts = oi.timestamp
         if ts > 1e12:
             ts = ts / 1000

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 from database import (
     DecisionExplanation,
@@ -9,8 +10,8 @@ from database import (
     get_session,
 )
 from explain.core import ExplainInput, ExplainResult
-from portfolio.core import PortfolioSnapshot
 from performance.core import PerformanceReport
+from portfolio.core import PortfolioSnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,6 @@ class ExplainEngine:
 
     def _build_reasons(self, inp: ExplainInput, decision: str) -> list[str]:
         reasons: list[str] = []
-        dims = self._dimension_scores(inp)
 
         tech_wording = self._score_wording(inp.technical_score)
         if inp.technical_score >= 0.5:
@@ -141,11 +141,6 @@ class ExplainEngine:
         elif inp.risk_score > 0:
             reasons.append(f"Risk score: {inp.risk_score:.2f} — elevated caution")
 
-        eq_ratio = (
-            inp.portfolio_total_equity / inp.portfolio_initial_capital
-            if inp.portfolio_initial_capital > 0
-            else 1.0
-        )
         if inp.portfolio_total_equity > 0:
             pnl_label = "profitable" if inp.portfolio_realized_pnl >= 0 else "loss-making"
             reasons.append(
@@ -248,8 +243,8 @@ class ExplainEngine:
     @staticmethod
     def from_signal(
         signal: Signal,
-        snapshot: Optional[PortfolioSnapshot] = None,
-        performance: Optional[PerformanceReport] = None,
+        snapshot: PortfolioSnapshot | None = None,
+        performance: PerformanceReport | None = None,
     ) -> ExplainInput:
         return ExplainInput(
             symbol=signal.symbol or "",
@@ -278,7 +273,7 @@ class ExplainService:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
+        session_factory: Callable[[], Any] | None = None,
     ) -> None:
         self.session_factory = session_factory or get_session
         self._engine = ExplainEngine()
@@ -286,8 +281,8 @@ class ExplainService:
     def explain_signal(
         self,
         signal: Signal,
-        snapshot: Optional[PortfolioSnapshot] = None,
-        performance: Optional[PerformanceReport] = None,
+        snapshot: PortfolioSnapshot | None = None,
+        performance: PerformanceReport | None = None,
         whale_score: float = 0.0,
         news_score: float = 0.0,
     ) -> DecisionExplanation:

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Request
-
 from pydantic import BaseModel
 
 from api.rate_limit import limiter

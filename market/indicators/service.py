@@ -24,10 +24,10 @@ class IndicatorService:
 
     def __init__(
         self,
-        cache: Optional[CacheManager] = None,
-        indicator_engine: Optional[IndicatorEngine] = None,
-        volatility_engine: Optional[VolatilityEngine] = None,
-        volume_engine: Optional[VolumeEngine] = None,
+        cache: CacheManager | None = None,
+        indicator_engine: IndicatorEngine | None = None,
+        volatility_engine: VolatilityEngine | None = None,
+        volume_engine: VolumeEngine | None = None,
         cache_ttl: float = 300,
     ) -> None:
         self.cache = cache or CacheManager(default_ttl=cache_ttl)
@@ -40,7 +40,7 @@ class IndicatorService:
         self,
         symbol: str,
         timeframe: str,
-        df: Optional[pd.DataFrame] = None,
+        df: pd.DataFrame | None = None,
     ) -> dict[str, Any]:
         """Return cached indicators, or compute and cache them."""
         cache_key = self.cache.make_key("indicators", symbol, timeframe)
@@ -66,7 +66,7 @@ class IndicatorService:
         self,
         symbol: str,
         timeframe: str,
-        df: Optional[pd.DataFrame] = None,
+        df: pd.DataFrame | None = None,
     ) -> dict[str, float]:
         """Return only numeric indicator values for the given symbol/timeframe."""
         raw = self.get_indicators(symbol, timeframe, df)
