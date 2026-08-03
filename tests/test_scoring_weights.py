@@ -37,6 +37,12 @@ class DummySignal:
     timeframe = "1h"
 
 
+class DummyShortSignal:
+    symbol = "BTCUSDT"
+    side = "SHORT"
+    timeframe = "1h"
+
+
 class TestConfidenceEngineUsesConfigWeights:
 
     def test_confidence_calculation_uses_config_weights(self, monkeypatch):
@@ -157,6 +163,53 @@ class TestScoringEngineUsesConfigWeights:
             0.5 * 0.10
         )
         assert result["final_score"] == pytest.approx(expected, abs=0.001)
+
+    def test_scoring_engine_btc_score_side_awareness(self, monkeypatch):
+        mock_df = _make_mock_df()
+        monkeypatch.setattr(
+            "scoring.scoring_engine.HyperliquidCollector.get_ohlcv",
+            lambda _self, **kwargs: mock_df,
+        )
+        monkeypatch.setattr(
+            "market_data.indicators.IndicatorEngine.calculate",
+            lambda _self, df: {
+                "ema20": 51000.0,
+                "ema50": 50500.0,
+                "ema200": 50200.0,
+                "rsi": 55.0,
+                "atr": 500.0,
+            },
+        )
+        monkeypatch.setattr(
+            "market_data.volume.VolumeEngine.score",
+            lambda _self, df: {"score": 0.5},
+        )
+        monkeypatch.setattr(
+            "market_data.btc_health.BTCHealth.score",
+            lambda _self: 0.8,
+        )
+        monkeypatch.setattr(
+            "market_data.volatility.VolatilityEngine.score",
+            lambda _self, values: {"score": 0.5, "volatility": 0.01},
+        )
+        monkeypatch.setattr(
+            "market_data.mtf.MTFEngine.score",
+            lambda _self, symbol, side: 0.5,
+        )
+        monkeypatch.setattr(
+            "scoring.risk_engine.RiskEngine.score",
+            lambda _self, values, volatility: 0.5,
+        )
+
+        engine = ScoringEngine()
+
+        # Test LONG signal
+        long_result = engine.score(DummySignal())
+        assert long_result["btc_score"] == 0.8
+
+        # Test SHORT signal
+        short_result = engine.score(DummyShortSignal())
+        assert short_result["btc_score"] == pytest.approx(0.2, abs=0.001)
 
     def test_scoring_engine_error_return_preserved(self, monkeypatch):
         def _raise(*args, **kwargs):
