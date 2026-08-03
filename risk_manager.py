@@ -18,7 +18,7 @@ from config import (
     MAX_PORTFOLIO_EXPOSURE,
     MAX_POSITION_SIZE_USD,
 )
-from database import FINAL_STATUSES, Trade, get_session
+from database import FINAL_STATUSES, PaperTrade, Trade, get_session
 from risk.models import (
     RejectionCode,
     RiskCheckDetail,
@@ -36,8 +36,17 @@ class RiskManager:
     Each rule is checked in order. The first violation short-circuits.
     """
 
-    def __init__(self, session_factory: Callable[[], Any] = get_session) -> None:
+    def __init__(
+        self,
+        session_factory: Callable[[], Any] = get_session,
+        position_sizer: Any | None = None,
+    ) -> None:
         self.session_factory = session_factory
+        if position_sizer is None:
+            from position_sizing import PositionSizingEngine
+            self.position_sizer = PositionSizingEngine()
+        else:
+            self.position_sizer = position_sizer
 
     def can_open_trade(self, candidate: Any) -> tuple[bool, str]:
         """Check all risk rules (legacy interface).
@@ -62,6 +71,16 @@ class RiskManager:
 
     def _evaluate(self, candidate: Any, session: Any) -> RiskDecision:
         entry = candidate.entry or 0.0
+
+        candidate_notional = entry
+        if hasattr(candidate, "scores"):
+            try:
+                position_size = self.position_sizer.calculate(candidate)
+                candidate_notional = position_size.notional_value or 0.0
+            except Exception as e:
+                logger.warning("Failed to calculate position size speculatively: %s", e)
+                candidate_notional = entry
+
         checks: list[RiskCheckDetail] = []
 
         open_count = (
@@ -84,13 +103,19 @@ class RiskManager:
             summarize_decision(decision, "RiskManager")
             return decision
 
-        symbol_exposure = (
-            session.query(Trade.entry)
+        symbol_trades = (
+            session.query(Trade, PaperTrade)
+            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
             .filter(Trade.symbol == candidate.symbol, Trade.status == "OPEN")
             .all()
         )
-        current_symbol_total = sum(r.entry for r in symbol_exposure)
-        total_symbol = current_symbol_total + entry
+        current_symbol_total = 0.0
+        for trade, paper_trade in symbol_trades:
+            if paper_trade is not None:
+                current_symbol_total += (paper_trade.quantity or 0.0) * (paper_trade.entry or 0.0)
+            else:
+                current_symbol_total += trade.entry or 0.0
+        total_symbol = current_symbol_total + candidate_notional
         checks.append(RiskCheckDetail(
             name=RejectionCode.SYMBOL_EXPOSURE,
             passed=total_symbol <= MAX_EXPOSURE_PER_SYMBOL,
@@ -107,13 +132,19 @@ class RiskManager:
             summarize_decision(decision, "RiskManager")
             return decision
 
-        total_exposure = (
-            session.query(Trade.entry)
+        portfolio_trades = (
+            session.query(Trade, PaperTrade)
+            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
             .filter(Trade.status == "OPEN")
             .all()
         )
-        current_total = sum(r.entry for r in total_exposure)
-        portfolio_total = current_total + entry
+        current_total = 0.0
+        for trade, paper_trade in portfolio_trades:
+            if paper_trade is not None:
+                current_total += (paper_trade.quantity or 0.0) * (paper_trade.entry or 0.0)
+            else:
+                current_total += trade.entry or 0.0
+        portfolio_total = current_total + candidate_notional
         checks.append(RiskCheckDetail(
             name=RejectionCode.PORTFOLIO_EXPOSURE,
             passed=portfolio_total <= MAX_PORTFOLIO_EXPOSURE,
