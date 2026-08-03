@@ -262,7 +262,7 @@ class TestNVIDIAProvider:
 
     def test_default_model(self):
         provider = NVIDIAProvider(api_key="test-key")
-        assert provider.model == "meta/llama3-70b-instruct"
+        assert provider.model == "meta/llama-3.3-70b-instruct"
 
     def test_close(self):
         provider = NVIDIAProvider(api_key="test-key")
