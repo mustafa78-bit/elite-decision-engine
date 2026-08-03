@@ -28,12 +28,73 @@ export interface MarketLiveData {
   error?: string;
 }
 
+export interface MarketLevel {
+  price: number;
+  type: "support" | "resistance";
+  strength: number;
+  touches: number;
+}
+
+export interface DivergencePoint {
+  time: number;
+  price: number;
+  rsi: number;
+}
+
+export interface MarketDivergence {
+  found: boolean;
+  type: "bullish" | "bearish" | "none";
+  p1: DivergencePoint | null;
+  p2: DivergencePoint | null;
+}
+
+export interface ChannelPoint {
+  time: number;
+  price: number;
+}
+
+export interface ChannelBoundary {
+  start: ChannelPoint;
+  end: ChannelPoint;
+}
+
+export interface MarketChannel {
+  found: boolean;
+  direction: "up" | "down" | "sideways" | "none";
+  upper: ChannelBoundary | null;
+  lower: ChannelBoundary | null;
+}
+
 export function fetchMarket(): Promise<MarketData> {
   return apiFetch<MarketData>("/market");
 }
 
 export async function fetchMarketLive(symbol = "BTC"): Promise<MarketLiveData> {
   const res = await apiFetch<MarketLiveData & { error?: string }>(`/market/live?symbol=${encodeURIComponent(symbol)}`);
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+export async function fetchMarketLevels(symbol: string, timeframe: string): Promise<MarketLevel[]> {
+  const res = await apiFetch<MarketLevel[] & { error?: string }>(
+    `/market/levels?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+  );
+  if ("error" in res) throw new Error(res.error);
+  return res;
+}
+
+export async function fetchMarketDivergence(symbol: string, timeframe: string): Promise<MarketDivergence> {
+  const res = await apiFetch<MarketDivergence & { error?: string }>(
+    `/market/divergence?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+  );
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+export async function fetchMarketChannel(symbol: string, timeframe: string): Promise<MarketChannel> {
+  const res = await apiFetch<MarketChannel & { error?: string }>(
+    `/market/channel?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+  );
   if (res.error) throw new Error(res.error);
   return res;
 }
