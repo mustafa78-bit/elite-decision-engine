@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
 
 from market.models import Asset
 from scanner.models import Opportunity
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ConfidenceEngineV2:
     """Enhanced confidence calculation using full Asset intelligence."""
 
-    def evaluate_opportunity(self, opportunity: Opportunity, asset: Optional[Asset] = None) -> float:
+    def evaluate_opportunity(self, opportunity: Opportunity, asset: Asset | None = None) -> float:
         base = opportunity.score * 100
         adjustments: list[float] = []
 
@@ -36,10 +35,16 @@ class ConfidenceEngineV2:
             fg = asset.intelligence.fear_greed
             if fg:
                 fg_value = fg.get("value", 50)
-                if fg_value < 20:
-                    adjustments.append(8)
-                elif fg_value > 80:
-                    adjustments.append(-5)
+                if opportunity.side == "SHORT":
+                    if fg_value < 20:
+                        adjustments.append(-5)
+                    elif fg_value > 80:
+                        adjustments.append(8)
+                else:
+                    if fg_value < 20:
+                        adjustments.append(8)
+                    elif fg_value > 80:
+                        adjustments.append(-5)
 
         if asset:
             ctx = asset.context
@@ -51,10 +56,16 @@ class ConfidenceEngineV2:
 
             btc = ctx.get("btc", {})
             btc_trend = btc.get("btc_trend", "")
-            if btc_trend == "BULLISH":
-                adjustments.append(5)
-            elif btc_trend == "BEARISH":
-                adjustments.append(-5)
+            if opportunity.side == "SHORT":
+                if btc_trend == "BULLISH":
+                    adjustments.append(-5)
+                elif btc_trend == "BEARISH":
+                    adjustments.append(5)
+            else:
+                if btc_trend == "BULLISH":
+                    adjustments.append(5)
+                elif btc_trend == "BEARISH":
+                    adjustments.append(-5)
 
         total = base + sum(adjustments)
         return round(max(0.0, min(100.0, total)), 2)
