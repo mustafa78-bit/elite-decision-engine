@@ -11,7 +11,7 @@ from services.ai.provider import AIProvider, GenerationResult, HealthStatus
 logger = logging.getLogger(__name__)
 
 _DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
-_DEFAULT_MODEL = "meta/llama3-70b-instruct"
+_DEFAULT_MODEL = "meta/llama-3.3-70b-instruct"
 _DEFAULT_TIMEOUT = 60.0
 _MAX_RETRIES = 3
 _RETRY_DELAY = 1.0
