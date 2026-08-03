@@ -23,14 +23,14 @@ const CATALYST_ICONS: Record<string, string> = {
   HIGH_VOLUME: "📊",
 };
 
-function catalystIcon(signal: string): string {
+export function catalystIcon(signal: string): string {
   for (const [key, icon] of Object.entries(CATALYST_ICONS)) {
     if (signal.includes(key.replace(/_/g, "")) || signal === key) return icon;
   }
   return "◆";
 }
 
-function shortLabel(signal: string): string {
+export function shortLabel(signal: string): string {
   return signal
     .replace(/_/g, " ")
     .toLowerCase()
