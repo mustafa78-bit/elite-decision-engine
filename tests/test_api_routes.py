@@ -316,19 +316,27 @@ def test_get_backtest_empty(api_client):
 
 
 def test_get_backtest_with_data(api_client, db_session):
-    _make_signal(db_session, status="EXECUTED", approved=True, confidence=90.0)
-    _make_signal(db_session, status="REJECTED", approved=False, confidence=30.0)
-    _make_trade(db_session, signal_id=1, status="CLOSED", pnl=500.0)
-    _make_trade(db_session, signal_id=2, status="CLOSED", pnl=-200.0)
+    _make_signal(db_session, id=1, status="EXECUTED", approved=True, confidence=90.0)
+    _make_signal(db_session, id=2, status="REJECTED", approved=False, confidence=30.0)
+    _make_signal(db_session, id=3, status="CANCELLED", approved=False, confidence=10.0)
+    _make_trade(db_session, signal_id=1, status="TP_HIT", pnl=500.0)
+    _make_trade(db_session, signal_id=2, status="SL_HIT", pnl=-200.0)
+    _make_trade(db_session, signal_id=3, status="CANCEL", pnl=0.0)
     resp = api_client.get("/backtest")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["summary"]["total_signals"] == 2
+    assert body["summary"]["total_signals"] == 3
     assert body["summary"]["approved_signals"] == 1
-    assert body["trades"]["total"] == 2
-    assert body["trades"]["closed"] == 2
+    assert body["trades"]["total"] == 3
+    assert body["trades"]["closed"] == 3
+    assert body["trades"]["wins"] == 1
+    assert body["trades"]["losses"] == 1
     assert body["performance"]["total_pnl"] == 300.0
     assert body["performance"]["win_rate_pct"] == 50.0
+    assert body["performance"]["avg_win"] == 500.0
+    assert body["performance"]["avg_loss"] == 200.0
+    assert body["performance"]["profit_factor"] == 2.5
+    assert body["performance"]["max_drawdown"] == 200.0
 
 
 # ─── Intelligence (DB fallback when market data unavailable) ───────────────
