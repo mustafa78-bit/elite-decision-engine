@@ -32,16 +32,37 @@ class TestFeatureStore:
 
     def test_high_risk(self):
         features = self.store.extract({
-            "ema20": 100, "ema50": 100, "ema200": 100,
-            "rsi": 50, "atr": 3000, "volatility_score": 0.8, "volume_score": 0.5,
+            "ema20": 100000, "ema50": 100000, "ema200": 100000,
+            "rsi": 50, "atr": 6000, "volatility_score": 0.8, "volume_score": 0.5,
         })
+        # atr_pct = 6% (>5.0% adds 2) + vol_score (>0.7 adds 2) = 4 >= 3 -> HIGH
         assert features["risk"] == "HIGH"
 
     def test_low_risk(self):
         features = self.store.extract({
-            "ema20": 100, "ema50": 100, "ema200": 100,
+            "ema20": 100000, "ema50": 100000, "ema200": 100000,
             "rsi": 50, "atr": 300, "volatility_score": 0.2, "volume_score": 0.5,
         })
+        # atr_pct = 0.3% (adds 0) + vol_score (adds 0) = 0 -> LOW
+        assert features["risk"] == "LOW"
+
+    def test_low_price_extreme_atr_percentage_high_risk(self):
+        # DOGE-like low price ($0.15), extreme ATR percentage (0.02, which is ~13.3%)
+        features = self.store.extract({
+            "ema20": 0.15, "ema50": 0.15, "ema200": 0.15,
+            "rsi": 50, "atr": 0.02, "volatility_score": 0.3, "volume_score": 0.5,
+        })
+        # atr_pct = 13.33% (> 5.0% adds 2) + vol_score 0.3 (adds 0) = 2 -> MEDIUM (not LOW!)
+        assert features["risk"] == "MEDIUM"
+
+    def test_high_price_low_atr_percentage_not_penalized(self):
+        # Previously, an absolute ATR of 2000 would have triggered risk increments.
+        # Now, with relative percentage, 2000 ATR on a 100000 price is 2%, which shouldn't penalize.
+        features = self.store.extract({
+            "ema20": 100000, "ema50": 100000, "ema200": 100000,
+            "rsi": 50, "atr": 2000, "volatility_score": 0.3, "volume_score": 0.5,
+        })
+        # atr_pct = 2% (adds 0) + vol_score 0.3 (adds 0) = 0 -> LOW
         assert features["risk"] == "LOW"
 
     def test_volatility_classification(self):
