@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Any
 
 from config import API_ENV, CHECK_INTERVAL, MAX_OPEN_TRADES, MIN_SCORE
 from database import FINAL_STATUSES, get_session
