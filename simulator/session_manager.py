@@ -12,9 +12,12 @@ from simulator.models import (
     MissionReport,
     SessionMeta,
     SimStatus,
+    SimulatedCandle,
+    SimulatedDecision,
     SimulatedTrade,
     SimulatorConfig,
     SimulatorState,
+    TimelineEvent,
     TrainingScore,
 )
 
@@ -99,6 +102,10 @@ class SessionManager:
                 total_pnl=data.get("total_pnl", 0.0),
                 win_count=data.get("win_count", 0),
                 loss_count=data.get("loss_count", 0),
+                candles=[SimulatedCandle.from_dict(c) for c in data.get("candles", [])],
+                decisions=[SimulatedDecision.from_dict(d) for d in data.get("decisions", [])],
+                trades=[SimulatedTrade.from_dict(t) for t in data.get("trades", [])],
+                timeline=[TimelineEvent.from_dict(e) for e in data.get("timeline", [])],
             )
             self._sessions[session_id] = state
             self._active_id = session_id
