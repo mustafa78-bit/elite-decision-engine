@@ -89,6 +89,10 @@ SCORE_WEIGHTS_PCT = {k: round(v * 100, 2) for k, v in SCORE_WEIGHTS.items()}
 
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "10"))
 assert CHECK_INTERVAL > 0, f"CHECK_INTERVAL must be positive, got {CHECK_INTERVAL}"
+HEALTH_CHECK_INTERVAL_SECONDS = int(os.getenv("HEALTH_CHECK_INTERVAL_SECONDS", "60"))
+assert HEALTH_CHECK_INTERVAL_SECONDS > 0, (
+    f"HEALTH_CHECK_INTERVAL_SECONDS must be positive, got {HEALTH_CHECK_INTERVAL_SECONDS}"
+)
 MIN_SCORE = int(os.getenv("MIN_SCORE", "85"))
 assert 0 <= MIN_SCORE <= 100, f"MIN_SCORE must be 0-100, got {MIN_SCORE}"
 MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "3"))

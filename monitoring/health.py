@@ -10,6 +10,7 @@ _ENGINE_START_TIME: float = time.time()
 
 _INTERNAL_ERRORS: dict[str, int] = {}
 _LAST_SUCCESS: dict[str, float] = {}
+_LAST_KNOWN_STATUS: dict[str, str] = {}
 
 
 def _track_result(component: str, ok: bool, latency: float) -> None:
@@ -124,6 +125,7 @@ class HealthService:
 
     @staticmethod
     def execution() -> dict:
+        start = time.monotonic()
         try:
             from execution.execution_loop import ExecutionLoop
             result = {
@@ -142,8 +144,12 @@ class HealthService:
             except Exception as e:
                 result["status"] = "degraded"
                 result["detail"] = str(e)
+            lat = (time.monotonic() - start) * 1000
+            _track_result("execution", result["status"] == "ok", lat)
             return result
         except Exception as e:
+            lat = (time.monotonic() - start) * 1000
+            _track_result("execution", False, lat)
             return {
                 "status": "error",
                 "detail": str(e),
@@ -278,6 +284,50 @@ class HealthService:
             "risk_config": HealthService.risk(),
             "config": HealthService.config(),
         }
+
+    @staticmethod
+    def check_and_alert(dispatcher: Any = None, failure_threshold: int = 3) -> dict[str, dict]:
+        """Run core health checks and emit an alert (via `dispatcher.emit`) only when
+        a component transitions between healthy and unhealthy — never on every tick.
+
+        A component only counts as "unhealthy" once its consecutive-failure count
+        (tracked by `_track_result`, already called inside `database()`/`collector()`/
+        `execution()`) reaches `failure_threshold`, to avoid alerting on a single
+        transient blip.
+        """
+        checks = {
+            "database": HealthService.database(),
+            "collector": HealthService.collector(),
+            "execution": HealthService.execution(),
+        }
+
+        if dispatcher is None:
+            return checks
+
+        from notifications.events import TradeEvent
+
+        for component, result in checks.items():
+            is_failing = _INTERNAL_ERRORS.get(component, 0) >= failure_threshold
+            current_status = "unhealthy" if is_failing else "ok"
+            previous_status = _LAST_KNOWN_STATUS.get(component)
+
+            if previous_status is not None and previous_status != current_status:
+                if current_status == "unhealthy":
+                    dispatcher.emit(TradeEvent.SYSTEM_HEALTH_DEGRADED, {
+                        "component": component,
+                        "status": result.get("status"),
+                        "detail": result.get("detail"),
+                        "consecutive_failures": _INTERNAL_ERRORS.get(component, 0),
+                    })
+                else:
+                    dispatcher.emit(TradeEvent.SYSTEM_HEALTH_RECOVERED, {
+                        "component": component,
+                        "status": result.get("status"),
+                    })
+
+            _LAST_KNOWN_STATUS[component] = current_status
+
+        return checks
 
 
 def check_database() -> dict:
