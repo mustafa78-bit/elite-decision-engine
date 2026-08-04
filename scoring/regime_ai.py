@@ -37,7 +37,7 @@ class RegimeAI:
         price = float(values.get("close") or 0)
         rsi = float(values.get("rsi") or 50)
 
-        regime = self._classify_regime(ema20, ema50, ema200, atr)
+        regime = self._classify_regime(ema20, ema50, ema200, atr, price)
         trend = self._classify_trend(ema20, ema50, ema200)
         trend_strength = self._trend_strength(ema20, ema50, price)
         vol_class = self._volatility_class(atr, price)
@@ -52,8 +52,11 @@ class RegimeAI:
             "score": self._score(regime, trend_strength, vol_class),
         }
 
-    def _classify_regime(self, ema20: float, ema50: float, ema200: float, atr: float) -> str:
-        if atr < 100:
+    def _classify_regime(self, ema20: float, ema50: float, ema200: float, atr: float, price: float) -> str:
+        if price <= 0 or atr <= 0:
+            return "DEAD"
+        atr_pct = (atr / price) * 100
+        if atr_pct < 0.5:
             return "DEAD"
         if ema20 > ema50 > ema200:
             return "TREND"
