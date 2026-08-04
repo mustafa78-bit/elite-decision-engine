@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from collections import defaultdict
-from datetime import UTC, datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
 from dto.coordination import (
     ConfidenceAggregationDTO,
@@ -12,10 +11,12 @@ from dto.coordination import (
     ConsensusScoreDTO,
     CoordinatorDiagnosticsDTO,
     CoordinatorReportDTO,
-    IntelligenceSourceDTO,
     RecommendationRankingDTO,
     SourcePriorityDTO,
 )
+
+if TYPE_CHECKING:
+    from council.base import AgentReport
 
 logger = logging.getLogger(__name__)
 
@@ -155,13 +156,18 @@ class CoordinatorService:
         self._errors_last_hour = 0
         self._last_error_reset = time.time()
 
-    def evaluate(self, signal: Any, scores: dict[str, Any] | None = None) -> CoordinatorReportDTO:
+    def evaluate(
+        self,
+        signal: Any,
+        scores: dict[str, Any] | None = None,
+        reports: list[AgentReport] | None = None,
+    ) -> CoordinatorReportDTO:
         start = time.perf_counter()
         self._evaluation_count += 1
 
         self._reset_error_counter_if_needed()
 
-        aggregations = self._aggregate_confidences(signal, scores)
+        aggregations = self._aggregate_confidences(signal, scores, reports)
         conflicts = self._resolve_conflicts(aggregations)
         consensus = self._compute_consensus(aggregations, conflicts)
         priorities = self.ai_source_registry.get_priorities()
@@ -181,9 +187,26 @@ class CoordinatorService:
         )
 
     def _aggregate_confidences(
-        self, signal: Any, scores: dict[str, Any] | None
+        self,
+        signal: Any,
+        scores: dict[str, Any] | None,
+        reports: list[AgentReport] | None = None,
     ) -> list[ConfidenceAggregationDTO]:
         results: list[ConfidenceAggregationDTO] = []
+
+        # Build map of report by agent_name for O(1) matching
+        reports_by_agent: dict[str, Any] = {}
+        if reports:
+            for r in reports:
+                # Support both dictionary and object representations of AgentReport
+                if isinstance(r, dict):
+                    agent_name = r.get("agent_name")
+                    if agent_name:
+                        reports_by_agent[agent_name] = r
+                else:
+                    agent_name = getattr(r, "agent_name", None)
+                    if agent_name:
+                        reports_by_agent[agent_name] = r
 
         for src in self.intelligence_registry.list_sources():
             name = src["name"]
@@ -192,11 +215,21 @@ class CoordinatorService:
             try:
                 instance = self.intelligence_registry.get_instance(name)
                 raw_conf = 0.5
-                if instance is not None and hasattr(instance, "score"):
+
+                # 1. Match source to its real AgentReport if available
+                if name in reports_by_agent:
+                    rep = reports_by_agent[name]
+                    if isinstance(rep, dict):
+                        raw_conf = rep.get("confidence", raw_conf)
+                    else:
+                        raw_conf = getattr(rep, "confidence", raw_conf)
+                # 2. Fallback to backward-compatible custom score() method
+                elif instance is not None and hasattr(instance, "score"):
                     if scores:
                         sig_result = instance.score(signal) if hasattr(instance, "score") else None
                         if sig_result and isinstance(sig_result, dict):
                             raw_conf = sig_result.get("final_score", raw_conf)
+                # 3. Fallback to shared score
                 elif scores:
                     raw_conf = scores.get("final_score", raw_conf)
 
