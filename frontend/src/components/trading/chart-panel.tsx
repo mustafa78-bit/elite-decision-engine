@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { LineWidth } from "lightweight-charts";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useTerminalStore } from "../../stores/terminal-store";
 
@@ -87,7 +88,7 @@ export function ChartPanel({ data = [], timeframe = "1h" }: ChartPanelProps) {
             if (!levels || levels.length === 0) return;
             levels.forEach((lvl) => {
               const color = lvl.type === "support" ? "rgba(34, 197, 94, 0.7)" : "rgba(239, 68, 68, 0.7)";
-              const lineWidth = Math.min(3, Math.max(1, Math.round(lvl.strength / 2)));
+              const lineWidth = Math.min(3, Math.max(1, Math.round(lvl.strength / 2))) as LineWidth;
 
               candleSeries.createPriceLine({
                 price: lvl.price,
@@ -109,7 +110,7 @@ export function ChartPanel({ data = [], timeframe = "1h" }: ChartPanelProps) {
             const color = div.type === "bullish" ? "rgba(34, 197, 94, 0.9)" : "rgba(239, 68, 68, 0.9)";
             const divSeries = chart.addSeries(LineSeries, {
               color,
-              lineWidth: 2.5,
+              lineWidth: 3 as LineWidth,
               title: `${div.type.toUpperCase()} DIV`,
               priceLineVisible: false,
             });
@@ -133,13 +134,13 @@ export function ChartPanel({ data = [], timeframe = "1h" }: ChartPanelProps) {
 
             const upperSeries = chart.addSeries(LineSeries, {
               color,
-              lineWidth: 1.5,
+              lineWidth: 2 as LineWidth,
               priceLineVisible: false,
               title: `CHANNEL ${chan.direction.toUpperCase()}`,
             });
             const lowerSeries = chart.addSeries(LineSeries, {
               color,
-              lineWidth: 1.5,
+              lineWidth: 2 as LineWidth,
               priceLineVisible: false,
             });
 
