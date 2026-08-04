@@ -105,6 +105,39 @@ class TestRiskScorer:
         risk, _ = self.scorer.score(volatility_class="EXTREME", risk_feature="HIGH", atr_pct=10.0)
         assert 0 <= risk <= 1
 
+    def test_risk_scorer_end_to_end_with_feature_store(self):
+        from market.features import FeatureStore
+        store = FeatureStore()
+
+        # A realistic low-price/high-relative-volatility input (e.g. Dogecoin: price 0.15, atr 0.02)
+        features = store.extract({
+            "ema20": 0.15,
+            "ema50": 0.15,
+            "ema200": 0.15,
+            "rsi": 50,
+            "atr": 0.02,
+            "volatility_score": 0.3,
+            "volume_score": 0.5,
+        })
+
+        # Confirm that the features carry the correct pct metrics
+        assert features["atr_pct"] is not None
+        assert abs(features["atr_pct"] - 13.333) < 0.01
+        assert features["risk"] == "MEDIUM"  # atr_pct is ~13.33 (>5.0% adds 2 to risk level)
+
+        # Run end-to-end scoring
+        risk, signals = self.scorer.score(
+            volatility_class=features.get("volatility_class"),
+            risk_feature=features.get("risk"),
+            atr_pct=features.get("atr_pct"),
+            liquidity_score=0.5,
+            reversal_score=0.0,
+        )
+
+        # Percentage-based atr risk check should have successfully fired
+        assert "HIGH_ATR_RISK" in signals
+        assert risk > 0.0
+
 
 class TestConfidenceScorer:
 
