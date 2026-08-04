@@ -16,25 +16,25 @@ class MarketFilter:
     def should_filter(
         self,
         result: ScanResult,
+        side: str | None = None,
         btc_trend: str | None = None,
         market_session: str | None = None,
         fear_greed_label: str | None = None,
     ) -> tuple[bool, str | None]:
-        trend = result.features.get("trend", "NEUTRAL")
-
-        if btc_trend == "BEARISH" and trend in ("BULLISH", "MILD_BULLISH"):
-            return True, "BTC_BEARISH_CONTRADICTS_BULLISH_TREND"
-
-        if fear_greed_label in ("EXTREME_GREED",) and trend == "BULLISH":
-            if abs(result.momentum_score) > 0.5 and abs(result.reversal_score) > 0.3:
-                return True, "EXTREME_GREED_WITH_REVERSAL_SIGNAL"
-
-        if fear_greed_label in ("EXTREME_FEAR",) and trend == "BEARISH":
-            if abs(result.reversal_score) > 0.5:
-                return True, "EXTREME_FEAR_PANIC_SELLING"
-
         if market_session == "CLOSED":
             return True, "MARKET_CLOSED"
+
+        if side is not None:
+            if btc_trend == "BEARISH" and side == "LONG":
+                return True, "BTC_BEARISH_CONTRADICTS_BULLISH_TREND"
+
+            if fear_greed_label in ("EXTREME_GREED",) and side == "LONG":
+                if abs(result.momentum_score) > 0.5 and abs(result.reversal_score) > 0.3:
+                    return True, "EXTREME_GREED_WITH_REVERSAL_SIGNAL"
+
+            if fear_greed_label in ("EXTREME_FEAR",) and side == "SHORT":
+                if abs(result.reversal_score) > 0.5:
+                    return True, "EXTREME_FEAR_PANIC_SELLING"
 
         return False, None
 
