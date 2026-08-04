@@ -81,6 +81,26 @@ class OpportunityScanner:
         logger.info("Scan complete: %d results after filters", len(results))
 
         opportunities = self.ranker.rank(results)
+
+        result_map = {r.symbol: r for r in results}
+        side_filtered: list[Opportunity] = []
+        for opp in opportunities:
+            r = result_map.get(opp.symbol)
+            if r is None:
+                side_filtered.append(opp)
+                continue
+            should_filter, reason = self.market_filter.should_filter(
+                r,
+                side=opp.side,
+                btc_trend=r.btc_trend or None,
+                fear_greed_label=r.fear_greed_label or None,
+            )
+            if should_filter:
+                logger.debug("Market filter removed opportunity %s (side=%s): %s", opp.symbol, opp.side, reason)
+                continue
+            side_filtered.append(opp)
+        opportunities = side_filtered
+
         opportunities = self._enrich_opportunities(opportunities, results)
 
         if watchlist:
@@ -201,9 +221,7 @@ class OpportunityScanner:
     def _check_market_filter(self, r: ScanResult) -> str | None:
         should_filter, reason = self.market_filter.should_filter(
             r,
-            btc_trend=r.btc_trend or None,
             market_session=r.market_session or None,
-            fear_greed_label=r.fear_greed_label or None,
         )
         return reason if should_filter else None
 
