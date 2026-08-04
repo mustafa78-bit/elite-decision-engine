@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
-from database import FINAL_STATUSES, Signal, Trade, get_session
+from database import FINAL_STATUSES, PaperTrade, Signal, Trade, get_session
 from dto.analytics import KPIDTO
 
 logger = logging.getLogger(__name__)
@@ -17,26 +17,49 @@ class KPIService:
     def get_kpis(self) -> list[KPIDTO]:
         session = self.session_factory()
         try:
-            trades = session.query(Trade).all()
+            results = (
+                session.query(Trade, PaperTrade)
+                .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+                .all()
+            )
             signals = session.query(Signal).all()
-            return self._compute(trades, signals)
+            return self._compute(results, signals)
         finally:
             session.close()
 
-    def _compute(self, trades: list[Trade], signals: list[Signal] | None = None) -> list[KPIDTO]:
-        closed = [t for t in trades if t.status in FINAL_STATUSES]
-        open_t = [t for t in trades if t.status == "OPEN"]
-        wins = [t for t in closed if t.pnl and t.pnl > 0]
-        losses = [t for t in closed if t.pnl and t.pnl < 0]
-        total_pnl = sum(t.pnl or 0 for t in closed)
-        open_pnl = sum(t.pnl or 0 for t in open_t)
-        gp = sum(t.pnl or 0 for t in wins)
-        gl = abs(sum(t.pnl or 0 for t in losses))
-        pf = gp / gl if gl > 0 else (999.99 if gp > 0 else 0)
-        pnls = [t.pnl or 0 for t in closed]
+    def _compute(self, trades_data: list[Any], signals: list[Signal] | None = None) -> list[KPIDTO]:
+        parsed_trades = []
+        for item in trades_data:
+            if isinstance(item, Trade):
+                t, pt = item, None
+            else:
+                try:
+                    t, pt = item
+                except (TypeError, ValueError):
+                    t, pt = item, None
+
+            qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 1.0
+            pnl_val = (t.pnl or 0.0) * qty
+            parsed_trades.append({
+                "trade": t,
+                "quantity": qty,
+                "pnl_val": pnl_val,
+            })
+
+        closed = [item for item in parsed_trades if item["trade"].status in FINAL_STATUSES]
+        open_t = [item for item in parsed_trades if item["trade"].status == "OPEN"]
+        wins = [item for item in closed if item["pnl_val"] > 0]
+        losses = [item for item in closed if item["pnl_val"] < 0]
+
+        total_pnl = sum(item["pnl_val"] for item in closed)
+        open_pnl = sum(item["pnl_val"] for item in open_t)
+        gp = sum(item["pnl_val"] for item in wins)
+        gl = abs(sum(item["pnl_val"] for item in losses))
+        pf = gp / gl if gl > 0 else (999.99 if gp > 0 else 0.0)
+        pnls = [item["pnl_val"] for item in closed]
         sharpe = self._sharpe(pnls)
-        avg_pnl = total_pnl / len(closed) if closed else 0
-        wr = (len(wins) / len(closed) * 100) if closed else 0
+        avg_pnl = total_pnl / len(closed) if closed else 0.0
+        wr = (len(wins) / len(closed) * 100) if closed else 0.0
         max_dd = self._max_drawdown(closed)
         calmar = sharpe  # approximate
 
@@ -61,13 +84,22 @@ class KPIService:
         s = statistics.stdev(pnls)
         return (m / s) if s > 0 else 0.0
 
-    def _max_drawdown(self, trades: list[Trade]) -> float:
-        sorted_trades = sorted(trades, key=lambda t: t.created_at or __import__("datetime").datetime.min)
+    def _max_drawdown(self, trades: list[dict[str, Any]]) -> float:
+        import datetime
+        def get_date(item):
+            dt = item["trade"].created_at
+            if dt is None:
+                return datetime.datetime.min.replace(tzinfo=datetime.UTC)
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=datetime.UTC)
+            return dt
+
+        sorted_trades = sorted(trades, key=get_date)
         peak = 0.0
         max_dd = 0.0
         running = 0.0
-        for t in sorted_trades:
-            running += t.pnl or 0
+        for item in sorted_trades:
+            running += item["pnl_val"]
             if running > peak:
                 peak = running
             dd = peak - running
