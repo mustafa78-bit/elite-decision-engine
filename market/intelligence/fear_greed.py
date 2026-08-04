@@ -108,10 +108,16 @@ class FearGreedService:
                 signals.append("LOW_VOLATILITY_GREED")
 
         if funding_rate is not None:
-            if funding_rate > 0.01:
+            if funding_rate > 50.0:
+                score += 20
+                signals.append("HIGH_FUNDING_GREED")
+            elif funding_rate > 20.0:
                 score += 10
                 signals.append("HIGH_FUNDING_GREED")
-            elif funding_rate < -0.01:
+            elif funding_rate < -50.0:
+                score -= 20
+                signals.append("NEGATIVE_FUNDING_FEAR")
+            elif funding_rate < -20.0:
                 score -= 10
                 signals.append("NEGATIVE_FUNDING_FEAR")
 

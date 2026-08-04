@@ -79,9 +79,35 @@ class TestFearGreedService:
         assert "EXTREME_FEAR" in result["label"]
 
     def test_extreme_greed(self):
-        result = self.service.compute(rsi=80, btc_trend="BULLISH", funding_rate=0.02)
+        result = self.service.compute(rsi=80, btc_trend="BULLISH", funding_rate=55.0)
         assert result["value"] >= 70
         assert "EXTREME_GREED" in result["label"]
+
+    def test_funding_rate_thresholds(self):
+        # Mild/normal annualized rate should not trigger any funding signal
+        result_mild = self.service.compute(funding_rate=3.0)
+        assert "HIGH_FUNDING_GREED" not in result_mild["signals"]
+        assert "NEGATIVE_FUNDING_FEAR" not in result_mild["signals"]
+
+        # Elevated positive rate (20-50 range)
+        result_high_greed = self.service.compute(funding_rate=25.0)
+        assert result_high_greed["value"] == 60
+        assert "HIGH_FUNDING_GREED" in result_high_greed["signals"]
+
+        # Extreme positive rate (>50)
+        result_extreme_greed = self.service.compute(funding_rate=55.0)
+        assert result_extreme_greed["value"] == 70
+        assert "HIGH_FUNDING_GREED" in result_extreme_greed["signals"]
+
+        # Elevated negative rate
+        result_high_fear = self.service.compute(funding_rate=-25.0)
+        assert result_high_fear["value"] == 40
+        assert "NEGATIVE_FUNDING_FEAR" in result_high_fear["signals"]
+
+        # Extreme negative rate
+        result_extreme_fear = self.service.compute(funding_rate=-55.0)
+        assert result_extreme_fear["value"] == 30
+        assert "NEGATIVE_FUNDING_FEAR" in result_extreme_fear["signals"]
 
     def test_confidence_reflects_extremity(self):
         neutral = self.service.compute()
