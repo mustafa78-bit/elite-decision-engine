@@ -142,7 +142,7 @@ class ConsensusEngine:
 
         coordinator_report: dict[str, Any] | None = None
         try:
-            coordinator_report = self.coordinator.evaluate(signal, scores).to_dict()
+            coordinator_report = self.coordinator.evaluate(signal, scores, reports).to_dict()
         except Exception as e:
             logger.warning("Coordinator evaluation failed: %s", e)
 
