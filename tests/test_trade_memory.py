@@ -59,3 +59,27 @@ class TestTradeMemory:
         assert stats["wins"] >= 1
         assert stats["losses"] >= 1
         assert stats["win_rate_pct"] > 0
+
+    def test_stats_with_pending(self, session_factory):
+        mem = TradeMemory(session_factory=session_factory)
+
+        # 3 wins
+        for i in range(3):
+            mid = mem.record("BTC", "LONG", 100.0, f"win_{i}")
+            mem.close(mid, 110.0, 10.0, "WIN")
+
+        # 2 losses
+        for i in range(2):
+            mid = mem.record("BTC", "LONG", 100.0, f"loss_{i}")
+            mem.close(mid, 90.0, -10.0, "LOSS")
+
+        # 5 pending
+        for i in range(5):
+            mem.record("BTC", "LONG", 100.0, f"pending_{i}")
+
+        stats = mem.stats()
+        assert stats["total_entries"] >= 10
+        assert stats["wins"] == 3
+        assert stats["losses"] == 2
+        # Win rate should be 3 / (3 + 2) = 60%, NOT 3 / 10 = 30%
+        assert stats["win_rate_pct"] == 60.0
