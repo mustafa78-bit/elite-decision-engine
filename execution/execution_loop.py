@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from database import update_signal_status
 from execution.paper import PaperExecutor as PaperDomainExecutor
@@ -82,14 +82,23 @@ class ExecutionLoop:
                     for s in signal_list
                 ]
                 ranked = self.signal_ranker.rank_signals(signal_dicts)
-                rank_map = {r.identifier: r for r in ranked}
+                rank_map = {r.signal_id: r for r in ranked}
+
+                def get_composite_score(s: Any) -> float:
+                    try:
+                        sid = int(getattr(s, "id", 0)) if getattr(s, "id", None) is not None else None
+                    except (ValueError, TypeError):
+                        sid = None
+                    rs = rank_map.get(sid) if sid is not None else None
+                    return rs.composite_score if rs is not None else 0.0
+
                 signal_list.sort(
-                    key=lambda s: rank_map.get(str(getattr(s, "id", None)), type("", (), {"composite_score": 0})()).composite_score,
+                    key=get_composite_score,
                     reverse=True,
                 )
                 self.logger.info(
                     "Signals ranked by SignalRankingAI: %s",
-                    [(r.identifier, r.composite_score, r.recommendation) for r in ranked],
+                    [(r.signal_id, r.composite_score, r.recommendation) for r in ranked],
                 )
             except Exception as exc:
                 self.logger.exception("SignalRankingAI failed (%s); processing without ranking", exc)
