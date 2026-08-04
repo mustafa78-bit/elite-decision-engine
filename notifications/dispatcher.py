@@ -57,7 +57,13 @@ class NotificationDispatcher:
             self._broadcast(message)
 
         # Trigger proactive Telegram alert if configured
-        if event in (TradeEvent.TRADE_OPENED, TradeEvent.TRADE_CLOSED) and self.telegram_bot_manager is not None:
+        proactive_events = (
+            TradeEvent.TRADE_OPENED,
+            TradeEvent.TRADE_CLOSED,
+            TradeEvent.SYSTEM_HEALTH_DEGRADED,
+            TradeEvent.SYSTEM_HEALTH_RECOVERED,
+        )
+        if event in proactive_events and self.telegram_bot_manager is not None:
             try:
                 msg = ""
                 if event == TradeEvent.TRADE_OPENED:
@@ -66,7 +72,7 @@ class NotificationDispatcher:
                     side = payload.get("side", "UNKNOWN")
                     entry = payload.get("entry")
                     msg = f"🟢 <b>TRADE OPENED</b>\n<b>{symbol} {side}</b> @ {entry}\nID: {trade_id}"
-                else:  # TRADE_CLOSED
+                elif event == TradeEvent.TRADE_CLOSED:
                     trade_id = payload.get("trade_id")
                     symbol = payload.get("symbol", "UNKNOWN")
                     side = payload.get("side", "UNKNOWN")
@@ -84,6 +90,15 @@ class NotificationDispatcher:
                             pnl_str = str(pnl_val)
 
                     msg = f"🔴 <b>TRADE CLOSED</b>\n<b>{symbol} {side}</b>\nExit Price: {exit_price}\nPnL: {pnl_str}\nReason: {close_reason}\nID: {trade_id}"
+                elif event == TradeEvent.SYSTEM_HEALTH_DEGRADED:
+                    component = payload.get("component", "UNKNOWN")
+                    status = payload.get("status", "unknown")
+                    detail = payload.get("detail")
+                    detail_line = f"\nDetail: {detail}" if detail else ""
+                    msg = f"⚠️ <b>SYSTEM HEALTH DEGRADED</b>\nComponent: <b>{component}</b>\nStatus: {status}{detail_line}"
+                else:  # SYSTEM_HEALTH_RECOVERED
+                    component = payload.get("component", "UNKNOWN")
+                    msg = f"✅ <b>SYSTEM HEALTH RECOVERED</b>\nComponent: <b>{component}</b> is healthy again"
 
                 self.telegram_bot_manager.send_alert_threadsafe(msg)
             except Exception as e:

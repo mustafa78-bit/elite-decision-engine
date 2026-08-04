@@ -64,7 +64,14 @@ from api.routes.watchlists import router as watchlists_router
 from api.routes.whale import router as whale_router
 from api.routes.widgets import router as widgets_router
 from api.websocket.manager import WebSocketManager
-from config import API_ENV, AUTO_TRADING_ENABLED, CORS_ORIGINS, DEBUG, SCAN_INTERVAL_SECONDS
+from config import (
+    API_ENV,
+    AUTO_TRADING_ENABLED,
+    CORS_ORIGINS,
+    DEBUG,
+    HEALTH_CHECK_INTERVAL_SECONDS,
+    SCAN_INTERVAL_SECONDS,
+)
 from core.engine import DecisionEngine
 from database import FINAL_STATUSES, Trade, get_session
 from execution.execution_loop import ExecutionLoop
@@ -75,6 +82,7 @@ from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
 from monitoring.health import HealthService
+from notifications.dispatcher import NotificationDispatcher
 from scanner.core import OpportunityScanner
 from scoring.regime_ai import RegimeAI
 from scoring.risk_engine import RiskEngine
@@ -132,6 +140,9 @@ async def lifespan(app: FastAPI):
 
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
+
+    health_task = asyncio.create_task(_health_monitor_loop())
+    _background_tasks.add(health_task)
 
     yield
 
@@ -493,6 +504,25 @@ async def _periodic_broadcast() -> None:
             raise
         except Exception:
             logger.exception("Periodic broadcast iteration failed")
+
+
+async def _health_monitor_loop() -> None:
+    """Periodically check core system health and alert (Telegram + websocket)
+    only when a component transitions between healthy and unhealthy.
+
+    Runs unconditionally (not gated behind AUTO_TRADING_ENABLED) — system health
+    matters regardless of whether auto-trading is on.
+    """
+    dispatcher = NotificationDispatcher(websocket_manager=manager)
+    while True:
+        try:
+            await asyncio.sleep(HEALTH_CHECK_INTERVAL_SECONDS)
+            await asyncio.to_thread(HealthService.check_and_alert, dispatcher)
+        except asyncio.CancelledError:
+            logger.info("Health monitor loop cancelled")
+            raise
+        except Exception:
+            logger.exception("Health monitor loop iteration failed")
 
 
 
