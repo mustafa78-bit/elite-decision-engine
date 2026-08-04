@@ -64,3 +64,11 @@ class TestRegimeAI:
         for _ in range(10):
             result = ai.detect({"ema20": 50000, "ema50": 49500, "ema200": 49000, "atr": 400, "close": 50500, "rsi": 55})
             assert 0.0 <= result["score"] <= 1.0
+
+    def test_low_priced_trending_market_not_dead(self):
+        # SOL-like case: price at $150, strongly trending EMAs, normal relative ATR of $3 (2% of price)
+        ai = RegimeAI()
+        result = ai.detect({"ema20": 155, "ema50": 150, "ema200": 140, "atr": 3.0, "close": 150, "rsi": 60})
+        # Relative ATR% = (3.0 / 150) * 100 = 2.0% which is not DEAD (>= 0.5%)
+        assert result["regime"] == "TREND"
+        assert result["trend"] == "BULLISH"
