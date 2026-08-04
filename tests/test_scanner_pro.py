@@ -131,7 +131,7 @@ class TestMarketFilter:
         r = ScanResult(symbol="BTC", trend_score=0.0, momentum_score=0.0,
                        breakout_score=0.0, reversal_score=0.0, liquidity_score=0.0,
                        features={"trend": "BULLISH"})
-        should, reason = self.filter.should_filter(r, btc_trend="BEARISH")
+        should, reason = self.filter.should_filter(r, side="LONG", btc_trend="BEARISH")
         assert should
         assert "BTC_BEARISH_CONTRADICTS" in reason
 
@@ -139,7 +139,7 @@ class TestMarketFilter:
         r = ScanResult(symbol="BTC", trend_score=0.0, momentum_score=0.6,
                        breakout_score=0.0, reversal_score=0.4, liquidity_score=0.0,
                        features={"trend": "BULLISH"})
-        should, reason = self.filter.should_filter(r, fear_greed_label="EXTREME_GREED")
+        should, reason = self.filter.should_filter(r, side="LONG", fear_greed_label="EXTREME_GREED")
         assert should
 
     def test_market_closed(self):
@@ -150,9 +150,61 @@ class TestMarketFilter:
 
     def test_normal_market_no_filter(self):
         r = ScanResult(symbol="BTC")
-        should, reason = self.filter.should_filter(r, btc_trend="BULLISH")
+        should, reason = self.filter.should_filter(r, side="LONG", btc_trend="BULLISH")
         assert not should
         assert reason is None
+
+    def test_bullish_trend_but_ranked_short_with_bearish_btc_kept(self):
+        # trend is BULLISH but real ranked side is SHORT, and BTC is BEARISH
+        r = ScanResult(symbol="BTC", trend_score=0.6, momentum_score=-0.9,
+                       breakout_score=-0.8, reversal_score=-0.7, liquidity_score=0.0,
+                       features={"trend": "BULLISH"})
+        should, reason = self.filter.should_filter(r, side="SHORT", btc_trend="BEARISH")
+        assert not should
+        assert reason is None
+
+    def test_genuine_contradiction_long_with_bearish_btc_filtered(self):
+        # trend is BULLISH, real side is LONG, and BTC is BEARISH
+        r = ScanResult(symbol="BTC", trend_score=0.6, momentum_score=0.5,
+                       breakout_score=0.5, reversal_score=0.5, liquidity_score=0.0,
+                       features={"trend": "BULLISH"})
+        should, reason = self.filter.should_filter(r, side="LONG", btc_trend="BEARISH")
+        assert should
+        assert "BTC_BEARISH_CONTRADICTS" in reason
+
+
+class TestScannerMarketFilterIntegration:
+    def test_scanner_keeps_short_opportunity_with_bearish_btc(self):
+        # Prove that an opportunity that has trend=BULLISH but ranks as SHORT under BEARISH btc_trend is kept
+        from unittest.mock import MagicMock
+        from scanner.core import OpportunityScanner
+        from scanner.models import Opportunity
+        from market.models import Asset, AssetMetadata
+        import pandas as pd
+
+        mock_service = MagicMock()
+        mock_ranker = MagicMock()
+        mock_ranker.rank.return_value = [
+            Opportunity(symbol="BTCUSDT", side="SHORT", strategy="reversal", score=0.5, confidence=50.0)
+        ]
+
+        ohlcv = pd.DataFrame({"close": [50000.0], "volume": [100.0]})
+        asset = Asset(
+            symbol="BTCUSDT",
+            metadata=AssetMetadata(symbol="BTCUSDT"),
+            price=50000.0,
+            ohlcv=ohlcv,
+            indicators={"ema20": 110, "ema50": 105, "ema200": 100, "rsi": 60},
+            features={"trend": "BULLISH", "momentum": "STRONG", "liquidity": "HIGH", "risk": "LOW", "volatility_class": "NORMAL"},
+        )
+        asset.context = {"session": "OPEN", "btc": {"btc_trend": "BEARISH"}}
+        mock_service.get_asset.return_value = asset
+
+        scanner = OpportunityScanner(market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"])
+        ops = scanner.scan()
+        assert len(ops) == 1
+        assert ops[0].symbol == "BTCUSDT"
+        assert ops[0].side == "SHORT"
 
 
 class TestFalseSignalFilter:
