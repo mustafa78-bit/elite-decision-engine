@@ -189,7 +189,8 @@ class TradeMemory:
         wins = sum(1 for e in entries if e.result == "WIN")
         losses = sum(1 for e in entries if e.result == "LOSS")
         total_pnl = sum(e.pnl for e in entries)
-        win_rate = (wins / total * 100) if total > 0 else 0
+        resolved = wins + losses
+        win_rate = (wins / resolved * 100) if resolved > 0 else 0
 
         most_common_tags: dict[str, int] = {}
         for e in entries:
