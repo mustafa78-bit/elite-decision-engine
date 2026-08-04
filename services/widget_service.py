@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable
 from typing import Any, Optional
 
-from database import FINAL_STATUSES, Notification, Signal, Trade, get_session
+from database import FINAL_STATUSES, Notification, PaperTrade, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     KPIDashboardWidgetDTO,
@@ -52,11 +52,20 @@ class WidgetService:
     def _portfolio_widget(self, **kwargs) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            trades = session.query(Trade).all()
-            closed = [t for t in trades if t.status in FINAL_STATUSES]
-            open_t = [t for t in trades if t.status == "OPEN"]
-            wins = [t for t in closed if t.pnl and t.pnl > 0]
-            total_pnl = sum(t.pnl or 0 for t in closed)
+            results = (
+                session.query(Trade, PaperTrade)
+                .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+                .all()
+            )
+            dollar_pnls = []
+            for t, pt in results:
+                qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 1.0
+                dollar_pnls.append((t, (t.pnl or 0.0) * qty))
+
+            closed = [(t, pnl) for t, pnl in dollar_pnls if t.status in FINAL_STATUSES]
+            open_t = [t for t, _ in dollar_pnls if t.status == "OPEN"]
+            wins = [pnl for _, pnl in closed if pnl > 0]
+            total_pnl = sum(pnl for _, pnl in closed)
             wr = (len(wins) / len(closed) * 100) if closed else 0
             return PortfolioDashboardWidgetDTO(
                 total_pnl=round(total_pnl, 2),
