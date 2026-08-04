@@ -99,6 +99,10 @@ class SimulatedCandle:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> SimulatedCandle:
+        return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
+
 
 @dataclass
 class SimulatedDecision:
@@ -119,6 +123,10 @@ class SimulatedDecision:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> SimulatedDecision:
+        return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
 
 
 @dataclass
@@ -149,6 +157,10 @@ class SimulatedTrade:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> SimulatedTrade:
+        return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
+
 
 @dataclass
 class TimelineEvent:
@@ -163,6 +175,10 @@ class TimelineEvent:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> TimelineEvent:
+        return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
 
 
 @dataclass
