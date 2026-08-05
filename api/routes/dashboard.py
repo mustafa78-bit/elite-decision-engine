@@ -295,13 +295,13 @@ def dashboard_hero(request: Request):
                 portfolio_realized_pnl=snapshot.realized_pnl,
                 portfolio_exposure=snapshot.exposure,
                 portfolio_initial_capital=snapshot.initial_capital,
-                performance_sharpe=perf.sharpe,
-                performance_sortino=perf.sortino,
-                performance_calmar=perf.calmar,
-                performance_profit_factor=perf.profit_factor,
-                performance_win_rate=perf.win_rate,
-                performance_total_pnl=perf.total_pnl,
-                performance_max_drawdown=perf.max_drawdown,
+                performance_sharpe=perf.sharpe_ratio,
+                performance_sortino=perf.sortino_ratio,
+                performance_calmar=perf.calmar_ratio,
+                performance_profit_factor=snapshot.profit_factor,
+                performance_win_rate=snapshot.win_rate,
+                performance_total_pnl=snapshot.total_pnl,
+                performance_max_drawdown=snapshot.max_drawdown,
             )
             result = ExplainEngine().explain(inp)
 

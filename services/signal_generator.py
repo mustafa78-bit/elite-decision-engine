@@ -48,7 +48,11 @@ def generate_signals(
                 price=opp.price,
                 score=opp.score,
                 confidence=opp.confidence,
-                trend_score=opp.trend_score,
+                trend_score=getattr(opp, "trend_score", 0.0),
+                funding_score=getattr(opp, "funding_score", 0.0),
+                oi_score=getattr(opp, "oi_score", 0.0),
+                cvd_score=getattr(opp, "cvd_score", 0.0),
+                risk_score=getattr(opp, "risk_score", 0.0),
                 status="OPEN",
             )
             session.add(signal)
