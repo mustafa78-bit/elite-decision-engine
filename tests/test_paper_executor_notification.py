@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 
-from database import Trade
+from database import PaperTrade, Trade
 from execution.paper_executor import PaperExecutor
 
 
@@ -97,3 +97,93 @@ def test_monitor_trade_emits_trade_closed_on_tp_hit(
     assert payload["side"] == "LONG"
     assert payload["status"] == "TP_HIT"
     assert payload["close_reason"] == "TP_HIT"
+
+
+def test_close_trade_emits_real_dollar_pnl(db_session, session_factory, monkeypatch):
+    """close_trade's TRADE_CLOSED payload uses real dollar pnl (price delta *
+    real quantity), not the raw per-unit delta."""
+
+    trade = Trade(
+        symbol="ETHUSDT",
+        side="LONG",
+        entry=3000.0,
+        stop=2950.0,
+        tp1=3100.0,
+        status="OPEN",
+    )
+    db_session.add(trade)
+    db_session.flush()
+    trade_id = trade.id
+
+    paper_trade = PaperTrade(
+        position_id=trade_id,
+        symbol="ETHUSDT",
+        side="LONG",
+        entry=3000.0,
+        quantity=0.2,
+        status="OPEN",
+    )
+    db_session.add(paper_trade)
+    db_session.flush()
+
+    mock_emit = MagicMock()
+    monkeypatch.setattr(
+        "execution.paper_executor.NotificationDispatcher.emit",
+        mock_emit,
+    )
+
+    executor = PaperExecutor(session_factory=session_factory)
+    executor.close_trade(trade_id=trade_id, exit_price=3050.0, status="TP_HIT")
+
+    mock_emit.assert_called_once()
+    args, _ = mock_emit.call_args
+    _, payload = args[0], args[1]
+
+    # raw per-unit delta is 50.0 (3050 - 3000); real dollar pnl = 50.0 * 0.2 = 10.0
+    assert payload["pnl"] == 10.0
+
+
+def test_monitor_trade_emits_real_dollar_pnl(db_session, session_factory, monkeypatch):
+    """monitor_open_trades' TRADE_CLOSED payload uses real dollar pnl (price
+    delta * real quantity), not the raw per-unit delta."""
+
+    trade = Trade(
+        symbol="ETHUSDT",
+        side="LONG",
+        entry=3000.0,
+        stop=2950.0,
+        tp1=3100.0,
+        status="OPEN",
+    )
+    db_session.add(trade)
+    db_session.flush()
+
+    paper_trade = PaperTrade(
+        position_id=trade.id,
+        symbol="ETHUSDT",
+        side="LONG",
+        entry=3000.0,
+        quantity=0.2,
+        status="OPEN",
+    )
+    db_session.add(paper_trade)
+    db_session.flush()
+
+    mock_emit = MagicMock()
+    monkeypatch.setattr(
+        "execution.paper_executor.NotificationDispatcher.emit",
+        mock_emit,
+    )
+
+    executor = PaperExecutor(
+        collector=_MockCollector(close_price=3100.0),
+        session_factory=session_factory,
+    )
+    executor.monitor_open_trades()
+
+    mock_emit.assert_called_once()
+    args, _ = mock_emit.call_args
+    _, payload = args[0], args[1]
+
+    # raw per-unit delta is 100.0 (3100 - 3000); real dollar pnl = 100.0 * 0.2 = 20.0
+    assert payload["pnl"] == 20.0
