@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Optional
 
-from database import CLOSED, FINAL_STATUSES, OPEN, SL_HIT, TP_HIT, Trade, get_session
+from database import CLOSED, FINAL_STATUSES, OPEN, SL_HIT, TP_HIT, PaperTrade, Trade, get_session
 from market_data.collector import HyperliquidCollector
 from notifications.dispatcher import NotificationDispatcher
 from notifications.events import TradeEvent
@@ -214,7 +214,7 @@ class PaperExecutor:
                         "side": t.side,
                         "status": t.status,
                         "exit_price": t.exit_price,
-                        "pnl": t.pnl,
+                        "pnl": self._dollar_pnl(session, t.id, t.pnl),
                         "close_reason": t.close_reason,
                     })
 
@@ -292,7 +292,7 @@ class PaperExecutor:
                         "side": trade.side,
                         "status": normalized_status,
                         "exit_price": float(exit_price),
-                        "pnl": realized_pnl.unrealized_pnl,
+                        "pnl": self._dollar_pnl(session, trade.id, realized_pnl.unrealized_pnl),
                         "close_reason": close_reason or normalized_status,
                     },
                 )
@@ -334,6 +334,22 @@ class PaperExecutor:
             pnl_percentage=pnl.pnl_percentage,
             realized_pnl=pnl.unrealized_pnl,
         )
+
+    def _dollar_pnl(self, session: Any, trade_id: int, raw_pnl: float | None) -> float | None:
+        """Convert a raw per-unit pnl delta into a real dollar amount using the
+        matching PaperTrade's quantity, falling back to the raw value when no
+        PaperTrade row exists."""
+
+        if raw_pnl is None:
+            return None
+        paper_trade = (
+            session.query(PaperTrade)
+            .filter(PaperTrade.position_id == trade_id)
+            .first()
+        )
+        if paper_trade is not None and paper_trade.quantity is not None:
+            return paper_trade.quantity * raw_pnl
+        return raw_pnl
 
     def get_current_price(self, symbol: str) -> float:
         """Fetch the latest close price for a symbol from the configured collector."""
