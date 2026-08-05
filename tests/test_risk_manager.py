@@ -180,6 +180,45 @@ class TestRiskManager:
         assert allowed is True
         assert reason == ""
 
+    def test_reject_daily_loss_uses_real_dollar_quantity(self, db_session, session_factory):
+        today = datetime.now(UTC)
+        # 3 closed trades today, each -2000 raw per-unit pnl, quantity=2 -> real dollar
+        # loss = -2000 * 2 = -4000 each, -12000 total (> MAX_DAILY_LOSS of 10,000).
+        # Raw per-unit sum alone would be -6000, under the 10,000 limit -> would have
+        # wrongly passed under the old (unit-mismatched) code.
+        for _ in range(3):
+            _seed_trade(
+                db_session, status="SL_HIT", pnl=-2000.0,
+                closed_at=today, close_reason="SL_HIT", quantity=2.0,
+            )
+        mgr = RiskManager(session_factory=session_factory)
+        allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
+        assert allowed is False
+        assert "Daily loss limit" in reason
+
+    def test_no_rejection_daily_loss_when_real_dollar_loss_is_small(self, db_session, session_factory):
+        today = datetime.now(UTC)
+        # A single closed trade with a large raw per-unit loss but a tiny real quantity:
+        # raw pnl -9000, quantity=0.5 -> real dollar loss = -4500, under MAX_DAILY_LOSS.
+        # Under the old (unit-mismatched) code, the raw -9000 alone would still pass
+        # (under 10,000), but a second such trade would have wrongly tipped it over
+        # 10,000 raw while still being well under 10,000 in real dollars -- prove the
+        # real-dollar total (-9000) stays under the limit here.
+        _seed_trade(
+            db_session, status="SL_HIT", pnl=-9000.0,
+            closed_at=today, close_reason="SL_HIT", quantity=0.5,
+        )
+        _seed_trade(
+            db_session, status="SL_HIT", pnl=-9000.0,
+            closed_at=today, close_reason="SL_HIT", quantity=0.5,
+        )
+        mgr = RiskManager(session_factory=session_factory)
+        allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
+        # Real dollar loss: -9000*0.5 + -9000*0.5 = -9000, under 10,000 -> should pass.
+        # Raw per-unit sum: -9000 + -9000 = -18000, would have wrongly rejected.
+        assert allowed is True
+        assert reason == ""
+
 
 class TestRiskManagerEvaluateTrade:
 
