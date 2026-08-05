@@ -108,6 +108,45 @@ class TestTerminalService:
         result = self.service._get_performance_summary()
         assert isinstance(result, dict)
 
+    def test_get_open_trades_with_real_data(self, db_session, monkeypatch, session_factory):
+        monkeypatch.setattr("services.terminal_service.get_session", session_factory)
+        from database import Signal, Trade, PaperTrade
+        sig = Signal(id=10, symbol="ETHUSDT", side="LONG")
+        db_session.add(sig)
+        db_session.flush()
+
+        trade = Trade(
+            id=10,
+            signal_id=10,
+            symbol="ETHUSDT",
+            side="LONG",
+            entry=3000.0,
+            status="OPEN"
+        )
+        db_session.add(trade)
+        db_session.flush()
+
+        pt = PaperTrade(
+            position_id=10,
+            symbol="ETHUSDT",
+            side="LONG",
+            entry=3000.0,
+            quantity=2.5,
+            status="OPEN"
+        )
+        db_session.add(pt)
+        db_session.flush()
+
+        result = self.service.get_open_trades()
+        assert len(result) == 1
+        open_t = result[0]
+        assert open_t["id"] == 10
+        assert open_t["symbol"] == "ETHUSDT"
+        assert open_t["side"] == "LONG"
+        assert open_t["entry_price"] == 3000.0
+        assert open_t["quantity"] == 2.5
+        assert open_t["current_price"] == 3000.0
+
 
 class TestTerminalAPI:
 
@@ -121,3 +160,41 @@ class TestTerminalAPI:
         assert event.event == "SCANNER_UPDATE"
         payload = ScannerPayload()
         assert payload.symbol == ""
+
+    def test_get_open_trades_endpoint(self, api_client, db_session):
+        from database import Signal, Trade, PaperTrade
+        sig = Signal(id=20, symbol="BTCUSDT", side="SHORT")
+        db_session.add(sig)
+        db_session.flush()
+
+        trade = Trade(
+            id=20,
+            signal_id=20,
+            symbol="BTCUSDT",
+            side="SHORT",
+            entry=60000.0,
+            status="OPEN"
+        )
+        db_session.add(trade)
+        db_session.flush()
+
+        pt = PaperTrade(
+            position_id=20,
+            symbol="BTCUSDT",
+            side="SHORT",
+            entry=60000.0,
+            quantity=0.5,
+            status="OPEN"
+        )
+        db_session.add(pt)
+        db_session.flush()
+
+        resp = api_client.get("/terminal/open-trades")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body) == 1
+        assert body[0]["id"] == 20
+        assert body[0]["symbol"] == "BTCUSDT"
+        assert body[0]["side"] == "SHORT"
+        assert body[0]["entry_price"] == 60000.0
+        assert body[0]["quantity"] == 0.5
