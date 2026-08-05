@@ -241,11 +241,38 @@ class TestParsePortfolioSummary:
 
 
 class TestParseMarketRegime:
+    def test_bullish_regime_supports_long_explicit(self):
+        result = {"regime": "TREND", "trend": "BULLISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        items = parse_market_regime(result, side="LONG")
+        supporting = [i for i in items if i.supports_decision]
+        assert len(supporting) >= 1
+
     def test_bullish_regime_supports(self):
         result = {"regime": "TREND", "trend": "BULLISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
         items = parse_market_regime(result)
         supporting = [i for i in items if i.supports_decision]
         assert len(supporting) >= 1
+
+    def test_bearish_regime_supports_short(self):
+        result = {"regime": "TREND", "trend": "BEARISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        items = parse_market_regime(result, side="SHORT")
+        supporting = [i for i in items if i.supports_decision]
+        assert len(supporting) >= 1
+
+    def test_bullish_regime_contradicts_short(self):
+        result = {"regime": "TREND", "trend": "BULLISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        items = parse_market_regime(result, side="SHORT")
+        contradicting = [i for i in items if not i.supports_decision and i.title.startswith("Market:")]
+        assert len(contradicting) >= 1
+
+    def test_neutral_trend_never_supports_long_or_short(self):
+        result = {"regime": "RANGE", "trend": "NEUTRAL", "trend_strength": "WEAK", "volatility_class": "NORMAL", "score": 0.5}
+        # Under LONG
+        items_long = parse_market_regime(result, side="LONG")
+        assert not items_long[0].supports_decision
+        # Under SHORT
+        items_short = parse_market_regime(result, side="SHORT")
+        assert not items_short[0].supports_decision
 
     def test_high_volatility_adds_contradicting(self):
         result = {"regime": "RANGE", "trend": "NEUTRAL", "trend_strength": "WEAK", "volatility_class": "EXTREME", "score": 0.5}
@@ -507,6 +534,28 @@ class TestEvidenceBuilder:
         assert report.evidence_strength > 0.0
         assert report.explainability > 0.0
         assert report.recommendation == "BUY"
+
+    def test_build_with_all_inputs_short_favorable_market(self):
+        builder = EvidenceBuilder()
+        decision = DictObj({"decision": "SELL", "side": "SHORT", "confidence": 80.0, "score": 0.8, "risk_score": 0.2, "reasons": [], "warnings": []})
+        scanner = DictObj({"symbol": "BTC", "side": "SHORT", "score": 0.85, "confidence": 90.0, "strategy": "momentum", "reason": "Strong bearish trend", "signals": []})
+        council = DictObj({"symbol": "BTC", "consensus_direction": "BEARISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 4, "sources_disagreeing": 1, "agent_reports": []})
+        market = {"regime": "TREND", "trend": "BEARISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        portfolio = DictObj({"current_exposure": 5000, "max_exposure": 10000, "open_pnl": 200, "win_rate": 55.0})
+        report = builder.build(
+            decision_result=decision,
+            scanner_result=scanner,
+            council_result=council,
+            market_regime_result=market,
+            portfolio_result=portfolio,
+            recommendation="SELL",
+        )
+        # Symmetrical side-aware supports_decision check:
+        # A BEARISH trend market regime must support a SHORT decision:
+        regime_items = [i for i in report.supporting_evidence if i.engine == "market_regime" and i.title.startswith("Market:")]
+        assert len(regime_items) == 1
+        assert regime_items[0].supports_decision is True
+        assert len(report.contradicting_evidence) == 0
 
 
 class TestEvidenceEngine:

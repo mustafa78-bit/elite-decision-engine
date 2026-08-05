@@ -266,7 +266,7 @@ def parse_portfolio_summary(result: Any) -> list[EvidenceItem]:
     return items
 
 
-def parse_market_regime(result: Any) -> list[EvidenceItem]:
+def parse_market_regime(result: Any, side: str = "LONG") -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
     if isinstance(result, dict):
@@ -283,7 +283,13 @@ def parse_market_regime(result: Any) -> list[EvidenceItem]:
         score = getattr(result, "score", 0.0)
 
     bullish_trends = ("BULLISH", "RECOVERING")
-    is_bullish = trend in bullish_trends
+    bearish_trends = ("BEARISH", "WEAKENING")
+
+    side_upper = str(side).upper().strip() if side else "LONG"
+    if side_upper == "SHORT":
+        supports_decision = trend in bearish_trends
+    else:
+        supports_decision = trend in bullish_trends
 
     items.append(
         EvidenceItem(
@@ -293,7 +299,7 @@ def parse_market_regime(result: Any) -> list[EvidenceItem]:
             category="market_regime",
             severity="HIGH" if volatility in ("EXTREME", "HIGH") else "MEDIUM",
             confidence=score,
-            supports_decision=is_bullish,
+            supports_decision=supports_decision,
             source=SourceTrace(origin="global", engine="market_regime"),
         )
     )
