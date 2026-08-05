@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from database import FINAL_STATUSES, OPEN, Signal, Trade, get_session
+from database import FINAL_STATUSES, OPEN, PaperTrade, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     ExplanationDashboardWidgetDTO,
@@ -148,18 +148,36 @@ def dashboard_timeline(signal_id: int, request: Request):
 def dashboard_portfolio(request: Request):
     session = get_session()
     try:
-        trades = session.query(Trade).all()
-        closed = [t for t in trades if t.status in FINAL_STATUSES]
-        open_trades = [t for t in trades if t.status == "OPEN"]
-        total_pnl = sum(t.pnl or 0 for t in closed)
-        wins = [t for t in closed if t.pnl and t.pnl > 0]
+        results = (
+            session.query(Trade, PaperTrade)
+            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+            .all()
+        )
+        parsed_trades = []
+        for t, pt in results:
+            qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 1.0
+            pnl_val = (t.pnl or 0.0) * qty
+            parsed_trades.append({"trade": t, "pnl_val": pnl_val})
 
-        pnls = [t.pnl or 0 for t in closed]
+        closed = [item for item in parsed_trades if item["trade"].status in FINAL_STATUSES]
+        open_trades = [item for item in parsed_trades if item["trade"].status == "OPEN"]
+        total_pnl = sum(item["pnl_val"] for item in closed)
+        wins = [item for item in closed if item["pnl_val"] > 0]
+
+        def _sort_key(item):
+            dt = item["trade"].created_at
+            if dt is None:
+                return datetime.min.replace(tzinfo=UTC)
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=UTC)
+            return dt
+
+        sorted_closed = sorted(closed, key=_sort_key)
         peak = 0.0
         max_dd = 0.0
         cumulative = 0.0
-        for p in pnls:
-            cumulative += p
+        for item in sorted_closed:
+            cumulative += item["pnl_val"]
             if cumulative > peak:
                 peak = cumulative
             dd = peak - cumulative
