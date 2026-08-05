@@ -51,8 +51,68 @@ class ExplanationService:
 
     def explain_signal(self, signal: Any, scores: Optional[dict[str, Any]] = None) -> DecisionExplanationDTO:
         start = time.perf_counter()
-        timeline = DecisionTimelineDTO(signal_id=getattr(signal, "id", 0))
-        timeline.add_event("explain_start", f"Explaining signal {getattr(signal, 'symbol', '?')}")
+        sid = getattr(signal, "id", 0) if not isinstance(signal, dict) else signal.get("id", 0)
+        symbol = getattr(signal, "symbol", "?") if not isinstance(signal, dict) else signal.get("symbol", "?")
+
+        timeline = DecisionTimelineDTO(signal_id=sid)
+        timeline.add_event("explain_start", f"Explaining signal {symbol}")
+
+        if not scores and signal is not None:
+            # Check if signal has any scoring attributes/keys
+            has_scoring = False
+            for attr in ("score", "confidence", "trend_score", "volume_score", "btc_health", "btc_score", "risk_score"):
+                if isinstance(signal, dict):
+                    if attr in signal:
+                        has_scoring = True
+                        break
+                else:
+                    if hasattr(signal, attr):
+                        has_scoring = True
+                        break
+
+            if has_scoring:
+                def get_val(obj, attr, default=0.0):
+                    if isinstance(obj, dict):
+                        return obj.get(attr, default)
+                    return getattr(obj, attr, default)
+
+                entry = get_val(signal, "price", 0.0) or get_val(signal, "entry", 0.0)
+                final_score = get_val(signal, "score", 0.0) or get_val(signal, "final_score", 0.0)
+                confidence = get_val(signal, "confidence", 0.0) or (final_score * 100.0 if final_score else 0.0)
+
+                trend_score = get_val(signal, "trend_score", 0.0)
+                volume_score = get_val(signal, "volume_score", 0.0)
+                btc_score = get_val(signal, "btc_health", 0.0) or get_val(signal, "btc_score", 0.0)
+                risk_score = get_val(signal, "risk_score", 0.0)
+
+                mtf_score = get_val(signal, "mtf_score", None)
+                if mtf_score is None:
+                    numerator = final_score - (trend_score * 0.30 + volume_score * 0.20 + btc_score * 0.20 + risk_score * 0.10)
+                    mtf_score = max(0.0, min(1.0, numerator / 0.20)) if final_score > 0 else 0.0
+
+                scores = {
+                    "entry": entry,
+                    "ema20": get_val(signal, "ema20", 0.0),
+                    "ema50": get_val(signal, "ema50", 0.0),
+                    "ema200": get_val(signal, "ema200", 0.0),
+                    "rsi": get_val(signal, "rsi", 50.0),
+                    "atr": get_val(signal, "atr", 0.0),
+                    "trend_score": trend_score,
+                    "volume_score": volume_score,
+                    "btc_score": btc_score,
+                    "mtf_score": mtf_score,
+                    "risk_score": risk_score,
+                    "final_score": final_score,
+                    "confidence": confidence,
+                    "volatility_score": get_val(signal, "volatility_score", 0.0),
+                    "contributions": {
+                        "trend": round(trend_score * SCORE_WEIGHTS.get("trend", 0.30), 4),
+                        "volume": round(volume_score * SCORE_WEIGHTS.get("volume", 0.20), 4),
+                        "btc": round(btc_score * SCORE_WEIGHTS.get("btc", 0.20), 4),
+                        "mtf": round(mtf_score * SCORE_WEIGHTS.get("mtf", 0.20), 4),
+                        "risk": round(risk_score * SCORE_WEIGHTS.get("risk", 0.10), 4),
+                    }
+                }
 
         reasoning = self._build_reasoning(signal, scores, timeline)
         reasoning.human_readable = self._build_human_readable(reasoning)
