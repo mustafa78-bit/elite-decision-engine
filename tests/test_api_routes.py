@@ -171,6 +171,84 @@ def test_get_paper_trading_with_trades(api_client, db_session):
     assert body["performance"]["total_pnl"] == 500.0
 
 
+def test_get_paper_trading_mixed_quantities(api_client, db_session):
+    from database import PaperTrade
+
+    # 1. Open trade with no matching PaperTrade (falls back to Trade.pnl or 0)
+    _make_trade(db_session, id=10, signal_id=1, status="OPEN", pnl=10.0)
+
+    # 2. Closed trade: entry $3,000, exit $3,050 (pnl $50 per unit), quantity 0.2
+    # Real dollar PnL = $50 * 0.2 = $10.0
+    t2 = _make_trade(
+        db_session, id=11, signal_id=2, status="CLOSED", pnl=50.0,
+        entry=3000.0, exit_price=3050.0,
+    )
+    db_session.add(PaperTrade(
+        position_id=t2.id,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=3000.0,
+        exit_price=3050.0,
+        quantity=0.2,
+        pnl=50.0,
+        status="CLOSED",
+    ))
+
+    # 3. Closed trade: entry $100, exit $90 (pnl -$10 per unit), quantity 5.0
+    # Real dollar PnL = -$10 * 5.0 = -$50.0
+    t3 = _make_trade(
+        db_session, id=12, signal_id=3, status="CLOSED", pnl=-10.0,
+        entry=100.0, exit_price=90.0,
+    )
+    db_session.add(PaperTrade(
+        position_id=t3.id,
+        symbol="ETHUSDT",
+        side="LONG",
+        entry=100.0,
+        exit_price=90.0,
+        quantity=5.0,
+        pnl=-10.0,
+        status="CLOSED",
+    ))
+
+    # 4. Closed trade with no matching PaperTrade (falls back to Trade.pnl, quantity=1.0)
+    # Real dollar PnL = -$5.0
+    _make_trade(
+        db_session, id=13, signal_id=4, status="CLOSED", pnl=-5.0,
+        entry=150.0, exit_price=145.0,
+    )
+
+    db_session.flush()
+
+    # Query endpoint
+    resp = api_client.get("/paper-trading")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # Verify open trade
+    assert len(body["open"]) == 1
+    assert body["open"][0]["id"] == 10
+    assert body["open"][0]["pnl"] == 10.0  # falls back to Trade.pnl
+
+    # Verify closed trades list (3 closed trades total)
+    assert len(body["closed"]) == 3
+
+    # Map closed trades by id to easily verify their PnL
+    closed_by_id = {item["id"]: item for item in body["closed"]}
+
+    # Trade 11: PnL should be 10.0 (50.0 * 0.2)
+    assert closed_by_id[11]["pnl"] == 10.0
+
+    # Trade 12: PnL should be -50.0 (-10.0 * 5.0)
+    assert closed_by_id[12]["pnl"] == -50.0
+
+    # Trade 13: PnL should be -5.0 (fallback)
+    assert closed_by_id[13]["pnl"] == -5.0
+
+    # Verify total performance PnL: 10.0 (trade 11) + (-50.0) (trade 12) + (-5.0) (trade 13) = -45.0
+    assert body["performance"]["total_pnl"] == -45.0
+
+
 # ─── Execution Status ──────────────────────────────────────────────────────
 
 

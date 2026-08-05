@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from database import FINAL_STATUSES, Trade, get_session
+from database import FINAL_STATUSES, Trade, PaperTrade, get_session
 from execution.paper_executor import PaperExecutor as PaperExec
 from portfolio_engine import PortfolioEngine
 
@@ -40,19 +40,33 @@ class PaperPerformance:
 def get_paper_trading():
     session = get_session()
     try:
-        all_trades = session.query(Trade).all()
+        results = session.query(Trade, PaperTrade).outerjoin(
+            PaperTrade, PaperTrade.position_id == Trade.id
+        ).all()
     finally:
         session.close()
 
-    open_trades = [t for t in all_trades if str(t.status) == "OPEN"]
-    closed_trades = [t for t in all_trades if str(t.status) in FINAL_STATUSES]
-    winning = [t for t in closed_trades if t.pnl is not None and t.pnl > 0]
-    losing = [t for t in closed_trades if t.pnl is not None and t.pnl < 0]
-    total_wl = len(winning) + len(losing)
+    open_list = []
+    closed_list = []
+    closed_pnl_sum = 0.0
 
-    return {
-        "open": [
-            {
+    winning_count = 0
+    losing_count = 0
+    total_wl = 0
+
+    for t, pt in results:
+        status_str = str(t.status)
+
+        # Calculate real dollar pnl
+        if t.pnl is None:
+            real_pnl = None
+        elif pt is not None:
+            real_pnl = (pt.quantity or 0.0) * t.pnl
+        else:
+            real_pnl = t.pnl
+
+        if status_str == "OPEN":
+            open_list.append({
                 "id": t.id,
                 "symbol": t.symbol,
                 "side": t.side,
@@ -61,33 +75,44 @@ def get_paper_trading():
                 "tp1": t.tp1,
                 "tp2": t.tp2,
                 "status": t.status,
-                "pnl": t.pnl,
+                "pnl": real_pnl,
                 "created_at": t.created_at.isoformat() if t.created_at else None,
-            }
-            for t in open_trades
-        ],
-        "closed": [
-            {
+            })
+        elif status_str in FINAL_STATUSES:
+            closed_list.append({
                 "id": t.id,
                 "symbol": t.symbol,
                 "side": t.side,
                 "entry": t.entry,
                 "exit_price": t.exit_price,
-                "pnl": t.pnl,
+                "pnl": real_pnl,
                 "status": t.status,
                 "close_reason": t.close_reason,
                 "created_at": t.created_at.isoformat() if t.created_at else None,
                 "closed_at": t.closed_at.isoformat() if t.closed_at else None,
-            }
-            for t in closed_trades
-        ],
+            })
+            if real_pnl is not None:
+                closed_pnl_sum += real_pnl
+
+            # sign-based check for winning/losing
+            if t.pnl is not None:
+                if t.pnl > 0:
+                    winning_count += 1
+                    total_wl += 1
+                elif t.pnl < 0:
+                    losing_count += 1
+                    total_wl += 1
+
+    return {
+        "open": open_list,
+        "closed": closed_list,
         "performance": {
-            "total_trades": len(all_trades),
-            "open_trades": len(open_trades),
-            "closed_trades": len(closed_trades),
-            "winning_trades": len(winning),
-            "losing_trades": len(losing),
-            "win_rate": round((len(winning) / total_wl * 100), 2) if total_wl > 0 else 0.0,
-            "total_pnl": round(sum(t.pnl for t in closed_trades if t.pnl is not None), 2),
+            "total_trades": len(results),
+            "open_trades": len(open_list),
+            "closed_trades": len(closed_list),
+            "winning_trades": winning_count,
+            "losing_trades": losing_count,
+            "win_rate": round((winning_count / total_wl * 100), 2) if total_wl > 0 else 0.0,
+            "total_pnl": round(closed_pnl_sum, 2),
         },
     }
