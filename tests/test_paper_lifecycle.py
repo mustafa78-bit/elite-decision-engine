@@ -1,33 +1,37 @@
 """Comprehensive lifecycle validation for the paper trading domain."""
 
-import pytest
 import pandas as pd
+import pytest
 
 from database import (
     CANCEL,
     CLOSED,
     FILLED,
     OPEN,
+    ORDER_FINAL_STATUSES,
     PARTIALLY_FILLED,
     PENDING,
     STOP_LOSS,
     TAKE_PROFIT,
     TRADE_FINAL_STATUSES,
-    ORDER_FINAL_STATUSES,
     Trade,
+)
+from database import (
     PaperOrder as PaperOrderModel,
+)
+from database import (
     PaperTrade as PaperTradeModel,
 )
 from execution.lifecycle import (
-    validate_order_transition,
-    validate_trade_transition,
-    validate_fill_order,
-    validate_cancel_order,
-    validate_close_trade,
-    is_valid_order_transition,
-    is_valid_trade_transition,
     is_order_terminal,
     is_trade_terminal,
+    is_valid_order_transition,
+    is_valid_trade_transition,
+    validate_cancel_order,
+    validate_close_trade,
+    validate_fill_order,
+    validate_order_transition,
+    validate_trade_transition,
 )
 from execution.paper import PaperExecutor
 

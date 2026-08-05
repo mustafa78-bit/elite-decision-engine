@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from datetime import UTC
+
 import pytest
-from database import Trade, Signal
+
+from database import Signal, Trade
 
 
 class TestAnalyticsAPI:
@@ -16,7 +19,7 @@ class TestAnalyticsAPI:
 
     def test_analytics_with_data(self, api_client, db_session):
         from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for pnl in [1000, 2000, -500]:
             db_session.add(Trade(
                 symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
@@ -37,7 +40,7 @@ class TestAnalyticsAPI:
         db_session.add(Trade(
             symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
             tp1=52000, rr=2.0, status="TP_HIT", pnl=1000,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         ))
         db_session.flush()
         resp = api_client.get("/analytics/daily?days=7")
@@ -64,7 +67,7 @@ class TestAnalyticsAPI:
         db_session.add(Trade(
             symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
             tp1=52000, rr=2.0, status="TP_HIT", pnl=1000,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         ))
         db_session.flush()
         resp = api_client.get("/analytics/symbols")

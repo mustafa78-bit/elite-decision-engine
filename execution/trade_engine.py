@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from database import get_session, Trade
+from database import Trade, get_session
 from execution.tp_sl import TPSLEngine
 from notifications.dispatcher import NotificationDispatcher
 from notifications.events import TradeEvent
-
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +15,8 @@ class TradeEngine:
 
     def __init__(
         self,
-        tp_sl: Optional[TPSLEngine] = None,
-        notifications: Optional[NotificationDispatcher] = None,
+        tp_sl: TPSLEngine | None = None,
+        notifications: NotificationDispatcher | None = None,
     ) -> None:
         self.tp_sl = tp_sl or TPSLEngine()
         self.notifications = notifications or NotificationDispatcher()

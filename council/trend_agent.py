@@ -10,6 +10,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 from scoring.regime_ai import RegimeAI
@@ -46,22 +47,22 @@ class TrendAgent(BaseAgent):
         name: str = "Trend",
         weight: float = 1.0,
         priority: int = 5,
-        regime_ai: Optional[RegimeAI] = None,
+        regime_ai: RegimeAI | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority)
         self.regime_ai = regime_ai or RegimeAI()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"
         side = getattr(signal, "side", "LONG") if signal else "LONG"
 
-        values: Optional[dict[str, Any]] = None
+        values: dict[str, Any] | None = None
         if scores:
             values = {
                 "ema20": scores.get("ema20"),
@@ -87,6 +88,8 @@ class TrendAgent(BaseAgent):
         direction = DIRECTION_MAP.get(regime, DIRECTION_NEUTRAL)
         if direction == DIRECTION_NEUTRAL:
             direction = TREND_MAP.get(trend, DIRECTION_NEUTRAL)
+
+        direction = normalize_direction(direction, side)
 
         reasoning: list[str] = []
         if regime != "UNKNOWN":

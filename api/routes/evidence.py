@@ -34,14 +34,14 @@ def evidence_latest():
 def evidence_build(
     symbol: str = "",
     recommendation: str = "",
-    decision_result: Optional[dict[str, Any]] = None,
-    risk_result: Optional[dict[str, Any]] = None,
-    scanner_result: Optional[dict[str, Any]] = None,
-    council_result: Optional[dict[str, Any]] = None,
-    portfolio_result: Optional[dict[str, Any]] = None,
-    market_regime_result: Optional[dict[str, Any]] = None,
-    whale_result: Optional[list[dict[str, Any]]] = None,
-    explain_result: Optional[dict[str, Any]] = None,
+    decision_result: dict[str, Any] | None = None,
+    risk_result: dict[str, Any] | None = None,
+    scanner_result: dict[str, Any] | None = None,
+    council_result: dict[str, Any] | None = None,
+    portfolio_result: dict[str, Any] | None = None,
+    market_regime_result: dict[str, Any] | None = None,
+    whale_result: list[dict[str, Any]] | None = None,
+    explain_result: dict[str, Any] | None = None,
 ):
     engine = _get_engine()
     if engine is None:

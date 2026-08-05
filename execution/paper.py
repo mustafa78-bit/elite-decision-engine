@@ -8,9 +8,10 @@ dataclasses; persistence reuses SQLAlchemy models from ``database.py``.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from datetime import UTC, datetime, timezone
+from typing import Any, Optional
 
 from database import (
     CANCEL,
@@ -19,24 +20,27 @@ from database import (
     OPEN,
     PARTIALLY_FILLED,
     PENDING,
-    TAKE_PROFIT,
-    STOP_LOSS,
-    TP_HIT,
     SL_HIT,
-    PaperOrder as PaperOrderModel,
-    PaperTrade as PaperTradeModel,
+    STOP_LOSS,
+    TAKE_PROFIT,
+    TP_HIT,
     Trade,
     get_session,
 )
+from database import (
+    PaperOrder as PaperOrderModel,
+)
+from database import (
+    PaperTrade as PaperTradeModel,
+)
 from execution.lifecycle import (
-    validate_fill_order,
+    is_trade_terminal,
     validate_cancel_order,
     validate_close_trade,
-    is_trade_terminal,
+    validate_fill_order,
 )
 from execution.paper_executor import PaperExecutor as _PositionExecutor
 from execution.paper_executor import TradeMonitorResult
-
 
 _LEGACY_TO_DOMAIN_STATUS = {
     "TP_HIT": TAKE_PROFIT,
@@ -56,13 +60,13 @@ class PaperPosition:
     entry: float
     stop_loss: float
     take_profit: float
-    take_profit_2: Optional[float]
+    take_profit_2: float | None
     pnl: float
     status: str
-    exit_price: Optional[float]
-    close_reason: Optional[str]
-    created_at: Optional[datetime]
-    closed_at: Optional[datetime]
+    exit_price: float | None
+    close_reason: str | None
+    created_at: datetime | None
+    closed_at: datetime | None
 
     @classmethod
     def from_trade(cls, trade: Trade) -> PaperPosition:
@@ -90,14 +94,14 @@ class PaperOrder:
     side: str
     order_type: str
     quantity: float
-    price: Optional[float]
-    filled_price: Optional[float]
-    filled_quantity: Optional[float]
+    price: float | None
+    filled_price: float | None
+    filled_quantity: float | None
     status: str
-    trade_id: Optional[int]
-    reason: Optional[str]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    trade_id: int | None
+    reason: str | None
+    created_at: datetime | None
+    updated_at: datetime | None
 
     @classmethod
     def from_model(cls, model: PaperOrderModel) -> PaperOrder:
@@ -122,17 +126,17 @@ class PaperOrder:
 class PaperTrade:
     id: int
     position_id: int
-    order_id: Optional[int]
+    order_id: int | None
     symbol: str
     side: str
     entry: float
-    exit_price: Optional[float]
+    exit_price: float | None
     quantity: float
     pnl: float
     status: str
-    close_reason: Optional[str]
-    created_at: Optional[datetime]
-    closed_at: Optional[datetime]
+    close_reason: str | None
+    created_at: datetime | None
+    closed_at: datetime | None
 
     @classmethod
     def from_model(cls, model: PaperTradeModel) -> PaperTrade:
@@ -163,9 +167,9 @@ class PaperExecutor:
 
     def __init__(
         self,
-        position_executor: Optional[_PositionExecutor] = None,
+        position_executor: _PositionExecutor | None = None,
         session_factory: Callable[[], Any] = get_session,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         self._positions = position_executor or _PositionExecutor()
         self.session_factory = session_factory
@@ -177,9 +181,9 @@ class PaperExecutor:
         side: str,
         quantity: float,
         order_type: str = "MARKET",
-        price: Optional[float] = None,
-        reason: Optional[str] = None,
-    ) -> Optional[PaperOrder]:
+        price: float | None = None,
+        reason: str | None = None,
+    ) -> PaperOrder | None:
         """Create a pending paper order."""
         session = self.session_factory()
         try:
@@ -211,9 +215,9 @@ class PaperExecutor:
         entry: float,
         stop_loss: float,
         take_profit: float,
-        take_profit_2: Optional[float] = None,
-        signal_id: Optional[int] = None,
-    ) -> Optional[tuple[PaperOrder, PaperPosition, PaperTrade]]:
+        take_profit_2: float | None = None,
+        signal_id: int | None = None,
+    ) -> tuple[PaperOrder, PaperPosition, PaperTrade] | None:
         """Fill a pending order, creating a position and trade record."""
         session = self.session_factory()
         try:
@@ -277,7 +281,7 @@ class PaperExecutor:
         finally:
             session.close()
 
-    def cancel_order(self, order_id: int, reason: Optional[str] = None) -> Optional[PaperOrder]:
+    def cancel_order(self, order_id: int, reason: str | None = None) -> PaperOrder | None:
         """Cancel a pending paper order. Idempotent for already-cancelled orders."""
         session = self.session_factory()
         try:
@@ -331,8 +335,8 @@ class PaperExecutor:
         trade_id: int,
         exit_price: float,
         status: str = CLOSED,
-        close_reason: Optional[str] = None,
-    ) -> Optional[tuple[PaperPosition, Optional[PaperTrade]]]:
+        close_reason: str | None = None,
+    ) -> tuple[PaperPosition, PaperTrade | None] | None:
         """Close a position and finalize the associated paper trade.
 
         Idempotent for already-closed positions.
@@ -377,7 +381,7 @@ class PaperExecutor:
                 paper_trade.exit_price = float(exit_price)
                 paper_trade.pnl = float(result.realized_pnl or 0)
                 paper_trade.close_reason = close_reason or status
-                paper_trade.closed_at = datetime.now(timezone.utc)
+                paper_trade.closed_at = datetime.now(UTC)
                 session.add(paper_trade)
                 session.commit()
                 session.refresh(paper_trade)
@@ -402,7 +406,7 @@ class PaperExecutor:
         trade_id: int,
         entry: float,
         quantity: float,
-    ) -> Optional[tuple[PaperOrder, PaperPosition, PaperTrade]]:
+    ) -> tuple[PaperOrder, PaperPosition, PaperTrade] | None:
         """Execute a signal: create filled order + trade journal in one step.
 
         This is the primary integration point between the execution pipeline
@@ -500,7 +504,7 @@ class PaperExecutor:
 
     def get_orders(
         self,
-        status: Optional[str] = None,
+        status: str | None = None,
     ) -> list[PaperOrder]:
         session = self.session_factory()
         try:
@@ -519,8 +523,8 @@ class PaperExecutor:
 
     def get_trades(
         self,
-        position_id: Optional[int] = None,
-        status: Optional[str] = None,
+        position_id: int | None = None,
+        status: str | None = None,
     ) -> list[PaperTrade]:
         session = self.session_factory()
         try:

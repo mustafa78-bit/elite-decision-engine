@@ -1,25 +1,28 @@
 from __future__ import annotations
 
-import math
 import logging
-from datetime import datetime, timezone, timedelta
+import math
+from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from statistics import mean, stdev
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from database import (
+    CANCEL,
     CLOSED,
     OPEN,
+    SL_HIT,
     STOP_LOSS,
     TAKE_PROFIT,
     TP_HIT,
-    SL_HIT,
-    CANCEL,
-    PaperTrade as PaperTradeModel,
     Trade,
     get_session,
 )
-from portfolio.core import PortfolioSnapshot
+from database import (
+    PaperTrade as PaperTradeModel,
+)
 from performance.core import PerformanceReport
+from portfolio.core import PortfolioSnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +35,7 @@ class PerformanceEngine:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
+        session_factory: Callable[[], Any] | None = None,
         risk_free_rate: float = _RFR,
     ) -> None:
         self.session_factory = session_factory or get_session
@@ -194,8 +197,8 @@ class PerformanceEngine:
 
         # --- 14  Trade Frequency (trades per day) ---
         if holding_times and len(closed_paper) > 0:
-            oldest: Optional[datetime] = None
-            newest: Optional[datetime] = None
+            oldest: datetime | None = None
+            newest: datetime | None = None
             for pt in closed_paper:
                 trade = trade_by_id.get(pt.position_id)
                 if trade is not None:

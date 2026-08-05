@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from database import Trade, Notification, Watchlist, UserSettings
+from database import Notification, Trade, UserSettings, Watchlist
 
 
 class TestWidgetsAPI:

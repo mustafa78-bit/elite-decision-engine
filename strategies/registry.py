@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Type
+from typing import Optional
 
 from strategies.base import Strategy
 
@@ -12,9 +12,9 @@ class StrategyRegistry:
     """Registry of available trading strategies."""
 
     def __init__(self) -> None:
-        self._strategies: dict[str, Type[Strategy]] = {}
+        self._strategies: dict[str, type[Strategy]] = {}
 
-    def register(self, strategy_cls: Type[Strategy]) -> None:
+    def register(self, strategy_cls: type[Strategy]) -> None:
         """Register a strategy class by its name attribute."""
         name = strategy_cls.name
         if name in self._strategies:
@@ -22,7 +22,7 @@ class StrategyRegistry:
         self._strategies[name] = strategy_cls
         logger.info("Registered strategy: %s", name)
 
-    def get(self, name: str) -> Optional[Type[Strategy]]:
+    def get(self, name: str) -> type[Strategy] | None:
         """Get a strategy class by name."""
         return self._strategies.get(name)
 
@@ -30,7 +30,7 @@ class StrategyRegistry:
         """List all registered strategy names."""
         return list(self._strategies.keys())
 
-    def instantiate(self, name: str) -> Optional[Strategy]:
+    def instantiate(self, name: str) -> Strategy | None:
         """Create an instance of a strategy by name."""
         cls = self.get(name)
         if cls is None:

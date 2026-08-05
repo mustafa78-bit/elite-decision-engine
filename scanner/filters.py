@@ -16,25 +16,25 @@ class MarketFilter:
     def should_filter(
         self,
         result: ScanResult,
-        btc_trend: Optional[str] = None,
-        market_session: Optional[str] = None,
-        fear_greed_label: Optional[str] = None,
-    ) -> tuple[bool, Optional[str]]:
-        trend = result.features.get("trend", "NEUTRAL")
-
-        if btc_trend == "BEARISH" and trend in ("BULLISH", "MILD_BULLISH"):
-            return True, "BTC_BEARISH_CONTRADICTS_BULLISH_TREND"
-
-        if fear_greed_label in ("EXTREME_GREED",) and trend == "BULLISH":
-            if result.momentum_score > 0.5 and result.reversal_score > 0.3:
-                return True, "EXTREME_GREED_WITH_REVERSAL_SIGNAL"
-
-        if fear_greed_label in ("EXTREME_FEAR",) and trend == "BEARISH":
-            if result.reversal_score > 0.5:
-                return True, "EXTREME_FEAR_PANIC_SELLING"
-
+        side: str | None = None,
+        btc_trend: str | None = None,
+        market_session: str | None = None,
+        fear_greed_label: str | None = None,
+    ) -> tuple[bool, str | None]:
         if market_session == "CLOSED":
             return True, "MARKET_CLOSED"
+
+        if side is not None:
+            if btc_trend == "BEARISH" and side == "LONG":
+                return True, "BTC_BEARISH_CONTRADICTS_BULLISH_TREND"
+
+            if fear_greed_label in ("EXTREME_GREED",) and side == "LONG":
+                if abs(result.momentum_score) > 0.5 and abs(result.reversal_score) > 0.3:
+                    return True, "EXTREME_GREED_WITH_REVERSAL_SIGNAL"
+
+            if fear_greed_label in ("EXTREME_FEAR",) and side == "SHORT":
+                if abs(result.reversal_score) > 0.5:
+                    return True, "EXTREME_FEAR_PANIC_SELLING"
 
         return False, None
 
@@ -47,14 +47,14 @@ class FalseSignalFilter:
     def should_filter(
         self,
         result: ScanResult,
-        volume_score: Optional[float] = None,
-    ) -> tuple[bool, Optional[str]]:
-        if result.breakout_score > 0.3:
+        volume_score: float | None = None,
+    ) -> tuple[bool, str | None]:
+        if abs(result.breakout_score) > 0.3:
             vol = volume_score or result.features.get("volume_score")
             if vol is not None and vol < self.LOW_VOLUME_BREAKOUT_THRESHOLD:
                 return True, "LOW_VOLUME_BREAKOUT"
 
-        if result.trend_score > 0.3 and result.reversal_score > 0.4:
+        if abs(result.trend_score) > 0.3 and abs(result.reversal_score) > 0.4:
             return True, "TREND_REVERSAL_CONFLICT"
 
         if result.signals.count("RSI_OVERBOUGHT") > 0 and result.signals.count("RSI_BULLISH") > 0:

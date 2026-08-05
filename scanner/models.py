@@ -14,6 +14,7 @@ class Opportunity:
     confidence: float
 
     price: float = 0.0
+    trend_score: float = 0.0
     reason: str = ""
     indicators: dict[str, Any] = field(default_factory=dict)
     features: dict[str, Any] = field(default_factory=dict)
@@ -31,6 +32,7 @@ class Opportunity:
 @dataclass
 class ScanResult:
     symbol: str
+    price: float = 0.0
     trend_score: float = 0.0
     momentum_score: float = 0.0
     breakout_score: float = 0.0

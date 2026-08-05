@@ -32,7 +32,7 @@ class CacheManager:
         self._store: dict[str, CacheEntry] = {}
         self._lock = threading.Lock()
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         entry = self._store.get(key)
         if entry is None:
             return None
@@ -41,11 +41,11 @@ class CacheManager:
             return None
         return entry.value
 
-    def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    def set(self, key: str, value: Any, ttl: float | None = None) -> None:
         with self._lock:
             self._store[key] = CacheEntry(value, ttl if ttl is not None else self._default_ttl)
 
-    def get_or_set(self, key: str, factory, ttl: Optional[float] = None) -> Any:
+    def get_or_set(self, key: str, factory, ttl: float | None = None) -> Any:
         cached = self.get(key)
         if cached is not None:
             return cached

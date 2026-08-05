@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from database import FINAL_STATUSES, OPEN, Signal, Trade, get_session
+from database import FINAL_STATUSES, OPEN, Signal, Trade, PaperTrade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     ExplanationDashboardWidgetDTO,
@@ -147,17 +148,42 @@ def dashboard_timeline(signal_id: int, request: Request):
 def dashboard_portfolio(request: Request):
     session = get_session()
     try:
-        trades = session.query(Trade).all()
-        closed = [t for t in trades if t.status in FINAL_STATUSES]
-        open_trades = [t for t in trades if t.status == "OPEN"]
-        total_pnl = sum(t.pnl or 0 for t in closed)
-        wins = [t for t in closed if t.pnl and t.pnl > 0]
+        results = (
+            session.query(Trade, PaperTrade)
+            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+            .all()
+        )
+        parsed_trades = []
+        for t, pt in results:
+            qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 1.0
+            pnl_val = (t.pnl or 0.0) * qty
+            parsed_trades.append({
+                "trade": t,
+                "quantity": qty,
+                "pnl_val": pnl_val,
+            })
 
-        pnls = [t.pnl or 0 for t in closed]
+        closed = [item for item in parsed_trades if item["trade"].status in FINAL_STATUSES]
+        open_trades = [item for item in parsed_trades if item["trade"].status == "OPEN"]
+        total_pnl = sum(item["pnl_val"] for item in closed)
+        wins = [item for item in closed if item["pnl_val"] > 0]
+
+        import datetime
+        def get_date(item):
+            dt = item["trade"].created_at
+            if dt is None:
+                return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=datetime.timezone.utc)
+            return dt
+
+        sorted_closed = sorted(closed, key=get_date)
+
         peak = 0.0
         max_dd = 0.0
         cumulative = 0.0
-        for p in pnls:
+        for item in sorted_closed:
+            p = item["pnl_val"]
             cumulative += p
             if cumulative > peak:
                 peak = cumulative
@@ -213,7 +239,7 @@ def dashboard_notifications(request: Request):
     try:
         from database import Notification
 
-        unread = session.query(Notification).filter(Notification.read == False).count()
+        unread = session.query(Notification).filter(Notification.read == False).count()  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
         recent = (
             session.query(Notification)
             .order_by(Notification.created_at.desc())
@@ -255,16 +281,16 @@ def dashboard_hero(request: Request):
         session.close()
 
     try:
-        from portfolio.engine import PortfolioEngine
         from performance.engine import PerformanceEngine
+        from portfolio.engine import PortfolioEngine
         snapshot = PortfolioEngine().snapshot()
         perf = PerformanceEngine().report(snapshot)
 
         market_regime = "UNKNOWN"
         try:
-            from scoring.regime_ai import get_regime_ai
-            from market_data.indicators import IndicatorEngine
             from market_data.collector import HyperliquidCollector
+            from market_data.indicators import IndicatorEngine
+            from scoring.regime_ai import get_regime_ai
             collector = HyperliquidCollector()
             df = collector.get_ohlcv(symbol="BTC", timeframe="1h")
             if not df.empty:
@@ -274,10 +300,8 @@ def dashboard_hero(request: Request):
         except Exception:
             logger.warning("Failed to fetch market regime for hero banner", exc_info=True)
 
+        from explain.core import ExplainInput, ExplainResult
         from explain.engine import ExplainEngine
-        from explain.core import ExplainInput
-
-        from explain.core import ExplainResult
 
         empty_result = ExplainResult()
         result = empty_result
@@ -312,7 +336,7 @@ def dashboard_hero(request: Request):
         tp = float(trade.tp1 or 0) if trade else 0.0
         sl = float(trade.stop or 0) if trade else 0.0
         rr = float(trade.rr or 0) if trade else 0.0
-        ts = signal.created_at.isoformat() if signal and signal.created_at else datetime.now(timezone.utc).isoformat()
+        ts = signal.created_at.isoformat() if signal and signal.created_at else datetime.now(UTC).isoformat()
 
         widget = HeroBannerDTO(
             decision=result.decision,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -33,13 +33,13 @@ class FillResult:
     side: str
     requested_quantity: Decimal
     filled_quantity: Decimal
-    requested_price: Optional[Decimal]
+    requested_price: Decimal | None
     fill_price: Decimal
     slippage: Decimal
     fee: Decimal
     latency_ms: int
     partial: bool
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class ExecutionSimulator:
@@ -48,7 +48,7 @@ class ExecutionSimulator:
     Models slippage, fees, latency, and partial fills.
     """
 
-    def __init__(self, config: Optional[SimulationConfig] = None) -> None:
+    def __init__(self, config: SimulationConfig | None = None) -> None:
         self.config = config or SimulationConfig()
 
     def simulate_fill(
@@ -57,8 +57,8 @@ class ExecutionSimulator:
         symbol: str,
         side: str,
         quantity: Decimal,
-        price: Optional[Decimal] = None,
-        market_price: Optional[Decimal] = None,
+        price: Decimal | None = None,
+        market_price: Decimal | None = None,
     ) -> FillResult:
         """Simulate order execution with realistic market conditions."""
 

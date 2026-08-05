@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ class FeatureEntry:
     feature_type: str
     value: Any
     timestamp: float = field(default_factory=time.time)
-    ttl: Optional[float] = None
+    ttl: float | None = None
 
 
 class FeatureStore:
@@ -28,7 +28,7 @@ class FeatureStore:
     def __init__(self) -> None:
         self._store: dict[tuple[str, str], FeatureEntry] = {}
 
-    def set(self, symbol: str, feature_type: str, value: Any, ttl: Optional[float] = None) -> None:
+    def set(self, symbol: str, feature_type: str, value: Any, ttl: float | None = None) -> None:
         """Store a feature with optional TTL in seconds."""
         key = (symbol.upper(), feature_type)
         self._store[key] = FeatureEntry(
@@ -39,7 +39,7 @@ class FeatureStore:
         )
         logger.debug("Feature stored: %s %s = %s", symbol, feature_type, value)
 
-    def get(self, symbol: str, feature_type: str) -> Optional[Any]:
+    def get(self, symbol: str, feature_type: str) -> Any | None:
         """Get a feature value, or None if expired or missing."""
         key = (symbol.upper(), feature_type)
         entry = self._store.get(key)
@@ -50,7 +50,7 @@ class FeatureStore:
             return None
         return entry.value
 
-    def get_all(self, symbol: Optional[str] = None) -> dict[str, Any]:
+    def get_all(self, symbol: str | None = None) -> dict[str, Any]:
         """Get all non-expired features, optionally filtered by symbol."""
         result: dict[str, Any] = {}
         now = time.time()
@@ -63,7 +63,7 @@ class FeatureStore:
             result[ftype] = entry.value
         return result
 
-    def set_batch(self, symbol: str, features: dict[str, Any], ttl: Optional[float] = None) -> None:
+    def set_batch(self, symbol: str, features: dict[str, Any], ttl: float | None = None) -> None:
         """Store multiple features for a symbol at once."""
         for ftype, value in features.items():
             self.set(symbol, ftype, value, ttl)
@@ -73,7 +73,7 @@ class FeatureStore:
         key = (symbol.upper(), feature_type)
         return self._store.pop(key, None) is not None
 
-    def clear(self, symbol: Optional[str] = None) -> int:
+    def clear(self, symbol: str | None = None) -> int:
         """Clear features, optionally for a specific symbol."""
         if symbol is None:
             count = len(self._store)
@@ -88,12 +88,12 @@ class FeatureStore:
     def count(self) -> int:
         return len(self._store)
 
-    def snapshot(self, symbol: Optional[str] = None) -> dict[str, Any]:
+    def snapshot(self, symbol: str | None = None) -> dict[str, Any]:
         """Get all non-expired features as a flat dict."""
         all_features = self.get_all(symbol)
         return {
             "symbol": symbol or "all",
             "feature_count": len(all_features),
             "features": all_features,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }

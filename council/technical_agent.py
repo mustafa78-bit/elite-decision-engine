@@ -10,6 +10,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 from scoring.scoring_engine import ScoringEngine
@@ -29,16 +30,16 @@ class TechnicalAgent(BaseAgent):
         name: str = "Technical",
         weight: float = 1.0,
         priority: int = 5,
-        scoring_engine: Optional[ScoringEngine] = None,
+        scoring_engine: ScoringEngine | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority)
         self.scoring_engine = scoring_engine or ScoringEngine()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"
@@ -91,32 +92,31 @@ class TechnicalAgent(BaseAgent):
         direction = DIRECTION_NEUTRAL
         confidence = 0.5
 
-        if side.upper() == "LONG":
-            if ema20 > ema50 > ema200:
-                direction = DIRECTION_BULLISH
-                reasoning.append("Bullish EMA alignment (20 > 50 > 200)")
-            elif ema20 > ema50 and ema50 < ema200:
-                direction = DIRECTION_NEUTRAL
-                reasoning.append("Mixed EMA signals — short-term bullish, long-term bearish")
-            elif ema20 < ema50:
-                direction = DIRECTION_BEARISH
-                reasoning.append("Bearish EMA cross (20 below 50)")
-            else:
-                direction = DIRECTION_NEUTRAL
-                reasoning.append("Flat EMA structure")
+        # Compute literal market direction (ignoring trade side)
+        if ema20 > ema50 > ema200:
+            direction = DIRECTION_BULLISH
+            reasoning.append("Bullish EMA alignment (20 > 50 > 200)")
+        elif ema20 < ema50 < ema200:
+            direction = DIRECTION_BEARISH
+            reasoning.append("Bearish EMA alignment (20 < 50 < 200)")
+        elif ema20 > ema50 and ema50 < ema200:
+            direction = DIRECTION_NEUTRAL
+            reasoning.append("Mixed EMA signals — short-term bullish, long-term bearish")
+        elif ema20 < ema50 and ema50 > ema200:
+            direction = DIRECTION_NEUTRAL
+            reasoning.append("Mixed EMA signals — short-term bearish, long-term bullish")
+        elif ema20 < ema50:
+            direction = DIRECTION_BEARISH
+            reasoning.append("Bearish EMA cross (20 below 50)")
+        elif ema20 > ema50:
+            direction = DIRECTION_BULLISH
+            reasoning.append("Bullish EMA cross (20 above 50)")
         else:
-            if ema20 < ema50 < ema200:
-                direction = DIRECTION_BULLISH
-                reasoning.append("Bearish alignment confirmed (20 < 50 < 200)")
-            elif ema20 < ema50 and ema50 > ema200:
-                direction = DIRECTION_NEUTRAL
-                reasoning.append("Mixed EMA signals for short trade")
-            elif ema20 > ema50:
-                direction = DIRECTION_BEARISH
-                reasoning.append("Short-term bullish — unfavourable for short")
-            else:
-                direction = DIRECTION_NEUTRAL
-                reasoning.append("Flat EMA structure")
+            direction = DIRECTION_NEUTRAL
+            reasoning.append("Flat EMA structure")
+
+        # Now normalize relative to the trade side
+        direction = normalize_direction(direction, side)
 
         if rsi > 70:
             reasoning.append(f"RSI overbought ({rsi:.0f})")

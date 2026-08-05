@@ -13,19 +13,19 @@ class RateLimitError(ExchangeError):
 class OrderError(ExchangeError):
     """Order-related error."""
 
-class InsufficientFunds(OrderError):
+class InsufficientFundsError(OrderError):
     """Not enough balance to place order."""
 
-class InvalidOrder(OrderError):
+class InvalidOrderError(OrderError):
     """Invalid order parameters."""
 
-class OrderNotFound(OrderError):
+class OrderNotFoundError(OrderError):
     """Order not found."""
 
-class PositionNotFound(ExchangeError):
+class PositionNotFoundError(ExchangeError):
     """Position not found."""
 
-class SymbolNotFound(ExchangeError):
+class SymbolNotFoundError(ExchangeError):
     """Symbol not found on exchange."""
 
 class MarketDataError(ExchangeError):

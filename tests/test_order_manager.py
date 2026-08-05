@@ -34,6 +34,62 @@ class TestOrderManager:
         order = mgr.create_order(symbol="BTC", side="BUY", order_type="LIMIT", quantity=Decimal("0.1"))
         assert mgr.cancel_order(order.id, "BTC") is True
 
+    def test_cancel_order_updates_history_status(self):
+        class MockExchange(HyperliquidExchange):
+            def create_order(self, order):
+                import dataclasses
+                filled = dataclasses.replace(order, id="mock_1", status="PENDING")
+                self._orders["mock_1"] = filled
+                return filled
+
+        mgr = OrderManager()
+        mgr.set_exchange(MockExchange())
+        order = mgr.create_order(symbol="BTC", side="BUY", order_type="LIMIT", quantity=Decimal("0.1"))
+        assert order.status == "PENDING"
+
+        assert len(mgr.get_open_orders()) == 1
+        history = mgr.get_order_history()
+        assert len(history) == 1
+        assert history[0].status == "PENDING"
+
+        assert mgr.cancel_order(order.id, "BTC") is True
+
+        assert len(mgr.get_open_orders()) == 0
+        history_after = mgr.get_order_history()
+        assert len(history_after) == 1
+        assert history_after[0].status == "CANCELED"
+
+    def test_cancel_all_updates_history_status(self):
+        class MockExchange(HyperliquidExchange):
+            def create_order(self, order):
+                import dataclasses
+                order_id = f"mock_{self._next_order_id}"
+                self._next_order_id += 1
+                filled = dataclasses.replace(order, id=order_id, status="PENDING")
+                self._orders[order_id] = filled
+                return filled
+
+        mgr = OrderManager()
+        mgr.set_exchange(MockExchange())
+        order1 = mgr.create_order(symbol="BTC", side="BUY", order_type="LIMIT", quantity=Decimal("0.1"))
+        order2 = mgr.create_order(symbol="ETH", side="SELL", order_type="LIMIT", quantity=Decimal("1"))
+
+        assert order1.id == "mock_1"
+        assert order2.id == "mock_2"
+        assert len(mgr.get_open_orders()) == 2
+        history = mgr.get_order_history()
+        assert len(history) == 2
+        assert history[0].status == "PENDING"
+        assert history[1].status == "PENDING"
+
+        assert mgr.cancel_all() == 2
+
+        assert len(mgr.get_open_orders()) == 0
+        history_after = mgr.get_order_history()
+        assert len(history_after) == 2
+        assert history_after[0].status == "CANCELED"
+        assert history_after[1].status == "CANCELED"
+
     def test_cancel_all(self):
         mgr = OrderManager()
         mgr.set_exchange(HyperliquidExchange())
@@ -44,7 +100,7 @@ class TestOrderManager:
     def test_get_open_orders(self):
         mgr = OrderManager()
         mgr.set_exchange(HyperliquidExchange())
-        order = mgr.create_order(symbol="BTC", side="BUY", order_type="LIMIT", quantity=Decimal("0.1"))
+        mgr.create_order(symbol="BTC", side="BUY", order_type="LIMIT", quantity=Decimal("0.1"))
         open_orders = mgr.get_open_orders()
         # Filled orders are not open
         assert len(open_orders) == 0

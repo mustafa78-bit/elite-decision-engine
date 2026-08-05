@@ -40,7 +40,7 @@ jobs:
           pip install ruff
 
       - name: Lint
-        run: ruff check . --ignore E501 F401
+        run: ruff check . --ignore E501,F401
 
       - name: Test
         env:
@@ -66,4 +66,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        working-directory: frontend
+
+      - name: Test
+        run: npm run test
         working-directory: frontend

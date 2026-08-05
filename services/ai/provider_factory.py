@@ -1,20 +1,23 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from config import AI_MODEL, AI_PROVIDER, NVIDIA_API_KEY, NVIDIA_BASE_URL
-from services.ai.provider import AIProvider
 from services.ai.nvidia_provider import NVIDIAProvider
+from services.ai.provider import AIProvider
+
+if TYPE_CHECKING:
+    from services.ai.ai_service import AIService
 
 logger = logging.getLogger(__name__)
 
 
 def create_provider(
-    provider: Optional[str] = None,
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
-    model: Optional[str] = None,
+    provider: str | None = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    model: str | None = None,
 ) -> AIProvider:
     provider_name = (provider or AI_PROVIDER).strip().lower()
 
@@ -52,7 +55,7 @@ def create_provider(
     raise ValueError(msg % provider_name)
 
 
-def create_ai_service() -> "AIService":
+def create_ai_service() -> AIService:
     from services.ai.ai_service import AIService
 
     provider = create_provider()

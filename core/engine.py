@@ -32,18 +32,26 @@ class DecisionEngine:
             logger.exception("Signal processing failed: %s", e)
             update_signal_status(signal.id, "REJECTED")
 
+    def _process_open_signals(self):
+        """Synchronous, blocking pass: fetch OPEN signals and process each."""
+        signals = self.get_open_signals()
+
+        if len(signals) == 0:
+            logger.info("No open signals found.")
+        else:
+            logger.info("Found %s open signal(s).", len(signals))
+
+            for signal in signals:
+                self.process_signal(signal)
+
     async def run(self):
 
         while True:
-
-            signals = self.get_open_signals()
-
-            if len(signals) == 0:
-                logger.info("No open signals found.")
-            else:
-                logger.info("Found %s open signal(s).", len(signals))
-
-                for signal in signals:
-                    self.process_signal(signal)
+            try:
+                await asyncio.to_thread(self._process_open_signals)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("DecisionEngine run loop iteration failed")
 
             await asyncio.sleep(CHECK_INTERVAL)

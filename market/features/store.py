@@ -11,7 +11,7 @@ Examples:
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +38,14 @@ class FeatureStore:
         vol_score = indicators.get("volatility_score", 0)
         volume_score = indicators.get("volume_score", 0)
 
+        price = indicators.get("entry", ema20)
+        atr_pct = (atr / price) * 100 if (price > 0 and atr > 0) else 0.0
+
         trend = self._classify_trend(ema20, ema50, ema200, side)
         momentum = self._classify_momentum(rsi)
-        risk = self._classify_risk(vol_score, atr)
+        risk = self._classify_risk(vol_score, atr_pct)
         liquidity = self._classify_liquidity(volume_score)
-        vol_class = self._classify_volatility(atr, indicators.get("entry", ema20))
+        vol_class = self._classify_volatility(atr, price)
 
         return {
             "trend": trend,
@@ -50,6 +53,7 @@ class FeatureStore:
             "risk": risk,
             "liquidity": liquidity,
             "volatility_class": vol_class,
+            "atr_pct": atr_pct,
             "regime_score": self._regime_score(trend, momentum, risk),
         }
 
@@ -88,15 +92,15 @@ class FeatureStore:
             return "WEAK"
         return "OVERSOLD"
 
-    def _classify_risk(self, vol_score: float, atr: float) -> str:
+    def _classify_risk(self, vol_score: float, atr_pct: float) -> str:
         risk_level = 0
         if vol_score > 0.7:
             risk_level += 2
         elif vol_score > 0.4:
             risk_level += 1
-        if atr > 2500:
+        if atr_pct > 5.0:
             risk_level += 2
-        elif atr > 1500:
+        elif atr_pct > 2.5:
             risk_level += 1
         if risk_level >= 3:
             return "HIGH"

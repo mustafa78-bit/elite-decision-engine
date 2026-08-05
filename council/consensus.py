@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from council.base import (
@@ -13,6 +13,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from council.macro_agent import MacroAgent
 from council.news_agent import NewsAgent
@@ -29,15 +30,17 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CouncilReport:
     symbol: str
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     consensus_direction: str = DIRECTION_NEUTRAL
     consensus_score: float = 0.0
     agreement_level: str = ""
     agent_reports: list[AgentReport] = field(default_factory=list)
-    coordinator_report: Optional[dict[str, Any]] = None
+    coordinator_report: dict[str, Any] | None = None
     agent_count: int = 0
     sources_agreeing: int = 0
     sources_disagreeing: int = 0
+    risk_veto: bool = False
+    risk_veto_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -77,8 +80,8 @@ class ConsensusEngine:
 
     def __init__(
         self,
-        coordinator: Optional[CoordinatorService] = None,
-        weights: Optional[dict[str, float]] = None,
+        coordinator: CoordinatorService | None = None,
+        weights: dict[str, float] | None = None,
     ) -> None:
         self.coordinator = coordinator or CoordinatorService()
         self.weights = weights or dict(DEFAULT_WEIGHTS)
@@ -122,23 +125,24 @@ class ConsensusEngine:
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> CouncilReport:
         self._eval_count += 1
         symbol = getattr(signal, "symbol", "?") if signal else kwargs.get("symbol", "?")
+        side = getattr(signal, "side", "LONG") if signal else kwargs.get("side", "LONG")
 
         reports: list[AgentReport] = []
         for name, agent in self.agents.items():
             report = agent._timed_evaluate(signal=signal, scores=scores, **kwargs)
             reports.append(report)
 
-        consensus_direction, consensus_score, agreement = self._compute_consensus(reports)
+        consensus_direction, consensus_score, agreement, risk_veto, risk_veto_reason = self._compute_consensus(reports, side)
 
-        coordinator_report: Optional[dict[str, Any]] = None
+        coordinator_report: dict[str, Any] | None = None
         try:
-            coordinator_report = self.coordinator.evaluate(signal, scores).to_dict()
+            coordinator_report = self.coordinator.evaluate(signal, scores, reports).to_dict()
         except Exception as e:
             logger.warning("Coordinator evaluation failed: %s", e)
 
@@ -158,25 +162,51 @@ class ConsensusEngine:
             agent_count=len(reports),
             sources_agreeing=agreeing,
             sources_disagreeing=disagreeing,
+            risk_veto=risk_veto,
+            risk_veto_reason=risk_veto_reason,
         )
 
     def _compute_consensus(
-        self, reports: list[AgentReport]
-    ) -> tuple[str, float, str]:
+        self, reports: list[AgentReport], side: str
+    ) -> tuple[str, float, str, bool, str | None]:
         if not reports:
-            return DIRECTION_NEUTRAL, 0.0, "none"
+            return DIRECTION_NEUTRAL, 0.0, "none", False, None
+
+        # Split reports into directional and non-directional groups
+        directional_reports: list[AgentReport] = []
+        non_directional_reports: list[AgentReport] = []
+
+        for r in reports:
+            agent = self.agents.get(r.agent_name)
+            is_dir = getattr(agent, "is_directional", True) if agent is not None else True
+            if is_dir:
+                directional_reports.append(r)
+            else:
+                non_directional_reports.append(r)
+
+        # Non-directional Veto check
+        risk_veto = False
+        risk_veto_reason = None
+        for r in non_directional_reports:
+            if r.direction == DIRECTION_PASS:
+                risk_veto = True
+                risk_veto_reason = " ".join(r.reasoning)
+                break
+
+        if risk_veto:
+            return DIRECTION_PASS, 0.0, "none", True, risk_veto_reason
 
         direction_weights: dict[str, float] = {}
         total_weight = 0.0
 
-        for report in reports:
+        for report in directional_reports:
             weight = self.weights.get(report.agent_name, 1.0)
             combined = report.confidence * weight
             direction_weights[report.direction] = direction_weights.get(report.direction, 0.0) + combined
             total_weight += weight
 
-        if total_weight == 0:
-            return DIRECTION_NEUTRAL, 0.0, "none"
+        if total_weight == 0 or not directional_reports:
+            return DIRECTION_NEUTRAL, 0.0, "none", False, None
 
         bullish_total = direction_weights.get(DIRECTION_BULLISH, 0.0)
         bearish_total = direction_weights.get(DIRECTION_BEARISH, 0.0)
@@ -198,22 +228,26 @@ class ConsensusEngine:
 
         score_normalized = max(0.0, min(1.0, score_normalized))
 
-        high_conf = sum(1 for r in reports if r.confidence > 0.5)
-        low_conf = len(reports) - high_conf
-
-        if low_conf == 0:
-            agreement = "strong"
-        elif low_conf <= len(reports) // 2:
-            agreement = "moderate"
-        else:
-            agreement = "weak"
-
-        if high_conf == 0:
+        # Fraction of directional reports that match the winning consensus_direction with confidence > 0.5
+        confident_directional = [r for r in directional_reports if r.confidence > 0.5]
+        if not confident_directional:
             agreement = "none"
+        else:
+            matching_confident = sum(
+                1 for r in directional_reports
+                if r.direction == direction and r.confidence > 0.5
+            )
+            fraction = matching_confident / len(directional_reports)
+            if fraction >= 0.8:
+                agreement = "strong"
+            elif fraction >= 0.5:
+                agreement = "moderate"
+            else:
+                agreement = "weak"
 
-        return direction, round(score_normalized, 4), agreement
+        return direction, round(score_normalized, 4), agreement, False, None
 
-    def get_agent(self, name: str) -> Optional[BaseAgent]:
+    def get_agent(self, name: str) -> BaseAgent | None:
         return self.agents.get(name)
 
     @property

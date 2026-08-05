@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
 from exchange.base import ExchangeAdapter
-from exchange.exceptions import ExchangeError, OrderError, OrderNotFound
+from exchange.exceptions import ExchangeError, OrderError, OrderNotFoundError
 from exchange.models import Order
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class OrderManager:
     """High-level order management system (paper mode only)."""
 
-    def __init__(self, exchange: Optional[ExchangeAdapter] = None) -> None:
+    def __init__(self, exchange: ExchangeAdapter | None = None) -> None:
         self.exchange = exchange
         self._history: list[Order] = []
         self._open_orders: dict[str, Order] = {}
@@ -28,12 +29,12 @@ class OrderManager:
         symbol: str,
         side: str,
         order_type: str = "LIMIT",
-        quantity: Optional[Decimal] = None,
-        price: Optional[Decimal] = None,
-        stop_price: Optional[Decimal] = None,
+        quantity: Decimal | None = None,
+        price: Decimal | None = None,
+        stop_price: Decimal | None = None,
         reduce_only: bool = False,
         time_in_force: str = "GTC",
-        client_order_id: Optional[str] = None,
+        client_order_id: str | None = None,
     ) -> Order:
         if self.exchange is None:
             raise ExchangeError("No exchange configured")
@@ -70,11 +71,23 @@ class OrderManager:
 
         logger.info("Cancelling order %s for %s", order_id, symbol)
         cancelled = self.exchange.cancel_order(order_id, symbol.upper())
-        if cancelled and order_id in self._open_orders:
-            self._open_orders.pop(order_id)
+        if cancelled:
+            old_order = self._open_orders.get(order_id)
+            if old_order is None:
+                for o in self._history:
+                    if o.id == order_id:
+                        old_order = o
+                        break
+            if old_order is not None:
+                updated_order = dataclasses.replace(old_order, status="CANCELED")
+                self._open_orders.pop(order_id, None)
+                for i, o in enumerate(self._history):
+                    if o.id == order_id:
+                        self._history[i] = updated_order
+                        break
         return cancelled
 
-    def cancel_all(self, symbol: Optional[str] = None) -> int:
+    def cancel_all(self, symbol: str | None = None) -> int:
         if self.exchange is None:
             raise ExchangeError("No exchange configured")
 
@@ -86,18 +99,23 @@ class OrderManager:
         for order in to_cancel:
             try:
                 if self.exchange.cancel_order(order.id, order.symbol):
+                    updated_order = dataclasses.replace(order, status="CANCELED")
                     self._open_orders.pop(order.id, None)
+                    for i, o in enumerate(self._history):
+                        if o.id == order.id:
+                            self._history[i] = updated_order
+                            break
                     count += 1
             except Exception as e:
                 logger.warning("Failed to cancel order %s: %s", order.id, e)
         return count
 
-    def order_status(self, order_id: str, symbol: str) -> Optional[Order]:
+    def order_status(self, order_id: str, symbol: str) -> Order | None:
         if self.exchange is None:
             raise ExchangeError("No exchange configured")
         return self.exchange.order_status(order_id, symbol.upper())
 
-    def get_open_orders(self, symbol: Optional[str] = None) -> list[Order]:
+    def get_open_orders(self, symbol: str | None = None) -> list[Order]:
         orders = list(self._open_orders.values())
         if symbol:
             orders = [o for o in orders if o.symbol == symbol.upper()]
@@ -105,7 +123,7 @@ class OrderManager:
 
     def get_order_history(
         self,
-        symbol: Optional[str] = None,
+        symbol: str | None = None,
         limit: int = 50,
     ) -> list[Order]:
         orders = list(self._history)

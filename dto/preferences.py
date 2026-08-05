@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Any, Optional
 
 
@@ -8,10 +8,10 @@ from typing import Any, Optional
 class UserPreferencesDTO:
     timezone: str = "UTC"
     theme: str = "dark"
-    dashboard_config: Optional[dict[str, Any]] = None
-    risk_preferences: Optional[dict[str, Any]] = None
-    layout_config: Optional[dict[str, Any]] = None
-    notification_preferences: Optional[dict[str, Any]] = None
+    dashboard_config: dict[str, Any] | None = None
+    risk_preferences: dict[str, Any] | None = None
+    layout_config: dict[str, Any] | None = None
+    notification_preferences: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -32,8 +32,8 @@ class ThemeConfigDTO:
 
 @dataclass
 class LayoutConfigDTO:
-    widget_order: Optional[list[str]] = None
-    visible_widgets: Optional[list[str]] = None
+    widget_order: list[str] | None = None
+    visible_widgets: list[str] | None = None
     chart_layout: str = "grid"
     sidebar_collapsed: bool = False
 

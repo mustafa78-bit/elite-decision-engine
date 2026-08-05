@@ -32,6 +32,12 @@ def _make_signal(db_session, **overrides):
 
 
 def _make_trade(db_session, signal_id=1, status="OPEN", pnl=None, **overrides):
+    if signal_id is not None:
+        existing_signal = db_session.query(Signal).filter(Signal.id == signal_id).first()
+        if not existing_signal:
+            sig = Signal(id=signal_id, symbol=overrides.get("symbol", "BTCUSDT"), side=overrides.get("side", "LONG"))
+            db_session.add(sig)
+            db_session.flush()
     kwargs = dict(
         signal_id=signal_id,
         symbol="BTCUSDT",
@@ -288,14 +294,14 @@ def test_delete_journal(api_client):
 
 def test_update_journal_missing(api_client):
     resp = api_client.put("/journal/99999", json={"result": "WIN"})
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 def test_delete_journal_missing(api_client):
     resp = api_client.delete("/journal/99999")
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 # ─── Backtest ──────────────────────────────────────────────────────────────
@@ -310,19 +316,27 @@ def test_get_backtest_empty(api_client):
 
 
 def test_get_backtest_with_data(api_client, db_session):
-    _make_signal(db_session, status="EXECUTED", approved=True, confidence=90.0)
-    _make_signal(db_session, status="REJECTED", approved=False, confidence=30.0)
-    _make_trade(db_session, signal_id=1, status="CLOSED", pnl=500.0)
-    _make_trade(db_session, signal_id=2, status="CLOSED", pnl=-200.0)
+    _make_signal(db_session, id=1, status="EXECUTED", approved=True, confidence=90.0)
+    _make_signal(db_session, id=2, status="REJECTED", approved=False, confidence=30.0)
+    _make_signal(db_session, id=3, status="CANCELLED", approved=False, confidence=10.0)
+    _make_trade(db_session, signal_id=1, status="TP_HIT", pnl=500.0)
+    _make_trade(db_session, signal_id=2, status="SL_HIT", pnl=-200.0)
+    _make_trade(db_session, signal_id=3, status="CANCEL", pnl=0.0)
     resp = api_client.get("/backtest")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["summary"]["total_signals"] == 2
+    assert body["summary"]["total_signals"] == 3
     assert body["summary"]["approved_signals"] == 1
-    assert body["trades"]["total"] == 2
-    assert body["trades"]["closed"] == 2
+    assert body["trades"]["total"] == 3
+    assert body["trades"]["closed"] == 3
+    assert body["trades"]["wins"] == 1
+    assert body["trades"]["losses"] == 1
     assert body["performance"]["total_pnl"] == 300.0
     assert body["performance"]["win_rate_pct"] == 50.0
+    assert body["performance"]["avg_win"] == 500.0
+    assert body["performance"]["avg_loss"] == 200.0
+    assert body["performance"]["profit_factor"] == 2.5
+    assert body["performance"]["max_drawdown"] == 200.0
 
 
 # ─── Intelligence (DB fallback when market data unavailable) ───────────────
@@ -445,6 +459,7 @@ def test_get_users_me_with_auth(api_client, db_session):
 
 def test_get_users_me_no_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/users/me")
@@ -600,6 +615,7 @@ def test_register_missing_fields(api_client):
 
 def test_get_signals_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/signals")
@@ -608,6 +624,7 @@ def test_get_signals_requires_auth():
 
 def test_get_risk_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/risk")
@@ -616,6 +633,7 @@ def test_get_risk_requires_auth():
 
 def test_get_portfolio_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/portfolio")
@@ -624,6 +642,7 @@ def test_get_portfolio_requires_auth():
 
 def test_get_performance_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/performance")
@@ -632,6 +651,7 @@ def test_get_performance_requires_auth():
 
 def test_get_position_sizing_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/position-sizing")
@@ -712,3 +732,24 @@ def test_db_tables_in_health_details(api_client):
     assert resp.status_code == 200
     tbl = resp.json().get("database_tables", {})
     assert "status" in tbl
+
+
+# ─── Council ───────────────────────────────────────────────────────────────
+
+
+def test_get_council_status_endpoint(api_client):
+    resp = api_client.get("/council")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "agents" in body
+    assert "agent_count" in body
+
+
+# ─── Whale Activity ────────────────────────────────────────────────────────
+
+
+def test_get_whale_activity_endpoint(api_client):
+    resp = api_client.get("/whale/activity")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)

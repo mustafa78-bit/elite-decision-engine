@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from dto.coordination import (
     ConfidenceAggregationDTO,
     ConflictResolutionDTO,
@@ -41,7 +39,14 @@ class TestCoordinationDTOs:
         assert d["source_name"] == "Test"
 
     def test_conflict_resolution_to_dict(self):
-        dto = ConflictResolutionDTO(source_a="A", source_b="B", value_a=0.9, value_b=0.3, resolved_value=0.6, resolution_strategy="average")
+        dto = ConflictResolutionDTO(
+            source_a="A",
+            source_b="B",
+            value_a=0.9,
+            value_b=0.3,
+            resolved_value=0.6,
+            resolution_strategy="average",
+        )
         d = dto.to_dict()
         assert d["resolution_strategy"] == "average"
 
@@ -56,7 +61,13 @@ class TestCoordinationDTOs:
         assert d["is_active"] is True
 
     def test_recommendation_ranking_to_dict(self):
-        dto = RecommendationRankingDTO(rank=1, signal_id=1, symbol="BTCUSDT", composite_score=0.85, recommendation="STRONG_BUY")
+        dto = RecommendationRankingDTO(
+            rank=1,
+            signal_id=1,
+            symbol="BTCUSDT",
+            composite_score=0.85,
+            recommendation="STRONG_BUY",
+        )
         d = dto.to_dict()
         assert d["recommendation"] == "STRONG_BUY"
 
@@ -68,7 +79,14 @@ class TestCoordinationDTOs:
     def test_coordinator_report_to_dict(self):
         dto = CoordinatorReportDTO(
             consensus=ConsensusScoreDTO(final_score=0.75),
-            aggregations=[ConfidenceAggregationDTO(source_name="A", raw_confidence=0.7, weighted_confidence=0.7, weight=1.0)],
+            aggregations=[
+                ConfidenceAggregationDTO(
+                    source_name="A",
+                    raw_confidence=0.7,
+                    weighted_confidence=0.7,
+                    weight=1.0,
+                )
+            ],
         )
         d = dto.to_dict()
         assert d["consensus"]["final_score"] == 0.75
@@ -220,3 +238,51 @@ class TestCoordinatorService:
         for i in range(3):
             report = coordinator.evaluate(FakeSignal(sid=i + 1))
             assert report.diagnostics.total_evaluations == i + 1
+
+    def test_evaluate_with_agent_reports(self):
+        from council.base import AgentReport
+
+        coordinator = CoordinatorService()
+
+        # Register two fake agents
+        coordinator.intelligence_registry.register("TechnicalAgent", "agent", instance=None, weight=1.0)
+        coordinator.intelligence_registry.register("WhaleAgent", "agent", instance=None, weight=0.8)
+        # Register a fallback source with no agent report
+        coordinator.intelligence_registry.register("FallbackSource", "scoring", instance=None, weight=1.0)
+
+        reports = [
+            AgentReport(agent_name="TechnicalAgent", symbol="BTCUSDT", confidence=0.9, direction="BULLISH"),
+            AgentReport(agent_name="WhaleAgent", symbol="BTCUSDT", confidence=0.85, direction="BEARISH"),
+        ]
+
+        signal = FakeSignal()
+        scores = {"final_score": 0.5}
+
+        # Evaluate passing both the scores (for fallback) and the list of reports
+        report = coordinator.evaluate(signal, scores=scores, reports=reports)
+
+        aggregations_by_source = {agg.source_name: agg for agg in report.aggregations}
+
+        # Assert that the real confidences were extracted and matched
+        assert aggregations_by_source["TechnicalAgent"].raw_confidence == 0.9
+        assert aggregations_by_source["TechnicalAgent"].weighted_confidence == 0.9
+
+        assert aggregations_by_source["WhaleAgent"].raw_confidence == 0.85
+        assert aggregations_by_source["WhaleAgent"].weighted_confidence == round(0.85 * 0.8, 4)
+
+        # Assert fallback behavior for source with no matching AgentReport
+        assert aggregations_by_source["FallbackSource"].raw_confidence == 0.5
+
+    def test_evaluate_with_dict_reports(self):
+        coordinator = CoordinatorService()
+        coordinator.intelligence_registry.register("TechnicalAgent", "agent", instance=None, weight=1.0)
+
+        reports = [
+            {"agent_name": "TechnicalAgent", "confidence": 0.95}
+        ]
+
+        signal = FakeSignal()
+        report = coordinator.evaluate(signal, reports=reports)
+
+        aggregations_by_source = {agg.source_name: agg for agg in report.aggregations}
+        assert aggregations_by_source["TechnicalAgent"].raw_confidence == 0.95

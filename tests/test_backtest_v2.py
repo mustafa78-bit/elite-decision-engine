@@ -1,6 +1,6 @@
 """Tests for BacktestEngineV2."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from scoring.backtest_v2 import BacktestEngineV2, BacktestResult
 
@@ -15,7 +15,7 @@ class TestBacktestV2:
     def test_with_session(self, db_session):
         from database import Trade
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db_session.add_all([
             Trade(symbol="BTC", side="LONG", entry=100, status="CLOSED", pnl=50, close_reason="TP_HIT", created_at=now),
             Trade(symbol="ETH", side="SHORT", entry=200, status="CLOSED", pnl=-20, close_reason="SL_HIT", created_at=now),
@@ -34,7 +34,7 @@ class TestBacktestV2:
     def test_advanced_metrics(self, db_session):
         from database import Trade
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db_session.add_all([
             Trade(symbol="A", side="LONG", entry=100, status="CLOSED", pnl=100, close_reason="TP_HIT", created_at=now),
             Trade(symbol="B", side="LONG", entry=100, status="CLOSED", pnl=200, close_reason="TP_HIT", created_at=now),
@@ -56,7 +56,7 @@ class TestBacktestV2:
     def test_strategy_filter(self, db_session):
         from database import Trade
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db_session.add_all([
             Trade(symbol="A", side="LONG", entry=100, status="CLOSED", pnl=50, close_reason="TP_HIT", created_at=now),
             Trade(symbol="B", side="SHORT", entry=200, status="CLOSED", pnl=-10, close_reason="SL_HIT", created_at=now),
@@ -75,8 +75,8 @@ class TestBacktestV2:
     def test_monthly_pnl(self, db_session):
         from database import Trade
 
-        jan = datetime(2025, 1, 15, tzinfo=timezone.utc)
-        feb = datetime(2025, 2, 15, tzinfo=timezone.utc)
+        jan = datetime(2025, 1, 15, tzinfo=UTC)
+        feb = datetime(2025, 2, 15, tzinfo=UTC)
         db_session.add_all([
             Trade(symbol="A", side="LONG", entry=100, status="CLOSED", pnl=100, close_reason="TP_HIT", created_at=jan),
             Trade(symbol="B", side="LONG", entry=100, status="CLOSED", pnl=200, close_reason="TP_HIT", created_at=feb),
@@ -96,11 +96,12 @@ class TestBacktestV2:
         assert len(wf.windows) == 0
 
     def test_walk_forward(self, db_session):
-        from database import Trade
         import random
 
+        from database import Trade
+
         random.seed(42)
-        start = datetime(2025, 1, 1, tzinfo=timezone.utc)
+        start = datetime(2025, 1, 1, tzinfo=UTC)
         for i in range(400):
             pnl = random.gauss(5, 15)
             db_session.add(

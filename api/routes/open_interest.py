@@ -4,7 +4,6 @@ from fastapi import APIRouter, Query
 
 from market_data.open_interest.collector import OpenInterestCollector
 
-
 logger = logging.getLogger(__name__)
 router = APIRouter()
 

@@ -13,9 +13,9 @@ class RiskScorer:
 
     def score(
         self,
-        volatility_class: Optional[str] = None,
-        risk_feature: Optional[str] = None,
-        atr_pct: Optional[float] = None,
+        volatility_class: str | None = None,
+        risk_feature: str | None = None,
+        atr_pct: float | None = None,
         liquidity_score: float = 0.0,
         reversal_score: float = 0.0,
     ) -> tuple[float, list[str]]:
@@ -57,7 +57,7 @@ class RiskScorer:
             risk -= 0.1
             signals.append("HIGH_LIQUIDITY_BOOST")
 
-        if reversal_score > 0.5:
+        if abs(reversal_score) > 0.5:
             risk += 0.1
             signals.append("REVERSAL_RISK")
 

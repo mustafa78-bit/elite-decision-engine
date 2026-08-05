@@ -4,7 +4,7 @@ from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
-from scoring.regime_ai import get_regime_ai as RegimeDetector
+from scoring.regime_ai import get_regime_ai as regime_detector
 
 router = APIRouter()
 
@@ -15,7 +15,7 @@ def get_regime():
     indicators = IndicatorEngine()
     btc = BTCHealth()
     vol = VolatilityEngine()
-    regime = RegimeDetector()
+    regime = regime_detector()
 
     try:
         df = collector.get_ohlcv(symbol="BTC", timeframe="1h")

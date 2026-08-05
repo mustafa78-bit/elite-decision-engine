@@ -10,10 +10,9 @@ from __future__ import annotations
 
 import pytest
 
+from database import DecisionExplanation, Signal
 from explain import ExplainEngine, ExplainInput, ExplainResult
 from explain.engine import ExplainService
-from database import DecisionExplanation, Signal
-
 
 # ── Unit tests: pure ExplainEngine ──────────────────────────────────────────
 
@@ -271,8 +270,8 @@ def test_service_with_portfolio_and_performance(db_session, session_factory):
     db_session.add(signal)
     db_session.flush()
 
-    from portfolio.core import PortfolioSnapshot
     from performance.core import PerformanceReport
+    from portfolio.core import PortfolioSnapshot
 
     snap = PortfolioSnapshot(
         total_equity=12000.0,

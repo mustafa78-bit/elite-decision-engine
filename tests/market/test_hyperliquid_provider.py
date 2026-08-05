@@ -1,6 +1,7 @@
 """Tests for HyperliquidProvider."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from market.provider import HyperliquidProvider

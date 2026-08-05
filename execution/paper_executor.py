@@ -8,15 +8,15 @@ SQLAlchemy models from ``database.py``.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Optional
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Any, Optional
 
-from database import OPEN, TP_HIT, SL_HIT, CLOSED, FINAL_STATUSES, Trade, get_session
+from database import CLOSED, FINAL_STATUSES, OPEN, SL_HIT, TP_HIT, Trade, get_session
 from market_data.collector import HyperliquidCollector
 from notifications.dispatcher import NotificationDispatcher
 from notifications.events import TradeEvent
-
 
 STALE_TRADE_DAYS = 7
 
@@ -30,9 +30,9 @@ class PaperTradeRequest:
     entry: float
     stop_loss: float
     take_profit: float
-    signal_id: Optional[int] = None
-    take_profit_2: Optional[float] = None
-    risk_reward: Optional[float] = None
+    signal_id: int | None = None
+    take_profit_2: float | None = None
+    risk_reward: float | None = None
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,7 @@ class TradePnL:
 
     unrealized_pnl: float
     pnl_percentage: float
-    realized_pnl: Optional[float] = None
+    realized_pnl: float | None = None
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,7 @@ class TradeMonitorResult:
     unrealized_pnl: float
     pnl_percentage: float
     status: str
-    realized_pnl: Optional[float] = None
+    realized_pnl: float | None = None
 
 
 class PaperExecutor:
@@ -63,11 +63,11 @@ class PaperExecutor:
 
     def __init__(
         self,
-        collector: Optional[HyperliquidCollector] = None,
+        collector: HyperliquidCollector | None = None,
         session_factory: Callable[[], Any] = get_session,
-        logger: Optional[logging.Logger] = None,
-        notifications: Optional[NotificationDispatcher] = None,
-        market_service: Optional[Any] = None,
+        logger: logging.Logger | None = None,
+        notifications: NotificationDispatcher | None = None,
+        market_service: Any | None = None,
     ) -> None:
         """Create a paper executor with injectable infrastructure."""
 
@@ -86,10 +86,10 @@ class PaperExecutor:
         entry: float,
         stop_loss: float,
         take_profit: float,
-        signal_id: Optional[int] = None,
-        take_profit_2: Optional[float] = None,
-        risk_reward: Optional[float] = None,
-    ) -> Optional[Trade]:
+        signal_id: int | None = None,
+        take_profit_2: float | None = None,
+        risk_reward: float | None = None,
+    ) -> Trade | None:
         """Open a paper trade unless the same symbol and side is already open."""
 
         request = PaperTradeRequest(
@@ -104,7 +104,7 @@ class PaperExecutor:
         )
         return self.open_trade_from_request(request)
 
-    def open_trade_from_request(self, request: PaperTradeRequest) -> Optional[Trade]:
+    def open_trade_from_request(self, request: PaperTradeRequest) -> Trade | None:
         """Open a paper trade from a request object."""
 
         self._validate_trade_request(request)
@@ -140,6 +140,37 @@ class PaperExecutor:
             session.add(trade)
             session.commit()
             session.refresh(trade)
+
+            # Get signal reason if available
+            entry_reason = "Manual paper trade"
+            if request.signal_id is not None:
+                try:
+                    from database import Signal
+                    sig = session.query(Signal).filter(Signal.id == request.signal_id).first()
+                    if sig and sig.reason:
+                        entry_reason = sig.reason
+                    elif sig:
+                        entry_reason = f"Signal {sig.id} trigger"
+                    else:
+                        entry_reason = f"Signal {request.signal_id} trigger"
+                except Exception:
+                    entry_reason = f"Signal {request.signal_id} trigger"
+
+            # Record in TradeMemory
+            try:
+                from memory.trade_memory import TradeMemory
+                mem = TradeMemory(session_factory=self.session_factory)
+                mem.record(
+                    symbol=trade.symbol,
+                    side=trade.side,
+                    entry_price=trade.entry,
+                    entry_reason=entry_reason,
+                    trade_id=trade.id,
+                    session=session,
+                )
+            except Exception as e:
+                self.logger.error("Failed to record trade memory on open: %s", e)
+
             session.expunge(trade)
             self.logger.info("Opened paper trade %s %s at %s", symbol, side, float(request.entry))
             return trade
@@ -220,8 +251,8 @@ class PaperExecutor:
         trade_id: int,
         exit_price: float,
         status: str = CLOSED,
-        close_reason: Optional[str] = None,
-    ) -> Optional[TradeMonitorResult]:
+        close_reason: str | None = None,
+    ) -> TradeMonitorResult | None:
         """Manually close an open paper trade."""
 
         if exit_price is None or float(exit_price) <= 0:
@@ -248,6 +279,7 @@ class PaperExecutor:
                 status=normalized_status,
                 close_reason=close_reason or normalized_status,
                 pnl=realized_pnl,
+                session=session,
             )
             session.commit()
 
@@ -328,8 +360,8 @@ class PaperExecutor:
             return False
         created = trade.created_at
         if created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
-        age = datetime.now(timezone.utc) - created
+            created = created.replace(tzinfo=UTC)
+        age = datetime.now(UTC) - created
         return age > timedelta(days=STALE_TRADE_DAYS)
 
     def _monitor_trade(self, session: Any, trade: Trade) -> TradeMonitorResult:
@@ -343,6 +375,7 @@ class PaperExecutor:
                 status=CLOSED,
                 close_reason="STALE",
                 pnl=realized_pnl,
+                session=session,
             )
             return self._build_monitor_result(trade, current_price, realized_pnl)
 
@@ -360,6 +393,7 @@ class PaperExecutor:
                 status=close_status,
                 close_reason=close_status,
                 pnl=realized_pnl,
+                session=session,
             )
             self.logger.info(
                 "Paper trade %s closed at %s with status %s",
@@ -387,17 +421,75 @@ class PaperExecutor:
         status: str,
         close_reason: str,
         pnl: TradePnL,
+        session: Any | None = None,
     ) -> None:
         trade.status = status
         trade.exit_price = float(exit_price)
         trade.close_reason = close_reason
-        trade.closed_at = datetime.now(timezone.utc)
+        trade.closed_at = datetime.now(UTC)
         trade.pnl = pnl.unrealized_pnl
         if trade.id is not None:
             self._realized_pnl[int(trade.id)] = pnl.realized_pnl or pnl.unrealized_pnl
             self._pnl_percentages[int(trade.id)] = pnl.pnl_percentage
 
-    def _close_status_for_price(self, trade: Trade, current_price: float) -> Optional[str]:
+            # Wire TradeMemory.close() here
+            local_session = session or self.session_factory()
+            try:
+                from database import JournalEntry
+                from memory.trade_memory import TradeMemory
+
+                entry = local_session.query(JournalEntry).filter(JournalEntry.trade_id == trade.id).first()
+                if entry:
+                    # Decide result based on status and close_reason
+                    result = "CLOSED"
+                    if status == "TP_HIT":
+                        result = "WIN"
+                    elif status == "SL_HIT":
+                        result = "LOSS"
+                    elif status == "CANCEL":
+                        result = "CANCEL"
+                    elif status == "CLOSED":
+                        # Manually closed or stale
+                        if pnl.unrealized_pnl > 0:
+                            result = "WIN"
+                        elif pnl.unrealized_pnl < 0:
+                            result = "LOSS"
+                        else:
+                            result = "CLOSED"
+
+                    # Generate lesson
+                    lesson = f"Trade closed with status {status}"
+                    if status == "TP_HIT":
+                        lesson = "Take profit hit as planned"
+                    elif status == "SL_HIT":
+                        lesson = "Stop loss hit — entry thesis invalidated"
+                    elif status == "CLOSED":
+                        if close_reason == "STALE":
+                            lesson = "Stale trade auto-closed"
+                        else:
+                            lesson = "Manually closed"
+                    elif status == "CANCEL":
+                        lesson = "Trade cancelled"
+
+                    mem = TradeMemory(session_factory=self.session_factory)
+                    mem.close(
+                        memory_id=entry.id,
+                        exit_price=float(exit_price),
+                        pnl=pnl.unrealized_pnl,
+                        result=result,
+                        exit_reason=close_reason,
+                        lessons=[lesson],
+                        session=local_session,
+                    )
+                else:
+                    self.logger.warning("No JournalEntry found for trade_id %s", trade.id)
+            except Exception as e:
+                self.logger.error("Failed to update trade memory on close: %s", e)
+            finally:
+                if session is None:
+                    local_session.close()
+
+    def _close_status_for_price(self, trade: Trade, current_price: float) -> str | None:
         side = self._normalize_side(str(trade.side))
         if trade.tp1 is None or trade.stop is None:
             self.logger.warning("Trade %s missing TP or SL; skipping close check", trade.id)

@@ -11,7 +11,7 @@ from services.ollo.memory import CommanderMemory
 from services.ollo.mission_profile import get_profile
 from services.ollo.parser import OLLOBriefing, OLLOResponse, parse_response
 from services.ollo.personality import get_system_prompt
-from services.ollo.planner import Planner, Plan
+from services.ollo.planner import Plan, Planner
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +21,10 @@ class OLLOService:
     def __init__(
         self,
         ai_service: AIService,
-        context_builder: Optional[ContextBuilder] = None,
-        planner: Optional[Planner] = None,
-        briefing_generator: Optional[BriefingGenerator] = None,
-        memory: Optional[CommanderMemory] = None,
+        context_builder: ContextBuilder | None = None,
+        planner: Planner | None = None,
+        briefing_generator: BriefingGenerator | None = None,
+        memory: CommanderMemory | None = None,
     ) -> None:
         self._ai = ai_service
         self._context = context_builder or ContextBuilder()
@@ -112,6 +112,26 @@ class OLLOService:
 
         self._memory.record_recommendation(query, room_id, result.content)
 
+        # Detect route intents based on simple keyword extraction (English + Turkish)
+        intent_route = None
+        q_lower = query.lower()
+        if any(kw in q_lower for kw in ["portföy", "portfolio", "portfoy"]):
+            intent_route = "/portfolio"
+        elif any(kw in q_lower for kw in ["risk", "exposure"]):
+            intent_route = "/risk"
+        elif any(kw in q_lower for kw in ["taram", "scanner", "taray"]):
+            intent_route = "/scanner"
+        elif any(kw in q_lower for kw in ["analitik", "analytics", "analiz"]):
+            intent_route = "/analytics"
+        elif any(kw in q_lower for kw in ["journal", "gunluk", "günlük"]):
+            intent_route = "/journal"
+        elif any(kw in q_lower for kw in ["sinyal", "signal"]):
+            intent_route = "/signals"
+        elif any(kw in q_lower for kw in ["karar", "decision"]):
+            intent_route = "/decisions"
+        elif any(kw in q_lower for kw in ["market", "piyasa"]):
+            intent_route = "/market"
+
         response = parse_response(
             raw_text=result.content,
             room=room_id,
@@ -120,12 +140,12 @@ class OLLOService:
             duration_ms=elapsed,
             tokens_in=result.tokens_in,
             tokens_out=result.tokens_out,
+            intent_route=intent_route,
         )
 
         return response
 
     def briefing(self, kind: str = "morning", room_id: str = "command_deck") -> OLLOBriefing:
-        start = time.perf_counter()
         plan = self._planner.plan_briefing(room_id, kind)
         context = self._context.build(plan.context_keys, room=room_id)
 
@@ -135,7 +155,6 @@ class OLLOService:
         )
 
         briefing = self._briefing.generate(plan, context)
-        elapsed = (time.perf_counter() - start) * 1000
 
         self._memory.record_briefing(kind, briefing.text)
 

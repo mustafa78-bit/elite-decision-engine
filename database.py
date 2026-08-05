@@ -1,15 +1,17 @@
 import logging
+from contextlib import contextmanager
 
 from sqlalchemy import (
-    create_engine,
+    JSON,
+    Boolean,
     Column,
+    DateTime,
+    Float,
+    ForeignKey,
     Integer,
     String,
-    Float,
-    DateTime,
-    Boolean,
     Text,
-    JSON,
+    create_engine,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -85,7 +87,7 @@ class Trade(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    signal_id = Column(Integer)
+    signal_id = Column(Integer, ForeignKey("signals.id"), nullable=True)
 
     symbol = Column(String(20))
     side = Column(String(10))
@@ -300,6 +302,27 @@ class DecisionExplanation(Base):
 
 
 # ------------------------------------------------------------------
+# COMMANDER MEMORY ENTRY TABLE
+# ------------------------------------------------------------------
+
+
+class CommanderMemoryEntry(Base):
+    __tablename__ = "commander_memory"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entry_type = Column(String(30), nullable=False, index=True)  # BRIEFING, RECOMMENDATION, PREFERENCE
+    key = Column(String(100), nullable=True, index=True)         # preference key, briefing kind
+    value = Column(Text, nullable=True)                          # preference value, briefing text, recommendation response_text
+    room = Column(String(50), nullable=True)                     # recommendation room
+    query = Column(Text, nullable=True)                          # recommendation query
+    timestamp = Column(String(100), nullable=True)               # ISO timestamp string
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+
+# ------------------------------------------------------------------
 # TRADE STATUS CONSTANTS
 # ------------------------------------------------------------------
 
@@ -327,6 +350,20 @@ TRADE_FINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 
 def get_session():
     return SessionLocal()
+
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def create_tables():

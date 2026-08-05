@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
 
@@ -102,12 +102,12 @@ class CoordinatorDiagnosticsDTO:
 
 @dataclass
 class CoordinatorReportDTO:
-    consensus: Optional[ConsensusScoreDTO] = None
+    consensus: ConsensusScoreDTO | None = None
     aggregations: list[ConfidenceAggregationDTO] = field(default_factory=list)
     conflicts: list[ConflictResolutionDTO] = field(default_factory=list)
     priorities: list[SourcePriorityDTO] = field(default_factory=list)
     recommendations: list[RecommendationRankingDTO] = field(default_factory=list)
-    diagnostics: Optional[CoordinatorDiagnosticsDTO] = None
+    diagnostics: CoordinatorDiagnosticsDTO | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = {}

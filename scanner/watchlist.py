@@ -17,7 +17,7 @@ class WatchlistEngine:
         self._watchlist: dict[str, list[str]] = {}
         self._active: str = ""
 
-    def create(self, name: str, symbols: Optional[list[str]] = None) -> dict[str, Any]:
+    def create(self, name: str, symbols: list[str] | None = None) -> dict[str, Any]:
         if name in self._watchlist:
             return {"error": f"Watchlist '{name}' already exists"}
         self._watchlist[name] = list(symbols or [])
@@ -25,14 +25,14 @@ class WatchlistEngine:
             self._active = name
         return {"name": name, "symbols": self._watchlist[name], "count": len(self._watchlist[name])}
 
-    def get(self, name: Optional[str] = None) -> dict[str, Any]:
+    def get(self, name: str | None = None) -> dict[str, Any]:
         name = name or self._active
         wl = self._watchlist.get(name)
         if wl is None:
             return {"error": f"Watchlist '{name}' not found"}
         return {"name": name, "symbols": wl, "count": len(wl)}
 
-    def add_symbol(self, symbol: str, name: Optional[str] = None) -> dict[str, Any]:
+    def add_symbol(self, symbol: str, name: str | None = None) -> dict[str, Any]:
         name = name or self._active
         wl = self._watchlist.get(name)
         if wl is None:
@@ -41,7 +41,7 @@ class WatchlistEngine:
             wl.append(symbol)
         return {"name": name, "symbols": wl, "count": len(wl)}
 
-    def remove_symbol(self, symbol: str, name: Optional[str] = None) -> dict[str, Any]:
+    def remove_symbol(self, symbol: str, name: str | None = None) -> dict[str, Any]:
         name = name or self._active
         wl = self._watchlist.get(name)
         if wl is None:
@@ -66,7 +66,7 @@ class WatchlistEngine:
     def active_symbols(self) -> list[str]:
         return self._watchlist.get(self._active, [])
 
-    def filter_opportunities(self, opportunities: list[Opportunity], name: Optional[str] = None) -> list[Opportunity]:
+    def filter_opportunities(self, opportunities: list[Opportunity], name: str | None = None) -> list[Opportunity]:
         symbols = self._watchlist.get(name or self._active, [])
         if not symbols:
             return opportunities

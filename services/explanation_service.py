@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime, timezone
+from typing import Any, Optional
 
 from config import SCORE_WEIGHTS
 from dto.explanations import (
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class ExplanationService:
@@ -35,12 +36,12 @@ class ExplanationService:
 
     def __init__(
         self,
-        scoring_engine: Optional[Any] = None,
-        confidence_engine: Optional[Any] = None,
-        intelligence_collector: Optional[Any] = None,
-        trade_memory: Optional[Any] = None,
-        strategy_scorer: Optional[Any] = None,
-        regime_ai: Optional[Any] = None,
+        scoring_engine: Any | None = None,
+        confidence_engine: Any | None = None,
+        intelligence_collector: Any | None = None,
+        trade_memory: Any | None = None,
+        strategy_scorer: Any | None = None,
+        regime_ai: Any | None = None,
     ):
         self._scoring = scoring_engine
         self._confidence = confidence_engine
@@ -49,7 +50,7 @@ class ExplanationService:
         self._strategy_scorer = strategy_scorer
         self._regime_ai = regime_ai
 
-    def explain_signal(self, signal: Any, scores: Optional[dict[str, Any]] = None) -> DecisionExplanationDTO:
+    def explain_signal(self, signal: Any, scores: dict[str, Any] | None = None) -> DecisionExplanationDTO:
         start = time.perf_counter()
         timeline = DecisionTimelineDTO(signal_id=getattr(signal, "id", 0))
         timeline.add_event("explain_start", f"Explaining signal {getattr(signal, 'symbol', '?')}")
@@ -72,7 +73,7 @@ class ExplanationService:
     def _build_reasoning(
         self,
         signal: Any,
-        scores: Optional[dict[str, Any]],
+        scores: dict[str, Any] | None,
         timeline: DecisionTimelineDTO,
     ) -> DecisionReasoningDTO:
         sid = getattr(signal, "id", 0)

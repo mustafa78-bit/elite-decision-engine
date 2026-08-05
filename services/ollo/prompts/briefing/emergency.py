@@ -2,7 +2,6 @@ def emergency_briefing(context: dict) -> str:
     portfolio = context.get("portfolio_summary", {})
     risk = context.get("risk_metrics", {})
     regime = context.get("market_regime", {})
-    council = context.get("council_latest", {})
 
     parts = ["EMERGENCY BRIEFING."]
     parts.append(f"Portfolio status: {portfolio.get('open_trades', 0)} open trades. Current drawdown: ${portfolio.get('current_drawdown', 0):,.2f}.")

@@ -31,27 +31,39 @@ class BreakoutStrategy:
         recent = closes[-5:]
         prior = closes[-self.MIN_LOOKBACK:-5]
 
-        score = 0.0
+        score_long = 0.0
+        score_short = 0.0
 
         if len(prior) > 0:
             prior_max = float(max(prior))
             if price > prior_max and price > ema20:
-                score += 0.5
+                score_long += 0.5
                 signals.append("PRICE_BREAKOUT_HIGH")
 
             prior_min = float(min(prior))
             if price < prior_min and price < ema20:
-                score += 0.5
+                score_short += 0.5
                 signals.append("PRICE_BREAKOUT_LOW")
 
         avg_volume = float(volumes[-self.MIN_LOOKBACK:].mean())
         current_volume = float(volumes[-1])
         if avg_volume > 0 and current_volume > avg_volume * 1.5:
-            score += 0.3
+            if score_long > score_short:
+                score_long += 0.3
+            elif score_short > score_long:
+                score_short += 0.3
+            else:
+                if price >= ema20:
+                    score_long += 0.3
+                else:
+                    score_short += 0.3
             signals.append("HIGH_VOLUME_CONFIRMATION")
 
         if all(recent > ema20) and len(recent) > 0 and float(recent[0]) <= ema20:
-            score += 0.2
+            score_long += 0.2
             signals.append("EMA_CROSSOVER")
 
-        return round(min(score, 1.0), 4), signals
+        if score_long >= score_short:
+            return round(min(score_long, 1.0), 4), signals
+        else:
+            return -round(min(score_short, 1.0), 4), signals

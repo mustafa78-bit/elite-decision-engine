@@ -2,21 +2,20 @@ import logging
 from typing import Any, Optional
 
 from config import SCORE_WEIGHTS
+from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
-from market_data.volume import VolumeEngine
-from market_data.btc_health import BTCHealth
-from market_data.volatility import VolatilityEngine
 from market_data.mtf import MTFEngine
+from market_data.volatility import VolatilityEngine
+from market_data.volume import VolumeEngine
 from scoring.risk_engine import RiskEngine
-
 
 logger = logging.getLogger(__name__)
 
 
 class ScoringEngine:
 
-    def __init__(self, collector: Optional[Any] = None, market_service: Optional[Any] = None):
+    def __init__(self, collector: Any | None = None, market_service: Any | None = None):
         self.collector = collector or HyperliquidCollector()
         self.market_service = market_service
         self.indicators = IndicatorEngine()
@@ -40,7 +39,7 @@ class ScoringEngine:
                 df = self.market_service.get_ohlcv(signal.symbol, signal.timeframe)
                 values = indicators
                 volume = {"score": indicators.get("volume_score", 0)}
-                btc_score = self.btc.score()
+                btc_score = self._normalize_btc_score(self.btc.score(), signal.side)
                 volatility = {"score": indicators.get("volatility_score", 0), "volatility": indicators.get("volatility", 0)}
                 mtf_score = self.mtf.score(signal.symbol, signal.side)
             else:
@@ -55,7 +54,7 @@ class ScoringEngine:
 
                 values = self.indicators.calculate(df)
                 volume = self.volume.score(df)
-                btc_score = self.btc.score()
+                btc_score = self._normalize_btc_score(self.btc.score(), signal.side)
                 volatility = self.volatility.score(values)
                 mtf_score = self.mtf.score(signal.symbol, signal.side)
 
@@ -122,6 +121,12 @@ class ScoringEngine:
                 "risk": round(risk_score * SCORE_WEIGHTS["risk"], 4),
             },
         }
+
+    def _normalize_btc_score(self, btc_score: float, side: str) -> float:
+        if side.upper() == "LONG":
+            return btc_score
+        else:
+            return 1.0 - btc_score
 
     @staticmethod
     def _score_fallback() -> dict[str, Any]:

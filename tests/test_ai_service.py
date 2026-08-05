@@ -17,23 +17,23 @@ import httpx
 import pytest
 
 from services.ai import (
-    AIService,
     AIProvider,
+    AIService,
+    ConversationMemory,
     GenerationResult,
     HealthStatus,
+    InMemoryConversation,
+    InMemorySessionMemory,
+    Message,
     NVIDIAProvider,
-    create_provider,
-    create_ai_service,
+    SessionMemory,
     briefing_prompt,
     council_prompt,
+    create_ai_service,
+    create_provider,
     explain_prompt,
     ollo_prompt,
     scanner_prompt,
-    ConversationMemory,
-    InMemoryConversation,
-    Message,
-    SessionMemory,
-    InMemorySessionMemory,
 )
 
 
@@ -262,7 +262,7 @@ class TestNVIDIAProvider:
 
     def test_default_model(self):
         provider = NVIDIAProvider(api_key="test-key")
-        assert provider.model == "meta/llama3-70b-instruct"
+        assert provider.model == "meta/llama-3.3-70b-instruct"
 
     def test_close(self):
         provider = NVIDIAProvider(api_key="test-key")

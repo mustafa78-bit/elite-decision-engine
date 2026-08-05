@@ -6,18 +6,22 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from database import (
+    CANCEL,
+    CLOSED,
     FILLED,
     OPEN,
-    PENDING,
-    CANCEL,
     PARTIALLY_FILLED,
-    TAKE_PROFIT,
+    PENDING,
     STOP_LOSS,
-    CLOSED,
-    PaperOrder as PaperOrderModel,
-    PaperTrade as PaperTradeModel,
+    TAKE_PROFIT,
     Trade,
     get_session,
+)
+from database import (
+    PaperOrder as PaperOrderModel,
+)
+from database import (
+    PaperTrade as PaperTradeModel,
 )
 
 router = APIRouter()
@@ -115,11 +119,11 @@ _VALID_SIDES = frozenset({"LONG", "SHORT"})
 
 @router.get("/paper/orders")
 def list_orders(
-    symbol: Optional[str] = Query(None, min_length=1, max_length=20),
-    status: Optional[str] = Query(None, pattern="^(PENDING|FILLED|PARTIALLY_FILLED|CANCEL)$"),
-    side: Optional[str] = Query(None, pattern="^(LONG|SHORT)$"),
-    date_from: Optional[str] = Query(None, alias="date_from"),
-    date_to: Optional[str] = Query(None, alias="date_to"),
+    symbol: str | None = Query(None, min_length=1, max_length=20),
+    status: str | None = Query(None, pattern="^(PENDING|FILLED|PARTIALLY_FILLED|CANCEL)$"),
+    side: str | None = Query(None, pattern="^(LONG|SHORT)$"),
+    date_from: str | None = Query(None, alias="date_from"),
+    date_to: str | None = Query(None, alias="date_to"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
@@ -156,11 +160,11 @@ def get_order(order_id: int):
 
 @router.get("/paper/trades")
 def list_trades(
-    symbol: Optional[str] = Query(None, min_length=1, max_length=20),
-    status: Optional[str] = Query(None, pattern="^(OPEN|TAKE_PROFIT|STOP_LOSS|CLOSED|CANCEL)$"),
-    side: Optional[str] = Query(None, pattern="^(LONG|SHORT)$"),
-    date_from: Optional[str] = Query(None, alias="date_from"),
-    date_to: Optional[str] = Query(None, alias="date_to"),
+    symbol: str | None = Query(None, min_length=1, max_length=20),
+    status: str | None = Query(None, pattern="^(OPEN|TAKE_PROFIT|STOP_LOSS|CLOSED|CANCEL)$"),
+    side: str | None = Query(None, pattern="^(LONG|SHORT)$"),
+    date_from: str | None = Query(None, alias="date_from"),
+    date_to: str | None = Query(None, alias="date_to"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
@@ -197,11 +201,11 @@ def get_trade(trade_id: int):
 
 @router.get("/paper/positions")
 def list_positions(
-    symbol: Optional[str] = Query(None, min_length=1, max_length=20),
-    status: Optional[str] = Query(None, pattern="^(OPEN|TAKE_PROFIT|STOP_LOSS|CLOSED|CANCEL)$"),
-    side: Optional[str] = Query(None, pattern="^(LONG|SHORT)$"),
-    date_from: Optional[str] = Query(None, alias="date_from"),
-    date_to: Optional[str] = Query(None, alias="date_to"),
+    symbol: str | None = Query(None, min_length=1, max_length=20),
+    status: str | None = Query(None, pattern="^(OPEN|TAKE_PROFIT|STOP_LOSS|CLOSED|CANCEL)$"),
+    side: str | None = Query(None, pattern="^(LONG|SHORT)$"),
+    date_from: str | None = Query(None, alias="date_from"),
+    date_to: str | None = Query(None, alias="date_to"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):

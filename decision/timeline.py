@@ -23,7 +23,7 @@ class DecisionTimeline:
         event_type: str,
         description: str,
         source: str = "",
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> DecisionEvent:
         event = DecisionEvent(
             event_type=event_type,
@@ -52,7 +52,7 @@ class DecisionTimeline:
         result.timeline = symbol_events[-20:]
         return result
 
-    def clear(self, symbol: Optional[str] = None) -> None:
+    def clear(self, symbol: str | None = None) -> None:
         if symbol:
             self._events.pop(symbol, None)
         else:

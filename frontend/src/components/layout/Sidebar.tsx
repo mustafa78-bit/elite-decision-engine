@@ -11,7 +11,6 @@ const roomMap: Record<string, string> = {
   '/signals': '#8B5CF6',
   '/decisions': '#8B5CF6',
   '/intelligence': '#8B5CF6',
-  '/ai-experience': '#8B5CF6',
   '/regime': '#8B5CF6',
   '/funding': '#10B981',
   '/open-interest': '#10B981',
@@ -68,7 +67,6 @@ const sections: { title: string; subtitle: string; items: NavItem[] }[] = [
       { label: "Decision Center", path: "/decisions", icon: "◈" },
       { label: "Signals", path: "/signals", icon: "⚡" },
       { label: "Intelligence", path: "/intelligence", icon: "✦" },
-      { label: "AI Experience", path: "/ai-experience", icon: "◆" },
     ],
   },
   {

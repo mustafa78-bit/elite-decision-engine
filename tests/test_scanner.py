@@ -1,6 +1,7 @@
 """Tests for the Elite Scanner Core."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from market.models import Asset, AssetMetadata
@@ -52,7 +53,7 @@ class TestTrendStrategy:
         asset = _make_asset(indicators={"ema20": 90, "ema50": 95, "ema200": 100},
                             features={"trend": "BEARISH"})
         score, signals = self.strategy.evaluate(asset)
-        assert score > 0.5
+        assert score < -0.5
         assert "BEARISH_TREND_ALIGNED" in signals
 
     def test_no_trend(self):
@@ -75,7 +76,7 @@ class TestMomentumStrategy:
     def test_weak_rsi(self):
         asset = _make_asset(indicators={"rsi": 35}, features={"momentum": "WEAK"})
         score, signals = self.strategy.evaluate(asset)
-        assert score > 0
+        assert score < 0
         assert "RSI_BEARISH" in signals
 
     def test_neutral_rsi(self):
@@ -124,7 +125,7 @@ class TestReversalStrategy:
         df = pd.DataFrame({"close": closes})
         asset = _make_asset(indicators={"rsi": 78}, features={"momentum": "OVERBOUGHT"}, ohlcv=df)
         score, signals = self.strategy.evaluate(asset)
-        assert score > 0.5
+        assert score < -0.5
         assert "OVERBOUGHT_REVERSAL" in signals
 
     def test_no_reversal(self):
@@ -186,6 +187,20 @@ class TestOpportunityRanker:
         ]
         top = self.ranker.top(results, n=3)
         assert len(top) == 3
+
+    def test_rank_short_opportunity(self):
+        results = [
+            ScanResult(symbol="BTC", trend_score=-0.8, momentum_score=-0.4,
+                       breakout_score=0.0, reversal_score=0.0, liquidity_score=0.5),
+        ]
+        ops = self.ranker.rank(results)
+        assert len(ops) == 1
+        assert ops[0].side == "SHORT"
+        # directional is -0.8 * 0.25 + -0.4 * 0.25 = -0.3
+        # subtracting liquidity: -0.3 - 0.5 * 0.15 = -0.375. Rounded to -0.375
+        # score should be abs = 0.375
+        assert ops[0].score == 0.375
+        assert ops[0].strategy == "trend"
 
 
 class TestOpportunityScanner:
