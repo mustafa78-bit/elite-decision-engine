@@ -133,6 +133,7 @@ class WhaleService:
                         signals.append({
                             "type": "WHALE_WALL",
                             "symbol": symbol,
+                            "wall_type": wall_type,
                             "severity": severity,
                             "description": f"Strong whale {wall_type} wall detected (order book volume imbalance: {imbalance*100:+.1f}%)",
                             "confidence": round(abs(imbalance), 2),
@@ -154,6 +155,7 @@ class WhaleService:
                         signals.append({
                             "type": "EXTREME_FUNDING",
                             "symbol": symbol,
+                            "direction": direction,
                             "severity": "high" if abs(latest_rate) >= 0.001 else "medium",
                             "description": f"Extreme funding rate detected ({latest_rate*100:.4f}% per interval), market in extreme {direction}",
                             "confidence": min(abs(latest_rate) * 1000.0, 0.95),
