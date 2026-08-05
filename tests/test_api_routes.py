@@ -410,6 +410,46 @@ def test_get_backtest_with_data(api_client, db_session):
     assert body["performance"]["max_drawdown"] == 200.0
 
 
+def test_get_backtest_mixed_quantities(api_client, db_session):
+    from database import PaperTrade
+
+    _make_signal(db_session, id=1, status="EXECUTED", approved=True, confidence=90.0)
+    _make_signal(db_session, id=2, status="EXECUTED", approved=True, confidence=90.0)
+
+    # Trade A: raw per-unit pnl 500.0, quantity 0.1 -> real dollar pnl 50.0
+    t1 = _make_trade(db_session, signal_id=1, status="TP_HIT", pnl=500.0)
+    db_session.add(PaperTrade(
+        position_id=t1.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, exit_price=55000.0, quantity=0.1, pnl=500.0, status="CLOSED",
+    ))
+
+    # Trade B: raw per-unit pnl -200.0, quantity 2.0 -> real dollar pnl -400.0
+    t2 = _make_trade(db_session, signal_id=2, status="SL_HIT", pnl=-200.0)
+    db_session.add(PaperTrade(
+        position_id=t2.id, symbol="ETHUSDT", side="LONG",
+        entry=3000.0, exit_price=2800.0, quantity=2.0, pnl=-200.0, status="CLOSED",
+    ))
+    db_session.flush()
+
+    resp = api_client.get("/backtest")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # Real dollar pnls: [50.0, -400.0] -> total -350.0
+    assert body["performance"]["total_pnl"] == -350.0
+    assert body["performance"]["roi_pct"] == -87.5
+    assert body["performance"]["avg_win"] == 50.0
+    assert body["performance"]["avg_loss"] == 400.0
+    assert body["performance"]["profit_factor"] == 0.12
+    assert body["performance"]["max_drawdown"] == 400.0
+    assert body["performance"]["sharpe_ratio"] == -0.55
+
+    # Sign-based counts are unaffected by quantity
+    assert body["trades"]["wins"] == 1
+    assert body["trades"]["losses"] == 1
+    assert body["performance"]["win_rate_pct"] == 50.0
+
+
 # ─── Intelligence (DB fallback when market data unavailable) ───────────────
 
 
