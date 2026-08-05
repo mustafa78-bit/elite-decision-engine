@@ -255,8 +255,8 @@ class ExplainEngine:
             symbol=signal.symbol or "",
             side=signal.side or "",
             technical_score=signal.score or 0.0,
-            whale_score=0.0,
-            news_score=0.0,
+            whale_score=signal.funding_score or signal.oi_score or 0.0,
+            news_score=signal.cvd_score or 0.0,
             risk_score=signal.risk_score or 0.0,
             trend_score=signal.trend_score or 0.0,
             portfolio_total_equity=snapshot.total_equity if snapshot else 0.0,
@@ -292,8 +292,10 @@ class ExplainService:
         news_score: float = 0.0,
     ) -> DecisionExplanation:
         inp = ExplainEngine.from_signal(signal, snapshot, performance)
-        inp.whale_score = whale_score
-        inp.news_score = news_score
+        if whale_score > 0.0:
+            inp.whale_score = whale_score
+        if news_score > 0.0:
+            inp.news_score = news_score
         return self._save(inp)
 
     def explain(

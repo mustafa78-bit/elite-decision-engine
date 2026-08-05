@@ -173,6 +173,9 @@ class OpportunityScanner:
                 "funding": intelligence.funding if intelligence else {},
                 "liquidity_context": intelligence.liquidity_context if intelligence else {},
                 "intelligence_confidence": intelligence.confidence if intelligence else 0.0,
+                "open_interest": intelligence.open_interest if intelligence else {},
+                "news": intelligence.news if intelligence else [],
+                "whales": intelligence.whales if intelligence else [],
             },
             market_session=ctx.get("session", ""),
             btc_trend=ctx.get("btc", {}).get("btc_trend", ""),
@@ -250,6 +253,22 @@ class OpportunityScanner:
             )
             opp.confidence = conf
             opp.confidence_signals = conf_signals
+
+            opp.trend_score = r.trend_score
+
+            funding_data = r.intelligence.get("funding", {})
+            opp.funding_score = funding_data.get("risk_score", 0.0) if funding_data else 0.0
+
+            oi_data = r.intelligence.get("open_interest", {})
+            opp.oi_score = oi_data.get("strength", 0.0) if oi_data else 0.0
+
+            news_articles = r.intelligence.get("news", [])
+            if news_articles:
+                from market.intelligence.news import NewsService
+                sentiment = NewsService().sentiment_score(news_articles)
+                opp.cvd_score = (sentiment + 1.0) / 2.0
+            else:
+                opp.cvd_score = 0.0
 
         return opportunities
 

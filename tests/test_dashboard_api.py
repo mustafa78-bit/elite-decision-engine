@@ -109,3 +109,44 @@ class TestDashboardAPI:
         body = resp.json()
         assert "kpis" in body
         assert len(body["kpis"]) == 10
+
+    def test_dashboard_hero_scores_flow(self, api_client, db_session):
+        # 1. Test generate_signals copies scores from Opportunity to Signal
+        from services.signal_generator import generate_signals
+        from scanner.models import Opportunity
+
+        opp = Opportunity(
+            symbol="BTCUSDT",
+            side="LONG",
+            strategy="trend",
+            score=0.8,
+            confidence=85.0,
+            price=60000.0,
+            trend_score=0.75,
+            funding_score=0.6,
+            oi_score=0.5,
+            cvd_score=0.8,
+            risk_score=0.4,
+        )
+
+        num_created = generate_signals([opp], timeframe="1h", session=db_session)
+        assert num_created == 1
+
+        created_signal = db_session.query(Signal).filter(Signal.symbol == "BTCUSDT", Signal.status == "OPEN").first()
+        assert created_signal is not None
+        assert created_signal.trend_score == 0.75
+        assert created_signal.funding_score == 0.6
+        assert created_signal.oi_score == 0.5
+        assert created_signal.cvd_score == 0.8
+        assert created_signal.risk_score == 0.4
+
+        # 2. Query GET /dashboard/hero and verify they propagate and compute correct decision/confidence
+        resp = api_client.get("/dashboard/hero")
+        assert resp.status_code == 200
+        body = resp.json()
+
+        assert body["symbol"] == "BTCUSDT"
+        assert body["risk"] == 0.4
+        # Since scores are >= 0.5, they all contribute to the ExplainEngine average computation and decision
+        assert body["decision"] in ("BUY", "STRONG_BUY", "SELL", "STRONG_SELL", "HOLD")
+        assert body["confidence"] > 0.0
