@@ -254,6 +254,37 @@ class TestWhaleService:
         assert "WHALE_WALL" in types
         assert any("Strong whale Support wall" in s["description"] for s in signals)
 
+    @patch("market.intelligence.whale.WhaleService._binance_request")
+    def test_whale_wall_exposes_wall_type_field(self, mock_binance_request):
+        # Ask-heavy book -> Resistance wall; wall_type must be a real field on
+        # the signal dict (not just baked into the description string), so
+        # consumers like WhaleAgent can branch on it directly.
+        mock_binance_request.side_effect = lambda path, params: (
+            {
+                "bids": [["50000", "0.2"], ["49990", "0.3"]],  # 25,000 USDT total bids
+                "asks": [["50010", "2.0"], ["50020", "3.0"]],  # 250,000 USDT total asks
+            }
+            if path == "/api/v3/depth"
+            else None
+        )
+        signals = self.service.detect("BTC")
+        wall_signals = [s for s in signals if s["type"] == "WHALE_WALL"]
+        assert len(wall_signals) == 1
+        assert wall_signals[0]["wall_type"] == "Resistance"
+
+    @patch("market.intelligence.whale.WhaleService._binance_request")
+    def test_extreme_funding_exposes_direction_field(self, mock_binance_request):
+        mock_binance_request.return_value = None
+        from market_data.funding.models import FundingRate, FundingResult
+
+        self.mock_funding.fetch_funding_history.return_value = FundingResult(
+            rates=(FundingRate(symbol="BTC", rate=-0.002, timestamp=0, next_funding_time=0),),
+        )
+        signals = self.service.detect("BTC")
+        funding_signals = [s for s in signals if s["type"] == "EXTREME_FUNDING"]
+        assert len(funding_signals) == 1
+        assert funding_signals[0]["direction"] == "discount"
+
 
 class TestExchangeFlowService:
 
