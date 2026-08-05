@@ -164,15 +164,25 @@ class RiskManager:
         today_start = datetime.now(UTC).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-        daily_losses = (
-            session.query(Trade.pnl)
+        daily_closed_trades = (
+            session.query(Trade, PaperTrade)
+            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
             .filter(
                 Trade.status.in_(FINAL_STATUSES),
                 Trade.closed_at >= today_start,
             )
             .all()
         )
-        total_loss = sum(r.pnl for r in daily_losses if r.pnl is not None and r.pnl < 0)
+        total_loss = 0.0
+        for trade, paper_trade in daily_closed_trades:
+            if trade.pnl is None:
+                continue
+            if paper_trade is not None:
+                dollar_pnl = (paper_trade.quantity or 0.0) * trade.pnl
+            else:
+                dollar_pnl = trade.pnl
+            if dollar_pnl < 0:
+                total_loss += dollar_pnl
         abs_loss = abs(total_loss)
         checks.append(RiskCheckDetail(
             name=RejectionCode.DAILY_LOSS_LIMIT,
