@@ -106,6 +106,26 @@ class TestBreakoutStrategy:
         score, signals = self.strategy.evaluate(asset)
         assert score < 0.3
 
+    def test_ema_crossover_detected(self):
+        # Prior 15 bars below the EMA, recent 5 bars crossing up through it and
+        # finishing above -- a genuine crossover within the lookback window.
+        closes = [95.0] * 15 + [98.0, 99.0, 100.5, 101.0, 102.0]
+        volumes = [50.0] * 20
+        df = pd.DataFrame({"close": closes, "volume": volumes})
+        asset = _make_asset(price=102.0, indicators={"ema20": 100.0}, ohlcv=df)
+        score, signals = self.strategy.evaluate(asset)
+        assert "EMA_CROSSOVER" in signals
+
+    def test_ema_crossover_not_spuriously_triggered(self):
+        # Price consistently above the EMA for the entire lookback -- no prior
+        # dip, so this must NOT be reported as a crossover.
+        closes = [102.0] * 15 + [105.0] * 5
+        volumes = [50.0] * 20
+        df = pd.DataFrame({"close": closes, "volume": volumes})
+        asset = _make_asset(price=105.0, indicators={"ema20": 100.0}, ohlcv=df)
+        score, signals = self.strategy.evaluate(asset)
+        assert "EMA_CROSSOVER" not in signals
+
 
 class TestReversalStrategy:
 

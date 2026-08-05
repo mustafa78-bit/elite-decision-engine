@@ -59,7 +59,7 @@ class BreakoutStrategy:
                     score_short += 0.3
             signals.append("HIGH_VOLUME_CONFIRMATION")
 
-        if all(recent > ema20) and len(recent) > 0 and float(recent[0]) <= ema20:
+        if len(prior) > 0 and len(recent) > 0 and float(recent[-1]) > ema20 and float(prior[-1]) <= ema20:
             score_long += 0.2
             signals.append("EMA_CROSSOVER")
 
