@@ -192,6 +192,72 @@ class TestWhaleAgent:
         report = agent.evaluate(signal=mock_signal, scores={"volume_score": 0.3})
         assert report.direction == DIRECTION_NEUTRAL
 
+    def test_evaluate_bearish_wall_long_side(self, mock_signal):
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        # Mocking a heavy ask-side/Resistance wall
+        bundle.whales = [
+            {"type": "WHALE_WALL", "wall_type": "Resistance", "severity": "high", "confidence": 0.9, "description": "Resistance wall"}
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_BEARISH
+        assert report.confidence == 0.9
+        assert any("Whale wall: Resistance" in r for r in report.reasoning)
+
+    def test_evaluate_bullish_wall_long_side(self, mock_signal):
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        # Mocking a heavy bid-side/Support wall
+        bundle.whales = [
+            {"type": "WHALE_WALL", "wall_type": "Support", "severity": "high", "confidence": 0.9, "description": "Support wall"}
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_BULLISH
+        assert report.confidence == 0.9
+        assert any("Whale wall: Support" in r for r in report.reasoning)
+
+    def test_evaluate_bearish_funding_long_side(self, mock_signal):
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        # Mocking extreme funding discount
+        bundle.whales = [
+            {"type": "EXTREME_FUNDING", "direction": "discount", "severity": "high", "confidence": 0.85, "description": "Extreme funding discount"}
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_BEARISH
+        assert report.confidence == 0.85
+        assert any("Extreme funding: discount" in r for r in report.reasoning)
+
+    def test_evaluate_bullish_funding_long_side(self, mock_signal):
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        # Mocking extreme funding premium
+        bundle.whales = [
+            {"type": "EXTREME_FUNDING", "direction": "premium", "severity": "high", "confidence": 0.85, "description": "Extreme funding premium"}
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_BULLISH
+        assert report.confidence == 0.85
+        assert any("Extreme funding: premium" in r for r in report.reasoning)
+
+    def test_evaluate_conflicting_signals_consensus(self, mock_signal):
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        # Resistance wall (bearish, high severity) and minor Support wall (bullish, medium severity)
+        bundle.whales = [
+            {"type": "WHALE_WALL", "wall_type": "Resistance", "severity": "high", "confidence": 0.9, "description": "Resistance wall"},
+            {"type": "WHALE_WALL", "wall_type": "Support", "severity": "medium", "confidence": 0.4, "description": "Support wall"}
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        # Total influence = (-1 * 2.0 * 0.9) + (1 * 1.0 * 0.4) = -1.8 + 0.4 = -1.4
+        # Since net influence is < -0.05, aggregate direction is BEARISH
+        assert report.direction == DIRECTION_BEARISH
+
 
 class TestMacroAgent:
     def test_default_creation(self):

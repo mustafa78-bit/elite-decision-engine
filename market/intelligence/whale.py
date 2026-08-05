@@ -18,6 +18,8 @@ class WhaleService:
         volume_score: Optional[float] = None,
         volatility_score: Optional[float] = None,
         price: float = 0.0,
+        imbalance: Optional[float] = None,
+        latest_rate: Optional[float] = None,
     ) -> list[dict[str, Any]]:
         signals: list[dict[str, Any]] = []
 
@@ -42,5 +44,42 @@ class WhaleService:
                     "confidence": round(combined, 2),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 })
+
+        if imbalance is not None:
+            wall_type = "Support" if imbalance > 0 else "Resistance"
+            confidence = round(abs(imbalance), 2)
+            # High severity for high magnitude imbalances (e.g. abs(imbalance) >= 0.8)
+            severity = "high" if confidence >= 0.8 else "medium"
+            signals.append({
+                "type": "WHALE_WALL",
+                "symbol": symbol,
+                "wall_type": wall_type,
+                "severity": severity,
+                "description": f"Heavy {wall_type.lower()}-side order-book wall detected",
+                "confidence": confidence,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+
+        if latest_rate is not None:
+            direction = "premium" if latest_rate > 0 else "discount"
+            # Calculate confidence based on magnitude
+            abs_rate = abs(latest_rate)
+            if abs_rate > 0.01:
+                # Annualized or percentage representation
+                conf = min(1.0, abs_rate / 50.0)
+            else:
+                # Raw decimal funding rate representation
+                conf = min(1.0, abs_rate * 500.0)
+            conf = max(0.5, round(conf, 2))
+            severity = "high" if conf >= 0.8 else "medium"
+            signals.append({
+                "type": "EXTREME_FUNDING",
+                "symbol": symbol,
+                "direction": direction,
+                "severity": severity,
+                "description": f"Extreme funding {direction} detected",
+                "confidence": conf,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
 
         return signals

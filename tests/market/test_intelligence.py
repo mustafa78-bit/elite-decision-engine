@@ -96,6 +96,41 @@ class TestWhaleService:
         signals = self.service.detect("BTC", volume_score=0.3, volatility_score=0.3)
         assert len(signals) == 0
 
+    def test_whale_wall_resistance_detected(self):
+        signals = self.service.detect("BTC", imbalance=-0.9)
+        assert len(signals) == 1
+        sig = signals[0]
+        assert sig["type"] == "WHALE_WALL"
+        assert sig["wall_type"] == "Resistance"
+        assert sig["severity"] == "high"
+        assert sig["confidence"] == 0.9
+
+    def test_whale_wall_support_detected(self):
+        signals = self.service.detect("BTC", imbalance=0.5)
+        assert len(signals) == 1
+        sig = signals[0]
+        assert sig["type"] == "WHALE_WALL"
+        assert sig["wall_type"] == "Support"
+        assert sig["severity"] == "medium"
+        assert sig["confidence"] == 0.5
+
+    def test_extreme_funding_discount_detected(self):
+        signals = self.service.detect("BTC", latest_rate=-0.002)
+        assert len(signals) == 1
+        sig = signals[0]
+        assert sig["type"] == "EXTREME_FUNDING"
+        assert sig["direction"] == "discount"
+        assert sig["severity"] == "high"
+        assert sig["confidence"] == 1.0  # Clamped at 1.0 (0.002 * 500)
+
+    def test_extreme_funding_premium_detected(self):
+        signals = self.service.detect("BTC", latest_rate=0.001)
+        assert len(signals) == 1
+        sig = signals[0]
+        assert sig["type"] == "EXTREME_FUNDING"
+        assert sig["direction"] == "premium"
+        assert sig["confidence"] == 0.5  # 0.001 * 500
+
 
 class TestExchangeFlowService:
 
