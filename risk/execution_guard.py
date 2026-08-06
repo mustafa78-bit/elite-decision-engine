@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-from config import ACCOUNT_EQUITY, RISK_PER_TRADE_PERCENT
+from config import ACCOUNT_EQUITY, RISK_PER_TRADE_PERCENT, MAX_POSITION_SIZE_USD
 from database import get_session
 from exchange.base import ExchangeAdapter
 from exchange.exceptions import ExchangeError
@@ -183,33 +183,33 @@ class ExecutionGuard:
             logger.warning("Regime check failed: %s", e)
             metadata["regime"] = "UNKNOWN"
 
-        # 4. Delegate portfolio-level checks to RiskManager
-        candidate = _Candidate(symbol=symbol, entry=entry_price * quantity)
-        risk_mgr = RiskManager(session_factory=self.session_factory)
-        portfolio_decision = risk_mgr.evaluate_trade(candidate)
-        metadata["portfolio_decision"] = portfolio_decision
-        checks.extend(portfolio_decision.checks)
-        if not portfolio_decision.allowed:
-            decision = risk_decision_from_checks(checks, metadata)
-            summarize_decision(decision, "ExecutionGuard")
-            return decision
-
-        # 5. Position size vs account equity
+        # 4. Position size vs account equity / max position size limit (notional cap)
         notional = entry_price * quantity
-        max_notional = ACCOUNT_EQUITY * (RISK_PER_TRADE_PERCENT / 100.0)
+        max_notional = MAX_POSITION_SIZE_USD
         metadata["notional"] = round(notional, 2)
         metadata["max_notional"] = round(max_notional, 2)
         checks.append(RiskCheckDetail(
             name=RejectionCode.RISK_BUDGET_EXCEEDED,
             passed=notional <= max_notional,
             detail=(
-                f"Position size {notional:.2f} exceeds risk budget {max_notional:.2f}"
+                f"Position size {notional:.2f} exceeds max position size limit {max_notional:.2f}"
                 if notional > max_notional else ""
             ),
             value=round(notional, 2),
             limit=round(max_notional, 2),
         ))
         if notional > max_notional:
+            decision = risk_decision_from_checks(checks, metadata)
+            summarize_decision(decision, "ExecutionGuard")
+            return decision
+
+        # 5. Delegate portfolio-level checks to RiskManager
+        candidate = _Candidate(symbol=symbol, entry=entry_price * quantity)
+        risk_mgr = RiskManager(session_factory=self.session_factory)
+        portfolio_decision = risk_mgr.evaluate_trade(candidate)
+        metadata["portfolio_decision"] = portfolio_decision
+        checks.extend(portfolio_decision.checks)
+        if not portfolio_decision.allowed:
             decision = risk_decision_from_checks(checks, metadata)
             summarize_decision(decision, "ExecutionGuard")
             return decision
