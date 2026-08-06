@@ -146,11 +146,30 @@ class ConsensusEngine:
         except Exception as e:
             logger.warning("Coordinator evaluation failed: %s", e)
 
-        agreeing = sum(
-            1 for r in reports
-            if r.direction == consensus_direction and r.confidence > 0.3
-        )
-        disagreeing = len(reports) - agreeing
+        if risk_veto:
+            # The directional vote never ran (short-circuited by the veto), so
+            # there's no real agreement/disagreement to report against a
+            # DIRECTION_PASS "consensus" -- reporting directional agents as
+            # "disagreeing" with a veto they never weighed in on would be
+            # misleading.
+            agreeing = 0
+            disagreeing = 0
+        else:
+            # Only tally agreement among directional agents -- a non-directional
+            # agent (e.g. RiskAgent, whose "direction" means a risk-level
+            # category, not a market-direction vote) has no meaningful
+            # agree/disagree relationship to consensus_direction, matching the
+            # same population _compute_consensus() already restricts its
+            # direction vote to.
+            directional_reports = [
+                r for r in reports
+                if getattr(self.agents.get(r.agent_name), "is_directional", True)
+            ]
+            agreeing = sum(
+                1 for r in directional_reports
+                if r.direction == consensus_direction and r.confidence > 0.3
+            )
+            disagreeing = len(directional_reports) - agreeing
 
         return CouncilReport(
             symbol=symbol,

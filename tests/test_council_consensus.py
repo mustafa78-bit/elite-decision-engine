@@ -212,3 +212,35 @@ class TestConsensusVetoAndAgreement:
         report = ce.evaluate(signal=None, symbol="BTCUSDT")
         # Split (2 bullish vs 2 bearish) must not be "strong"
         assert report.agreement_level in ("moderate", "weak")
+
+    def test_sources_agreeing_excludes_non_directional_agent(self):
+        # 2 Bullish (agree with consensus) + 1 Bearish (disagrees) -> consensus
+        # is BULLISH among the 3 real directional agents. The non-directional
+        # Risk agent's direction is a risk-level category, not a market vote --
+        # even though it coincidentally reports BULLISH here, it must not be
+        # counted as "agreeing".
+        ce = ConsensusEngine(weights={"A": 1.0, "B": 1.0, "C": 1.0, "Risk": 1.0})
+        ce.register_agent(_BullishAgent("A"))
+        ce.register_agent(_BullishAgent("B"))
+        ce.register_agent(_BearishAgent("C"))
+        ce.register_agent(_RiskVetoAgent("Risk", DIRECTION_BULLISH))
+
+        report = ce.evaluate(signal=None, symbol="BTCUSDT")
+        assert report.consensus_direction == DIRECTION_BULLISH
+        assert report.agent_count == 4
+        # Only the 3 directional agents count: 2 agreeing (A, B), 1 disagreeing (C).
+        assert report.sources_agreeing == 2
+        assert report.sources_disagreeing == 1
+
+    def test_sources_agreeing_zero_on_risk_veto(self):
+        # On a risk veto, the directional vote never ran -- reporting the
+        # directional agents as "disagreeing" with DIRECTION_PASS would be
+        # misleading, so both counts should be 0.
+        ce = ConsensusEngine(weights={"Bullish": 1.0, "Risk": 1.0})
+        ce.register_agent(_BullishAgent("Bullish"))
+        ce.register_agent(_RiskVetoAgent("Risk", DIRECTION_PASS))
+
+        report = ce.evaluate(signal=None, symbol="BTCUSDT")
+        assert report.risk_veto is True
+        assert report.sources_agreeing == 0
+        assert report.sources_disagreeing == 0
