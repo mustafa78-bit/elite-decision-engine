@@ -37,7 +37,12 @@ class ReportGenerator:
         largest_win = max([t.pnl for t in wins]) if wins else 0.0
         largest_loss = max([abs(t.pnl) for t in losses]) if losses else 0.0
 
-        profit_factor = avg_win / avg_loss if avg_loss > 0 else (float("inf") if avg_win > 0 else 0.0)
+        # profit_factor is gross_profit / gross_loss (sums), not avg_win/avg_loss
+        # -- the average-based ratio only equals the real profit factor when
+        # win_count == loss_count, and is wildly wrong otherwise.
+        gross_profit = sum(t.pnl for t in wins)
+        gross_loss = abs(sum(t.pnl for t in losses))
+        profit_factor = gross_profit / gross_loss if gross_loss > 0 else (float("inf") if gross_profit > 0 else 0.0)
 
         equity = [e.get("value", state.config.initial_capital) for e in state.equity_curve]
         max_drawdown, max_drawdown_pct = self._compute_max_drawdown(equity)
@@ -250,7 +255,10 @@ class ReportGenerator:
             return 50.0
         entries_before_move = 0
         for t in trades:
-            if t.entry_decision and t.entry_decision.get("confidence", 0) > 0.6:
+            # entry_decision["confidence"] is stored on a 0-100 scale (see
+            # simulator_engine.py's _run_ai_decision(): round(conf * 100, 1)),
+            # not 0-1 -- compare against a matching threshold.
+            if t.entry_decision and t.entry_decision.get("confidence", 0) > 60:
                 entries_before_move += 1
         return min(100.0, entries_before_move / len(trades) * 100)
 
