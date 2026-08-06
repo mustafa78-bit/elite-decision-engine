@@ -101,15 +101,18 @@ class TrendAgent(BaseAgent):
         if volatility_class != "UNKNOWN":
             reasoning.append(f"Volatility: {volatility_class}")
 
+        # TREND and DOWNTREND are mirror-image, equally-strong "fully aligned
+        # trend" regimes (RegimeAI classifies them symmetrically) -- once
+        # direction has already been side-normalized above, confidence must
+        # be symmetric too, not keyed off which literal direction the trend
+        # happened to point.
         direction_score = 0.5
-        if regime == "TREND":
+        if regime in ("TREND", "DOWNTREND"):
             direction_score = 0.9
         elif regime == "RECOVERY":
             direction_score = 0.7
         elif regime == "RANGE":
             direction_score = 0.5
-        elif regime == "DOWNTREND":
-            direction_score = 0.3
         elif regime == "DEAD":
             direction_score = 0.1
 
