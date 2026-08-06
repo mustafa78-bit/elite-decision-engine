@@ -19,6 +19,7 @@ from position_sizing import PositionSizingEngine
 from risk.models import RejectionCode
 from risk_manager import RiskManager
 from scoring.risk_engine import RiskEngine
+from services.pnl import get_trades_with_dollar_pnl, get_trades_with_exposure
 
 router = APIRouter()
 
@@ -27,28 +28,26 @@ router = APIRouter()
 def get_risk():
     session = get_session()
     try:
-        all_trades = session.query(Trade).all()
+        open_with_exposure = get_trades_with_exposure(session, Trade.status == "OPEN")
+        closed_with_pnl = get_trades_with_dollar_pnl(session, Trade.status.in_(FINAL_STATUSES))
     finally:
         session.close()
 
-    open_trades = [t for t in all_trades if t.status == "OPEN"]
-    closed_trades = [t for t in all_trades if t.status in FINAL_STATUSES]
-
-    open_count = len(open_trades)
+    open_count = len(open_with_exposure)
     symbol_exposure: dict[str, float] = {}
-    for t in open_trades:
+    for t, exposure in open_with_exposure:
         sym = t.symbol or "?"
-        symbol_exposure[sym] = symbol_exposure.get(sym, 0) + (t.entry or 0)
+        symbol_exposure[sym] = symbol_exposure.get(sym, 0) + exposure
 
-    portfolio_exposure = sum(t.entry or 0 for t in open_trades)
+    portfolio_exposure = sum(exposure for _, exposure in open_with_exposure)
 
     today_start = datetime.now(UTC).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     daily_loss = sum(
-        t.pnl or 0
-        for t in closed_trades
-        if t.pnl is not None and t.pnl < 0
+        pnl_val
+        for t, pnl_val in closed_with_pnl
+        if pnl_val < 0
         and t.closed_at is not None
         and t.closed_at >= today_start
     )
