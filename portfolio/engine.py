@@ -108,7 +108,10 @@ class PortfolioEngine:
 
         total_pnl = realized_pnl + unrealized_pnl
         total_equity = self.initial_capital + total_pnl
-        cash = total_equity - exposure
+        # Cash is what's actually free -- unrealized PnL is mark-to-market
+        # value tied up in open positions, not spendable cash. Only realized
+        # PnL (already settled) adds to the cash balance.
+        cash = self.initial_capital + realized_pnl - exposure
 
         win_rate = (winning_trades / total_wl * 100) if total_wl > 0 else 0.0
         if gross_loss > 0:

@@ -298,12 +298,15 @@ def test_cash_calculation(db_session, session_factory):
     )
     snap = engine.snapshot(current_prices={"BTCUSDT": 51000.0})
 
-    # equity = 10000 + 1000 = 11000
+    # equity = 10000 + 1000 (unrealized) = 11000
     # exposure = 50000
-    # cash = 11000 - 50000 = -39000
+    # cash = initial_capital + realized_pnl - exposure = 10000 + 0 - 50000 = -40000
+    # (unrealized PnL is mark-to-market value tied up in the open position,
+    # not spendable cash, so it must NOT be added to cash even though it's
+    # part of total_equity)
     assert snap.total_equity == 11000.0
     assert snap.exposure == 50000.0
-    assert snap.cash == snap.total_equity - snap.exposure
+    assert snap.cash == -40000.0
 
 
 # ── Profit factor ───────────────────────────────────────────────────────────
