@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from database import FINAL_STATUSES, Signal, Trade, get_session
 from market_data.collector import HyperliquidCollector
+from services.pnl import query_trades_with_dollar_pnl
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
 from scoring.regime_ai import get_regime_ai
@@ -45,7 +46,7 @@ def get_intelligence():
     session = get_session()
     try:
         all_signals = session.query(Signal).all()
-        all_trades = session.query(Trade).all()
+        trades_with_pnl = query_trades_with_dollar_pnl(session)
     finally:
         session.close()
 
@@ -53,13 +54,13 @@ def get_intelligence():
     approved = len([s for s in all_signals if str(s.status) in {"EXECUTED", "OPEN"}])
     rejected = len([s for s in all_signals if str(s.status) == "REJECTED"])
 
-    open_trades = [t for t in all_trades if str(t.status) == "OPEN"]
-    closed_trades = [t for t in all_trades if str(t.status) in FINAL_STATUSES]
-    total_pnl = sum(t.pnl for t in closed_trades if t.pnl is not None)
+    open_trades = [t_pnl for t_pnl in trades_with_pnl if str(t_pnl[0].status) == "OPEN"]
+    closed_trades = [t_pnl for t_pnl in trades_with_pnl if str(t_pnl[0].status) in FINAL_STATUSES]
+    total_pnl = sum(pnl_val for t, pnl_val in closed_trades)
 
     logger.info(
         "/intelligence: signals=%d trades=%d closed_pnl=%.2f",
-        len(all_signals), len(all_trades), total_pnl,
+        len(all_signals), len(trades_with_pnl), total_pnl,
     )
 
     return {

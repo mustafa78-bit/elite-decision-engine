@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from database import FINAL_STATUSES, OPEN, Signal, Trade, get_session
+from services.pnl import query_trades_with_dollar_pnl
 from dto.widgets import (
     DashboardWidgetDTO,
     ExplanationDashboardWidgetDTO,
@@ -147,13 +148,13 @@ def dashboard_timeline(signal_id: int, request: Request):
 def dashboard_portfolio(request: Request):
     session = get_session()
     try:
-        trades = session.query(Trade).all()
-        closed = [t for t in trades if t.status in FINAL_STATUSES]
-        open_trades = [t for t in trades if t.status == "OPEN"]
-        total_pnl = sum(t.pnl or 0 for t in closed)
-        wins = [t for t in closed if t.pnl and t.pnl > 0]
+        trades_with_pnl = query_trades_with_dollar_pnl(session)
+        closed = [t_pnl for t_pnl in trades_with_pnl if t_pnl[0].status in FINAL_STATUSES]
+        open_trades = [t_pnl for t_pnl in trades_with_pnl if t_pnl[0].status == "OPEN"]
+        total_pnl = sum(t_pnl[1] for t_pnl in closed)
+        wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
 
-        pnls = [t.pnl or 0 for t in closed]
+        pnls = [t_pnl[1] for t_pnl in closed]
         peak = 0.0
         max_dd = 0.0
         cumulative = 0.0

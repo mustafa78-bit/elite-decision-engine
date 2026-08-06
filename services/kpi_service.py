@@ -5,6 +5,7 @@ from typing import Any, Callable, Optional
 
 from database import FINAL_STATUSES, Trade, Signal, get_session
 from dto.analytics import KPIDTO
+from services.pnl import query_trades_with_dollar_pnl
 
 logger = logging.getLogger(__name__)
 
@@ -16,23 +17,23 @@ class KPIService:
     def get_kpis(self) -> list[KPIDTO]:
         session = self.session_factory()
         try:
-            trades = session.query(Trade).all()
+            trades_with_pnl = query_trades_with_dollar_pnl(session)
             signals = session.query(Signal).all()
-            return self._compute(trades, signals)
+            return self._compute(trades_with_pnl, signals)
         finally:
             session.close()
 
-    def _compute(self, trades: list[Trade], signals: Optional[list[Signal]] = None) -> list[KPIDTO]:
-        closed = [t for t in trades if t.status in FINAL_STATUSES]
-        open_t = [t for t in trades if t.status == "OPEN"]
-        wins = [t for t in closed if t.pnl and t.pnl > 0]
-        losses = [t for t in closed if t.pnl and t.pnl < 0]
-        total_pnl = sum(t.pnl or 0 for t in closed)
-        open_pnl = sum(t.pnl or 0 for t in open_t)
-        gp = sum(t.pnl or 0 for t in wins)
-        gl = abs(sum(t.pnl or 0 for t in losses))
+    def _compute(self, trades: list[tuple[Trade, float]], signals: Optional[list[Signal]] = None) -> list[KPIDTO]:
+        closed = [t_pnl for t_pnl in trades if t_pnl[0].status in FINAL_STATUSES]
+        open_t = [t_pnl for t_pnl in trades if t_pnl[0].status == "OPEN"]
+        wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+        losses = [t_pnl for t_pnl in closed if t_pnl[1] < 0]
+        total_pnl = sum(t_pnl[1] for t_pnl in closed)
+        open_pnl = sum(t_pnl[1] for t_pnl in open_t)
+        gp = sum(t_pnl[1] for t_pnl in wins)
+        gl = abs(sum(t_pnl[1] for t_pnl in losses))
         pf = gp / gl if gl > 0 else (999.99 if gp > 0 else 0)
-        pnls = [t.pnl or 0 for t in closed]
+        pnls = [t_pnl[1] for t_pnl in closed]
         sharpe = self._sharpe(pnls)
         avg_pnl = total_pnl / len(closed) if closed else 0
         wr = (len(wins) / len(closed) * 100) if closed else 0
@@ -60,13 +61,13 @@ class KPIService:
         s = statistics.stdev(pnls)
         return (m / s) if s > 0 else 0.0
 
-    def _max_drawdown(self, trades: list[Trade]) -> float:
-        sorted_trades = sorted(trades, key=lambda t: t.created_at or __import__("datetime").datetime.min)
+    def _max_drawdown(self, trades: list[tuple[Trade, float]]) -> float:
+        sorted_trades = sorted(trades, key=lambda t_pnl: t_pnl[0].created_at or __import__("datetime").datetime.min)
         peak = 0.0
         max_dd = 0.0
         running = 0.0
-        for t in sorted_trades:
-            running += t.pnl or 0
+        for t, pnl_val in sorted_trades:
+            running += pnl_val
             if running > peak:
                 peak = running
             dd = peak - running

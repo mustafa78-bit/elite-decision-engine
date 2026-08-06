@@ -14,6 +14,7 @@ from typing import Any, Callable, Iterable, Optional
 
 from database import OPEN, TP_HIT, SL_HIT, CLOSED, FINAL_STATUSES, Trade, get_session
 from market_data.collector import HyperliquidCollector
+from services.pnl import trade_dollar_pnl
 from notifications.dispatcher import NotificationDispatcher
 from notifications.events import TradeEvent
 

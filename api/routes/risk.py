@@ -19,6 +19,7 @@ from position_sizing import PositionSizingEngine
 from risk.models import RejectionCode
 from risk_manager import RiskManager
 from scoring.risk_engine import RiskEngine
+from services.pnl import query_trades_with_dollar_pnl, query_trades_with_exposure
 
 router = APIRouter()
 
@@ -27,30 +28,36 @@ router = APIRouter()
 def get_risk():
     session = get_session()
     try:
-        all_trades = session.query(Trade).all()
+        trades_with_pnl = query_trades_with_dollar_pnl(session)
+        open_trades_with_exposure = query_trades_with_exposure(session, Trade.status == "OPEN")
     finally:
         session.close()
 
-    open_trades = [t for t in all_trades if t.status == "OPEN"]
-    closed_trades = [t for t in all_trades if t.status in FINAL_STATUSES]
-
-    open_count = len(open_trades)
+    open_count = len(open_trades_with_exposure)
     symbol_exposure: dict[str, float] = {}
-    for t in open_trades:
+    for t, exposure in open_trades_with_exposure:
         sym = t.symbol or "?"
-        symbol_exposure[sym] = symbol_exposure.get(sym, 0) + (t.entry or 0)
+        symbol_exposure[sym] = symbol_exposure.get(sym, 0) + exposure
 
-    portfolio_exposure = sum(t.entry or 0 for t in open_trades)
+    portfolio_exposure = sum(exposure for t, exposure in open_trades_with_exposure)
 
     today_start = datetime.now(timezone.utc).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
+
+    def is_today(closed_at):
+        if closed_at is None:
+            return False
+        ca = closed_at.replace(tzinfo=None) if closed_at.tzinfo else closed_at
+        ts = today_start.replace(tzinfo=None)
+        return ca >= ts
+
     daily_loss = sum(
-        t.pnl or 0
-        for t in closed_trades
-        if t.pnl is not None and t.pnl < 0
-        and t.closed_at is not None
-        and t.closed_at >= today_start
+        pnl_val
+        for t, pnl_val in trades_with_pnl
+        if t.status in FINAL_STATUSES
+        and pnl_val < 0
+        and is_today(t.closed_at)
     )
 
     risk_engine = RiskEngine()

@@ -11,6 +11,7 @@ from dto.widgets import (
     MonitoringDashboardWidgetDTO,
     NotificationDashboardWidgetDTO,
 )
+from services.pnl import query_trades_with_dollar_pnl
 
 logger = logging.getLogger(__name__)
 
@@ -51,11 +52,11 @@ class WidgetService:
     def _portfolio_widget(self) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            trades = session.query(Trade).all()
-            closed = [t for t in trades if t.status in FINAL_STATUSES]
-            open_t = [t for t in trades if t.status == "OPEN"]
-            wins = [t for t in closed if t.pnl and t.pnl > 0]
-            total_pnl = sum(t.pnl or 0 for t in closed)
+            trades_with_pnl = query_trades_with_dollar_pnl(session)
+            closed = [t_pnl for t_pnl in trades_with_pnl if t_pnl[0].status in FINAL_STATUSES]
+            open_t = [t_pnl for t_pnl in trades_with_pnl if t_pnl[0].status == "OPEN"]
+            wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+            total_pnl = sum(t_pnl[1] for t_pnl in closed)
             wr = (len(wins) / len(closed) * 100) if closed else 0
             return PortfolioDashboardWidgetDTO(
                 total_pnl=round(total_pnl, 2),

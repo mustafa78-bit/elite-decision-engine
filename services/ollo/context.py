@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
+from services.pnl import trade_dollar_pnl
 from datetime import datetime, timezone
 from typing import Any, Optional
 

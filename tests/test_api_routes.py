@@ -712,3 +712,77 @@ def test_db_tables_in_health_details(api_client):
     assert resp.status_code == 200
     tbl = resp.json().get("database_tables", {})
     assert "status" in tbl
+
+
+def test_get_risk_mixed_quantities(api_client, db_session):
+    from database import PaperTrade, Trade
+    # Clear previous trades
+    db_session.query(Trade).delete()
+    db_session.query(PaperTrade).delete()
+    db_session.flush()
+
+    # 1. Open trade with quantity = 2.0 (exposure = 50000.0 * 2.0 = 100000.0)
+    t1 = Trade(
+        symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49250.0,
+        tp1=51000.0, tp2=52000.0, rr=2.0, status="OPEN", pnl=0.0
+    )
+    db_session.add(t1)
+    db_session.flush()
+    pt1 = PaperTrade(
+        position_id=t1.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=2.0, status="OPEN", pnl=0.0
+    )
+    db_session.add(pt1)
+
+    # 2. Open trade with NO matching PaperTrade record (fallback qty = 1.0, exposure = 3000.0 * 1.0 = 3000.0)
+    t2 = Trade(
+        symbol="ETHUSDT", side="LONG", entry=3000.0, stop=2900.0,
+        tp1=3200.0, tp2=3300.0, rr=2.0, status="OPEN", pnl=0.0
+    )
+    db_session.add(t2)
+    db_session.flush()
+
+    headers = {"Authorization": f"Bearer {_token_for_user(_make_user(db_session))}"}
+    resp = api_client.get("/risk", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["open_trades"] == 2
+    # Portfolio exposure should be 100000.0 + 3000.0 = 103000.0
+    assert body["portfolio_exposure"] == 103000.0
+    assert body["symbol_exposure"]["BTCUSDT"] == 100000.0
+    assert body["symbol_exposure"]["ETHUSDT"] == 3000.0
+
+
+def test_get_intelligence_mixed_quantities(api_client, db_session):
+    from database import PaperTrade, Trade
+    # Clear previous trades
+    db_session.query(Trade).delete()
+    db_session.query(PaperTrade).delete()
+    db_session.flush()
+
+    # 1. Closed trade with quantity = 3.0 (real dollar pnl = 100.0 * 3.0 = 300.0)
+    t1 = Trade(
+        symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49250.0,
+        tp1=51000.0, tp2=52000.0, rr=2.0, status="TP_HIT", pnl=100.0
+    )
+    db_session.add(t1)
+    db_session.flush()
+    pt1 = PaperTrade(
+        position_id=t1.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=3.0, status="CLOSED", pnl=300.0
+    )
+    db_session.add(pt1)
+
+    # 2. Closed trade with NO matching PaperTrade record (fallback qty = 1.0, real dollar pnl = -50.0 * 1.0 = -50.0)
+    t2 = Trade(
+        symbol="ETHUSDT", side="LONG", entry=3000.0, stop=2900.0,
+        tp1=3200.0, tp2=3300.0, rr=2.0, status="SL_HIT", pnl=-50.0
+    )
+    db_session.add(t2)
+    db_session.flush()
+
+    resp = api_client.get("/intelligence")
+    assert resp.status_code == 200
+    body = resp.json()
+    # Total PnL should be 300.0 - 50.0 = 250.0
+    assert body["trades"]["total_pnl"] == 250.0

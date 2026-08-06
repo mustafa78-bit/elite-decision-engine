@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from database import FINAL_STATUSES, Trade, get_session
 from execution.paper_executor import PaperExecutor as PaperExec
 from portfolio_engine import PortfolioEngine
+from services.pnl import query_trades_with_dollar_pnl
 
 router = APIRouter()
 
@@ -40,14 +41,14 @@ class PaperPerformance:
 def get_paper_trading():
     session = get_session()
     try:
-        all_trades = session.query(Trade).all()
+        trades_with_pnl = query_trades_with_dollar_pnl(session)
     finally:
         session.close()
 
-    open_trades = [t for t in all_trades if str(t.status) == "OPEN"]
-    closed_trades = [t for t in all_trades if str(t.status) in FINAL_STATUSES]
-    winning = [t for t in closed_trades if t.pnl is not None and t.pnl > 0]
-    losing = [t for t in closed_trades if t.pnl is not None and t.pnl < 0]
+    open_trades = [t_pnl for t_pnl in trades_with_pnl if str(t_pnl[0].status) == "OPEN"]
+    closed_trades = [t_pnl for t_pnl in trades_with_pnl if str(t_pnl[0].status) in FINAL_STATUSES]
+    winning = [t_pnl for t_pnl in closed_trades if t_pnl[1] > 0]
+    losing = [t_pnl for t_pnl in closed_trades if t_pnl[1] < 0]
     total_wl = len(winning) + len(losing)
 
     return {
@@ -61,10 +62,10 @@ def get_paper_trading():
                 "tp1": t.tp1,
                 "tp2": t.tp2,
                 "status": t.status,
-                "pnl": t.pnl,
+                "pnl": pnl_val,
                 "created_at": t.created_at.isoformat() if t.created_at else None,
             }
-            for t in open_trades
+            for t, pnl_val in open_trades
         ],
         "closed": [
             {
@@ -73,21 +74,21 @@ def get_paper_trading():
                 "side": t.side,
                 "entry": t.entry,
                 "exit_price": t.exit_price,
-                "pnl": t.pnl,
+                "pnl": pnl_val,
                 "status": t.status,
                 "close_reason": t.close_reason,
                 "created_at": t.created_at.isoformat() if t.created_at else None,
                 "closed_at": t.closed_at.isoformat() if t.closed_at else None,
             }
-            for t in closed_trades
+            for t, pnl_val in closed_trades
         ],
         "performance": {
-            "total_trades": len(all_trades),
+            "total_trades": len(trades_with_pnl),
             "open_trades": len(open_trades),
             "closed_trades": len(closed_trades),
             "winning_trades": len(winning),
             "losing_trades": len(losing),
             "win_rate": round((len(winning) / total_wl * 100), 2) if total_wl > 0 else 0.0,
-            "total_pnl": round(sum(t.pnl for t in closed_trades if t.pnl is not None), 2),
+            "total_pnl": round(sum(pnl_val for t, pnl_val in closed_trades), 2),
         },
     }

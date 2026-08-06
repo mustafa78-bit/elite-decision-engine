@@ -25,6 +25,7 @@ from risk.models import (
     risk_decision_from_checks,
     summarize_decision,
 )
+from services.pnl import query_trades_with_dollar_pnl, query_trades_with_exposure
 
 logger = logging.getLogger(__name__)
 
@@ -83,13 +84,24 @@ class RiskManager:
             summarize_decision(decision, "RiskManager")
             return decision
 
-        symbol_exposure = (
-            session.query(Trade.entry)
-            .filter(Trade.symbol == candidate.symbol, Trade.status == "OPEN")
-            .all()
+        open_symbol_trades_with_exposure = query_trades_with_exposure(
+            session, Trade.symbol == candidate.symbol, Trade.status == "OPEN"
         )
-        current_symbol_total = sum(r.entry for r in symbol_exposure)
-        total_symbol = current_symbol_total + entry
+        current_symbol_total = sum(exposure for t, exposure in open_symbol_trades_with_exposure)
+
+        candidate_exposure = entry
+        try:
+            from position_sizing import PositionSizingEngine
+            sizer = PositionSizingEngine()
+            # If candidate has scores and has a positive ATR, use speculative notional_value, else fallback to entry
+            if hasattr(candidate, "scores") and isinstance(candidate.scores, dict) and candidate.scores.get("atr", 0.0) > 0:
+                candidate_exposure = sizer.calculate(candidate).notional_value
+            elif isinstance(candidate, dict) and isinstance(candidate.get("scores"), dict) and candidate["scores"].get("atr", 0.0) > 0:
+                candidate_exposure = sizer.calculate(candidate).notional_value
+        except Exception:
+            pass
+
+        total_symbol = current_symbol_total + candidate_exposure
         checks.append(RiskCheckDetail(
             name=RejectionCode.SYMBOL_EXPOSURE,
             passed=total_symbol <= MAX_EXPOSURE_PER_SYMBOL,
@@ -106,13 +118,11 @@ class RiskManager:
             summarize_decision(decision, "RiskManager")
             return decision
 
-        total_exposure = (
-            session.query(Trade.entry)
-            .filter(Trade.status == "OPEN")
-            .all()
+        open_portfolio_trades_with_exposure = query_trades_with_exposure(
+            session, Trade.status == "OPEN"
         )
-        current_total = sum(r.entry for r in total_exposure)
-        portfolio_total = current_total + entry
+        current_total = sum(exposure for t, exposure in open_portfolio_trades_with_exposure)
+        portfolio_total = current_total + candidate_exposure
         checks.append(RiskCheckDetail(
             name=RejectionCode.PORTFOLIO_EXPOSURE,
             passed=portfolio_total <= MAX_PORTFOLIO_EXPOSURE,
@@ -132,15 +142,12 @@ class RiskManager:
         today_start = datetime.now(timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-        daily_losses = (
-            session.query(Trade.pnl)
-            .filter(
-                Trade.status.in_(FINAL_STATUSES),
-                Trade.closed_at >= today_start,
-            )
-            .all()
+        daily_closed_with_pnl = query_trades_with_dollar_pnl(
+            session,
+            Trade.status.in_(FINAL_STATUSES),
+            Trade.closed_at >= today_start
         )
-        total_loss = sum(r.pnl for r in daily_losses if r.pnl is not None and r.pnl < 0)
+        total_loss = sum(pnl for t, pnl in daily_closed_with_pnl if pnl < 0)
         abs_loss = abs(total_loss)
         checks.append(RiskCheckDetail(
             name=RejectionCode.DAILY_LOSS_LIMIT,

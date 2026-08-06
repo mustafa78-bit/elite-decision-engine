@@ -6,8 +6,9 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from database import FINAL_STATUSES, Signal, Trade, get_session
+from database import FINAL_STATUSES, Signal, Trade, PaperTrade, get_session
 from decision.aggregator import DecisionAggregator
+from services.pnl import query_trades_with_details
 from market.services import MarketDataService
 from performance_engine import PerformanceEngine
 from portfolio_engine import PortfolioEngine
@@ -122,23 +123,36 @@ class TerminalService:
         try:
             session = get_session()
             try:
-                trades = session.query(Trade).filter(Trade.status == "OPEN").all()
+                results = query_trades_with_details(session, Trade.status == "OPEN")
             finally:
                 session.close()
 
-            return [
-                {
+            open_trades_data = []
+            for t, pt, dollar_pnl, notional_exposure in results:
+                symbol = t.symbol or "BTC"
+                qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 1.0
+
+                live_price = 0.0
+                try:
+                    asset = self.market_service.get_asset(symbol)
+                    if asset and not asset.is_empty:
+                        live_price = float(asset.price)
+                except Exception:
+                    pass
+
+                current_price = live_price if live_price > 0.0 else (float(t.exit_price) if t.exit_price else float(t.entry or 0))
+
+                open_trades_data.append({
                     "id": t.id,
-                    "symbol": t.symbol,
+                    "symbol": symbol,
                     "side": t.side,
-                    "entry_price": float(t.entry_price) if t.entry_price else 0,
-                    "current_price": float(t.exit_price) if t.exit_price else float(t.entry_price or 0),
-                    "quantity": float(t.quantity) if t.quantity else 0,
-                    "pnl": round(float(t.pnl or 0), 2),
+                    "entry_price": float(t.entry or 0),
+                    "current_price": current_price,
+                    "quantity": qty,
+                    "pnl": round(dollar_pnl, 2),
                     "created_at": t.created_at.isoformat() if t.created_at else "",
-                }
-                for t in trades
-            ]
+                })
+            return open_trades_data
         except Exception as e:
             logger.warning("Open trades error: %s", e)
             return []

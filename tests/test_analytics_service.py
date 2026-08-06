@@ -234,3 +234,53 @@ class TestAnalyticsService:
 
         assert analytics.risk is not None
         assert analytics.risk.total_rejections == 2
+
+    def test_analytics_service_mixed_quantities(self, db_session):
+        from database import PaperTrade, Trade
+        now = datetime.now(timezone.utc)
+
+        # 1. Closed trade with quantity = 2.5 (real dollar pnl = 100.0 * 2.5 = 250.0)
+        t1 = Trade(
+            symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
+            tp1=52000, rr=2.0, status="TP_HIT", pnl=100.0,
+            created_at=now, closed_at=now
+        )
+        db_session.add(t1)
+        db_session.flush()
+        pt1 = PaperTrade(
+            position_id=t1.id, symbol="BTCUSDT", side="LONG",
+            entry=50000, quantity=2.5, status="CLOSED", pnl=250.0
+        )
+        db_session.add(pt1)
+
+        # 2. Closed trade with quantity = 0.5 (real dollar pnl = -200.0 * 0.5 = -100.0)
+        t2 = Trade(
+            symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
+            tp1=52000, rr=2.0, status="SL_HIT", pnl=-200.0,
+            created_at=now, closed_at=now
+        )
+        db_session.add(t2)
+        db_session.flush()
+        pt2 = PaperTrade(
+            position_id=t2.id, symbol="BTCUSDT", side="LONG",
+            entry=50000, quantity=0.5, status="CLOSED", pnl=-100.0
+        )
+        db_session.add(pt2)
+
+        # 3. Closed trade with NO matching PaperTrade record (fallback qty = 1.0, real dollar pnl = 50.0 * 1.0 = 50.0)
+        t3 = Trade(
+            symbol="ETHUSDT", side="LONG", entry=3000, stop=2900,
+            tp1=3200, rr=2.0, status="TP_HIT", pnl=50.0,
+            created_at=now, closed_at=now
+        )
+        db_session.add(t3)
+        db_session.flush()
+
+        service = AnalyticsService(session_factory=lambda: db_session)
+        analytics = service.full_analytics()
+
+        # Total PnL across closed trades should be 250.0 - 100.0 + 50.0 = 200.0
+        assert analytics.win_loss is not None
+        assert analytics.win_loss.gross_profit == 300.0 # 250.0 (t1) + 50.0 (t3)
+        assert analytics.win_loss.gross_loss == 100.0 # abs(-100.0) (t2)
+        assert analytics.win_loss.profit_factor == 3.0 # 300 / 100
