@@ -491,7 +491,7 @@ class PaperExecutor:
                     mem.close(
                         memory_id=entry.id,
                         exit_price=float(exit_price),
-                        pnl=pnl.unrealized_pnl,
+                        pnl=self._dollar_pnl(local_session, trade.id, pnl.unrealized_pnl),
                         result=result,
                         exit_reason=close_reason,
                         lessons=[lesson],

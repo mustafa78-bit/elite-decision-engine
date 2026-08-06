@@ -506,6 +506,53 @@ class TestPaperExecutorTradeMemoryIntegration:
         finally:
             session.close()
 
+    def test_close_trade_journal_entry_uses_real_dollar_pnl(self, db_session, session_factory, monkeypatch):
+        from database import JournalEntry, PaperTrade
+
+        monkeypatch.setattr(
+            "execution.paper_executor.NotificationDispatcher.emit",
+            lambda *a, **kw: None,
+        )
+
+        executor = PaperExecutor(
+            collector=_MockCollector(),
+            session_factory=session_factory,
+        )
+
+        trade = executor.open_trade(
+            symbol="BTCUSDT",
+            side="LONG",
+            entry=50000.0,
+            stop_loss=49000.0,
+            take_profit=51000.0,
+        )
+        assert trade is not None
+
+        # A real PaperTrade with a mixed (non-1.0) quantity, matching the
+        # position via position_id -- exactly what _dollar_pnl() looks up.
+        session = session_factory()
+        try:
+            paper_trade = PaperTrade(
+                position_id=trade.id, symbol="BTCUSDT", side="LONG",
+                entry=50000.0, quantity=0.02, status="OPEN",
+            )
+            session.add(paper_trade)
+            session.commit()
+        finally:
+            session.close()
+
+        # Raw per-unit delta is 2000.0 (52000 - 50000); real dollar pnl = 0.02 * 2000.0 = 40.0
+        executor.close_trade(trade_id=trade.id, exit_price=52000.0, status="CLOSED", close_reason="Manual stop")
+
+        session = session_factory()
+        try:
+            entry = session.query(JournalEntry).filter(JournalEntry.trade_id == trade.id).first()
+            assert entry is not None
+            assert entry.pnl == 40.0
+            assert entry.result == "WIN"
+        finally:
+            session.close()
+
     def test_trade_memory_failures_handled_gracefully_on_open(self, db_session, session_factory, monkeypatch):
         # Mock TradeMemory.record to raise an exception
         from memory.trade_memory import TradeMemory
