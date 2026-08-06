@@ -322,10 +322,11 @@ def parse_market_regime(result: Any, side: str = "LONG") -> list[EvidenceItem]:
     return items
 
 
-def parse_whale_result(results: Any) -> list[EvidenceItem]:
+def parse_whale_result(results: Any, side: str = "LONG") -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
     whale_list = results if isinstance(results, list) else []
+    side_upper = str(side).upper().strip() if side else "LONG"
 
     for w in whale_list:
         symbol = w.get("symbol", "UNKNOWN")
@@ -333,6 +334,23 @@ def parse_whale_result(results: Any) -> list[EvidenceItem]:
         severity = w.get("severity", "medium")
         description = w.get("description", "")
         confidence = w.get("confidence", 0.5)
+
+        wall_type = w.get("wall_type")
+        funding_direction = w.get("direction")
+
+        if wall_type == "Support" or funding_direction == "premium":
+            is_bullish: bool | None = True
+        elif wall_type == "Resistance" or funding_direction == "discount":
+            is_bullish = False
+        else:
+            is_bullish = None
+
+        if is_bullish is None:
+            supports_decision = True
+        elif side_upper == "SHORT":
+            supports_decision = not is_bullish
+        else:
+            supports_decision = is_bullish
 
         items.append(
             EvidenceItem(
@@ -342,7 +360,7 @@ def parse_whale_result(results: Any) -> list[EvidenceItem]:
                 category="whale_activity",
                 severity=severity.upper(),
                 confidence=confidence,
-                supports_decision=True,
+                supports_decision=supports_decision,
                 source=SourceTrace(origin=symbol, engine="whale"),
             )
         )
