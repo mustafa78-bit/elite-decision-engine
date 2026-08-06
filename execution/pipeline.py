@@ -17,7 +17,7 @@ from core.confidence_engine import ConfidenceEngine
 from filters.btc_filter import BTCHealthFilter
 from market_data.collector import HyperliquidCollector
 from memory.trade_memory import TradeMemory
-from scoring.regime_ai import RegimeAI
+from scoring.regime_ai import RegimeAI, get_regime_ai
 from scoring.scoring_engine import ScoringEngine
 
 APPROVED_DECISIONS = frozenset({"APPROVE", "STRONG_APPROVE"})
@@ -100,8 +100,8 @@ class DecisionPipeline:
         self.confidence_engine = confidence_engine or ConfidenceEngine()
         self.logger = logger or logging.getLogger(__name__)
         self.market_data_limit = market_data_limit
-        self.regime_ai = regime_ai
-        self.trade_memory = trade_memory
+        self.regime_ai = regime_ai if regime_ai is not None else get_regime_ai()
+        self.trade_memory = trade_memory if trade_memory is not None else TradeMemory()
         self.market_service = market_service
 
     def evaluate(self, signal: TradingSignal) -> TradeCandidate | None:
@@ -160,7 +160,11 @@ class DecisionPipeline:
 
             memory_context: dict[str, Any] | None = None
             if self.trade_memory is not None:
-                recent = self.trade_memory.list(limit=20)
+                try:
+                    recent = self.trade_memory.list(limit=20)
+                except Exception as exc:
+                    self.logger.warning("Trade memory lookup failed for %s: %s", signal.symbol, exc)
+                    recent = []
                 same_symbol = [
                     e for e in recent
                     if e.symbol == signal.symbol.upper()
