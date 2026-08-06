@@ -667,6 +667,54 @@ class TestHealthService:
         assert "errors" in result
         assert "config" in result
 
+    def test_full_degrades_on_database_tables_error(self):
+        from unittest.mock import patch
+
+        from monitoring.health import HealthService
+        with patch.object(HealthService, "database_tables", staticmethod(lambda: {"status": "degraded"})):
+            result = HealthService.full()
+        assert result["status"] == "degraded"
+
+    def test_full_degrades_on_execution_degraded(self):
+        from unittest.mock import patch
+
+        from monitoring.health import HealthService
+        with patch.object(HealthService, "execution", staticmethod(lambda: {"status": "degraded"})):
+            result = HealthService.full()
+        assert result["status"] == "degraded"
+
+    def test_full_degrades_on_collector_empty(self):
+        from unittest.mock import patch
+
+        from monitoring.health import HealthService
+        with patch.object(HealthService, "collector", staticmethod(lambda: {"status": "empty"})):
+            result = HealthService.full()
+        assert result["status"] == "degraded"
+
+    def test_full_degrades_on_metrics_error(self):
+        from unittest.mock import patch
+
+        from monitoring.health import HealthService
+        with patch.object(HealthService, "metrics", staticmethod(lambda: {"status": "error", "detail": "db down"})):
+            result = HealthService.full()
+        assert result["status"] == "degraded"
+
+    def test_full_stays_ok_when_all_components_ok(self):
+        from unittest.mock import patch
+
+        from monitoring.health import HealthService
+        with (
+            patch.object(HealthService, "database", staticmethod(lambda: {"status": "ok"})),
+            patch.object(HealthService, "database_tables", staticmethod(lambda: {"status": "ok"})),
+            patch.object(HealthService, "collector", staticmethod(lambda: {"status": "ok"})),
+            patch.object(HealthService, "cache", staticmethod(lambda: {"status": "ok"})),
+            patch.object(HealthService, "execution", staticmethod(lambda: {"status": "ok"})),
+            patch.object(HealthService, "metrics", staticmethod(lambda: {"status": "ok"})),
+            patch.object(HealthService, "dependencies", staticmethod(lambda: {})),
+        ):
+            result = HealthService.full()
+        assert result["status"] == "ok"
+
     def test_database_tables_returns_row_counts(self):
         from monitoring.health import HealthService
         result = HealthService.database_tables()
