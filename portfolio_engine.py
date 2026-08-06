@@ -13,7 +13,7 @@ from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from config import ACCOUNT_EQUITY
-from database import FINAL_STATUSES, Trade, get_session
+from database import FINAL_STATUSES, PaperTrade, Trade, get_session
 
 logger = logging.getLogger(__name__)
 _INFINITE_PF = 999.99
@@ -60,38 +60,53 @@ class PortfolioEngine:
             session.close()
 
     def _compute(self, session: Any) -> PortfolioStats:
-        all_trades = session.query(Trade).all()
+        results = session.query(Trade, PaperTrade).outerjoin(PaperTrade, PaperTrade.position_id == Trade.id).all()
+        all_trades = [r[0] for r in results]
+
+        # Trade.pnl is a raw per-unit price delta, not a dollar amount -- scale
+        # by the matching PaperTrade's real quantity where one exists, falling
+        # back to the raw value (quantity=1.0) when no match exists.
+        paper_trade_map = {r[0].id: r[1] for r in results if r[1] is not None}
+
+        def get_real_pnl(t: Trade) -> float | None:
+            if t.pnl is None:
+                return None
+            pt = paper_trade_map.get(t.id)
+            if pt is not None:
+                return (pt.quantity or 0.0) * t.pnl
+            return t.pnl
+
         open_trades = [t for t in all_trades if t.status == "OPEN"]
         closed_trades = [t for t in all_trades if t.status in FINAL_STATUSES]
 
         open_count = len(open_trades)
         closed_count = len(closed_trades)
 
-        winning = [t for t in closed_trades if t.pnl is not None and t.pnl > 0]
-        losing = [t for t in closed_trades if t.pnl is not None and t.pnl < 0]
+        winning = [t for t in closed_trades if get_real_pnl(t) is not None and get_real_pnl(t) > 0]
+        losing = [t for t in closed_trades if get_real_pnl(t) is not None and get_real_pnl(t) < 0]
         win_count = len(winning)
         loss_count = len(losing)
         total_closed_wl = win_count + loss_count
         win_rate = (win_count / total_closed_wl * 100) if total_closed_wl > 0 else 0.0
 
-        total_pnl = sum(t.pnl for t in closed_trades if t.pnl is not None)
+        total_pnl = sum(get_real_pnl(t) for t in closed_trades if get_real_pnl(t) is not None)
 
         today_start = datetime.now(UTC).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
         daily_pnl = sum(
-            t.pnl
+            get_real_pnl(t)
             for t in closed_trades
-            if t.pnl is not None
+            if get_real_pnl(t) is not None
             and t.closed_at is not None
             and (t.closed_at if t.closed_at.tzinfo is not None else t.closed_at.replace(tzinfo=UTC)) >= today_start
         )
 
-        avg_win = sum(t.pnl for t in winning) / win_count if win_count > 0 else 0.0
-        avg_loss = sum(t.pnl for t in losing) / loss_count if loss_count > 0 else 0.0
+        avg_win = sum(get_real_pnl(t) for t in winning) / win_count if win_count > 0 else 0.0
+        avg_loss = sum(get_real_pnl(t) for t in losing) / loss_count if loss_count > 0 else 0.0
 
-        gross_profit = sum(t.pnl for t in winning)
-        gross_loss = abs(sum(t.pnl for t in losing))
+        gross_profit = sum(get_real_pnl(t) for t in winning)
+        gross_loss = abs(sum(get_real_pnl(t) for t in losing))
 
         if gross_loss > 0:
             profit_factor = gross_profit / gross_loss
@@ -107,7 +122,7 @@ class PortfolioEngine:
             sym = t.symbol or "?"
             allocation[sym] = allocation.get(sym, 0) + (t.entry or 0)
 
-        unrealized_pnl = sum(t.pnl or 0 for t in open_trades)
+        unrealized_pnl = sum(get_real_pnl(t) or 0 for t in open_trades)
 
         equity = self.initial_equity + total_pnl + unrealized_pnl
 
@@ -115,14 +130,14 @@ class PortfolioEngine:
         average_pnl = (total_pnl / closed_count) if closed_count > 0 else 0.0
 
         sorted_closed = sorted(
-            [t for t in closed_trades if t.closed_at is not None and t.pnl is not None],
+            [t for t in closed_trades if t.closed_at is not None and get_real_pnl(t) is not None],
             key=lambda t: t.closed_at,
         )
         equity_curve = [float(self.initial_equity)]
         peak = float(self.initial_equity)
         max_dd = 0.0
         for t in sorted_closed:
-            new_eq = equity_curve[-1] + t.pnl
+            new_eq = equity_curve[-1] + get_real_pnl(t)
             equity_curve.append(new_eq)
             if new_eq > peak:
                 peak = new_eq
