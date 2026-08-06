@@ -15,6 +15,17 @@ logger = logging.getLogger(__name__)
 
 _CACHE_TTL = 60.0
 
+_TIMEFRAME_MINUTES = {
+    "1m": 1, "5m": 5, "15m": 15, "30m": 30,
+    "1h": 60, "4h": 240, "1d": 1440, "1w": 10080,
+}
+
+
+def _candles_per_24h(timeframe: str) -> int:
+    """Number of candles that span a real 24h window for this timeframe."""
+    minutes = _TIMEFRAME_MINUTES.get(timeframe, 60)
+    return max(1, 1440 // minutes)
+
 
 @dataclass
 class Candle:
@@ -92,10 +103,15 @@ class LiveMarketEngine:
 
         latest = df.iloc[-1]
         price = float(latest["close"])
-        volume = float(df["volume"].tail(24).sum()) if len(df) >= 24 else float(df["volume"].sum())
-        high_24h = float(df["high"].tail(24).max()) if len(df) >= 24 else float(df["high"].max())
-        low_24h = float(df["low"].tail(24).min()) if len(df) >= 24 else float(df["low"].min())
-        change_24h = ((price - float(df.iloc[-24]["close"])) / float(df.iloc[-24]["close"]) * 100) if len(df) >= 24 else 0.0
+        window = _candles_per_24h(timeframe)
+        volume = float(df["volume"].tail(window).sum()) if len(df) >= window else float(df["volume"].sum())
+        high_24h = float(df["high"].tail(window).max()) if len(df) >= window else float(df["high"].max())
+        low_24h = float(df["low"].tail(window).min()) if len(df) >= window else float(df["low"].min())
+        if len(df) >= window:
+            price_24h_ago = float(df.iloc[-window]["close"])
+            change_24h = ((price - price_24h_ago) / price_24h_ago * 100) if price_24h_ago > 0 else 0.0
+        else:
+            change_24h = 0.0
 
         candles = [
             Candle(
