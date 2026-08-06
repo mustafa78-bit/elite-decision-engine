@@ -173,15 +173,18 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
     agreeing = getattr(result, "sources_agreeing", 0)
     disagreeing = getattr(result, "sources_disagreeing", 0)
 
+    is_veto = direction == "PASS"
+    summary_severity = "CRITICAL" if is_veto else ("HIGH" if agreement in ("strong", "moderate") else "MEDIUM")
+
     items.append(
         EvidenceItem(
             title=f"Council: {direction} ({agreement})",
             description=f"{agreeing} for, {disagreeing} against — score {score:.1f}",
             engine="council",
             category="council_consensus",
-            severity="HIGH" if agreement in ("strong", "moderate") else "MEDIUM",
+            severity=summary_severity,
             confidence=score / 100.0 if score > 1.0 else score,
-            supports_decision=True,
+            supports_decision=direction == "BULLISH",
             source=SourceTrace(origin=symbol, engine="council"),
         )
     )
@@ -192,6 +195,7 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
         agent_dir = getattr(agent, "direction", "NEUTRAL")
         agent_conf = getattr(agent, "confidence", 0.0)
         agent_reasoning = getattr(agent, "reasoning", [])
+        agent_severity = "CRITICAL" if agent_dir == "PASS" else "MEDIUM"
 
         items.append(
             EvidenceItem(
@@ -199,9 +203,9 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
                 description="; ".join(agent_reasoning[:3]) if agent_reasoning else f"{agent_name} votes {agent_dir}",
                 engine="council",
                 category="council_agent",
-                severity="MEDIUM",
+                severity=agent_severity,
                 confidence=agent_conf / 100.0 if agent_conf > 1.0 else agent_conf,
-                supports_decision=True,
+                supports_decision=agent_dir == "BULLISH",
                 source=SourceTrace(origin=symbol, engine="council"),
             )
         )

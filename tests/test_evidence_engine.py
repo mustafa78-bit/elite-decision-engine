@@ -231,6 +231,39 @@ class TestParseCouncilReport:
         items = parse_council_report(result)
         assert len(items) >= 2
 
+    def test_bullish_consensus_supports(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BULLISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 4, "sources_disagreeing": 1, "agent_reports": []})
+        items = parse_council_report(result)
+        assert items[0].supports_decision is True
+
+    def test_bearish_consensus_contradicts(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BEARISH", "consensus_score": 15.0, "agreement_level": "strong", "sources_agreeing": 1, "sources_disagreeing": 4, "agent_reports": []})
+        items = parse_council_report(result)
+        assert items[0].supports_decision is False
+
+    def test_neutral_consensus_does_not_support(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "NEUTRAL", "consensus_score": 50.0, "agreement_level": "none", "sources_agreeing": 2, "sources_disagreeing": 2, "agent_reports": []})
+        items = parse_council_report(result)
+        assert items[0].supports_decision is False
+
+    def test_pass_veto_does_not_support_and_is_critical(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "PASS", "consensus_score": 0.0, "agreement_level": "none", "sources_agreeing": 0, "sources_disagreeing": 0, "agent_reports": []})
+        items = parse_council_report(result)
+        assert items[0].supports_decision is False
+        assert items[0].severity == "CRITICAL"
+
+    def test_per_agent_direction_classified_independently(self):
+        bullish_agent = DictObj({"agent_name": "TrendAgent", "direction": "BULLISH", "confidence": 80.0, "reasoning": ["Trend up"]})
+        bearish_agent = DictObj({"agent_name": "MacroAgent", "direction": "BEARISH", "confidence": 70.0, "reasoning": ["Macro headwinds"]})
+        veto_agent = DictObj({"agent_name": "RiskAgent", "direction": "PASS", "confidence": 90.0, "reasoning": ["Risk too high"]})
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BULLISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 2, "sources_disagreeing": 1, "agent_reports": [bullish_agent, bearish_agent, veto_agent]})
+        items = parse_council_report(result)
+        agent_items = {i.title: i for i in items if i.category == "council_agent"}
+        assert agent_items["TrendAgent: BULLISH"].supports_decision is True
+        assert agent_items["MacroAgent: BEARISH"].supports_decision is False
+        assert agent_items["RiskAgent: PASS"].supports_decision is False
+        assert agent_items["RiskAgent: PASS"].severity == "CRITICAL"
+
 
 class TestParsePortfolioSummary:
     def test_drawdown_contradicts(self):
