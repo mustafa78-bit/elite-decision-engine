@@ -139,6 +139,36 @@ class TestTrendAgent:
         report = agent.evaluate(signal=mock_short_signal, scores=scores)
         assert report.direction == DIRECTION_BULLISH
 
+    def test_confidence_symmetric_between_trend_long_and_downtrend_short(self, mock_signal):
+        # TREND regime + LONG and DOWNTREND regime + SHORT are mirror-image,
+        # equally-strong "fully aligned trend" setups once direction has
+        # already been side-normalized (both come out DIRECTION_BULLISH,
+        # i.e. "supports the trade"). Confidence must be the same for both,
+        # not keyed off which literal regime string happened to produce it.
+        agent = TrendAgent()
+
+        long_signal = MagicMock()
+        long_signal.symbol = "BTCUSDT"
+        long_signal.side = "LONG"
+        trend_context = {
+            "regime": "TREND", "trend": "BULLISH", "trend_strength": "STRONG",
+            "volatility_class": "NORMAL", "market_phase": "MARKUP", "score": 0.85,
+        }
+        long_report = agent.evaluate(signal=long_signal, scores={}, regime_context=trend_context)
+
+        short_signal = MagicMock()
+        short_signal.symbol = "BTCUSDT"
+        short_signal.side = "SHORT"
+        downtrend_context = {
+            "regime": "DOWNTREND", "trend": "BEARISH", "trend_strength": "STRONG",
+            "volatility_class": "NORMAL", "market_phase": "MARKDOWN", "score": 0.85,
+        }
+        short_report = agent.evaluate(signal=short_signal, scores={}, regime_context=downtrend_context)
+
+        assert long_report.direction == DIRECTION_BULLISH
+        assert short_report.direction == DIRECTION_BULLISH
+        assert long_report.confidence == short_report.confidence
+
 
 class TestRiskAgent:
     def test_default_creation(self):
