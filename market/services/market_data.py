@@ -94,6 +94,7 @@ class MarketDataService:
             asset = Asset(
                 symbol=symbol,
                 metadata=AssetMetadata(symbol=symbol),
+                timeframe=timeframe,
             )
             self.cache.set(cache_key, asset, ttl=10)
             return asset
@@ -107,6 +108,7 @@ class MarketDataService:
             symbol=symbol,
             metadata=AssetMetadata(symbol=symbol),
             price=price,
+            timeframe=timeframe,
             ohlcv=ohlcv,
             indicators=indicators,
             features=features,

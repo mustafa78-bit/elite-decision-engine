@@ -502,3 +502,53 @@ class TestIntelligenceService:
         assert result.intelligence is not None
         assert result.intelligence.funding
         assert result.intelligence.open_interest
+
+    def test_estimate_24h_change_uses_24_candles_for_1h_timeframe(self):
+        import pandas as pd
+
+        closes = [100.0] * 23 + [110.0]  # 24 candles, 1h apart -> real 24h ago = 100.0
+        df = pd.DataFrame({"close": closes})
+        asset = Asset(
+            symbol="BTC", metadata=AssetMetadata(symbol="BTC"),
+            timeframe="1h", ohlcv=df,
+        )
+        change = IntelligenceService._estimate_24h_change(asset)
+        assert change == 10.0
+
+    def test_estimate_24h_change_uses_6_candles_for_4h_timeframe(self):
+        import pandas as pd
+
+        # 4h candles: a real 24h window is only 6 candles, not 24.
+        closes = [100.0, 100.0, 100.0, 100.0, 100.0, 120.0, 500.0, 500.0]
+        df = pd.DataFrame({"close": closes})
+        asset = Asset(
+            symbol="BTC", metadata=AssetMetadata(symbol="BTC"),
+            timeframe="4h", ohlcv=df,
+        )
+        change = IntelligenceService._estimate_24h_change(asset)
+        # price_now = 500.0 (last), price_24h_ago = close[-6] = 100.0
+        assert change == 400.0
+
+    def test_estimate_24h_change_returns_none_when_fewer_candles_than_window(self):
+        import pandas as pd
+
+        # 4h timeframe needs 6 candles for a real 24h window; only 3 available.
+        df = pd.DataFrame({"close": [100.0, 105.0, 110.0]})
+        asset = Asset(
+            symbol="BTC", metadata=AssetMetadata(symbol="BTC"),
+            timeframe="4h", ohlcv=df,
+        )
+        assert IntelligenceService._estimate_24h_change(asset) is None
+
+    def test_estimate_24h_change_defaults_to_1h_when_timeframe_unknown(self):
+        import pandas as pd
+
+        closes = [100.0] * 23 + [150.0]
+        df = pd.DataFrame({"close": closes})
+        asset = Asset(
+            symbol="BTC", metadata=AssetMetadata(symbol="BTC"),
+            timeframe="2h",  # not in the lookup table -> falls back to 1h (24 candles)
+            ohlcv=df,
+        )
+        change = IntelligenceService._estimate_24h_change(asset)
+        assert change == 50.0

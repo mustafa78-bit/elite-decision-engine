@@ -33,6 +33,7 @@ class Asset:
     metadata: AssetMetadata
 
     price: float = 0.0
+    timeframe: str = "1h"
     ohlcv: pd.DataFrame | None = None
     indicators: dict[str, Any] = field(default_factory=dict)
     features: dict[str, Any] = field(default_factory=dict)
