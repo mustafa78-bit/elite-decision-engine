@@ -325,6 +325,43 @@ class TestParseWhaleResult:
         items = parse_whale_result([])
         assert len(items) == 0
 
+    def test_support_wall_supports_long(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_WALL", "wall_type": "Support", "severity": "high", "confidence": 0.9}]
+        items = parse_whale_result(whales, side="LONG")
+        assert items[0].supports_decision is True
+
+    def test_resistance_wall_contradicts_long(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_WALL", "wall_type": "Resistance", "severity": "high", "confidence": 0.9}]
+        items = parse_whale_result(whales, side="LONG")
+        assert items[0].supports_decision is False
+
+    def test_resistance_wall_supports_short(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_WALL", "wall_type": "Resistance", "severity": "high", "confidence": 0.9}]
+        items = parse_whale_result(whales, side="SHORT")
+        assert items[0].supports_decision is True
+
+    def test_support_wall_contradicts_short(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_WALL", "wall_type": "Support", "severity": "high", "confidence": 0.9}]
+        items = parse_whale_result(whales, side="SHORT")
+        assert items[0].supports_decision is False
+
+    def test_premium_funding_supports_long(self):
+        whales = [{"symbol": "BTC", "type": "EXTREME_FUNDING", "direction": "premium", "severity": "high", "confidence": 0.85}]
+        items = parse_whale_result(whales, side="LONG")
+        assert items[0].supports_decision is True
+
+    def test_discount_funding_supports_short(self):
+        whales = [{"symbol": "BTC", "type": "EXTREME_FUNDING", "direction": "discount", "severity": "high", "confidence": 0.85}]
+        items = parse_whale_result(whales, side="SHORT")
+        assert items[0].supports_decision is True
+
+    def test_non_directional_signal_defaults_to_supporting(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_MOVE", "severity": "high", "confidence": 0.8}]
+        items_long = parse_whale_result(whales, side="LONG")
+        items_short = parse_whale_result(whales, side="SHORT")
+        assert items_long[0].supports_decision is True
+        assert items_short[0].supports_decision is True
+
 
 class TestParseExplainResult:
     def test_parses_explain(self):
