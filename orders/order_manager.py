@@ -126,7 +126,7 @@ class OrderManager:
         symbol: str | None = None,
         limit: int = 50,
     ) -> list[Order]:
-        orders = list(self._history)
+        orders = list(reversed(self._history))
         if symbol:
             orders = [o for o in orders if o.symbol == symbol.upper()]
         return orders[:limit]
