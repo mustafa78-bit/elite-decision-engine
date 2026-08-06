@@ -66,7 +66,12 @@ class EvidenceBuilder:
             all_items.extend(items)
 
         if market_regime_result is not None:
-            items = parse_market_regime(market_regime_result)
+            side = "LONG"
+            if decision_result is not None:
+                side = getattr(decision_result, "side", "LONG") or "LONG"
+            elif scanner_result is not None:
+                side = getattr(scanner_result, "side", "LONG") or "LONG"
+            items = parse_market_regime(market_regime_result, side=side)
             all_items.extend(items)
 
         if whale_result is not None:
