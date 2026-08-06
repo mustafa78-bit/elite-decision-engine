@@ -554,3 +554,98 @@ def test_root_portfolio_engine_daily_pnl_timezone_aware(db_session, session_fact
     assert stats.daily_pnl == 250.0
     assert stats.total_pnl == 250.0
     assert stats.equity == 10250.0
+
+
+def test_root_portfolio_engine_mixed_quantity_real_dollars(db_session, session_factory):
+    from datetime import datetime, timedelta
+
+    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
+
+    now = datetime.now(UTC)
+
+    # BTC Trade (Win, closed)
+    btc_trade = _make_trade(
+        db_session,
+        signal_id=10,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=60000.0,
+        pnl=500.0,
+        status="CLOSED",
+        created_at=now - timedelta(hours=4),
+        closed_at=now - timedelta(hours=3),
+    )
+    _make_paper_trade(
+        db_session,
+        position_id=btc_trade.id,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=60000.0,
+        exit_price=60500.0,
+        quantity=0.01,
+        pnl=500.0,
+        status="CLOSED",
+    )
+
+    # ETH Trade (Loss, closed)
+    eth_trade = _make_trade(
+        db_session,
+        signal_id=11,
+        symbol="ETHUSDT",
+        side="SHORT",
+        entry=3000.0,
+        pnl=-100.0,
+        status="CLOSED",
+        created_at=now - timedelta(hours=2),
+        closed_at=now - timedelta(hours=1),
+    )
+    _make_paper_trade(
+        db_session,
+        position_id=eth_trade.id,
+        symbol="ETHUSDT",
+        side="SHORT",
+        entry=3000.0,
+        exit_price=3100.0,
+        quantity=2.0,
+        pnl=-100.0,
+        status="CLOSED",
+    )
+
+    # SOL Trade (still OPEN, no matching PaperTrade -- exercises the qty=1.0 fallback)
+    _make_trade(
+        db_session,
+        signal_id=12,
+        symbol="SOLUSDT",
+        side="LONG",
+        entry=100.0,
+        pnl=5.0,
+        status="OPEN",
+    )
+
+    db_session.flush()
+
+    engine = RootPortfolioEngine(
+        session_factory=session_factory,
+        initial_equity=10000.0,
+    )
+    stats = engine.stats()
+
+    # Total Real PnL should be (500 * 0.01) + (-100 * 2.0) = 5.0 - 200.0 = -195.0
+    assert stats.total_pnl == -195.0
+
+    # Profit Factor should be gross_profit / gross_loss = 5.0 / 200.0 = 0.025 -> rounds to 0.03
+    assert stats.profit_factor == 0.03
+
+    # Equity Curve: [10000.0, 10005.0, 9805.0]
+    assert stats.equity_curve == [10000.0, 10005.0, 9805.0]
+
+    # Max Drawdown from peak (10005.0) to valley (9805.0)
+    expected_dd = round(((10005.0 - 9805.0) / 10005.0) * 100, 2)
+    assert stats.max_drawdown == expected_dd
+
+    # Unrealized PnL: the OPEN SOL trade has no matching PaperTrade, so it
+    # falls back to the raw per-unit value (quantity=1.0) -- 5.0.
+    assert stats.unrealized_pnl == 5.0
+
+    # equity = initial_equity + total_pnl + unrealized_pnl = 10000 - 195 + 5 = 9810
+    assert stats.equity == 9810.0
