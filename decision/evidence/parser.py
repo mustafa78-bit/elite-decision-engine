@@ -85,7 +85,7 @@ def parse_risk_decision(result: Any, symbol: str = "") -> list[EvidenceItem]:
     checks = getattr(result, "checks", ())
     if isinstance(checks, dict):
         for check_name, check_value in checks.items():
-            severity = "HIGH"
+            passed = bool(check_value)
             desc = f"{check_name}: {check_value}"
             items.append(
                 EvidenceItem(
@@ -93,9 +93,9 @@ def parse_risk_decision(result: Any, symbol: str = "") -> list[EvidenceItem]:
                     description=desc,
                     engine="risk_engine",
                     category="risk_volatility",
-                    severity=severity,
+                    severity="LOW" if passed else "HIGH",
                     confidence=0.85,
-                    supports_decision=False,
+                    supports_decision=passed,
                     source=SourceTrace(origin=symbol or "unknown", engine="risk_engine"),
                 )
             )

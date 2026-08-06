@@ -209,6 +209,25 @@ class TestParseRiskDecision:
         items = parse_risk_decision(result, "ETH")
         assert len(items) >= 1
 
+    def test_dict_checks_passed_check_supports_decision(self):
+        # A truthy check_value means the check PASSED -- it must be
+        # classified as supporting evidence, not hardcoded as contradicting
+        # (the dict branch previously ignored check_value entirely).
+        result = DictObj({"allowed": True, "reason": "", "checks": {"exposure_check": True}})
+        items = parse_risk_decision(result, "ETH")
+        check_items = [i for i in items if i.category == "risk_volatility"]
+        assert len(check_items) == 1
+        assert check_items[0].supports_decision is True
+        assert check_items[0].severity == "LOW"
+
+    def test_dict_checks_failed_check_contradicts_decision(self):
+        result = DictObj({"allowed": True, "reason": "", "checks": {"exposure_check": False}})
+        items = parse_risk_decision(result, "ETH")
+        check_items = [i for i in items if i.category == "risk_volatility"]
+        assert len(check_items) == 1
+        assert check_items[0].supports_decision is False
+        assert check_items[0].severity == "HIGH"
+
 
 class TestParseScannerOpportunity:
     def test_parses_opportunity(self):
