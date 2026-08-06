@@ -261,12 +261,12 @@ class HealthService:
         errs = HealthService.errors()
         met = HealthService.metrics()
 
-        component_statuses = [db, col, cache, exec_status]
+        component_statuses = [db, tbl, col, cache, exec_status, met]
         for d in deps.values():
             component_statuses.append(d)
         overall = "ok"
         for s in component_statuses:
-            if s.get("status") == "error":
+            if s.get("status") != "ok":
                 overall = "degraded"
                 break
 
