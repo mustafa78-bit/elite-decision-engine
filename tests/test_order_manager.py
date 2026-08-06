@@ -115,6 +115,24 @@ class TestOrderManager:
         btc_history = mgr.get_order_history(symbol="BTC")
         assert len(btc_history) == 1
 
+    def test_get_order_history_returns_most_recent_first(self):
+        # With more orders than `limit`, get_order_history must return the
+        # MOST RECENT ones, not the oldest -- history is appended to in
+        # creation order, so a naive orders[:limit] slice would silently
+        # return the first-ever orders forever once history exceeds limit.
+        mgr = OrderManager()
+        mgr.set_exchange(HyperliquidExchange())
+        created = [
+            mgr.create_order(symbol="BTC", side="BUY", order_type="LIMIT", quantity=Decimal("0.1"))
+            for _ in range(5)
+        ]
+        history = mgr.get_order_history(limit=2)
+        assert len(history) == 2
+        # Most recently created orders (last 2) must be the ones returned,
+        # in most-recent-first order.
+        assert history[0].id == created[-1].id
+        assert history[1].id == created[-2].id
+
     def test_order_status(self):
         mgr = OrderManager()
         mgr.set_exchange(HyperliquidExchange())
