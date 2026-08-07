@@ -67,13 +67,16 @@ class HealthService:
                     counts[name] = -1
             session.close()
             lat = (time.monotonic() - start) * 1000
+            ok = all(c >= 0 for c in counts.values())
+            _track_result("database_tables", ok, lat)
             return {
-                "status": "ok" if all(c >= 0 for c in counts.values()) else "degraded",
+                "status": "ok" if ok else "degraded",
                 "latency_ms": round(lat, 1),
                 "row_counts": counts,
             }
         except Exception as e:
             lat = (time.monotonic() - start) * 1000
+            _track_result("database_tables", False, lat)
             return {
                 "status": "error",
                 "latency_ms": round(lat, 1),
@@ -300,6 +303,7 @@ class HealthService:
             "database": HealthService.database(),
             "collector": HealthService.collector(),
             "execution": HealthService.execution(),
+            "database_tables": HealthService.database_tables(),
         }
 
         if dispatcher is None:

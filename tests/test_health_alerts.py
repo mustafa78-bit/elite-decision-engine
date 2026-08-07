@@ -11,16 +11,18 @@ def _reset_health_state():
     health_module._LAST_KNOWN_STATUS.clear()
 
 
-def _mock_checks(ok: bool | dict[str, bool]):
-    """Patch database()/collector()/execution() to simulate ok/failing checks.
+_ALL_COMPONENTS = ("database", "collector", "execution", "database_tables")
 
-    `ok` can be a single bool applied to all 3 components, or a per-component dict
-    (e.g. {"database": False, "collector": True, "execution": True}) to isolate a
-    single component's transition.
+
+def _mock_checks(ok: bool | dict[str, bool]):
+    """Patch database()/collector()/execution()/database_tables() to simulate
+    ok/failing checks.
+
+    `ok` can be a single bool applied to all 4 components, or a per-component dict
+    (e.g. {"database": False, "collector": True, "execution": True,
+    "database_tables": True}) to isolate a single component's transition.
     """
-    per_component = ok if isinstance(ok, dict) else {
-        "database": ok, "collector": ok, "execution": ok,
-    }
+    per_component = ok if isinstance(ok, dict) else {c: ok for c in _ALL_COMPONENTS}
 
     def _fake(component):
         component_ok = per_component[component]
@@ -35,6 +37,7 @@ def _mock_checks(ok: bool | dict[str, bool]):
         patch.object(HealthService, "database", staticmethod(_fake("database"))),
         patch.object(HealthService, "collector", staticmethod(_fake("collector"))),
         patch.object(HealthService, "execution", staticmethod(_fake("execution"))),
+        patch.object(HealthService, "database_tables", staticmethod(_fake("database_tables"))),
     ]
     for p in patches:
         p.start()
@@ -81,7 +84,7 @@ class TestHealthCheckAndAlertTransitions:
         HealthService.check_and_alert(dispatcher=dispatcher)  # establish healthy baseline
         _stop(ok_patches)
 
-        db_down = {"database": False, "collector": True, "execution": True}
+        db_down = {"database": False, "collector": True, "execution": True, "database_tables": True}
         fail_patches = _mock_checks(db_down)
         try:
             # 2 consecutive failures, threshold is 3 — should not alert yet
@@ -101,7 +104,7 @@ class TestHealthCheckAndAlertTransitions:
         HealthService.check_and_alert(dispatcher=dispatcher)  # baseline, no alert
         _stop(ok_patches)
 
-        db_down = {"database": False, "collector": True, "execution": True}
+        db_down = {"database": False, "collector": True, "execution": True, "database_tables": True}
         fail_patches = _mock_checks(db_down)
         try:
             # 3 consecutive failures crosses the threshold on the 3rd tick
@@ -138,7 +141,41 @@ class TestHealthCheckAndAlertTransitions:
         finally:
             _stop(patches)
 
-        assert set(result.keys()) == {"database", "collector", "execution"}
+        assert set(result.keys()) == {"database", "collector", "execution", "database_tables"}
+
+    def test_alert_fires_for_database_tables_transition(self):
+        # Only "database_tables" transitions -- the other 3 stay healthy
+        # throughout, so we can assert exact emit call counts for it alone.
+        dispatcher = MagicMock()
+
+        ok_patches = _mock_checks(ok=True)
+        HealthService.check_and_alert(dispatcher=dispatcher)  # baseline, no alert
+        _stop(ok_patches)
+
+        tables_down = {"database": True, "collector": True, "execution": True, "database_tables": False}
+        fail_patches = _mock_checks(tables_down)
+        try:
+            HealthService.check_and_alert(dispatcher=dispatcher, failure_threshold=3)
+            HealthService.check_and_alert(dispatcher=dispatcher, failure_threshold=3)
+            HealthService.check_and_alert(dispatcher=dispatcher, failure_threshold=3)
+        finally:
+            _stop(fail_patches)
+
+        assert dispatcher.emit.call_count == 1
+        degraded_event, degraded_payload = dispatcher.emit.call_args[0]
+        assert degraded_event == TradeEvent.SYSTEM_HEALTH_DEGRADED
+        assert degraded_payload["component"] == "database_tables"
+
+        recover_patches = _mock_checks(ok=True)
+        try:
+            HealthService.check_and_alert(dispatcher=dispatcher, failure_threshold=3)
+        finally:
+            _stop(recover_patches)
+
+        assert dispatcher.emit.call_count == 2
+        recovered_event, recovered_payload = dispatcher.emit.call_args[0]
+        assert recovered_event == TradeEvent.SYSTEM_HEALTH_RECOVERED
+        assert recovered_payload["component"] == "database_tables"
 
 
 class TestSystemHealthTelegramAlerts:
