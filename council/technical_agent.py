@@ -12,8 +12,19 @@ from council.base import (
     BaseAgent,
     normalize_direction,
 )
+from config import SCORE_WEIGHTS
 from execution.pipeline import TradingSignal
 from scoring.scoring_engine import ScoringEngine
+
+# TechnicalAgent deliberately excludes the "risk" term from SCORE_WEIGHTS --
+# RiskAgent covers that separately in the council -- but the remaining 4
+# weights (trend/volume/btc/mtf) only sum to 0.9, not 1.0, so a maximal
+# reading across all four could never actually reach a composite of 1.0.
+# Renormalizing by the weight actually in use here preserves the exact same
+# relative proportions between the 4 terms while restoring a real 0-1 range.
+_TECHNICAL_WEIGHT_SUM = (
+    SCORE_WEIGHTS["trend"] + SCORE_WEIGHTS["volume"] + SCORE_WEIGHTS["btc"] + SCORE_WEIGHTS["mtf"]
+)
 
 logger = logging.getLogger(__name__)
 
@@ -82,11 +93,11 @@ class TechnicalAgent(BaseAgent):
         ema200 = scores.get("ema200", 0)
 
         composite = (
-            trend_score * 0.30
-            + volume_score * 0.20
-            + btc_score * 0.20
-            + mtf_score * 0.20
-        )
+            trend_score * SCORE_WEIGHTS["trend"]
+            + volume_score * SCORE_WEIGHTS["volume"]
+            + btc_score * SCORE_WEIGHTS["btc"]
+            + mtf_score * SCORE_WEIGHTS["mtf"]
+        ) / _TECHNICAL_WEIGHT_SUM
 
         reasoning: list[str] = []
         direction = DIRECTION_NEUTRAL

@@ -64,6 +64,19 @@ class TestTechnicalAgent:
         assert report.symbol == "?"
         assert report.direction in (DIRECTION_NEUTRAL, DIRECTION_PASS)
 
+    def test_confidence_reaches_1_0_on_maximal_scores(self, mock_signal):
+        # trend/volume/btc/mtf weights (0.30/0.20/0.20/0.20 from
+        # config.SCORE_WEIGHTS, excluding the "risk" term RiskAgent covers
+        # separately) only summed to 0.9 before renormalization -- a perfect
+        # reading on all four could never actually reach confidence 1.0.
+        agent = TechnicalAgent()
+        scores = {
+            "trend_score": 1.0, "volume_score": 1.0, "btc_score": 1.0, "mtf_score": 1.0,
+            "final_score": 1.0, "rsi": 50, "ema20": 3, "ema50": 2, "ema200": 1,
+        }
+        report = agent.evaluate(signal=mock_signal, scores=scores)
+        assert report.confidence == 1.0
+
     def test_evaluate_short_with_scores(self):
         # Test TechnicalAgent with SHORT side
         agent = TechnicalAgent()
