@@ -124,6 +124,10 @@ class TestTrendAgent:
         report = agent.evaluate(signal=mock_signal, scores=scores)
         assert report.direction == DIRECTION_PASS
         assert report.confidence < 0.3
+        # regime_score (RegimeAI's own score) floors at 0.4 for DEAD regimes
+        # and can never trigger a "< 0.3" guard -- this reasoning line must
+        # key off direction == DIRECTION_PASS directly, not that threshold.
+        assert "Market too quiet — no trend signal" in report.reasoning
 
     def test_evaluate_short_with_downtrend(self):
         agent = TrendAgent()

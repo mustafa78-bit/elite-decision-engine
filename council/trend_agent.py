@@ -121,7 +121,7 @@ class TrendAgent(BaseAgent):
         elif trend_strength == "WEAK":
             direction_score = max(0.0, direction_score - 0.1)
 
-        if direction == DIRECTION_PASS and regime_score < 0.3:
+        if direction == DIRECTION_PASS:
             reasoning.append("Market too quiet — no trend signal")
 
         return AgentReport(
