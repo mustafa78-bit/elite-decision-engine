@@ -121,12 +121,12 @@ class TestShadowEngine:
         )
 
     def test_risk_budget_guard_scales_with_real_quantity_not_unit_price(self, db_session, session_factory):
-        """ExecutionGuard's RISK_BUDGET_EXCEEDED check uses entry_price * quantity.
-
-        A high-unit-price asset (BTC) with a large real quantity should trip the
-        budget; a cheap asset with the same quantity (small real notional) should
-        not. Mocks market_service on both scenarios to avoid a live network call
-        to HyperliquidCollector inside ExecutionGuard's volatility check.
+        """ExecutionGuard's RISK_BUDGET_EXCEEDED check compares notional
+        (entry_price * quantity) against MAX_POSITION_SIZE_USD, not the much
+        smaller per-trade risk-dollar budget -- so a realistically ATR-sized
+        position passes, and only a genuinely over-the-real-cap position fails.
+        Mocks market_service to avoid a live network call to HyperliquidCollector
+        inside ExecutionGuard's volatility check.
         """
         mock_exchange = MagicMock()
         mock_exchange.trading_enabled.return_value = True
@@ -141,17 +141,17 @@ class TestShadowEngine:
             market_service=mock_market_service,
         )
 
-        # BTC at 50,000, quantity 0.5 -> notional 25,000, well above the default
-        # risk budget (ACCOUNT_EQUITY * RISK_PER_TRADE_PERCENT / 100).
+        # BTC at 50,000, quantity 0.5 -> notional 25,000, well under the real
+        # MAX_POSITION_SIZE_USD cap (100,000 by default) -- should now pass.
         dec_btc = guard.evaluate_execution("BTC", "LONG", 50000.0, 0.5)
         budget_check_btc = next(
             (c for c in dec_btc.checks if c.name == "RISK_BUDGET_EXCEEDED"), None
         )
         assert budget_check_btc is not None
-        assert budget_check_btc.passed is False
-        assert dec_btc.allowed is False
+        assert budget_check_btc.passed is True
+        assert dec_btc.allowed is True
 
-        # Cheap altcoin at 0.5, quantity 0.5 -> notional 0.25, well under budget.
+        # Cheap altcoin at 0.5, quantity 0.5 -> notional 0.25, trivially under budget.
         dec_cheap = guard.evaluate_execution("CHEAP", "LONG", 0.5, 0.5)
         budget_check_cheap = next(
             (c for c in dec_cheap.checks if c.name == "RISK_BUDGET_EXCEEDED"), None
@@ -159,3 +159,13 @@ class TestShadowEngine:
         assert budget_check_cheap is not None
         assert budget_check_cheap.passed is True
         assert dec_cheap.allowed is True
+
+        # BTC at 50,000, quantity 2.1 -> notional 105,000, genuinely over the
+        # real MAX_POSITION_SIZE_USD cap (100,000) -- should still fail.
+        dec_over = guard.evaluate_execution("BTC", "LONG", 50000.0, 2.1)
+        budget_check_over = next(
+            (c for c in dec_over.checks if c.name == "RISK_BUDGET_EXCEEDED"), None
+        )
+        assert budget_check_over is not None
+        assert budget_check_over.passed is False
+        assert dec_over.allowed is False
