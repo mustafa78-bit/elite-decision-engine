@@ -71,7 +71,12 @@ class DecisionAggregator:
 
         self.timeline.record(symbol, "decision", f"Decision: {decision} (confidence={conf:.1f})", source="DecisionAggregator")
 
-        signals = opportunity.signals + opportunity.probability_signals + opportunity.risk_signals
+        signals = (
+            opportunity.signals
+            + opportunity.probability_signals
+            + opportunity.risk_signals
+            + opportunity.confidence_signals
+        )
 
         result = DecisionResult(
             symbol=symbol,
