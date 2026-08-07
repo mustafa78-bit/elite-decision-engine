@@ -75,3 +75,20 @@ def test_login_nonexistent_user(api_client):
     })
     assert resp.status_code == 200
     assert resp.json()["success"] is False
+
+
+def test_register_short_password_returns_422_not_500(api_client):
+    """The password-length check must be a real Pydantic validator so
+    FastAPI's RequestValidationError handler returns 422 -- previously it
+    was a plain classmethod called manually inside the route body, so the
+    raised ValueError propagated uncaught into the global Exception handler
+    and returned a misleading 500 "Internal server error" instead.
+    """
+    resp = api_client.post("/auth/register", json={
+        "username": "shortpw",
+        "email": "shortpw@example.com",
+        "password": "short",
+    })
+    assert resp.status_code == 422
+    detail = resp.json()["detail"]
+    assert any("at least 8 characters" in str(err.get("msg", "")) for err in detail)
