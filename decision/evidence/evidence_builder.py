@@ -24,6 +24,15 @@ from decision.evidence.source_trace import SourceTrace
 from decision.evidence.timeline import build_timeline
 
 
+def _get_field(obj: Any, name: str, default: Any = None) -> Any:
+    # council_result arrives as a plain dict from simulator_engine.py's real
+    # call site, but as a DictObj-style attribute wrapper from the
+    # /evidence/build API route -- handle both shapes.
+    if isinstance(obj, dict):
+        return obj.get(name, default)
+    return getattr(obj, name, default)
+
+
 class EvidenceBuilder:
     def build(
         self,
@@ -50,6 +59,8 @@ class EvidenceBuilder:
             side = getattr(decision_result, "side", "LONG") or "LONG"
         elif scanner_result is not None:
             side = getattr(scanner_result, "side", "LONG") or "LONG"
+        elif council_result is not None:
+            side = _get_field(council_result, "side", "LONG") or "LONG"
 
         if decision_result is not None:
             items = parse_decision_result(decision_result, symbol)
