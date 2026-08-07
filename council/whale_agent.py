@@ -95,7 +95,10 @@ class WhaleAgent(BaseAgent):
             count = types.count(signal_type)
             reasoning.append(f"{count}x {signal_type} signal(s)")
 
-        has_directional = any(t in {"WHALE_WALL", "EXTREME_FUNDING"} for t in types)
+        has_directional = any(t in {"WHALE_WALL", "EXTREME_FUNDING"} for t in types) or any(
+            s.get("type") == "WHALE_TRADE" and s.get("direction") in ("buy", "sell")
+            for s in whale_signals
+        )
 
         if has_directional:
             # Weighted consensus across directional signal types. direction_val
@@ -123,6 +126,15 @@ class WhaleAgent(BaseAgent):
                     fund_dir = s.get("direction")
                     direction_val = 1 if fund_dir == "premium" else -1
                     reasoning.append(f"Extreme funding: {fund_dir} (conf={s_conf})")
+                elif s_type == "WHALE_TRADE":
+                    # Real direction from Binance's isBuyerMaker (see
+                    # market/intelligence/whale.py) -- aggressive buying is
+                    # bullish, aggressive selling is bearish. A WHALE_TRADE
+                    # with no extractable direction (direction=None) is
+                    # treated as non-directional, same as the else branch.
+                    trade_dir = s.get("direction")
+                    direction_val = 1 if trade_dir == "buy" else -1 if trade_dir == "sell" else 0
+                    reasoning.append(f"Large trade: {trade_dir or 'unknown'}-side (conf={s_conf})")
                 elif s_type == "WHALE_MOVE":
                     # Open-interest buildup carries no inherent buy/sell
                     # direction of its own (see market/intelligence/whale.py) --
@@ -157,9 +169,10 @@ class WhaleAgent(BaseAgent):
 
             if "HIGH_VOLUME" in types:
                 reasoning.append("Unusually high volume — possible institutional activity")
-
-            if high_severity and confidence > 0.7:
-                literal_direction = DIRECTION_BULLISH
+            # No further catch-all here: HIGH_VOLUME and a direction-less
+            # WHALE_TRADE genuinely carry no buy/sell information, so a
+            # high-severity/high-confidence reading of either must stay
+            # DIRECTION_NEUTRAL rather than being biased bullish by default.
 
         direction = normalize_direction(literal_direction, side)
 

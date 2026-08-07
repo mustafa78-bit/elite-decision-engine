@@ -237,6 +237,37 @@ class TestWhaleService:
         types = [s["type"] for s in signals]
         assert "WHALE_TRADE" in types
         assert any("unusually large" in s["description"] for s in signals)
+        # No isBuyerMaker in the fixture -- direction must not be fabricated.
+        whale_trade = next(s for s in signals if s["type"] == "WHALE_TRADE")
+        assert whale_trade["direction"] is None
+
+    @patch("market.intelligence.whale.WhaleService._binance_request")
+    def test_real_whale_trade_extracts_sell_side_direction(self, mock_binance_request):
+        # isBuyerMaker=True means taker-sell (aggressive selling).
+        tiny = [{"qty": "0.0001", "price": "50000.0", "isBuyerMaker": False} for _ in range(9)]
+        mock_binance_request.side_effect = lambda path, params: (
+            [{"qty": "1.0", "price": "50000.0", "isBuyerMaker": True}] + tiny  # 50,000 USDT sell
+            if path == "/api/v3/trades"
+            else None
+        )
+        signals = self.service.detect("BTC")
+        whale_trade = next(s for s in signals if s["type"] == "WHALE_TRADE")
+        assert whale_trade["direction"] == "sell"
+        assert "sell-side" in whale_trade["description"]
+
+    @patch("market.intelligence.whale.WhaleService._binance_request")
+    def test_real_whale_trade_extracts_buy_side_direction(self, mock_binance_request):
+        # isBuyerMaker=False means taker-buy (aggressive buying).
+        tiny = [{"qty": "0.0001", "price": "50000.0", "isBuyerMaker": True} for _ in range(9)]
+        mock_binance_request.side_effect = lambda path, params: (
+            [{"qty": "1.0", "price": "50000.0", "isBuyerMaker": False}] + tiny  # 50,000 USDT buy
+            if path == "/api/v3/trades"
+            else None
+        )
+        signals = self.service.detect("BTC")
+        whale_trade = next(s for s in signals if s["type"] == "WHALE_TRADE")
+        assert whale_trade["direction"] == "buy"
+        assert "buy-side" in whale_trade["description"]
 
     @patch("market.intelligence.whale.WhaleService._binance_request")
     def test_real_whale_wall_detected(self, mock_binance_request):

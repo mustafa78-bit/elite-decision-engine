@@ -417,6 +417,57 @@ class TestWhaleAgent:
         # Total influence = (-1 * 1.0 * 0.5) + (0 * 2.0 * 0.85) = -0.5
         assert report.direction == DIRECTION_BEARISH
 
+    def test_whale_trade_sell_side_produces_bearish(self, mock_signal):
+        """A WHALE_TRADE-only signal set was previously structurally unable
+        to ever produce DIRECTION_BEARISH -- a high-severity reading always
+        became literal-bullish via a catch-all, regardless of what actually
+        happened. Real direction is now extracted from Binance's
+        isBuyerMaker (market/intelligence/whale.py); a sell-side large trade
+        must produce a real bearish result."""
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        bundle.whales = [
+            {"type": "WHALE_TRADE", "direction": "sell", "severity": "high", "confidence": 0.9, "description": "Large sell-side trade"},
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_BEARISH
+
+    def test_whale_trade_buy_side_produces_bullish(self, mock_signal):
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        bundle.whales = [
+            {"type": "WHALE_TRADE", "direction": "buy", "severity": "high", "confidence": 0.9, "description": "Large buy-side trade"},
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_BULLISH
+
+    def test_whale_trade_without_direction_stays_neutral_not_bullish(self, mock_signal):
+        """A WHALE_TRADE with no extractable direction (isBuyerMaker
+        unavailable) must fall back to the non-directional path and stay
+        NEUTRAL -- not the old unconditional-bullish catch-all."""
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        bundle.whales = [
+            {"type": "WHALE_TRADE", "direction": None, "severity": "high", "confidence": 0.9, "description": "Large trade, side unknown"},
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_NEUTRAL
+
+    def test_high_volume_only_stays_neutral_not_bullish(self, mock_signal):
+        """HIGH_VOLUME carries no direction of its own -- a high-severity,
+        high-confidence reading must not default to bullish."""
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        bundle.whales = [
+            {"type": "HIGH_VOLUME", "severity": "high", "confidence": 0.9, "description": "Unusually high volume"},
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_NEUTRAL
+
 
 class TestMacroAgent:
     def test_default_creation(self):
