@@ -45,8 +45,13 @@ class WebSocketManager:
         logger.info("WebSocket client disconnected (%d active)", len(self._clients))
 
     async def broadcast(self, message: str) -> None:
+        # Iterate a snapshot -- a client connecting mid-broadcast (a real,
+        # concurrent possibility since each `await ws.send_text` yields
+        # control back to the event loop) would otherwise mutate `_clients`
+        # while this loop is iterating it, raising "Set changed size during
+        # iteration" and aborting delivery to the remaining clients.
         stale: list[WebSocket] = []
-        for ws in self._clients:
+        for ws in list(self._clients):
             try:
                 await ws.send_text(message)
             except Exception:
@@ -57,7 +62,7 @@ class WebSocketManager:
     async def broadcast_to_room(self, room: str, message: str) -> None:
         clients = self._rooms.get(room, set())
         stale: list[WebSocket] = []
-        for ws in clients:
+        for ws in list(clients):
             try:
                 await ws.send_text(message)
             except Exception:

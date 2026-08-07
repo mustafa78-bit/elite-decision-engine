@@ -67,3 +67,28 @@ async def test_broadcast_removes_stale_clients(manager):
 
     assert ws_bad not in manager._clients
     assert ws_ok in manager._clients
+
+
+@pytest.mark.asyncio
+async def test_broadcast_survives_concurrent_connect_mid_iteration(manager):
+    """A client connecting while broadcast() is mid-loop must not crash the
+    broadcast (RuntimeError: Set changed size during iteration) -- regression
+    test for iterating the live `_clients` set instead of a snapshot.
+    """
+    ws1 = _make_ws()
+    ws2 = _make_ws()
+    late_joiner = _make_ws()
+
+    async def add_client_mid_send(*args, **kwargs):
+        manager._clients.add(late_joiner)
+
+    ws1.send_text.side_effect = add_client_mid_send
+
+    await manager.connect(ws1)
+    await manager.connect(ws2)
+
+    await manager.broadcast("hello")
+
+    ws1.send_text.assert_awaited_once_with("hello")
+    ws2.send_text.assert_awaited_once_with("hello")
+    assert late_joiner in manager._clients
