@@ -9,6 +9,14 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
+import pandas as pd
+
+from config import SCORE_WEIGHTS
+from market.intelligence.models import IntelligenceBundle
+from market_data.indicators import IndicatorEngine
+from market_data.volatility import VolatilityEngine
+from market_data.volume import VolumeEngine
+from scoring.risk_engine import RiskEngine
 from simulator.models import (
     AIDecisionMode,
     EliteScore,
@@ -44,19 +52,17 @@ class SimulatorEngine:
         report_generator: ReportGenerator | None = None,
         council_engine: Any | None = None,
         evidence_engine: Any | None = None,
-        paper_executor: Any | None = None,
         explain_engine: Any | None = None,
-        position_sizer: Any | None = None,
-        market_service: Any | None = None,
     ) -> None:
         self._replay = replay_engine or MarketReplayEngine()
         self._reports = report_generator or ReportGenerator()
         self._council = council_engine
         self._evidence = evidence_engine
-        self._executor = paper_executor
         self._explain = explain_engine
-        self._sizer = position_sizer
-        self._market = market_service
+        self._indicator_engine = IndicatorEngine()
+        self._volume_engine = VolumeEngine()
+        self._volatility_engine = VolatilityEngine()
+        self._risk_engine = RiskEngine()
 
         self._state: SimulatorState | None = None
         self._task: asyncio.Task | None = None
@@ -347,8 +353,25 @@ class SimulatorEngine:
             conflicts: list[str] = []
 
             if self._council is not None:
-                signal_mock = self._make_signal_mock(candle)
-                council_result = self._council.evaluate(signal=signal_mock)
+                signal = self._make_signal(candle)
+                scores = self._build_scores_from_replay(signal.side)
+                if scores is None:
+                    # Not enough replayed candle history yet for real
+                    # indicators (warm-up period) -- skip rather than fall
+                    # back to a live market-data fetch, which would score
+                    # today's real price action instead of the replay.
+                    return None
+                # An empty (all-neutral-defaults) bundle, not None -- News/
+                # Whale/Macro agents treat a real-but-empty bundle as "no
+                # data available, stay neutral"; NewsAgent's `None` path
+                # instead falls back to a live news-service fetch, which
+                # would score today's real headlines against a historical
+                # replayed candle and make every simulated candle a real
+                # network call.
+                intelligence_bundle = IntelligenceBundle(symbol=signal.symbol)
+                council_result = self._council.evaluate(
+                    signal=signal, scores=scores, intelligence_bundle=intelligence_bundle
+                )
                 council_report = council_result.to_dict() if hasattr(council_result, "to_dict") else {}
                 agent_reports = council_report.get("agent_reports", [])
                 if council_result:
@@ -594,24 +617,91 @@ class SimulatorEngine:
         for listener in self._state_listeners:
             listener(self._state)
 
-    def _make_signal_mock(self, candle: SimulatedCandle) -> Any:
-        from unittest.mock import MagicMock
-        signal = MagicMock()
-        signal.id = 0
-        signal.symbol = self._state.config.symbol if self._state else "BTC"
-        signal.side = "LONG"
-        signal.timeframe = self._state.config.timeframe if self._state else "1h"
-        signal.price = candle.close
-        signal.score = 0.5
-        signal.confidence = 0.5
-        signal.trend_score = 0.5
-        signal.volume_score = 0.5
-        signal.risk_score = 0.5
-        signal.btc_health = 0.5
-        signal.funding_score = 0.5
-        signal.oi_score = 0.5
-        signal.cvd_score = 0.5
-        return signal
+    def _make_signal(self, candle: SimulatedCandle) -> Any:
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            id=0,
+            symbol=self._state.config.symbol if self._state else "BTC",
+            # Always LONG: normalize_direction() is a no-op for non-SHORT
+            # sides, so this makes the council report the literal market
+            # direction (BULLISH = price is going up), which _run_ai_decision
+            # then maps straight to BUY/SELL.
+            side="LONG",
+            timeframe=self._state.config.timeframe if self._state else "1h",
+            price=candle.close,
+        )
+
+    def _build_scores_from_replay(self, side: str) -> dict[str, Any] | None:
+        """Real technical scores computed from the replayed candle history,
+        reusing the same indicator/volume/volatility/risk engines production
+        scoring uses -- as opposed to a live market-data fetch (wrong: would
+        score today's real price, not the replayed one) or a hardcoded mock.
+
+        btc_score/mtf_score stay neutral (0.5): no live BTC-health or
+        multi-timeframe cross-market data exists inside a backtest.
+        """
+        candles = self._replay.get_range(0, self._replay.index)
+        # IndicatorEngine.calculate() computes EMA_200 (pandas_ta appends no
+        # column at all -- not even NaN -- below its window length), so this
+        # matches the real minimum candle history production scoring needs.
+        if len(candles) < 200:
+            return None
+
+        df = pd.DataFrame([c.to_dict() for c in candles])
+        try:
+            values = self._indicator_engine.calculate(df)
+            volume = self._volume_engine.score(df)
+            volatility = self._volatility_engine.score(values)
+            risk_score = self._risk_engine.score(values, volatility)
+        except Exception as e:
+            logger.warning("Real-data scoring failed at candle %s: %s", self._replay.index, e)
+            return None
+
+        ema20, ema50, ema200 = values["ema20"], values["ema50"], values["ema200"]
+        trend_score = 0.0
+        if side.upper() == "LONG":
+            if ema20 > ema50:
+                trend_score += 0.5
+            if ema50 > ema200:
+                trend_score += 0.5
+        else:
+            if ema20 < ema50:
+                trend_score += 0.5
+            if ema50 < ema200:
+                trend_score += 0.5
+
+        volume_score = volume.get("score", 0)
+        btc_score = 0.5
+        mtf_score = 0.5
+        final_score = (
+            trend_score * SCORE_WEIGHTS["trend"]
+            + volume_score * SCORE_WEIGHTS["volume"]
+            + btc_score * SCORE_WEIGHTS["btc"]
+            + mtf_score * SCORE_WEIGHTS["mtf"]
+            + risk_score * SCORE_WEIGHTS["risk"]
+        )
+
+        return {
+            "entry": float(df["close"].iloc[-1]),
+            "ema20": ema20,
+            "ema50": ema50,
+            "ema200": ema200,
+            "rsi": values["rsi"],
+            "atr": values["atr"],
+            "trend_score": round(trend_score, 2),
+            "volume_score": round(volume_score, 2),
+            "btc_score": btc_score,
+            "mtf_score": mtf_score,
+            "risk_score": round(risk_score, 2),
+            "final_score": round(final_score, 3),
+            "contributions": {
+                "trend": round(trend_score * SCORE_WEIGHTS["trend"], 4),
+                "volume": round(volume_score * SCORE_WEIGHTS["volume"], 4),
+                "btc": round(btc_score * SCORE_WEIGHTS["btc"], 4),
+                "mtf": round(mtf_score * SCORE_WEIGHTS["mtf"], 4),
+                "risk": round(risk_score * SCORE_WEIGHTS["risk"], 4),
+            },
+        }
 
     def _make_explain_input(self, candle: SimulatedCandle, confidence: float, direction: str) -> Any:
         try:

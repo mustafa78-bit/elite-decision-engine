@@ -36,9 +36,14 @@ _replay_engine: MarketReplayEngine | None = None
 def _get_engine() -> SimulatorEngine:
     global _engine
     if _engine is None:
+        from council.consensus import ConsensusEngine
+
+        council_engine = ConsensusEngine()
+        council_engine.register_defaults()
         _engine = SimulatorEngine(
             replay_engine=MarketReplayEngine(),
             report_generator=ReportGenerator(),
+            council_engine=council_engine,
         )
     return _engine
 
