@@ -6,7 +6,7 @@ from simulator.models import SimulatedTrade, SimulatorState
 from simulator.report_generator import ReportGenerator
 
 
-def _make_trade(trade_id, pnl, entry_decision=None):
+def _make_trade(trade_id, pnl, entry_decision=None, close_reason=None):
     return SimulatedTrade(
         id=trade_id,
         symbol="BTCUSDT",
@@ -23,6 +23,7 @@ def _make_trade(trade_id, pnl, entry_decision=None):
         pnl=pnl,
         pnl_percent=pnl / 50000.0 * 100,
         entry_decision=entry_decision,
+        close_reason=close_reason,
     )
 
 
@@ -74,3 +75,35 @@ class TestEntryQualityScore:
 
         report = ReportGenerator().generate(state)
         assert report.training_score.entry_quality == 0.0
+
+
+class TestCloseReasonVocabulary:
+    """simulator_engine.py only ever sets close_reason to STOP_LOSS,
+    TAKE_PROFIT, or MANUAL_CLOSE -- report_generator.py previously also
+    checked for TP_HIT/SL_HIT/TRAILING_STOP/REVERSAL, none of which any
+    producer ever emits, making those branches permanently dead."""
+
+    def test_exit_quality_counts_real_take_profit_reason(self):
+        trades = [_make_trade("t1", 100.0, close_reason="TAKE_PROFIT")]
+        state = SimulatorState(session_id="s5", trades=trades)
+        report = ReportGenerator().generate(state)
+        assert report.training_score.exit_quality == 100.0
+
+    def test_psychology_ignores_dead_reversal_reason(self):
+        # Even if something set close_reason="REVERSAL" (no real producer
+        # does), it must not affect the psychology score -- that penalty
+        # was pure dead code and has been removed.
+        trades = [_make_trade("t1", -10.0, close_reason="REVERSAL") for _ in range(3)]
+        state = SimulatorState(session_id="s6", trades=trades)
+        report = ReportGenerator().generate(state)
+        assert report.training_score.psychology == 100.0
+
+    def test_find_mistakes_only_uses_real_stop_loss_reason(self):
+        # A trade with close_reason="SL_HIT" (dead vocabulary) and a large
+        # loss must NOT produce the "large loss" mistake message -- only the
+        # real "STOP_LOSS" reason does.
+        trades = [_make_trade("t1", -2000.0, close_reason="SL_HIT")]
+        trades[0].pnl_percent = -4.0
+        state = SimulatorState(session_id="s7", trades=trades)
+        report = ReportGenerator().generate(state)
+        assert not any("large loss" in m for m in report.mistakes)
