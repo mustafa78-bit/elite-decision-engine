@@ -15,6 +15,7 @@ _DEFAULT_MODEL = "meta/llama-3.3-70b-instruct"
 _DEFAULT_TIMEOUT = 60.0
 _MAX_RETRIES = 3
 _RETRY_DELAY = 1.0
+_RETRY_AFTER_CAP_SECONDS = 30.0
 
 
 class NVIDIAProvider(AIProvider):
@@ -67,6 +68,22 @@ class NVIDIAProvider(AIProvider):
 
     def close(self) -> None:
         self._client.close()
+
+    @staticmethod
+    def _retry_delay_seconds(attempt: int, error: Exception | None) -> float:
+        """Backoff before the next retry -- honors the server's Retry-After
+        header on a 429 when present, since that's a more accurate signal
+        than our own generic exponential backoff. Capped to keep a single
+        retry cycle from stalling a request for an unreasonable amount of
+        time."""
+        if isinstance(error, httpx.HTTPStatusError) and error.response.status_code == 429:
+            retry_after = error.response.headers.get("Retry-After")
+            if retry_after is not None:
+                try:
+                    return min(float(retry_after), _RETRY_AFTER_CAP_SECONDS)
+                except ValueError:
+                    pass
+        return _RETRY_DELAY * (attempt + 1)
 
     def _chat_completion(self, messages: list[dict[str, Any]], **kwargs: Any) -> GenerationResult:
         start = time.perf_counter()
@@ -130,7 +147,10 @@ class NVIDIAProvider(AIProvider):
             except httpx.HTTPStatusError as e:
                 last_error = e
                 logger.warning("NVIDIA HTTP error (attempt %s/%s): %s", attempt + 1, _MAX_RETRIES, e)
-                if 400 <= e.response.status_code < 500:
+                # 429 (rate limited) is explicitly a "retry me" signal, unlike
+                # other 4xx codes (bad key, malformed request, unknown model)
+                # which won't succeed no matter how many times we retry.
+                if e.response.status_code != 429 and 400 <= e.response.status_code < 500:
                     break
             except Exception as e:
                 last_error = e
@@ -138,7 +158,7 @@ class NVIDIAProvider(AIProvider):
                 break
 
             if attempt < _MAX_RETRIES - 1:
-                time.sleep(_RETRY_DELAY * (attempt + 1))
+                time.sleep(self._retry_delay_seconds(attempt, last_error))
 
         elapsed = (time.perf_counter() - start) * 1000
         logger.error("NVIDIA failed after %s attempts: %s", _MAX_RETRIES, last_error)
