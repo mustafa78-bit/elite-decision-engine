@@ -60,9 +60,10 @@ class RiskAgent(BaseAgent):
             "score": scores.get("risk_score", 0.5),
             "volatility": scores.get("volatility", 0),
         }
+        price = scores.get("entry", 0)
 
         try:
-            risk_result = self.risk_engine.evaluate(values, volatility)
+            risk_result = self.risk_engine.evaluate(values, volatility, price=price)
         except Exception as e:
             logger.warning("RiskAgent evaluation failed for %s: %s", symbol, e)
             return AgentReport(
