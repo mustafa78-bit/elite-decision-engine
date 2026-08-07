@@ -124,7 +124,11 @@ class WhaleAgent(BaseAgent):
                     direction_val = 1 if fund_dir == "premium" else -1
                     reasoning.append(f"Extreme funding: {fund_dir} (conf={s_conf})")
                 elif s_type == "WHALE_MOVE":
-                    direction_val = 1
+                    # Open-interest buildup carries no inherent buy/sell
+                    # direction of its own (see market/intelligence/whale.py) --
+                    # treat it like any other non-directional type below,
+                    # rather than always biasing total_influence bullish.
+                    direction_val = 0
                     reasoning.append("Whale movement detected")
                 else:
                     direction_val = 0

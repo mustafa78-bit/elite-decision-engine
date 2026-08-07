@@ -383,6 +383,23 @@ class TestWhaleAgent:
         # Since net influence is < -0.05, aggregate direction is BEARISH
         assert report.direction == DIRECTION_BEARISH
 
+    def test_whale_move_does_not_bias_directional_consensus(self, mock_signal):
+        """WHALE_MOVE (open-interest buildup) carries no inherent buy/sell
+        direction -- it must not silently push total_influence bullish when
+        it rides along with a genuinely directional signal. A medium-severity
+        bearish Resistance wall alone is bearish; adding a high-severity
+        WHALE_MOVE must not flip that to bullish."""
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        bundle.whales = [
+            {"type": "WHALE_WALL", "wall_type": "Resistance", "severity": "medium", "confidence": 0.5, "description": "Resistance wall"},
+            {"type": "WHALE_MOVE", "severity": "high", "confidence": 0.85, "description": "Whale movement"},
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        # Total influence = (-1 * 1.0 * 0.5) + (0 * 2.0 * 0.85) = -0.5
+        assert report.direction == DIRECTION_BEARISH
+
 
 class TestMacroAgent:
     def test_default_creation(self):
