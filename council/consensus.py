@@ -57,20 +57,6 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "Macro": 0.20,
 }
 
-DIRECTION_SCORES: dict[str, float] = {
-    DIRECTION_BULLISH: 1.0,
-    DIRECTION_NEUTRAL: 0.5,
-    DIRECTION_BEARISH: 0.0,
-    DIRECTION_PASS: 0.0,
-}
-
-SCORE_TO_DIRECTION: list[tuple[float, str]] = [
-    (0.7, DIRECTION_BULLISH),
-    (0.4, DIRECTION_NEUTRAL),
-    (0.0, DIRECTION_BEARISH),
-]
-
-
 class ConsensusEngine:
     """Collects reports from all registered agents and produces a unified council report.
 
