@@ -44,9 +44,10 @@ def _make_request() -> httpx.Request:
 def _make_response(
     status_code: int = 200,
     json_data: dict | None = None,
+    headers: dict | None = None,
 ) -> httpx.Response:
     req = _make_request()
-    return httpx.Response(status_code, json=json_data or {}, request=req)
+    return httpx.Response(status_code, json=json_data or {}, request=req, headers=headers or {})
 
 
 class AlwaysOkProvider(AIProvider):
@@ -308,6 +309,84 @@ class TestNVIDIAProvider:
         result = provider.generate("hi")
         assert result.retries == 1
         assert result.content == "recovered"
+
+    def test_generate_retries_on_429_then_succeeds(self, monkeypatch):
+        """429 (rate limited) must be retried, unlike other 4xx codes --
+        it's the server explicitly telling us to back off and try again."""
+        monkeypatch.setattr("services.ai.nvidia_provider.time.sleep", lambda *_: None)
+        provider = NVIDIAProvider(api_key="test-key")
+        call_count = [0]
+
+        def mock_post(self, url, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return _make_response(429, json_data={"error": "rate limited"})
+            return _make_response(
+                200,
+                json_data={
+                    "id": "cmpl-6",
+                    "choices": [{"message": {"content": "recovered after 429"}}],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                    "model": "meta/llama-3.3-70b-instruct",
+                },
+            )
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.generate("hi")
+        assert call_count[0] == 2
+        assert result.content == "recovered after 429"
+        assert result.retries == 1
+
+    def test_generate_429_exhausts_all_retries(self, monkeypatch):
+        monkeypatch.setattr("services.ai.nvidia_provider.time.sleep", lambda *_: None)
+        provider = NVIDIAProvider(api_key="test-key")
+        call_count = [0]
+
+        def mock_post(self, url, **kwargs):
+            call_count[0] += 1
+            return _make_response(429, json_data={"error": "rate limited"})
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.generate("hi")
+        assert call_count[0] == 3
+        assert result.content == ""
+        assert result.error is not None
+
+    def test_generate_401_still_fails_fast_no_retry(self, monkeypatch):
+        """Non-retryable 4xx codes (bad key, malformed request, unknown
+        model) must NOT be retried -- retrying can't fix them, only wastes
+        the request's time budget."""
+        provider = NVIDIAProvider(api_key="bad-key")
+        call_count = [0]
+
+        def mock_post(self, url, **kwargs):
+            call_count[0] += 1
+            return _make_response(401, json_data={"error": "unauthorized"})
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.generate("test")
+        assert call_count[0] == 1
+        assert result.content == ""
+
+    def test_retry_delay_honors_retry_after_header(self):
+        resp = _make_response(429, headers={"Retry-After": "5"})
+        error = httpx.HTTPStatusError("HTTP 429", request=resp.request, response=resp)
+        assert NVIDIAProvider._retry_delay_seconds(0, error) == 5.0
+
+    def test_retry_delay_caps_retry_after(self):
+        resp = _make_response(429, headers={"Retry-After": "9999"})
+        error = httpx.HTTPStatusError("HTTP 429", request=resp.request, response=resp)
+        assert NVIDIAProvider._retry_delay_seconds(0, error) == 30.0
+
+    def test_retry_delay_falls_back_to_backoff_without_header(self):
+        resp = _make_response(429)
+        error = httpx.HTTPStatusError("HTTP 429", request=resp.request, response=resp)
+        assert NVIDIAProvider._retry_delay_seconds(0, error) == 1.0
+        assert NVIDIAProvider._retry_delay_seconds(1, error) == 2.0
+
+    def test_retry_delay_uses_backoff_for_non_429(self):
+        timeout_error = httpx.TimeoutException("timeout", request=_make_request())
+        assert NVIDIAProvider._retry_delay_seconds(0, timeout_error) == 1.0
 
 
 class TestProviderFactory:
