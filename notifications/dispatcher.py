@@ -42,6 +42,16 @@ class NotificationDispatcher:
         else:
             self.telegram_bot_manager = telegram_bot_manager
 
+        # Captured so _broadcast() can hand off to this loop from a worker
+        # thread (e.g. emit() called inside asyncio.to_thread(), as
+        # HealthService.check_and_alert() does) -- None if constructed
+        # outside any running loop (e.g. a sync test), matching how
+        # websocket_manager=None already disables broadcasting.
+        try:
+            self._loop: asyncio.AbstractEventLoop | None = asyncio.get_running_loop()
+        except RuntimeError:
+            self._loop = None
+
     def emit(self, event, payload):
         logger.info(
             "Notification event: %s | payload=%s",
@@ -110,11 +120,13 @@ class NotificationDispatcher:
         }
 
     def _broadcast(self, message: str) -> None:
-        try:
-            loop = asyncio.get_running_loop()
-            if loop.is_running():
-                asyncio.ensure_future(
-                    self.websocket_manager.broadcast(message)
-                )
-        except RuntimeError:
-            pass
+        # emit() (and therefore this) can run inside a worker thread with no
+        # running loop of its own -- asyncio.get_running_loop() would raise
+        # there, which the old code silently swallowed, dropping the
+        # broadcast entirely. run_coroutine_threadsafe() against the loop
+        # captured at construction time works from any thread.
+        if self._loop is None:
+            return
+        asyncio.run_coroutine_threadsafe(
+            self.websocket_manager.broadcast(message), self._loop
+        )
