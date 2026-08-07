@@ -40,7 +40,10 @@ async def test_dispatcher_broadcasts_via_websocket_manager():
     assert result["event"] == "TRADE_OPENED"
     assert result["payload"]["symbol"] == "BTCUSDT"
 
-    await asyncio.sleep(0)
+    # run_coroutine_threadsafe schedules via call_soon_threadsafe, an extra
+    # hop beyond a plain Task -- a single sleep(0) isn't always enough to
+    # let it run.
+    await asyncio.sleep(0.05)
     ws_manager.broadcast.assert_awaited_once()
 
     sent = json.loads(ws_manager.broadcast.call_args[0][0])
@@ -154,3 +157,31 @@ def test_dispatcher_unconfigured_telegram_no_ops():
         {"trade_id": 42, "symbol": "BTCUSDT", "side": "LONG", "entry": 60000},
     )
     assert result["event"] == "TRADE_OPENED"
+
+
+@pytest.mark.asyncio
+async def test_dispatcher_broadcasts_from_worker_thread():
+    """emit() is called from inside asyncio.to_thread() by
+    HealthService.check_and_alert() -- _broadcast() must still reach the
+    websocket manager from there. Regression test: get_running_loop() raises
+    RuntimeError in a worker thread with no loop of its own, which the old
+    implementation silently swallowed, dropping the broadcast entirely.
+    """
+    ws_manager = MagicMock(spec=WebSocketManager)
+    ws_manager.broadcast = AsyncMock()
+
+    dispatcher = NotificationDispatcher(websocket_manager=ws_manager)
+
+    def background_work():
+        dispatcher.emit(
+            TradeEvent.SYSTEM_HEALTH_DEGRADED,
+            {"component": "database", "status": "unhealthy"},
+        )
+
+    await asyncio.to_thread(background_work)
+    await asyncio.sleep(0.05)
+
+    ws_manager.broadcast.assert_awaited_once()
+    sent = json.loads(ws_manager.broadcast.call_args[0][0])
+    assert sent["event"] == "SYSTEM_HEALTH_DEGRADED"
+    assert sent["payload"]["component"] == "database"
