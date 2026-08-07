@@ -16,11 +16,13 @@ from execution.pipeline import TradingSignal
 logger = logging.getLogger(__name__)
 
 FUNDING_RISK_MAP: dict[str, float] = {
-    "VERY_HIGH": 0.1,
-    "HIGH": 0.3,
-    "MODERATE": 0.5,
-    "LOW": 0.7,
-    "NEUTRAL": 0.5,
+    "extreme": 0.1,
+    "high": 0.3,
+    "elevated": 0.4,
+    "neutral": 0.5,
+    "elevated_negative": 0.6,
+    "high_negative": 0.7,
+    "extreme_negative": 0.9,
 }
 
 FEAR_GREED_MAP: dict[str, float] = {
@@ -83,7 +85,7 @@ class MacroAgent(BaseAgent):
         exchange_flow = bundle.exchange_flow or {}
 
         funding_rate = funding.get("annualized_rate", 0)
-        funding_level = funding.get("level", "NEUTRAL")
+        funding_level = funding.get("level", "neutral")
         funding_risk = funding.get("risk_score", 0.5)
 
         oi_value = open_interest.get("value", 0)
@@ -111,12 +113,12 @@ class MacroAgent(BaseAgent):
             reasoning.append(
                 f"Funding rate: {funding_rate:+.6f} ({funding_level})"
             )
-            if funding_level in ("HIGH", "VERY_HIGH"):
+            if funding_level in ("extreme", "high", "elevated"):
                 bearish_count += 1
                 reasoning.append("Elevated funding — crowded long")
-            elif funding_level in ("LOW",):
+            elif funding_level in ("extreme_negative", "high_negative", "elevated_negative"):
                 bullish_count += 1
-                reasoning.append("Low funding — favourable")
+                reasoning.append("Negative funding — short squeeze risk / favorable")
 
         if oi_value > 0:
             oi_dir = OI_TREND_MAP.get(oi_trend_name, DIRECTION_NEUTRAL)

@@ -201,7 +201,7 @@ class TestMacroAgent:
     def test_evaluate_with_all_data(self, mock_signal):
         agent = MacroAgent()
         bundle = MagicMock()
-        bundle.funding = {"annualized_rate": 0.0001, "level": "LOW", "risk_score": 0.2}
+        bundle.funding = {"annualized_rate": 0.0001, "level": "neutral", "risk_score": 0.2}
         bundle.open_interest = {"value": 1e9, "trend": "RISING", "strength": 0.7}
         bundle.fear_greed = {"label": "FEAR", "value": 30, "confidence": 0.6}
         bundle.liquidity_context = {"score": 0.8, "level": "HIGH"}
@@ -211,8 +211,36 @@ class TestMacroAgent:
         assert report.agent_name == "Macro"
         assert report.symbol == "BTCUSDT"
         assert len(report.reasoning) >= 4
-        assert report.data_points["bullish_signals"] >= 2
+        assert report.data_points["bullish_signals"] >= 1
         assert report.data_points["composite_score"] > 0
+
+    def test_evaluate_positive_funding(self, mock_signal):
+        agent = MacroAgent()
+        bundle = MagicMock()
+        bundle.funding = {"annualized_rate": 25.0, "level": "high", "risk_score": 0.3}
+        bundle.open_interest = {}
+        bundle.fear_greed = {}
+        bundle.liquidity_context = {}
+        bundle.exchange_flow = {}
+
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.data_points["bearish_signals"] == 1
+        assert report.data_points["bullish_signals"] == 0
+        assert "Elevated funding — crowded long" in report.reasoning
+
+    def test_evaluate_negative_funding(self, mock_signal):
+        agent = MacroAgent()
+        bundle = MagicMock()
+        bundle.funding = {"annualized_rate": -25.0, "level": "high_negative", "risk_score": 0.3}
+        bundle.open_interest = {}
+        bundle.fear_greed = {}
+        bundle.liquidity_context = {}
+        bundle.exchange_flow = {}
+
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.data_points["bullish_signals"] == 1
+        assert report.data_points["bearish_signals"] == 0
+        assert "Negative funding — short squeeze risk / favorable" in report.reasoning
 
     def test_evaluate_no_bundle(self, mock_signal):
         agent = MacroAgent()
