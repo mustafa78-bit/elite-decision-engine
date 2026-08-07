@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
@@ -28,7 +29,9 @@ class TerminalService:
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.scanner = scanner or OpportunityScanner()
-        self.aggregator = aggregator or DecisionAggregator()
+        self.aggregator = aggregator or DecisionAggregator(
+            scanner=self.scanner, market_service=self.market_service
+        )
 
     def get_overview(self) -> dict[str, Any]:
         return {
@@ -62,6 +65,12 @@ class TerminalService:
 
     def get_performance(self) -> dict[str, Any]:
         return self._get_performance_summary()
+
+    def get_decision(self, symbol: str, timeframe: str = "1h") -> dict[str, Any] | None:
+        result = self.aggregator.analyze(symbol, timeframe)
+        if result is None:
+            return None
+        return asdict(result)
 
     def _get_market_health(self) -> dict[str, Any]:
         asset = self.market_service.get_asset("BTC")
