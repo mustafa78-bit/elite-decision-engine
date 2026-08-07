@@ -426,7 +426,7 @@ class TestMacroAgent:
     def test_evaluate_with_all_data(self, mock_signal):
         agent = MacroAgent()
         bundle = MagicMock()
-        bundle.funding = {"annualized_rate": 0.0001, "level": "LOW", "risk_score": 0.2}
+        bundle.funding = {"annualized_rate": 0.0001, "level": "neutral", "risk_score": 0.2}
         bundle.open_interest = {"value": 1e9, "trend": "RISING", "strength": 0.7}
         bundle.fear_greed = {"label": "FEAR", "value": 30, "confidence": 0.6}
         bundle.liquidity_context = {"score": 0.8, "level": "HIGH"}
@@ -452,7 +452,7 @@ class TestMacroAgent:
         mock_short_signal.side = "SHORT"
 
         bundle = MagicMock()
-        bundle.funding = {"annualized_rate": 0.0001, "level": "LOW", "risk_score": 0.2}
+        bundle.funding = {"annualized_rate": 0.0001, "level": "neutral", "risk_score": 0.2}
         bundle.open_interest = {"value": 1e9, "trend": "RISING", "strength": 0.7}
         bundle.fear_greed = {"label": "FEAR", "value": 30, "confidence": 0.6}
         bundle.liquidity_context = {"score": 0.8, "level": "HIGH"}
@@ -491,3 +491,23 @@ class TestMacroAgent:
         assert report.data_points["bullish_signals"] == 0
         assert report.data_points["bearish_signals"] == 1
         assert "Exchange inflow — potential selling pressure" in report.reasoning
+
+    def test_evaluate_positive_funding_is_bearish(self, mock_signal):
+        agent = MacroAgent()
+        bundle = self._neutral_macro_bundle()
+        bundle.exchange_flow = {}
+        bundle.funding = {"annualized_rate": 25.0, "level": "high", "risk_score": 0.3}
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.data_points["bearish_signals"] == 1
+        assert report.data_points["bullish_signals"] == 0
+        assert "Elevated funding — crowded long" in report.reasoning
+
+    def test_evaluate_negative_funding_is_bullish(self, mock_signal):
+        agent = MacroAgent()
+        bundle = self._neutral_macro_bundle()
+        bundle.exchange_flow = {}
+        bundle.funding = {"annualized_rate": -25.0, "level": "high_negative", "risk_score": 0.3}
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.data_points["bullish_signals"] == 1
+        assert report.data_points["bearish_signals"] == 0
+        assert "Negative funding — short squeeze risk / favorable" in report.reasoning
