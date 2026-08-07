@@ -1,6 +1,7 @@
 """Tests for SessionManager.save()/load() round-tripping full session state."""
 
 from simulator.models import (
+    MarketRegime,
     SimulatedCandle,
     SimulatedDecision,
     SimulatedTrade,
@@ -18,7 +19,10 @@ def _build_populated_state() -> SimulatorState:
         win_count=2,
         loss_count=1,
         total_pnl=123.45,
+        regime=MarketRegime.BULL,
+        founder_metrics={"discipline_score": 87.5},
     )
+    state.equity_curve.append({"timestamp": 1000, "value": 10250.0})
     state.candles.append(
         SimulatedCandle(timestamp=1000, open=100.0, high=105.0, low=95.0, close=102.0, volume=10.0)
     )
@@ -91,6 +95,10 @@ def test_load_restores_all_collections_from_a_fresh_manager(tmp_path):
     assert len(loaded.timeline) == 1
     assert loaded.timeline[0].event_type == "TRADE_AI_OPEN"
 
+    assert loaded.equity_curve == [{"timestamp": 1000, "value": 10250.0}]
+    assert loaded.regime == MarketRegime.BULL
+    assert loaded.founder_metrics == {"discipline_score": 87.5}
+
 
 def test_load_of_session_with_no_collections_returns_empty_lists(tmp_path):
     saving_mgr = SessionManager(storage_dir=tmp_path)
@@ -105,3 +113,6 @@ def test_load_of_session_with_no_collections_returns_empty_lists(tmp_path):
     assert loaded.decisions == []
     assert loaded.trades == []
     assert loaded.timeline == []
+    assert loaded.equity_curve == []
+    assert loaded.regime == MarketRegime.SIDEWAYS
+    assert loaded.founder_metrics is None

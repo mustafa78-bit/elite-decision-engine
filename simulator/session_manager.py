@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from simulator.models import (
+    MarketRegime,
     MissionReport,
     SessionMeta,
     SimStatus,
@@ -106,6 +107,9 @@ class SessionManager:
                 decisions=[SimulatedDecision.from_dict(d) for d in data.get("decisions", [])],
                 trades=[SimulatedTrade.from_dict(t) for t in data.get("trades", [])],
                 timeline=[TimelineEvent.from_dict(e) for e in data.get("timeline", [])],
+                equity_curve=data.get("equity_curve", []),
+                regime=MarketRegime(data.get("regime", MarketRegime.SIDEWAYS.value)),
+                founder_metrics=data.get("founder_metrics"),
             )
             self._sessions[session_id] = state
             self._active_id = session_id
