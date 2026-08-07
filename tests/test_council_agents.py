@@ -396,7 +396,7 @@ class TestMacroAgent:
         bundle.open_interest = {"value": 1e9, "trend": "RISING", "strength": 0.7}
         bundle.fear_greed = {"label": "FEAR", "value": 30, "confidence": 0.6}
         bundle.liquidity_context = {"score": 0.8, "level": "HIGH"}
-        bundle.exchange_flow = {"direction": "OUTFLOW", "confidence": 0.75}
+        bundle.exchange_flow = {"direction": "NET_OUTFLOW", "confidence": 0.75}
 
         report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
         assert report.agent_name == "Macro"
@@ -422,9 +422,38 @@ class TestMacroAgent:
         bundle.open_interest = {"value": 1e9, "trend": "RISING", "strength": 0.7}
         bundle.fear_greed = {"label": "FEAR", "value": 30, "confidence": 0.6}
         bundle.liquidity_context = {"score": 0.8, "level": "HIGH"}
-        bundle.exchange_flow = {"direction": "OUTFLOW", "confidence": 0.75}
+        bundle.exchange_flow = {"direction": "NET_OUTFLOW", "confidence": 0.75}
 
         # Original LONG evaluates to BULLISH (literal bullish is >= 2 signals)
         # For SHORT, literal BULLISH -> normalized BEARISH
         report = agent.evaluate(signal=mock_short_signal, intelligence_bundle=bundle)
         assert report.direction == DIRECTION_BEARISH
+
+    def _neutral_macro_bundle(self):
+        """A bundle with every field neutral/absent except exchange_flow, to
+        isolate exchange_flow's own contribution from funding/OI/fear-greed/
+        liquidity."""
+        bundle = MagicMock()
+        bundle.funding = {"annualized_rate": 0, "level": "NEUTRAL"}
+        bundle.open_interest = {"value": 0, "trend": "FLAT"}
+        bundle.fear_greed = {"label": "NEUTRAL", "value": 50}
+        bundle.liquidity_context = {"score": 0.5, "level": "NEUTRAL"}
+        return bundle
+
+    def test_exchange_flow_net_outflow_is_bullish(self, mock_signal):
+        agent = MacroAgent()
+        bundle = self._neutral_macro_bundle()
+        bundle.exchange_flow = {"direction": "NET_OUTFLOW", "confidence": 0.75}
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.data_points["bullish_signals"] == 1
+        assert report.data_points["bearish_signals"] == 0
+        assert "Exchange outflow — accumulation signal" in report.reasoning
+
+    def test_exchange_flow_net_inflow_is_bearish(self, mock_signal):
+        agent = MacroAgent()
+        bundle = self._neutral_macro_bundle()
+        bundle.exchange_flow = {"direction": "NET_INFLOW", "confidence": 0.75}
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.data_points["bullish_signals"] == 0
+        assert report.data_points["bearish_signals"] == 1
+        assert "Exchange inflow — potential selling pressure" in report.reasoning

@@ -148,10 +148,10 @@ class MacroAgent(BaseAgent):
         if exchange_flow:
             scores_list.append(flow_confidence)
             reasoning.append(f"Exchange flow: {flow_direction}")
-            if flow_direction == "INFLOW":
+            if flow_direction == "NET_INFLOW":
                 bearish_count += 1
                 reasoning.append("Exchange inflow — potential selling pressure")
-            elif flow_direction == "OUTFLOW":
+            elif flow_direction == "NET_OUTFLOW":
                 bullish_count += 1
                 reasoning.append("Exchange outflow — accumulation signal")
 
