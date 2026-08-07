@@ -2,12 +2,13 @@ import logging
 
 from fastapi import APIRouter
 
-from database import FINAL_STATUSES, Signal, Trade, get_session
+from database import FINAL_STATUSES, Signal, get_session
 from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
 from scoring.regime_ai import get_regime_ai
+from services.pnl import get_trades_with_dollar_pnl
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -44,7 +45,7 @@ def get_intelligence():
     session = get_session()
     try:
         all_signals = session.query(Signal).all()
-        all_trades = session.query(Trade).all()
+        trades_with_pnl = get_trades_with_dollar_pnl(session)
     finally:
         session.close()
 
@@ -52,13 +53,13 @@ def get_intelligence():
     approved = len([s for s in all_signals if str(s.status) in {"EXECUTED", "OPEN"}])
     rejected = len([s for s in all_signals if str(s.status) == "REJECTED"])
 
-    open_trades = [t for t in all_trades if str(t.status) == "OPEN"]
-    closed_trades = [t for t in all_trades if str(t.status) in FINAL_STATUSES]
-    total_pnl = sum(t.pnl for t in closed_trades if t.pnl is not None)
+    open_trades = [t for t, _ in trades_with_pnl if str(t.status) == "OPEN"]
+    closed_trades = [(t, pnl_val) for t, pnl_val in trades_with_pnl if str(t.status) in FINAL_STATUSES]
+    total_pnl = sum(pnl_val for _, pnl_val in closed_trades)
 
     logger.info(
         "/intelligence: signals=%d trades=%d closed_pnl=%.2f",
-        len(all_signals), len(all_trades), total_pnl,
+        len(all_signals), len(trades_with_pnl), total_pnl,
     )
 
     return {
