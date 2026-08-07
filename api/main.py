@@ -199,15 +199,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Request-ID"],
-)
-
 app.middleware("http")(auth_middleware)
 
 
@@ -222,6 +213,21 @@ async def security_headers_middleware(request: Request, call_next):
     if API_ENV == "production":
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
+
+
+# Registered LAST so it ends up OUTERMOST (Starlette's add_middleware prepends,
+# then build_middleware_stack wraps in reverse) -- CORS must see and respond to
+# preflight OPTIONS requests before auth_middleware gets a chance to reject them
+# with a header-less 401, which the browser would then treat as a failed
+# preflight and block the real request. See docs/FRONTEND_AUTH_FIX_REPORT.md.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
+)
 
 app.include_router(auth_router)
 app.include_router(backtest_router)
