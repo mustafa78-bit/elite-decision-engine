@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import xml.etree.ElementTree as ET
 from datetime import UTC, datetime, timezone
 from typing import Any, Optional
@@ -22,8 +23,10 @@ class NewsService:
         pos_words = ["surge", "bull", "gain", "up", "rise", "grow", "rally", "high", "positive", "accumulate", "boost", "support", "skyrocket", "profit", "win", "adopt", "launch", "breakout"]
         neg_words = ["crash", "bear", "drop", "down", "fall", "decline", "sell", "low", "negative", "liquidate", "drain", "resistance", "plunge", "loss", "lose", "ban", "hack", "scam", "lawsuit", "fud"]
 
-        pos_count = sum(1 for w in pos_words if w in text)
-        neg_count = sum(1 for w in neg_words if w in text)
+        # Word-boundary match -- plain substring containment false-positives
+        # on common words (e.g. "up" inside "update", "low" inside "below").
+        pos_count = sum(1 for w in pos_words if re.search(rf"\b{re.escape(w)}\b", text))
+        neg_count = sum(1 for w in neg_words if re.search(rf"\b{re.escape(w)}\b", text))
 
         if pos_count > neg_count:
             return "positive"
@@ -104,7 +107,10 @@ class NewsService:
                 continue
 
             title_lower = title_clean.lower()
-            if any(kw in title_lower for kw in kw_list):
+            # Word-boundary match -- plain substring containment false-positives
+            # on short keywords like "eth"/"ada"/"sol" inside unrelated words
+            # ("method", "Canada", "consolidate").
+            if any(re.search(rf"\b{re.escape(kw)}\b", title_lower) for kw in kw_list):
                 seen_titles.add(title_clean)
                 published = entry.get("published")
                 if not published:
