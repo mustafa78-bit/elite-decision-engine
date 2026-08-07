@@ -267,7 +267,7 @@ class ReportGenerator:
             return 50.0
         good_exits = 0
         for t in trades:
-            if t.close_reason in ("TAKE_PROFIT", "TP_HIT", "TRAILING_STOP"):
+            if t.close_reason == "TAKE_PROFIT":
                 good_exits += 1
             elif t.close_reason == "STOP_LOSS" and abs(t.pnl_percent) < 2:
                 good_exits += 1
@@ -276,12 +276,12 @@ class ReportGenerator:
     def _score_psychology(self, trades: list[SimulatedTrade]) -> float:
         if len(trades) < 3:
             return 50.0
-        reversals = 0
-        for t in trades:
-            if t.close_reason == "REVERSAL":
-                reversals += 1
+        # "REVERSAL" was never a real close_reason any producer emits --
+        # simulator_engine.py only ever sets STOP_LOSS/TAKE_PROFIT/
+        # MANUAL_CLOSE -- so the previous reversals penalty was permanently
+        # a no-op. Removed rather than left as dead code.
         panic_sells = sum(1 for t in trades if t.close_reason == "STOP_LOSS" and abs(t.pnl_percent) > 5)
-        score = 100.0 - (reversals * 10) - (panic_sells * 5)
+        score = 100.0 - (panic_sells * 5)
         return max(0.0, min(100.0, score))
 
     def _score_discipline(self, trades: list[SimulatedTrade]) -> float:
@@ -300,8 +300,6 @@ class ReportGenerator:
         for t in trades:
             if t.close_reason == "STOP_LOSS" and abs(t.pnl_percent) > 5:
                 mistakes.append(f"Wide stop loss on {t.symbol} {t.side} lost {abs(t.pnl_percent):.1f}%")
-            if t.close_reason == "SL_HIT" and abs(t.pnl_percent) > 3:
-                mistakes.append(f"Stop loss hit with large loss: {t.symbol} -{abs(t.pnl_percent):.1f}%")
         if state.win_count + state.loss_count > 5:
             win_rate = state.win_count / (state.win_count + state.loss_count) * 100
             if win_rate < 30:
