@@ -20,6 +20,17 @@ from market_data.open_interest.models import detect_oi_trend
 
 logger = logging.getLogger(__name__)
 
+_TIMEFRAME_MINUTES = {
+    "1m": 1, "5m": 5, "15m": 15, "30m": 30,
+    "1h": 60, "4h": 240, "1d": 1440, "1w": 10080,
+}
+
+
+def _candles_per_24h(timeframe: str) -> int:
+    """Number of candles that span a real 24h window for this timeframe."""
+    minutes = _TIMEFRAME_MINUTES.get(timeframe, 60)
+    return max(1, 1440 // minutes)
+
 
 class IntelligenceService:
     """Aggregate all intelligence sources into a unified bundle per symbol."""
@@ -141,9 +152,10 @@ class IntelligenceService:
     @staticmethod
     def _estimate_24h_change(asset: Asset) -> float | None:
         ohlcv = asset.ohlcv
-        if ohlcv is not None and len(ohlcv) >= 24:
+        window = _candles_per_24h(asset.timeframe)
+        if ohlcv is not None and len(ohlcv) >= window:
             price_now = float(ohlcv["close"].iloc[-1])
-            price_24h = float(ohlcv["close"].iloc[-24])
+            price_24h = float(ohlcv["close"].iloc[-window])
             if price_24h > 0:
                 return round((price_now - price_24h) / price_24h * 100, 2)
         return None
