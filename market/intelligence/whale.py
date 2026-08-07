@@ -67,15 +67,21 @@ class WhaleService:
             # 1. Fetch recent trades to detect unusually large single trades
             trades_data = self._binance_request("/api/v3/trades", {"symbol": binance_pair, "limit": 100})
             if trades_data and isinstance(trades_data, list):
-                usdt_sizes: list[float] = []
+                # Binance's isBuyerMaker: True means the trade was taker-sell
+                # (aggressive selling matched a resting buy order), False
+                # means taker-buy (aggressive buying) -- the real per-trade
+                # direction, distinct from the raw size used for the
+                # large-trade threshold below.
+                parsed_trades: list[tuple[float, bool | None]] = []
                 for t in trades_data:
                     try:
                         qty = float(t.get("qty", 0))
                         p = float(t.get("price", 0))
-                        usdt_sizes.append(qty * p)
+                        parsed_trades.append((qty * p, t.get("isBuyerMaker")))
                     except (ValueError, TypeError):
                         continue
 
+                usdt_sizes = [size for size, _ in parsed_trades]
                 if usdt_sizes:
                     avg_size = sum(usdt_sizes) / len(usdt_sizes)
                     # We look for single trades that are at least 5 times the average trade size in the sample,
@@ -84,21 +90,37 @@ class WhaleService:
 
                     large_trades_count = 0
                     max_large_trade = 0.0
-                    for size in usdt_sizes:
+                    buy_volume = 0.0
+                    sell_volume = 0.0
+                    for size, is_buyer_maker in parsed_trades:
                         if size >= threshold:
                             large_trades_count += 1
                             if size > max_large_trade:
                                 max_large_trade = size
+                            if is_buyer_maker is True:
+                                sell_volume += size
+                            elif is_buyer_maker is False:
+                                buy_volume += size
 
                     if large_trades_count > 0:
                         real_data_success = True
                         confidence = min(0.5 + (large_trades_count * 0.05), 0.99)
                         severity = "high" if max_large_trade > 100000.0 else "medium"
+                        if buy_volume > sell_volume:
+                            trade_direction = "buy"
+                        elif sell_volume > buy_volume:
+                            trade_direction = "sell"
+                        else:
+                            trade_direction = None
+                        desc = f"Detected {large_trades_count} unusually large single trade(s) with max size {max_large_trade:,.2f} USDT"
+                        if trade_direction:
+                            desc += f" ({trade_direction}-side)"
                         signals.append({
                             "type": "WHALE_TRADE",
                             "symbol": symbol,
                             "severity": severity,
-                            "description": f"Detected {large_trades_count} unusually large single trade(s) with max size {max_large_trade:,.2f} USDT",
+                            "direction": trade_direction,
+                            "description": desc,
                             "confidence": round(confidence, 2),
                             "timestamp": datetime.now(UTC).isoformat(),
                         })
