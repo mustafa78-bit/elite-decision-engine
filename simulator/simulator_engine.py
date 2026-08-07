@@ -22,8 +22,9 @@ from simulator.models import (
     SimulatorState,
     TimelineEvent,
 )
-from simulator.replay_engine import MarketReplayEngine
+from simulator.replay_engine import TIMEFRAME_MS, MarketReplayEngine
 from simulator.report_generator import ReportGenerator
+from simulator.scenarios import SCENARIOS, generate_scenario_data
 
 logger = logging.getLogger(__name__)
 
@@ -105,11 +106,21 @@ class SimulatorEngine:
             cash=config.initial_capital,
         )
 
+        scenario_data = None
+        if config.scenario is not None:
+            scenario_data = generate_scenario_data(
+                scenario_type=config.scenario,
+                symbol=config.symbol,
+                timeframe=config.timeframe,
+                num_candles=self._resolve_scenario_candle_count(config),
+            )
+
         candles_loaded = self._replay.load(
             symbol=config.symbol,
             timeframe=config.timeframe,
             start_date=config.start_date,
             end_date=config.end_date,
+            data=scenario_data,
         )
         self._state.total_candles = candles_loaded
         self._status_change(SimStatus.RUNNING)
@@ -121,6 +132,19 @@ class SimulatorEngine:
 
         self._task = asyncio.create_task(self._run_loop())
         return sid
+
+    def _resolve_scenario_candle_count(self, config: SimulatorConfig) -> int:
+        if config.start_date and config.end_date:
+            try:
+                start_ts = datetime.fromisoformat(config.start_date).timestamp()
+                end_ts = datetime.fromisoformat(config.end_date).timestamp()
+                ms = TIMEFRAME_MS.get(config.timeframe, 3600000)
+                count = int((end_ts - start_ts) * 1000 / ms)
+                if count > 0:
+                    return count
+            except ValueError:
+                pass
+        return SCENARIOS.get(config.scenario, {}).get("duration_candles", 200)
 
     def pause(self) -> None:
         if self._state and self._state.status == SimStatus.RUNNING:
