@@ -195,11 +195,22 @@ class TestDecisionPipelineAI:
         assert candidate.memory_context["losses"] == 1
         assert candidate.memory_context["avg_pnl"] == -75.0
 
-    def test_pipeline_no_ai_modules_backward_compat(self):
+    def test_pipeline_defaults_regime_ai_and_trade_memory_when_not_provided(self):
+        # When regime_ai/trade_memory aren't explicitly injected, the pipeline
+        # now default-constructs real instances (get_regime_ai()/TradeMemory())
+        # rather than silently leaving this enrichment permanently dead.
         pipeline = make_pipeline(regime_ai=None, trade_memory=None)
+        assert pipeline.regime_ai is not None
+        assert pipeline.trade_memory is not None
+
         candidate = pipeline.evaluate(FakeSignal())
         assert candidate is not None
-        assert candidate.regime_context is None
+        # A real RegimeAI.detect() call always returns a populated dict.
+        assert candidate.regime_context is not None
+        assert "regime" in candidate.regime_context
+        # memory_context legitimately stays None here -- there's no matching
+        # trade history for this signal in the real (likely empty) trade memory,
+        # not because trade_memory itself is missing.
         assert candidate.memory_context is None
 
     def test_pipeline_regime_and_memory_together(self):
