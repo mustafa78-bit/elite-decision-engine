@@ -312,8 +312,20 @@ class SimulatorEngine:
         if state.open_positions > 0:
             self._monitor_open_trades(candle)
 
+        # Unrealized mark-to-market value per open position: cash already
+        # reflects a -quantity*entry_price debit at open (both sides), so the
+        # position's current contribution to equity is that cost basis plus
+        # unrealized PnL. For LONG this simplifies to quantity*close (the old
+        # formula), but for SHORT unrealized PnL moves the opposite direction
+        # -- using quantity*close for SHORT too silently inverts the sign.
         equity_value = state.cash + sum(
-            t.quantity * candle.close for t in state.trades if t.status == "OPEN"
+            (
+                t.quantity * candle.close
+                if t.side == "LONG"
+                else t.quantity * (2 * t.entry_price - candle.close)
+            )
+            for t in state.trades
+            if t.status == "OPEN"
         )
         state.portfolio_value = equity_value
         state.equity_curve.append({
