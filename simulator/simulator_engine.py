@@ -673,10 +673,11 @@ class SimulatorEngine:
 
         df = pd.DataFrame([c.to_dict() for c in candles])
         try:
+            entry = float(df["close"].iloc[-1])
             values = self._indicator_engine.calculate(df)
             volume = self._volume_engine.score(df)
             volatility = self._volatility_engine.score(values)
-            risk_score = self._risk_engine.score(values, volatility)
+            risk_score = self._risk_engine.score(values, volatility, price=entry)
         except Exception as e:
             logger.warning("Real-data scoring failed at candle %s: %s", self._replay.index, e)
             return None
@@ -706,7 +707,7 @@ class SimulatorEngine:
         )
 
         return {
-            "entry": float(df["close"].iloc[-1]),
+            "entry": entry,
             "ema20": ema20,
             "ema50": ema50,
             "ema200": ema200,
