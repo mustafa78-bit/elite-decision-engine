@@ -460,6 +460,19 @@ class TestDashboardCache:
         time.sleep(0.01)
         assert cache.get("key1") is None
 
+    def test_cache_honors_per_call_ttl_not_just_default(self):
+        # set()'s ttl= param was previously accepted but silently discarded --
+        # every entry cached for default_ttl regardless of what the caller
+        # asked for.
+        import time
+        from api.cache import DashboardCache
+        cache = DashboardCache(default_ttl=60)
+        cache.set("short-lived", "val1", ttl=0)
+        cache.set("long-lived", "val2", ttl=60)
+        time.sleep(0.01)
+        assert cache.get("short-lived") is None
+        assert cache.get("long-lived") == "val2"
+
 
 class TestKPIServiceEnhanced:
 

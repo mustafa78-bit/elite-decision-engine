@@ -174,7 +174,7 @@ class TerminalService:
                     "entry_price": entry_val,
                     "current_price": current_price,
                     "quantity": qty,
-                    "pnl": round(float(t.pnl or 0), 2),
+                    "pnl": round(float(t.pnl or 0) * qty, 2),
                     "created_at": t.created_at.isoformat() if t.created_at else "",
                 })
 

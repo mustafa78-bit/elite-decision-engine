@@ -33,6 +33,47 @@ _ws_manager: WebSocketManager | None = None
 _replay_engine: MarketReplayEngine | None = None
 
 
+async def _ws_broadcast_state(state: SimulatorState) -> None:
+    try:
+        await _get_ws().broadcast_to_room("simulator", json.dumps({
+            "event": "SIMULATOR_STATE",
+            "timestamp": state.current_timestamp or 0,
+            "payload": state.to_dict(),
+        }))
+    except Exception:
+        pass
+
+
+async def _ws_broadcast_trade(trade: Any) -> None:
+    try:
+        await _get_ws().broadcast_to_room("simulator", json.dumps({
+            "event": "SIMULATOR_TRADE",
+            "payload": trade.to_dict() if hasattr(trade, "to_dict") else trade,
+        }))
+    except Exception:
+        pass
+
+
+async def _ws_broadcast_decision(decision: Any) -> None:
+    try:
+        await _get_ws().broadcast_to_room("simulator", json.dumps({
+            "event": "SIMULATOR_DECISION",
+            "payload": decision.to_dict() if hasattr(decision, "to_dict") else decision,
+        }))
+    except Exception:
+        pass
+
+
+async def _ws_broadcast_candle(candle: Any) -> None:
+    try:
+        await _get_ws().broadcast_to_room("simulator", json.dumps({
+            "event": "SIMULATOR_CANDLE",
+            "payload": candle.to_dict() if hasattr(candle, "to_dict") else candle,
+        }))
+    except Exception:
+        pass
+
+
 def _get_engine() -> SimulatorEngine:
     global _engine
     if _engine is None:
@@ -45,6 +86,15 @@ def _get_engine() -> SimulatorEngine:
             report_generator=ReportGenerator(),
             council_engine=council_engine,
         )
+        # Registered once against the module-level singleton engine, not per
+        # /ws/simulator connection -- broadcast_to_room() already fans out to
+        # every socket in the room from a single registration, and these
+        # listener lists have no unsubscribe API, so registering per-connect
+        # leaked 4 more closures on every reconnect.
+        _engine.on_state(lambda s: asyncio.ensure_future(_ws_broadcast_state(s)))
+        _engine.on_trade(lambda t: asyncio.ensure_future(_ws_broadcast_trade(t)))
+        _engine.on_decision(lambda d: asyncio.ensure_future(_ws_broadcast_decision(d)))
+        _engine.on_candle(lambda c: asyncio.ensure_future(_ws_broadcast_candle(c)))
     return _engine
 
 
@@ -363,48 +413,6 @@ async def ws_simulator(websocket: WebSocket):
     ws = _get_ws()
     await ws.connect(websocket, room="simulator")
     eng = _get_engine()
-
-    async def broadcast_state(state: SimulatorState) -> None:
-        try:
-            await ws.broadcast_to_room("simulator", json.dumps({
-                "event": "SIMULATOR_STATE",
-                "timestamp": state.current_timestamp or 0,
-                "payload": state.to_dict(),
-            }))
-        except Exception:
-            pass
-
-    async def broadcast_trade(trade: Any) -> None:
-        try:
-            await ws.broadcast_to_room("simulator", json.dumps({
-                "event": "SIMULATOR_TRADE",
-                "payload": trade.to_dict() if hasattr(trade, "to_dict") else trade,
-            }))
-        except Exception:
-            pass
-
-    async def broadcast_decision(decision: Any) -> None:
-        try:
-            await ws.broadcast_to_room("simulator", json.dumps({
-                "event": "SIMULATOR_DECISION",
-                "payload": decision.to_dict() if hasattr(decision, "to_dict") else decision,
-            }))
-        except Exception:
-            pass
-
-    async def broadcast_candle(candle: Any) -> None:
-        try:
-            await ws.broadcast_to_room("simulator", json.dumps({
-                "event": "SIMULATOR_CANDLE",
-                "payload": candle.to_dict() if hasattr(candle, "to_dict") else candle,
-            }))
-        except Exception:
-            pass
-
-    eng.on_state(lambda s: asyncio.ensure_future(broadcast_state(s)))
-    eng.on_trade(lambda t: asyncio.ensure_future(broadcast_trade(t)))
-    eng.on_decision(lambda d: asyncio.ensure_future(broadcast_decision(d)))
-    eng.on_candle(lambda c: asyncio.ensure_future(broadcast_candle(c)))
 
     try:
         while True:
