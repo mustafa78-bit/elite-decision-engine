@@ -115,7 +115,7 @@ class DecisionPipeline:
                 self.logger.warning("Market data fetch returned no rows for %s", signal.symbol)
                 return None
 
-            if not self._passes_filters(market_data):
+            if not self._passes_filters(market_data, signal):
                 self.logger.info("Signal rejected by filters: %s %s", signal.symbol, signal.side)
                 return None
 
@@ -224,9 +224,9 @@ class DecisionPipeline:
             limit=self.market_data_limit,
         )
 
-    def _passes_filters(self, market_data: Any) -> bool:
+    def _passes_filters(self, market_data: Any, signal: TradingSignal) -> bool:
         for signal_filter in self.filters:
-            result = self._evaluate_filter(signal_filter, market_data)
+            result = self._evaluate_filter(signal_filter, market_data, signal)
             if not self._filter_passed(result):
                 self.logger.info(
                     "Filter rejected signal: %s returned %r",
@@ -236,12 +236,22 @@ class DecisionPipeline:
                 return False
         return True
 
-    def _evaluate_filter(self, signal_filter: Any, market_data: Any) -> Any:
+    def _evaluate_filter(self, signal_filter: Any, market_data: Any, signal: TradingSignal) -> Any:
         evaluate = getattr(signal_filter, "evaluate", None)
         if callable(evaluate):
             signature = inspect.signature(evaluate)
             if len(signature.parameters) == 0:
                 return evaluate()
+
+            params = list(signature.parameters.keys())
+            if len(params) >= 2:
+                bound_args = signature.bind_partial(market_data)
+                if "side" in signature.parameters:
+                    bound_args.arguments["side"] = signal.side
+                elif len(params) >= 2:
+                    bound_args.arguments[params[1]] = signal.side
+                return evaluate(*bound_args.args, **bound_args.kwargs)
+
             return evaluate(market_data)
 
         is_healthy = getattr(signal_filter, "is_healthy", None)
