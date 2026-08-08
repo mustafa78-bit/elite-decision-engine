@@ -77,23 +77,28 @@ class TestPreferencesAPI:
         assert resp.status_code == 200
         assert resp.json()["theme"] == "light"
 
-    def test_get_preferences_nonexistent_user(self, api_client):
-        resp = api_client.get("/preferences?user_id=999")
+    def test_get_preferences_for_authenticated_user_with_no_row_yet(self, api_client):
+        resp = api_client.get("/preferences")
         assert resp.status_code == 200
 
+    def test_get_preferences_requires_auth(self, api_client):
+        api_client.headers.pop("Authorization", None)
+        resp = api_client.get("/preferences")
+        assert resp.status_code == 401
+
     def test_upsert_preferences(self, api_client):
-        resp = api_client.put("/preferences?user_id=1", json={"theme": "light"})
+        resp = api_client.put("/preferences", json={"theme": "light"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["theme"] == "light"
 
     def test_update_theme(self, api_client):
-        resp = api_client.put("/preferences/theme?user_id=1&theme=dark")
+        resp = api_client.put("/preferences/theme?theme=dark")
         assert resp.status_code == 200
         assert resp.json()["theme"] == "dark"
 
     def test_update_layout(self, api_client):
-        resp = api_client.put("/preferences/layout?user_id=1", json={"sidebar_collapsed": True})
+        resp = api_client.put("/preferences/layout", json={"sidebar_collapsed": True})
         assert resp.status_code == 200
         assert resp.json()["layout_config"]["sidebar_collapsed"] is True
 
@@ -157,6 +162,31 @@ class TestWatchlistsAPI:
         assert resp2.status_code == 200
         resp3 = api_client.get(f"/watchlists/{wid}")
         assert resp3.status_code == 404
+
+    def test_watchlists_require_auth(self, api_client):
+        api_client.headers.pop("Authorization", None)
+        assert api_client.get("/watchlists").status_code == 401
+        assert api_client.post("/watchlists?name=X").status_code == 401
+
+    def test_another_user_cannot_read_update_or_delete_this_watchlist(self, api_client):
+        from auth.jwt import create_access_token
+
+        resp = api_client.post("/watchlists?name=Private")
+        wid = resp.json()["id"]
+
+        other_user_token = create_access_token({"sub": "2", "username": "other"})
+        headers = {"Authorization": f"Bearer {other_user_token}"}
+
+        assert api_client.get(f"/watchlists/{wid}", headers=headers).status_code == 404
+        assert api_client.put(
+            f"/watchlists/{wid}", json={"name": "Hijacked"}, headers=headers
+        ).status_code == 404
+        assert api_client.delete(f"/watchlists/{wid}", headers=headers).status_code == 404
+
+        # Confirm it's genuinely untouched, not silently modified.
+        still_there = api_client.get(f"/watchlists/{wid}")
+        assert still_there.status_code == 200
+        assert still_there.json()["name"] == "Private"
 
 
 class TestNotificationsAPI:
