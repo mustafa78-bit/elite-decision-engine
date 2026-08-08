@@ -8,17 +8,15 @@ interface Props {
 const EVENT_LABELS: Record<string, string> = {
   TRADE_OPENED: "Trade Opened",
   TRADE_CLOSED: "Trade Closed",
-  MARKET_UPDATE: "Market Update",
-  SIGNAL_UPDATE: "Signal Update",
-  RISK_UPDATE: "Risk Update",
+  SYSTEM_HEALTH_DEGRADED: "Health Degraded",
+  SYSTEM_HEALTH_RECOVERED: "Health Recovered",
 };
 
 const EVENT_COLORS: Record<string, string> = {
   TRADE_OPENED: "text-green-400",
   TRADE_CLOSED: "text-red-400",
-  MARKET_UPDATE: "text-blue-400",
-  SIGNAL_UPDATE: "text-purple-400",
-  RISK_UPDATE: "text-yellow-400",
+  SYSTEM_HEALTH_DEGRADED: "text-yellow-400",
+  SYSTEM_HEALTH_RECOVERED: "text-blue-400",
 };
 
 function formatTime(iso: string | null): string {

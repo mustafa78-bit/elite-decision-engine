@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def _persist_notification(event: str, payload: dict) -> None:
+    session = None
     try:
         session = get_session()
         notif = Notification(
@@ -22,7 +23,8 @@ def _persist_notification(event: str, payload: dict) -> None:
     except Exception as e:
         logger.warning("Failed to persist notification: %s", e)
     finally:
-        session.close()
+        if session is not None:
+            session.close()
 
 
 class NotificationDispatcher:
