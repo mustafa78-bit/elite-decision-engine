@@ -1,5 +1,6 @@
 import logging
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,7 +32,7 @@ NVIDIA_BASE_URL: str = os.getenv("NVIDIA_BASE_URL", "")
 
 for var in CRITICAL_VARS:
     if not os.getenv(var):
-        msg = "%s not set. %s" % (var, CRITICAL_VARS[var])
+        msg = f"{var} not set. {CRITICAL_VARS[var]}"
         if API_ENV == "production":
             raise RuntimeError("FATAL: " + msg)
         logger.warning(msg)
@@ -47,6 +48,7 @@ HL_API_KEY: str = os.getenv("HL_API_KEY", "")
 HL_SECRET: str = os.getenv("HL_SECRET", "")
 TELEGRAM_TOKEN: str = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_ALLOWED_CHAT_IDS: str = os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "")
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_USER = os.getenv("POSTGRES_USER")
@@ -87,6 +89,10 @@ SCORE_WEIGHTS_PCT = {k: round(v * 100, 2) for k, v in SCORE_WEIGHTS.items()}
 
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "10"))
 assert CHECK_INTERVAL > 0, f"CHECK_INTERVAL must be positive, got {CHECK_INTERVAL}"
+HEALTH_CHECK_INTERVAL_SECONDS = int(os.getenv("HEALTH_CHECK_INTERVAL_SECONDS", "60"))
+assert HEALTH_CHECK_INTERVAL_SECONDS > 0, (
+    f"HEALTH_CHECK_INTERVAL_SECONDS must be positive, got {HEALTH_CHECK_INTERVAL_SECONDS}"
+)
 MIN_SCORE = int(os.getenv("MIN_SCORE", "85"))
 assert 0 <= MIN_SCORE <= 100, f"MIN_SCORE must be 0-100, got {MIN_SCORE}"
 MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "3"))
@@ -107,3 +113,9 @@ ATR_MULTIPLIER = float(os.getenv("ATR_MULTIPLIER", "1.5"))
 assert ATR_MULTIPLIER > 0, f"ATR_MULTIPLIER must be positive, got {ATR_MULTIPLIER}"
 MIN_POSITION_QUANTITY = float(os.getenv("MIN_POSITION_QUANTITY", "0.001"))
 assert MIN_POSITION_QUANTITY > 0, f"MIN_POSITION_QUANTITY must be positive, got {MIN_POSITION_QUANTITY}"
+
+COIN_UNIVERSE_SIZE = int(os.getenv("COIN_UNIVERSE_SIZE", "100"))
+
+AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "false").lower() == "true"
+SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "300"))
+assert SCAN_INTERVAL_SECONDS > 0, f"SCAN_INTERVAL_SECONDS must be positive, got {SCAN_INTERVAL_SECONDS}"

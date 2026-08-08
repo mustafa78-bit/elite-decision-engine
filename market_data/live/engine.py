@@ -5,16 +5,26 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 
-
 logger = logging.getLogger(__name__)
 
 _CACHE_TTL = 60.0
+
+_TIMEFRAME_MINUTES = {
+    "1m": 1, "5m": 5, "15m": 15, "30m": 30,
+    "1h": 60, "4h": 240, "1d": 1440, "1w": 10080,
+}
+
+
+def _candles_per_24h(timeframe: str) -> int:
+    """Number of candles that span a real 24h window for this timeframe."""
+    minutes = _TIMEFRAME_MINUTES.get(timeframe, 60)
+    return max(1, 1440 // minutes)
 
 
 @dataclass
@@ -44,8 +54,8 @@ class LiveMarketEngine:
 
     def __init__(
         self,
-        collector: Optional[HyperliquidCollector] = None,
-        indicators: Optional[IndicatorEngine] = None,
+        collector: HyperliquidCollector | None = None,
+        indicators: IndicatorEngine | None = None,
         cache_ttl: float = _CACHE_TTL,
     ) -> None:
         self.collector = collector or HyperliquidCollector()
@@ -56,7 +66,7 @@ class LiveMarketEngine:
     def _cache_key(self, symbol: str, timeframe: str, limit: int) -> str:
         return f"{symbol}:{timeframe}:{limit}"
 
-    def _get_cached(self, key: str) -> Optional[MarketSnapshot]:
+    def _get_cached(self, key: str) -> MarketSnapshot | None:
         entry = self._cache.get(key)
         if entry is None:
             return None
@@ -85,7 +95,7 @@ class LiveMarketEngine:
                 change_24h=0.0,
                 high_24h=0.0,
                 low_24h=0.0,
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 candles=[],
             )
             self._cache[key] = (time.monotonic(), result)
@@ -93,10 +103,15 @@ class LiveMarketEngine:
 
         latest = df.iloc[-1]
         price = float(latest["close"])
-        volume = float(df["volume"].tail(24).sum()) if len(df) >= 24 else float(df["volume"].sum())
-        high_24h = float(df["high"].tail(24).max()) if len(df) >= 24 else float(df["high"].max())
-        low_24h = float(df["low"].tail(24).min()) if len(df) >= 24 else float(df["low"].min())
-        change_24h = ((price - float(df.iloc[-24]["close"])) / float(df.iloc[-24]["close"]) * 100) if len(df) >= 24 else 0.0
+        window = _candles_per_24h(timeframe)
+        volume = float(df["volume"].tail(window).sum()) if len(df) >= window else float(df["volume"].sum())
+        high_24h = float(df["high"].tail(window).max()) if len(df) >= window else float(df["high"].max())
+        low_24h = float(df["low"].tail(window).min()) if len(df) >= window else float(df["low"].min())
+        if len(df) >= window:
+            price_24h_ago = float(df.iloc[-window]["close"])
+            change_24h = ((price - price_24h_ago) / price_24h_ago * 100) if price_24h_ago > 0 else 0.0
+        else:
+            change_24h = 0.0
 
         candles = [
             Candle(
@@ -117,7 +132,7 @@ class LiveMarketEngine:
             change_24h=round(change_24h, 2),
             high_24h=round(high_24h, 2),
             low_24h=round(low_24h, 2),
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             candles=candles[-50:],
         )
         self._cache[key] = (time.monotonic(), result)

@@ -19,9 +19,9 @@ class HyperliquidProvider:
 
     def __init__(
         self,
-        collector: Optional[HyperliquidCollector] = None,
-        funding_collector: Optional[FundingCollector] = None,
-        oi_collector: Optional[OpenInterestCollector] = None,
+        collector: HyperliquidCollector | None = None,
+        funding_collector: FundingCollector | None = None,
+        oi_collector: OpenInterestCollector | None = None,
     ) -> None:
         self._collector = collector or HyperliquidCollector()
         self._funding = funding_collector or FundingCollector()

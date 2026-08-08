@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request
-
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from api.rate_limit import limiter
 from auth.service import login_user, register_user
@@ -18,6 +17,7 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
 
+    @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
         if len(v) < 8:
@@ -26,13 +26,12 @@ class RegisterRequest(BaseModel):
 
 
 @router.post("/auth/register")
-@limiter.limit("3/minute")
+@limiter.limit("5/minute")
 def register(request: Request, body: RegisterRequest):
-    RegisterRequest.validate_password(body.password)
     return register_user(body.username, body.email, body.password)
 
 
 @router.post("/auth/login")
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 def login(request: Request, body: AuthRequest):
     return login_user(body.username, body.password)

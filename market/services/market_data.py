@@ -18,7 +18,7 @@ Responsibilities:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 import pandas as pd
@@ -39,12 +39,12 @@ class MarketDataService:
 
     def __init__(
         self,
-        provider: Optional[HyperliquidProvider] = None,
-        cache: Optional[CacheManager] = None,
-        indicators: Optional[IndicatorService] = None,
-        features: Optional[FeatureStore] = None,
-        context: Optional[ContextService] = None,
-        intelligence: Optional[IntelligenceService] = None,
+        provider: HyperliquidProvider | None = None,
+        cache: CacheManager | None = None,
+        indicators: IndicatorService | None = None,
+        features: FeatureStore | None = None,
+        context: ContextService | None = None,
+        intelligence: IntelligenceService | None = None,
     ) -> None:
         self.provider = provider or HyperliquidProvider()
         self.cache = cache or CacheManager()
@@ -94,6 +94,7 @@ class MarketDataService:
             asset = Asset(
                 symbol=symbol,
                 metadata=AssetMetadata(symbol=symbol),
+                timeframe=timeframe,
             )
             self.cache.set(cache_key, asset, ttl=10)
             return asset
@@ -107,11 +108,12 @@ class MarketDataService:
             symbol=symbol,
             metadata=AssetMetadata(symbol=symbol),
             price=price,
+            timeframe=timeframe,
             ohlcv=ohlcv,
             indicators=indicators,
             features=features,
             context=ctx,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         asset = self.intelligence.enrich(asset)

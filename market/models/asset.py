@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 import pandas as pd
 
@@ -33,17 +33,18 @@ class Asset:
     metadata: AssetMetadata
 
     price: float = 0.0
-    ohlcv: Optional[pd.DataFrame] = None
+    timeframe: str = "1h"
+    ohlcv: pd.DataFrame | None = None
     indicators: dict[str, Any] = field(default_factory=dict)
     features: dict[str, Any] = field(default_factory=dict)
     context: dict[str, Any] = field(default_factory=dict)
 
     news: list[dict[str, Any]] = field(default_factory=list)
     whales: list[dict[str, Any]] = field(default_factory=list)
-    intelligence: Optional[IntelligenceBundle] = None
+    intelligence: IntelligenceBundle | None = None
 
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
     @classmethod
     def create(cls, symbol: str, price: float = 0.0) -> Asset:

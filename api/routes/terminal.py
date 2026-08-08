@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from services.terminal_service import TerminalService
 
@@ -72,3 +72,14 @@ def terminal_performance():
     """Performance metrics."""
     service = get_terminal()
     return service.get_performance()
+
+
+@router.get("/terminal/decision/{symbol}")
+def terminal_decision(symbol: str, timeframe: str = Query("1h")):
+    """Full aggregated decision (reasons, warnings, signals, timeline,
+    intelligence summary) for a single symbol."""
+    service = get_terminal()
+    result = service.get_decision(symbol, timeframe)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"No data available for {symbol}")
+    return result

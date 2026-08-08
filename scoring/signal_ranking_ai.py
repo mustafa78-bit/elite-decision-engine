@@ -36,7 +36,7 @@ class RankedSignal:
 class SignalRankingAI:
     """AI-driven signal ranking combining quality, confidence, and historical success."""
 
-    def __init__(self, weights: Optional[dict[str, float]] = None) -> None:
+    def __init__(self, weights: dict[str, float] | None = None) -> None:
         self.weights = weights or WEIGHTS
 
     def rank_signals(self, signals: list[dict[str, Any]]) -> list[RankedSignal]:

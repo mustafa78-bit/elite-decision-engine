@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
-from config import ACCOUNT_EQUITY, RISK_PER_TRADE_PERCENT
+from config import ACCOUNT_EQUITY, MAX_POSITION_SIZE_USD, RISK_PER_TRADE_PERCENT
 from database import get_session
 from exchange.base import ExchangeAdapter
 from exchange.exceptions import ExchangeError
@@ -16,7 +17,7 @@ from risk.models import (
     summarize_decision,
 )
 from risk_manager import RiskManager
-from scoring.regime_ai import get_regime_ai
+from scoring.regime_ai import RegimeAI, get_regime_ai
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +44,10 @@ class ExecutionGuard:
 
     def __init__(
         self,
-        exchange: Optional[ExchangeAdapter] = None,
-        regime_engine: Optional["RegimeAI"] = None,
+        exchange: ExchangeAdapter | None = None,
+        regime_engine: RegimeAI | None = None,
         session_factory: Callable[[], Any] = get_session,
-        market_service: Optional[Any] = None,
+        market_service: Any | None = None,
     ) -> None:
         self.exchange = exchange
         self.regime_engine = regime_engine or get_regime_ai()
@@ -134,8 +135,8 @@ class ExecutionGuard:
                 atr = float(indicators.get("atr", 0))
                 atr_pct = (atr / price) * 100 if price > 0 else 0
             else:
-                from market_data.indicators import IndicatorEngine
                 from market_data.collector import HyperliquidCollector
+                from market_data.indicators import IndicatorEngine
                 collector = HyperliquidCollector()
                 df = collector.get_ohlcv(symbol=symbol, timeframe="1h", limit=100)
                 if not df.empty:
@@ -183,33 +184,33 @@ class ExecutionGuard:
             logger.warning("Regime check failed: %s", e)
             metadata["regime"] = "UNKNOWN"
 
-        # 4. Delegate portfolio-level checks to RiskManager
-        candidate = _Candidate(symbol=symbol, entry=entry_price * quantity)
-        risk_mgr = RiskManager(session_factory=self.session_factory)
-        portfolio_decision = risk_mgr.evaluate_trade(candidate)
-        metadata["portfolio_decision"] = portfolio_decision
-        checks.extend(portfolio_decision.checks)
-        if not portfolio_decision.allowed:
-            decision = risk_decision_from_checks(checks, metadata)
-            summarize_decision(decision, "ExecutionGuard")
-            return decision
-
-        # 5. Position size vs account equity
+        # 4. Position size vs account equity / max position size limit (notional cap)
         notional = entry_price * quantity
-        max_notional = ACCOUNT_EQUITY * (RISK_PER_TRADE_PERCENT / 100.0)
+        max_notional = MAX_POSITION_SIZE_USD
         metadata["notional"] = round(notional, 2)
         metadata["max_notional"] = round(max_notional, 2)
         checks.append(RiskCheckDetail(
             name=RejectionCode.RISK_BUDGET_EXCEEDED,
             passed=notional <= max_notional,
             detail=(
-                f"Position size {notional:.2f} exceeds risk budget {max_notional:.2f}"
+                f"Position size {notional:.2f} exceeds max position size limit {max_notional:.2f}"
                 if notional > max_notional else ""
             ),
             value=round(notional, 2),
             limit=round(max_notional, 2),
         ))
         if notional > max_notional:
+            decision = risk_decision_from_checks(checks, metadata)
+            summarize_decision(decision, "ExecutionGuard")
+            return decision
+
+        # 5. Delegate portfolio-level checks to RiskManager
+        candidate = _Candidate(symbol=symbol, entry=entry_price * quantity)
+        risk_mgr = RiskManager(session_factory=self.session_factory)
+        portfolio_decision = risk_mgr.evaluate_trade(candidate)
+        metadata["portfolio_decision"] = portfolio_decision
+        checks.extend(portfolio_decision.checks)
+        if not portfolio_decision.allowed:
             decision = risk_decision_from_checks(checks, metadata)
             summarize_decision(decision, "ExecutionGuard")
             return decision
@@ -222,7 +223,7 @@ class ExecutionGuard:
         self,
         entry_price: float,
         stop_price: float,
-        account_equity: Optional[float] = None,
+        account_equity: float | None = None,
     ) -> float:
         """Calculate position size based on risk-per-trade."""
         equity = account_equity or float(ACCOUNT_EQUITY)

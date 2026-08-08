@@ -11,11 +11,11 @@ from database import (
     CLOSED,
     FILLED,
     OPEN,
+    ORDER_FINAL_STATUSES,
     PARTIALLY_FILLED,
     PENDING,
     STOP_LOSS,
     TAKE_PROFIT,
-    ORDER_FINAL_STATUSES,
     TRADE_FINAL_STATUSES,
 )
 

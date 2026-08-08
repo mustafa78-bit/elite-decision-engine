@@ -1,9 +1,9 @@
-"""Exchange flow analysis — computed from market conditions."""
+"""Exchange flow analysis — heuristic proxy, not real on-chain data."""
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -15,9 +15,9 @@ class ExchangeFlowService:
     def analyze(
         self,
         symbol: str,
-        volume_score: Optional[float] = None,
-        volatility_score: Optional[float] = None,
-        trend: Optional[str] = None,
+        volume_score: float | None = None,
+        volatility_score: float | None = None,
+        trend: str | None = None,
     ) -> dict[str, Any]:
         net_flow = 0.0
         signals: list[str] = []
@@ -49,5 +49,5 @@ class ExchangeFlowService:
             "direction": flow_direction,
             "signals": signals,
             "confidence": round(abs(net_flow), 2),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }

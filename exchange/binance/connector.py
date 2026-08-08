@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -33,8 +33,8 @@ class BinanceExchange(ExchangeAdapter):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
+        api_key: str | None = None,
+        api_secret: str | None = None,
         paper_mode: bool = True,
         timeout: int = 20,
     ) -> None:
@@ -47,7 +47,7 @@ class BinanceExchange(ExchangeAdapter):
         self._session = requests.Session()
         self._session.headers.update({"X-MBX-APIKEY": self.api_key})
 
-    def _request(self, method: str, path: str, params: Optional[dict] = None) -> dict | list:
+    def _request(self, method: str, path: str, params: dict | None = None) -> dict | list:
         url = f"{BASE_URL}{path}"
         try:
             resp = self._session.request(method, url, params=params, timeout=self.timeout)
@@ -64,7 +64,7 @@ class BinanceExchange(ExchangeAdapter):
         except requests.exceptions.HTTPError as e:
             raise MarketDataError(str(e)) from e
 
-    def _signed_request(self, method: str, path: str, params: Optional[dict] = None) -> dict | list:
+    def _signed_request(self, method: str, path: str, params: dict | None = None) -> dict | list:
         if not self.api_secret:
             raise AuthenticationError("API secret required for authenticated requests")
         params = params or {}
@@ -122,7 +122,7 @@ class BinanceExchange(ExchangeAdapter):
                 low=Decimal(str(entry[3])),
                 close=Decimal(str(entry[4])),
                 volume=Decimal(str(entry[5])),
-                timestamp=datetime.fromtimestamp(int(entry[0]) / 1000, tz=timezone.utc),
+                timestamp=datetime.fromtimestamp(int(entry[0]) / 1000, tz=UTC),
             ))
         return result
 
@@ -154,22 +154,57 @@ class BinanceExchange(ExchangeAdapter):
         except Exception as e:
             raise MarketDataError(str(e)) from e
 
-    def positions(self, symbol: Optional[str] = None) -> list[Position]:
+    def positions(self, symbol: str | None = None) -> list[Position]:
         if self.paper_mode:
-            from database import Trade, get_session
+            from database import PaperOrder, Trade, get_session
             session = get_session()
             try:
                 query = session.query(Trade).filter(Trade.status == "OPEN")
                 if symbol:
                     query = query.filter(Trade.symbol == symbol)
                 result: list[Position] = []
+                ticker_cache = {}
                 for t in query.all():
+                    # Look up matching PaperOrder for the open Trade
+                    orders = session.query(PaperOrder).filter(PaperOrder.trade_id == t.id).all()
+                    qty = Decimal("0")
+                    if orders:
+                        # Prioritize: FILLED, PARTIALLY_FILLED, PENDING, other. Tie-breaker: largest id (most recent)
+                        status_weights = {
+                            "FILLED": 4,
+                            "PARTIALLY_FILLED": 3,
+                            "PENDING": 2,
+                        }
+                        sorted_orders = sorted(
+                            orders,
+                            key=lambda o: (status_weights.get(str(o.status).upper(), 1), o.id or 0),
+                            reverse=True
+                        )
+                        best_order = sorted_orders[0]
+                        val = best_order.filled_quantity if best_order.filled_quantity is not None else best_order.quantity
+                        qty = Decimal(str(val or 0))
+                    else:
+                        logger.debug("Quantity is unknown for trade id %s; no matching PaperOrder found.", t.id)
+
+                    # Ticker fetching with per-symbol caching within this call
+                    sym = str(t.symbol)
+                    current_price = Decimal(str(t.entry))
+                    if sym not in ticker_cache:
+                        try:
+                            ticker_cache[sym] = self.ticker(sym).last
+                        except Exception as e:
+                            logger.warning("Failed to fetch current price for %s: %s", sym, e)
+                            ticker_cache[sym] = None
+
+                    if ticker_cache[sym] is not None:
+                        current_price = ticker_cache[sym]
+
                     result.append(Position(
-                        symbol=str(t.symbol),
+                        symbol=sym,
                         side=str(t.side),
-                        quantity=Decimal("1"),
+                        quantity=qty,
                         entry_price=Decimal(str(t.entry)),
-                        current_price=Decimal(str(t.entry)),
+                        current_price=current_price,
                         unrealized_pnl=Decimal(str(t.pnl or 0)),
                     ))
                 return result
@@ -203,7 +238,7 @@ class BinanceExchange(ExchangeAdapter):
             return True
         return False
 
-    def order_status(self, order_id: str, symbol: str) -> Optional[Order]:
+    def order_status(self, order_id: str, symbol: str) -> Order | None:
         return self._orders.get(order_id)
 
     def order_history(self, symbol: str, limit: int = 50) -> list[Order]:

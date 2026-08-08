@@ -35,8 +35,8 @@ def get_trade_timeline(trade_id: int):
 def get_global_timeline(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    event_type: Optional[str] = Query(None),
-    symbol: Optional[str] = Query(None),
+    event_type: str | None = Query(None),
+    symbol: str | None = Query(None),
 ):
     svc = _get_timeline_service()
     return svc.global_timeline(

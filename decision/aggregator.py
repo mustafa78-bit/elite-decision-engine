@@ -22,12 +22,12 @@ class DecisionAggregator:
 
     def __init__(
         self,
-        scanner: Optional[OpportunityScanner] = None,
-        market_service: Optional[MarketDataService] = None,
-        confidence_engine: Optional[ConfidenceEngineV2] = None,
-        timeline: Optional[DecisionTimeline] = None,
-        reason_builder: Optional[ReasonBuilder] = None,
-        risk_explanation: Optional[RiskExplanation] = None,
+        scanner: OpportunityScanner | None = None,
+        market_service: MarketDataService | None = None,
+        confidence_engine: ConfidenceEngineV2 | None = None,
+        timeline: DecisionTimeline | None = None,
+        reason_builder: ReasonBuilder | None = None,
+        risk_explanation: RiskExplanation | None = None,
     ) -> None:
         self.scanner = scanner or OpportunityScanner()
         self.market_service = market_service or MarketDataService()
@@ -37,7 +37,7 @@ class DecisionAggregator:
         self.risk_explanation = risk_explanation or RiskExplanation()
         self.signal_explanation = SignalExplanation()
 
-    def analyze(self, symbol: str, timeframe: str = "1h") -> Optional[DecisionResult]:
+    def analyze(self, symbol: str, timeframe: str = "1h") -> DecisionResult | None:
         asset = self.market_service.get_asset(symbol, timeframe)
         if asset.is_empty:
             return None
@@ -71,7 +71,12 @@ class DecisionAggregator:
 
         self.timeline.record(symbol, "decision", f"Decision: {decision} (confidence={conf:.1f})", source="DecisionAggregator")
 
-        signals = opportunity.signals + opportunity.probability_signals + opportunity.risk_signals
+        signals = (
+            opportunity.signals
+            + opportunity.probability_signals
+            + opportunity.risk_signals
+            + opportunity.confidence_signals
+        )
 
         result = DecisionResult(
             symbol=symbol,

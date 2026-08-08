@@ -10,9 +10,21 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
+from config import SCORE_WEIGHTS
 from execution.pipeline import TradingSignal
 from scoring.scoring_engine import ScoringEngine
+
+# TechnicalAgent deliberately excludes the "risk" term from SCORE_WEIGHTS --
+# RiskAgent covers that separately in the council -- but the remaining 4
+# weights (trend/volume/btc/mtf) only sum to 0.9, not 1.0, so a maximal
+# reading across all four could never actually reach a composite of 1.0.
+# Renormalizing by the weight actually in use here preserves the exact same
+# relative proportions between the 4 terms while restoring a real 0-1 range.
+_TECHNICAL_WEIGHT_SUM = (
+    SCORE_WEIGHTS["trend"] + SCORE_WEIGHTS["volume"] + SCORE_WEIGHTS["btc"] + SCORE_WEIGHTS["mtf"]
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +41,16 @@ class TechnicalAgent(BaseAgent):
         name: str = "Technical",
         weight: float = 1.0,
         priority: int = 5,
-        scoring_engine: Optional[ScoringEngine] = None,
+        scoring_engine: ScoringEngine | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority)
         self.scoring_engine = scoring_engine or ScoringEngine()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"
@@ -81,42 +93,41 @@ class TechnicalAgent(BaseAgent):
         ema200 = scores.get("ema200", 0)
 
         composite = (
-            trend_score * 0.30
-            + volume_score * 0.20
-            + btc_score * 0.20
-            + mtf_score * 0.20
-        )
+            trend_score * SCORE_WEIGHTS["trend"]
+            + volume_score * SCORE_WEIGHTS["volume"]
+            + btc_score * SCORE_WEIGHTS["btc"]
+            + mtf_score * SCORE_WEIGHTS["mtf"]
+        ) / _TECHNICAL_WEIGHT_SUM
 
         reasoning: list[str] = []
         direction = DIRECTION_NEUTRAL
         confidence = 0.5
 
-        if side.upper() == "LONG":
-            if ema20 > ema50 > ema200:
-                direction = DIRECTION_BULLISH
-                reasoning.append("Bullish EMA alignment (20 > 50 > 200)")
-            elif ema20 > ema50 and ema50 < ema200:
-                direction = DIRECTION_NEUTRAL
-                reasoning.append("Mixed EMA signals — short-term bullish, long-term bearish")
-            elif ema20 < ema50:
-                direction = DIRECTION_BEARISH
-                reasoning.append("Bearish EMA cross (20 below 50)")
-            else:
-                direction = DIRECTION_NEUTRAL
-                reasoning.append("Flat EMA structure")
+        # Compute literal market direction (ignoring trade side)
+        if ema20 > ema50 > ema200:
+            direction = DIRECTION_BULLISH
+            reasoning.append("Bullish EMA alignment (20 > 50 > 200)")
+        elif ema20 < ema50 < ema200:
+            direction = DIRECTION_BEARISH
+            reasoning.append("Bearish EMA alignment (20 < 50 < 200)")
+        elif ema20 > ema50 and ema50 < ema200:
+            direction = DIRECTION_NEUTRAL
+            reasoning.append("Mixed EMA signals — short-term bullish, long-term bearish")
+        elif ema20 < ema50 and ema50 > ema200:
+            direction = DIRECTION_NEUTRAL
+            reasoning.append("Mixed EMA signals — short-term bearish, long-term bullish")
+        elif ema20 < ema50:
+            direction = DIRECTION_BEARISH
+            reasoning.append("Bearish EMA cross (20 below 50)")
+        elif ema20 > ema50:
+            direction = DIRECTION_BULLISH
+            reasoning.append("Bullish EMA cross (20 above 50)")
         else:
-            if ema20 < ema50 < ema200:
-                direction = DIRECTION_BULLISH
-                reasoning.append("Bearish alignment confirmed (20 < 50 < 200)")
-            elif ema20 < ema50 and ema50 > ema200:
-                direction = DIRECTION_NEUTRAL
-                reasoning.append("Mixed EMA signals for short trade")
-            elif ema20 > ema50:
-                direction = DIRECTION_BEARISH
-                reasoning.append("Short-term bullish — unfavourable for short")
-            else:
-                direction = DIRECTION_NEUTRAL
-                reasoning.append("Flat EMA structure")
+            direction = DIRECTION_NEUTRAL
+            reasoning.append("Flat EMA structure")
+
+        # Now normalize relative to the trade side
+        direction = normalize_direction(direction, side)
 
         if rsi > 70:
             reasoning.append(f"RSI overbought ({rsi:.0f})")

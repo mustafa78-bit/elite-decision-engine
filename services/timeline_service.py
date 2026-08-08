@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
-from database import Signal, Trade, get_session
+from database import PaperTrade, Signal, Trade, get_session
 
 logger = logging.getLogger(__name__)
 
 
+def _dollar_pnl(trade: Trade, paper_trade: PaperTrade | None) -> float:
+    qty = float(paper_trade.quantity) if (paper_trade is not None and paper_trade.quantity is not None) else 1.0
+    return (trade.pnl or 0.0) * qty
+
+
 class TimelineService:
-    def __init__(self, session_factory: Optional[Callable[[], Any]] = None):
+    def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
     def signal_timeline(self, signal_id: int) -> list[dict[str, Any]]:
@@ -33,10 +39,11 @@ class TimelineService:
                     "data": {"trade_id": trade.id, "entry": trade.entry, "status": trade.status},
                 })
                 if trade.closed_at:
+                    paper_trade = session.query(PaperTrade).filter(PaperTrade.position_id == trade.id).first()
                     events.append({
                         "type": "trade_closed",
                         "timestamp": trade.closed_at.isoformat() if trade.closed_at else None,
-                        "data": {"pnl": trade.pnl, "close_reason": trade.close_reason},
+                        "data": {"pnl": _dollar_pnl(trade, paper_trade), "close_reason": trade.close_reason},
                     })
             return events
         finally:
@@ -55,10 +62,15 @@ class TimelineService:
                 "data": {"symbol": trade.symbol, "side": trade.side, "entry": trade.entry, "status": trade.status},
             })
             if trade.closed_at:
+                paper_trade = session.query(PaperTrade).filter(PaperTrade.position_id == trade.id).first()
                 events.append({
                     "type": "trade_closed",
                     "timestamp": trade.closed_at.isoformat() if trade.closed_at else None,
-                    "data": {"pnl": trade.pnl, "close_reason": trade.close_reason, "exit_price": trade.exit_price},
+                    "data": {
+                        "pnl": _dollar_pnl(trade, paper_trade),
+                        "close_reason": trade.close_reason,
+                        "exit_price": trade.exit_price,
+                    },
                 })
             return events
         finally:
@@ -66,8 +78,8 @@ class TimelineService:
 
     def global_timeline(
         self, limit: int = 50, offset: int = 0,
-        event_type: Optional[str] = None,
-        symbol: Optional[str] = None,
+        event_type: str | None = None,
+        symbol: str | None = None,
     ) -> dict[str, Any]:
         session = self.session_factory()
         try:
@@ -84,8 +96,14 @@ class TimelineService:
                     "symbol": s.symbol, "side": s.side, "status": s.status,
                     "timestamp": s.created_at.isoformat() if s.created_at else None,
                 })
-            trades = session.query(Trade).order_by(Trade.created_at.desc()).limit(limit).all()
-            for t in trades:
+            trade_rows = (
+                session.query(Trade, PaperTrade)
+                .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+                .order_by(Trade.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+            for t, pt in trade_rows:
                 if symbol and t.symbol != symbol:
                     continue
                 if event_type and event_type not in ("trade", "trade_created", "trade_closed"):
@@ -94,7 +112,7 @@ class TimelineService:
                     "type": "trade_created" if t.status == "OPEN" else "trade_closed",
                     "id": t.id,
                     "symbol": t.symbol, "side": t.side, "entry": t.entry,
-                    "status": t.status, "pnl": t.pnl,
+                    "status": t.status, "pnl": _dollar_pnl(t, pt),
                     "timestamp": t.created_at.isoformat() if t.created_at else None,
                 })
             events.sort(key=lambda e: e.get("timestamp") or "", reverse=True)

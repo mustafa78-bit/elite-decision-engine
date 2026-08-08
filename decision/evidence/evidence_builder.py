@@ -45,6 +45,12 @@ class EvidenceBuilder:
         all_risk_notes: list[str] = []
         all_sources: dict[str, SourceTrace] = {}
 
+        side = "LONG"
+        if decision_result is not None:
+            side = getattr(decision_result, "side", "LONG") or "LONG"
+        elif scanner_result is not None:
+            side = getattr(scanner_result, "side", "LONG") or "LONG"
+
         if decision_result is not None:
             items = parse_decision_result(decision_result, symbol)
             all_items.extend(items)
@@ -66,11 +72,11 @@ class EvidenceBuilder:
             all_items.extend(items)
 
         if market_regime_result is not None:
-            items = parse_market_regime(market_regime_result)
+            items = parse_market_regime(market_regime_result, side=side)
             all_items.extend(items)
 
         if whale_result is not None:
-            items = parse_whale_result(whale_result)
+            items = parse_whale_result(whale_result, side=side)
             all_items.extend(items)
 
         if explain_result is not None:

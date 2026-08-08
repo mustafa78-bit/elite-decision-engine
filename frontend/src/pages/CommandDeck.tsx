@@ -2,12 +2,35 @@ import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { useSubsystems } from "../hooks/useSubsystems"
 import { computeMissionStatus } from "../types/mission"
-import OLLOCommander from "../components/hq/OLLOCommander"
-import MissionRing from "../components/hq/MissionRing"
+import { NexusDashboard } from "../components/hq/NexusDashboard"
 import MissionFlow from "../components/hq/MissionFlow"
 import SubsystemHealthBar from "../components/hq/SubsystemHealthBar"
 import HQLoadingScreen from "../components/hq/HQLoadingScreen"
 import type { SubsystemStatus } from "../types/system"
+
+// Merged components/imports from AIExperience
+import { SignalFeed } from "../components/ai/signal-feed"
+import { AnalysisDashboard } from "../components/ai/analysis-dashboard"
+import ScannerOpportunitiesPanel from "../components/dashboard/ScannerOpportunitiesPanel"
+import { apiFetch } from "../api/client"
+
+interface SignalData {
+  id: number;
+  symbol: string;
+  side: string;
+  decision: string;
+  confidence: number;
+  final_score: number;
+  price: number | null;
+  created_at: string | null;
+}
+
+interface MarketData {
+  price: number;
+  regime: string;
+  volatility: number;
+  rsi: number;
+}
 
 function statusColor(status: SubsystemStatus): string {
   switch (status) {
@@ -61,11 +84,53 @@ function ProgressLine({ value, label, color }: { value: number; label: string; c
 
 export default function CommandDeck() {
   const [showLoading, setShowLoading] = useState(true)
+  const [signals, setSignals] = useState<SignalData[]>([])
+  const [marketData, setMarketData] = useState<MarketData | null>(null)
 
   const {
     scanner, risk, council, portfolio, whale, market, evidence,
     ollo, aiHealth, loading,
   } = useSubsystems()
+
+  // Fetch signals & market data for surrounding dashboard panels
+  useEffect(() => {
+    let mounted = true
+    Promise.all([
+      apiFetch<SignalData[]>("/signals?limit=10").catch(() => [] as SignalData[]),
+      apiFetch<{ price?: number; regime?: string; volatility?: number; rsi?: number }>("/market").catch((): { price?: number; regime?: string; volatility?: number; rsi?: number } => ({})),
+    ]).then(([sigData, mktData]) => {
+      if (!mounted) return
+      setSignals(Array.isArray(sigData) ? sigData : [])
+      if (mktData.price) {
+        setMarketData({
+          price: mktData.price,
+          regime: mktData.regime || "UNKNOWN",
+          volatility: mktData.volatility || 0,
+          rsi: mktData.rsi || 50,
+        })
+      }
+    })
+    return () => { mounted = false }
+  }, [])
+
+  const signalItems = useMemo(() => signals.slice(0, 5).map((s) => ({
+    id: String(s.id),
+    symbol: s.symbol,
+    direction: (s.side === "BUY" || s.side === "LONG" ? "BUY" : s.side === "SELL" || s.side === "SHORT" ? "SELL" : "NEUTRAL") as "BUY" | "SELL" | "NEUTRAL",
+    strength: s.final_score,
+    strategy: s.decision || "AI Signal",
+    price: s.price || 0,
+    timestamp: s.created_at || new Date().toISOString(),
+  })), [signals])
+
+  const analysisItems = useMemo(() => marketData
+    ? [
+        { label: "Trend", value: marketData.regime, score: marketData.regime === "TREND" ? 82 : marketData.regime === "DOWNTREND" ? 25 : 50, status: (marketData.regime === "TREND" ? "bullish" : marketData.regime === "DOWNTREND" ? "bearish" : "neutral") as "bullish" | "bearish" | "neutral" },
+        { label: "Momentum", value: marketData.rsi >= 60 ? "Positive" : marketData.rsi <= 40 ? "Negative" : "Neutral", score: marketData.rsi, status: (marketData.rsi >= 60 ? "bullish" : marketData.rsi <= 40 ? "bearish" : "neutral") as "bullish" | "bearish" | "neutral" },
+        { label: "Volatility", value: marketData.volatility >= 0.5 ? "High" : marketData.volatility >= 0.2 ? "Moderate" : "Low", score: Math.round(marketData.volatility * 100), status: "neutral" as const },
+        { label: "Price", value: `$${marketData.price.toLocaleString()}`, score: 50, status: "neutral" as const },
+      ]
+    : [], [marketData])
 
   const decisionQuality = evidence.data?.decision_quality ?? null
   const warnings = evidence.data?.warnings ?? []
@@ -82,15 +147,6 @@ export default function CommandDeck() {
   )
 
   const currentMission = ollo.briefing?.title || ollo.status.data?.current_mission_profile?.replace(/_/g, " ") || undefined
-
-  const sectors = useMemo(() => [
-    { label: "Scanner", status: scanner.status },
-    { label: "Council", status: council.status },
-    { label: "Risk", status: risk.status },
-    { label: "Portfolio", status: portfolio.status },
-    { label: "Whale", status: whale.status },
-    { label: "Market", status: market.status },
-  ], [scanner.status, council.status, risk.status, portfolio.status, whale.status, market.status])
 
   const flowNodes = useMemo(() => [
     { label: "Scanner" as const, active: scanner.status === "ONLINE", color: statusColor(scanner.status) },
@@ -132,13 +188,23 @@ export default function CommandDeck() {
       {showLoading && <HQLoadingScreen />}
 
       <motion.div
-        className="h-full flex flex-col"
+        className="h-full flex flex-col overflow-y-auto"
         initial={{ opacity: 0 }}
         animate={{ opacity: showLoading ? 0 : 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        {/* ====== TOP BAR ====== */}
-        <header
+        {/* ====== NEXUS HERO: just the brain + voice/chat console, no cards ====== */}
+        <NexusDashboard
+          olloGreeting={ollo.greeting}
+          olloBriefing={ollo.briefing}
+          olloLoading={loading && !ollo.greeting}
+          olloError={ollo.status.error}
+          onEnterCommandDeck={() => document.getElementById("command-deck-panels")?.scrollIntoView({ behavior: "smooth" })}
+        />
+
+        {/* ====== MISSION STATUS STRIP ====== */}
+        <div
+          id="command-deck-panels"
           className="flex items-center justify-between shrink-0"
           style={{
             height: 38,
@@ -211,46 +277,52 @@ export default function CommandDeck() {
               </span>
             )}
           </div>
-        </header>
+        </div>
 
-        {/* ====== CONTENT — unified vertical flow ====== */}
-        <div className="flex-1 overflow-y-auto">
-          {/* 1 + 2: OLLO + Mission Ring */}
-          <div className="hq-section flex flex-col items-center py-10">
-            <div className="relative flex flex-col items-center">
-              <OLLOCommander
-                greeting={ollo.greeting}
-                briefing={ollo.briefing}
-                loading={loading && !ollo.greeting}
-                error={ollo.status.error}
-              />
-              <div className="mt-6">
-                <MissionRing sectors={sectors} />
-              </div>
-            </div>
+        {/* ====== CONTENT — Evidence, Mission Flow & Merged AI Experience Side Panels ====== */}
+        <div className="flex-1 grid grid-cols-1 xl:grid-cols-4 gap-6 p-6">
+
+          {/* Side Panel Left: Signal Feed + Ranked Opportunities */}
+          <div className="xl:col-span-1 flex flex-col gap-6">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <SignalFeed signals={signalItems} />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <ScannerOpportunitiesPanel />
+            </motion.div>
           </div>
 
-          {/* 3: Current Recommendation */}
-          {recommendation && (
-            <div className="hq-section">
-              <div className="max-w-xl mx-auto">
+          {/* Centre: Recommendation / Evidence / Mission Flow */}
+          <div className="xl:col-span-2 flex flex-col items-center gap-6">
+            {/* Recommendation (Grounded details) */}
+            {recommendation && (
+              <div className="w-full max-w-xl">
                 <div className="hq-section-label">Current Recommendation</div>
-                <p
-                  className="text-sm font-semibold leading-snug"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {recommendation}
-                </p>
+                <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+                  <p
+                    className="text-xs font-semibold leading-relaxed"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {recommendation}
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 4: Evidence */}
-          {(confidence !== null || strength !== null || explainability !== null) && (
-            <div className="hq-section">
-              <div className="max-w-xl mx-auto">
-                <div className="hq-section-label">Evidence</div>
-                <div className="space-y-2">
+            {/* Evidence details */}
+            {(confidence !== null || strength !== null || explainability !== null) && (
+              <div className="w-full max-w-xl">
+                <div className="hq-section-label">Evidence Analysis</div>
+                <div className="space-y-3 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
                   {confidence !== null && (
                     <ProgressLine
                       value={confidence}
@@ -264,38 +336,48 @@ export default function CommandDeck() {
                   {explainability !== null && (
                     <ProgressLine value={explainability} label="Explainability" color="#8B5CF6" />
                   )}
+
+                  {/* Counts */}
+                  {(supportingCount !== null || conflictCount !== null || warningCount !== null) && (
+                    <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[var(--border-subtle)]">
+                      {supportingCount !== null && (
+                        <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                          <span style={{ color: "#3EDC97" }}>{supportingCount}</span> supporting
+                        </span>
+                      )}
+                      {conflictCount !== null && conflictCount > 0 && (
+                        <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                          <span style={{ color: "#FF5D73" }}>{conflictCount}</span> conflicting
+                        </span>
+                      )}
+                      {warningCount !== null && warningCount > 0 && (
+                        <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
+                          <span style={{ color: "#FFB547" }}>{warningCount}</span> warnings
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-
-                {/* Counts */}
-                {(supportingCount !== null || conflictCount !== null || warningCount !== null) && (
-                  <div className="flex items-center gap-4 mt-3">
-                    {supportingCount !== null && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#3EDC97" }}>{supportingCount}</span> supporting
-                      </span>
-                    )}
-                    {conflictCount !== null && conflictCount > 0 && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#FF5D73" }}>{conflictCount}</span> conflicting
-                      </span>
-                    )}
-                    {warningCount !== null && warningCount > 0 && (
-                      <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                        <span style={{ color: "#FFB547" }}>{warningCount}</span> warnings
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 5: Mission Flow */}
-          <div className="hq-section">
-            <div className="max-w-2xl mx-auto">
+            {/* Mission Flow */}
+            <div className="w-full max-w-xl">
               <MissionFlow nodes={flowNodes} />
             </div>
           </div>
+
+          {/* Side Panel Right: Market Analysis */}
+          <div className="xl:col-span-1 flex flex-col gap-6">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <AnalysisDashboard symbol="BTC/USDT" items={analysisItems} />
+            </motion.div>
+          </div>
+
         </div>
 
         {/* ====== BOTTOM: Subsystem Health ====== */}

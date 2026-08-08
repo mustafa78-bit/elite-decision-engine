@@ -1,6 +1,7 @@
 """Tests for Decision Intelligence modules."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from decision.aggregator import DecisionAggregator
@@ -36,6 +37,47 @@ class TestConfidenceEngineV2:
         conf = self.engine.evaluate_opportunity(opp)
         assert conf >= 0
 
+    def test_evaluate_opportunity_side_awareness(self):
+        from market.intelligence.models import IntelligenceBundle
+        from scanner.models import Opportunity
+
+        opp_long = Opportunity(symbol="BTCUSDT", side="LONG", strategy="trend", score=0.5, confidence=50.0)
+        opp_short = Opportunity(symbol="BTCUSDT", side="SHORT", strategy="trend", score=0.5, confidence=50.0)
+
+        # btc_trend == "BULLISH": LONG +5, SHORT -5
+        asset_bullish_btc = Asset(
+            symbol="BTC", metadata=AssetMetadata(symbol="BTC"),
+            context={"btc": {"btc_trend": "BULLISH"}},
+        )
+        assert self.engine.evaluate_opportunity(opp_long, asset_bullish_btc) == 55.0
+        assert self.engine.evaluate_opportunity(opp_short, asset_bullish_btc) == 45.0
+
+        # btc_trend == "BEARISH": LONG -5, SHORT +5
+        asset_bearish_btc = Asset(
+            symbol="BTC", metadata=AssetMetadata(symbol="BTC"),
+            context={"btc": {"btc_trend": "BEARISH"}},
+        )
+        assert self.engine.evaluate_opportunity(opp_long, asset_bearish_btc) == 45.0
+        assert self.engine.evaluate_opportunity(opp_short, asset_bearish_btc) == 55.0
+
+        # fear_greed < 20 (extreme fear): LONG +8, SHORT -5 (plus intel_conf 1.0*10-5=+5 both sides)
+        bundle_fear = IntelligenceBundle(
+            symbol="BTC",
+            fear_greed={"value": 15, "label": "EXTREME_FEAR", "confidence": 1.0},
+        )
+        asset_fear = Asset(symbol="BTC", metadata=AssetMetadata(symbol="BTC"), intelligence=bundle_fear)
+        assert self.engine.evaluate_opportunity(opp_long, asset_fear) == 63.0
+        assert self.engine.evaluate_opportunity(opp_short, asset_fear) == 50.0
+
+        # fear_greed > 80 (extreme greed): LONG -5, SHORT +8 (plus intel_conf +5 both sides)
+        bundle_greed = IntelligenceBundle(
+            symbol="BTC",
+            fear_greed={"value": 85, "label": "EXTREME_GREED", "confidence": 1.0},
+        )
+        asset_greed = Asset(symbol="BTC", metadata=AssetMetadata(symbol="BTC"), intelligence=bundle_greed)
+        assert self.engine.evaluate_opportunity(opp_long, asset_greed) == 50.0
+        assert self.engine.evaluate_opportunity(opp_short, asset_greed) == 63.0
+
     def test_evaluate_asset_long_bullish(self):
         df = pd.DataFrame({"close": [100] * 50, "volume": [50] * 50})
         asset = Asset(
@@ -49,7 +91,6 @@ class TestConfidenceEngineV2:
         assert conf > 50
 
     def test_evaluate_asset_short_bearish(self):
-        df = pd.DataFrame({"close": [100] * 50, "volume": [50] * 50})
         asset = Asset(
             symbol="BTC", metadata=AssetMetadata(symbol="BTC"),
             indicators={"rsi": 50},
@@ -146,8 +187,8 @@ class TestReasonBuilder:
         assert any("false" in w.lower() for w in warnings)
 
     def test_build_with_intelligence(self):
-        from scanner.models import Opportunity
         from market.intelligence.models import IntelligenceBundle
+        from scanner.models import Opportunity
         opp = Opportunity(
             symbol="BTCUSDT", side="LONG", strategy="trend",
             score=0.6, confidence=60.0,

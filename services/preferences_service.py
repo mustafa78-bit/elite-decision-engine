@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 from database import UserSettings, get_session
 
@@ -9,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class PreferencesService:
-    def __init__(self, session_factory: Optional[Callable[[], Any]] = None):
+    def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
-    def get_preferences(self, user_id: int) -> Optional[dict[str, Any]]:
+    def get_preferences(self, user_id: int) -> dict[str, Any] | None:
         session = self.session_factory()
         try:
             row = session.query(UserSettings).filter(UserSettings.user_id == user_id).first()

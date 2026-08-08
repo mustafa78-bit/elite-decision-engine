@@ -32,6 +32,12 @@ def _make_signal(db_session, **overrides):
 
 
 def _make_trade(db_session, signal_id=1, status="OPEN", pnl=None, **overrides):
+    if signal_id is not None:
+        existing_signal = db_session.query(Signal).filter(Signal.id == signal_id).first()
+        if not existing_signal:
+            sig = Signal(id=signal_id, symbol=overrides.get("symbol", "BTCUSDT"), side=overrides.get("side", "LONG"))
+            db_session.add(sig)
+            db_session.flush()
     kwargs = dict(
         signal_id=signal_id,
         symbol="BTCUSDT",
@@ -171,6 +177,77 @@ def test_get_paper_trading_with_trades(api_client, db_session):
     assert body["performance"]["total_pnl"] == 500.0
 
 
+def test_get_paper_trading_mixed_quantities(api_client, db_session):
+    from database import PaperTrade
+
+    # 1. Open trade with no matching PaperTrade (falls back to Trade.pnl)
+    _make_trade(db_session, id=10, signal_id=1, status="OPEN", pnl=10.0)
+
+    # 2. Closed trade: entry $3,000, exit $3,050 (pnl $50 per unit), quantity 0.2
+    # Real dollar PnL = $50 * 0.2 = $10.0
+    t2 = _make_trade(
+        db_session, id=11, signal_id=2, status="CLOSED", pnl=50.0,
+        entry=3000.0, exit_price=3050.0,
+    )
+    db_session.add(PaperTrade(
+        position_id=t2.id,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=3000.0,
+        exit_price=3050.0,
+        quantity=0.2,
+        pnl=50.0,
+        status="CLOSED",
+    ))
+
+    # 3. Closed trade: entry $100, exit $90 (pnl -$10 per unit), quantity 5.0
+    # Real dollar PnL = -$10 * 5.0 = -$50.0
+    t3 = _make_trade(
+        db_session, id=12, signal_id=3, status="CLOSED", pnl=-10.0,
+        entry=100.0, exit_price=90.0,
+    )
+    db_session.add(PaperTrade(
+        position_id=t3.id,
+        symbol="ETHUSDT",
+        side="LONG",
+        entry=100.0,
+        exit_price=90.0,
+        quantity=5.0,
+        pnl=-10.0,
+        status="CLOSED",
+    ))
+
+    # 4. Closed trade with no matching PaperTrade (falls back to Trade.pnl, quantity=1.0)
+    # Real dollar PnL = -$5.0
+    _make_trade(
+        db_session, id=13, signal_id=4, status="CLOSED", pnl=-5.0,
+        entry=150.0, exit_price=145.0,
+    )
+
+    db_session.flush()
+
+    resp = api_client.get("/paper-trading")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    assert len(body["open"]) == 1
+    assert body["open"][0]["id"] == 10
+    assert body["open"][0]["pnl"] == 10.0  # falls back to Trade.pnl
+
+    assert len(body["closed"]) == 3
+    closed_by_id = {item["id"]: item for item in body["closed"]}
+
+    # Trade 11: real dollar pnl = 50.0 * 0.2 = 10.0
+    assert closed_by_id[11]["pnl"] == 10.0
+    # Trade 12: real dollar pnl = -10.0 * 5.0 = -50.0
+    assert closed_by_id[12]["pnl"] == -50.0
+    # Trade 13: fallback (no PaperTrade) -> raw pnl -5.0
+    assert closed_by_id[13]["pnl"] == -5.0
+
+    # Total: 10.0 + (-50.0) + (-5.0) = -45.0
+    assert body["performance"]["total_pnl"] == -45.0
+
+
 # ─── Execution Status ──────────────────────────────────────────────────────
 
 
@@ -288,14 +365,14 @@ def test_delete_journal(api_client):
 
 def test_update_journal_missing(api_client):
     resp = api_client.put("/journal/99999", json={"result": "WIN"})
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 def test_delete_journal_missing(api_client):
     resp = api_client.delete("/journal/99999")
-    assert resp.status_code == 200
-    assert "not found" in resp.json().get("error", "").lower()
+    assert resp.status_code == 404
+    assert "not found" in resp.json().get("detail", "").lower()
 
 
 # ─── Backtest ──────────────────────────────────────────────────────────────
@@ -310,18 +387,66 @@ def test_get_backtest_empty(api_client):
 
 
 def test_get_backtest_with_data(api_client, db_session):
-    _make_signal(db_session, status="EXECUTED", approved=True, confidence=90.0)
-    _make_signal(db_session, status="REJECTED", approved=False, confidence=30.0)
-    _make_trade(db_session, signal_id=1, status="CLOSED", pnl=500.0)
-    _make_trade(db_session, signal_id=2, status="CLOSED", pnl=-200.0)
+    _make_signal(db_session, id=1, status="EXECUTED", approved=True, confidence=90.0)
+    _make_signal(db_session, id=2, status="REJECTED", approved=False, confidence=30.0)
+    _make_signal(db_session, id=3, status="CANCELLED", approved=False, confidence=10.0)
+    _make_trade(db_session, signal_id=1, status="TP_HIT", pnl=500.0)
+    _make_trade(db_session, signal_id=2, status="SL_HIT", pnl=-200.0)
+    _make_trade(db_session, signal_id=3, status="CANCEL", pnl=0.0)
     resp = api_client.get("/backtest")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["summary"]["total_signals"] == 2
+    assert body["summary"]["total_signals"] == 3
     assert body["summary"]["approved_signals"] == 1
-    assert body["trades"]["total"] == 2
-    assert body["trades"]["closed"] == 2
+    assert body["trades"]["total"] == 3
+    assert body["trades"]["closed"] == 3
+    assert body["trades"]["wins"] == 1
+    assert body["trades"]["losses"] == 1
     assert body["performance"]["total_pnl"] == 300.0
+    assert body["performance"]["win_rate_pct"] == 50.0
+    assert body["performance"]["avg_win"] == 500.0
+    assert body["performance"]["avg_loss"] == 200.0
+    assert body["performance"]["profit_factor"] == 2.5
+    assert body["performance"]["max_drawdown"] == 200.0
+
+
+def test_get_backtest_mixed_quantities(api_client, db_session):
+    from database import PaperTrade
+
+    _make_signal(db_session, id=1, status="EXECUTED", approved=True, confidence=90.0)
+    _make_signal(db_session, id=2, status="EXECUTED", approved=True, confidence=90.0)
+
+    # Trade A: raw per-unit pnl 500.0, quantity 0.1 -> real dollar pnl 50.0
+    t1 = _make_trade(db_session, signal_id=1, status="TP_HIT", pnl=500.0)
+    db_session.add(PaperTrade(
+        position_id=t1.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, exit_price=55000.0, quantity=0.1, pnl=500.0, status="CLOSED",
+    ))
+
+    # Trade B: raw per-unit pnl -200.0, quantity 2.0 -> real dollar pnl -400.0
+    t2 = _make_trade(db_session, signal_id=2, status="SL_HIT", pnl=-200.0)
+    db_session.add(PaperTrade(
+        position_id=t2.id, symbol="ETHUSDT", side="LONG",
+        entry=3000.0, exit_price=2800.0, quantity=2.0, pnl=-200.0, status="CLOSED",
+    ))
+    db_session.flush()
+
+    resp = api_client.get("/backtest")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # Real dollar pnls: [50.0, -400.0] -> total -350.0
+    assert body["performance"]["total_pnl"] == -350.0
+    assert body["performance"]["roi_pct"] == -87.5
+    assert body["performance"]["avg_win"] == 50.0
+    assert body["performance"]["avg_loss"] == 400.0
+    assert body["performance"]["profit_factor"] == 0.12
+    assert body["performance"]["max_drawdown"] == 400.0
+    assert body["performance"]["sharpe_ratio"] == -0.55
+
+    # Sign-based counts are unaffected by quantity
+    assert body["trades"]["wins"] == 1
+    assert body["trades"]["losses"] == 1
     assert body["performance"]["win_rate_pct"] == 50.0
 
 
@@ -445,6 +570,7 @@ def test_get_users_me_with_auth(api_client, db_session):
 
 def test_get_users_me_no_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/users/me")
@@ -600,6 +726,7 @@ def test_register_missing_fields(api_client):
 
 def test_get_signals_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/signals")
@@ -608,6 +735,7 @@ def test_get_signals_requires_auth():
 
 def test_get_risk_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/risk")
@@ -616,6 +744,7 @@ def test_get_risk_requires_auth():
 
 def test_get_portfolio_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/portfolio")
@@ -624,6 +753,7 @@ def test_get_portfolio_requires_auth():
 
 def test_get_performance_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/performance")
@@ -632,6 +762,7 @@ def test_get_performance_requires_auth():
 
 def test_get_position_sizing_requires_auth():
     from fastapi.testclient import TestClient
+
     from api.main import app
     client = TestClient(app)
     resp = client.get("/position-sizing")
@@ -712,3 +843,98 @@ def test_db_tables_in_health_details(api_client):
     assert resp.status_code == 200
     tbl = resp.json().get("database_tables", {})
     assert "status" in tbl
+
+
+# ─── Council ───────────────────────────────────────────────────────────────
+
+
+def test_get_council_status_endpoint(api_client):
+    resp = api_client.get("/council")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "agents" in body
+    assert "agent_count" in body
+
+
+# ─── Whale Activity ────────────────────────────────────────────────────────
+
+
+def test_get_whale_activity_endpoint(api_client):
+    resp = api_client.get("/whale/activity")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)
+
+
+def test_get_risk_mixed_quantities(api_client, db_session):
+    from database import PaperTrade, Trade
+    # Clear previous trades
+    db_session.query(Trade).delete()
+    db_session.query(PaperTrade).delete()
+    db_session.flush()
+
+    # 1. Open trade with quantity = 2.0 (exposure = 50000.0 * 2.0 = 100000.0)
+    t1 = Trade(
+        symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49250.0,
+        tp1=51000.0, tp2=52000.0, rr=2.0, status="OPEN", pnl=0.0
+    )
+    db_session.add(t1)
+    db_session.flush()
+    pt1 = PaperTrade(
+        position_id=t1.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=2.0, status="OPEN", pnl=0.0
+    )
+    db_session.add(pt1)
+
+    # 2. Open trade with NO matching PaperTrade record (fallback qty = 1.0, exposure = 3000.0 * 1.0 = 3000.0)
+    t2 = Trade(
+        symbol="ETHUSDT", side="LONG", entry=3000.0, stop=2900.0,
+        tp1=3200.0, tp2=3300.0, rr=2.0, status="OPEN", pnl=0.0
+    )
+    db_session.add(t2)
+    db_session.flush()
+
+    headers = {"Authorization": f"Bearer {_token_for_user(_make_user(db_session))}"}
+    resp = api_client.get("/risk", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["open_trades"] == 2
+    # Portfolio exposure should be 100000.0 + 3000.0 = 103000.0
+    assert body["portfolio_exposure"] == 103000.0
+    assert body["symbol_exposure"]["BTCUSDT"] == 100000.0
+    assert body["symbol_exposure"]["ETHUSDT"] == 3000.0
+
+
+def test_get_intelligence_mixed_quantities(api_client, db_session):
+    from database import PaperTrade, Trade
+    # Clear previous trades
+    db_session.query(Trade).delete()
+    db_session.query(PaperTrade).delete()
+    db_session.flush()
+
+    # 1. Closed trade with quantity = 3.0 (real dollar pnl = 100.0 * 3.0 = 300.0)
+    t1 = Trade(
+        symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49250.0,
+        tp1=51000.0, tp2=52000.0, rr=2.0, status="TP_HIT", pnl=100.0
+    )
+    db_session.add(t1)
+    db_session.flush()
+    pt1 = PaperTrade(
+        position_id=t1.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=3.0, status="CLOSED", pnl=300.0
+    )
+    db_session.add(pt1)
+
+    # 2. Closed trade with NO matching PaperTrade record (fallback qty = 1.0, real dollar pnl = -50.0 * 1.0 = -50.0)
+    t2 = Trade(
+        symbol="ETHUSDT", side="LONG", entry=3000.0, stop=2900.0,
+        tp1=3200.0, tp2=3300.0, rr=2.0, status="SL_HIT", pnl=-50.0
+    )
+    db_session.add(t2)
+    db_session.flush()
+
+    resp = api_client.get("/intelligence")
+    assert resp.status_code == 200
+    body = resp.json()
+    # Total PnL should be 300.0 - 50.0 = 250.0
+    assert body["trades"]["total_pnl"] == 250.0

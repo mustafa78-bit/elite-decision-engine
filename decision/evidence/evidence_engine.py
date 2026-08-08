@@ -13,7 +13,7 @@ class EvidenceEngine:
     def __init__(self) -> None:
         self._builder = EvidenceBuilder()
         self._reports: dict[str, EvidenceReport] = {}
-        self._latest: Optional[EvidenceReport] = None
+        self._latest: EvidenceReport | None = None
 
     def build(
         self,
@@ -52,10 +52,10 @@ class EvidenceEngine:
         )
         return report
 
-    def get(self, decision_id: str) -> Optional[EvidenceReport]:
+    def get(self, decision_id: str) -> EvidenceReport | None:
         return self._reports.get(decision_id)
 
-    def latest(self) -> Optional[EvidenceReport]:
+    def latest(self) -> EvidenceReport | None:
         return self._latest
 
     def timeline(self, decision_id: str) -> list[dict[str, Any]]:

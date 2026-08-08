@@ -10,6 +10,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 from scoring.regime_ai import RegimeAI
@@ -46,22 +47,22 @@ class TrendAgent(BaseAgent):
         name: str = "Trend",
         weight: float = 1.0,
         priority: int = 5,
-        regime_ai: Optional[RegimeAI] = None,
+        regime_ai: RegimeAI | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority)
         self.regime_ai = regime_ai or RegimeAI()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"
         side = getattr(signal, "side", "LONG") if signal else "LONG"
 
-        values: Optional[dict[str, Any]] = None
+        values: dict[str, Any] | None = None
         if scores:
             values = {
                 "ema20": scores.get("ema20"),
@@ -88,6 +89,8 @@ class TrendAgent(BaseAgent):
         if direction == DIRECTION_NEUTRAL:
             direction = TREND_MAP.get(trend, DIRECTION_NEUTRAL)
 
+        direction = normalize_direction(direction, side)
+
         reasoning: list[str] = []
         if regime != "UNKNOWN":
             reasoning.append(f"Regime: {regime}")
@@ -98,15 +101,18 @@ class TrendAgent(BaseAgent):
         if volatility_class != "UNKNOWN":
             reasoning.append(f"Volatility: {volatility_class}")
 
+        # TREND and DOWNTREND are mirror-image, equally-strong "fully aligned
+        # trend" regimes (RegimeAI classifies them symmetrically) -- once
+        # direction has already been side-normalized above, confidence must
+        # be symmetric too, not keyed off which literal direction the trend
+        # happened to point.
         direction_score = 0.5
-        if regime == "TREND":
+        if regime in ("TREND", "DOWNTREND"):
             direction_score = 0.9
         elif regime == "RECOVERY":
             direction_score = 0.7
         elif regime == "RANGE":
             direction_score = 0.5
-        elif regime == "DOWNTREND":
-            direction_score = 0.3
         elif regime == "DEAD":
             direction_score = 0.1
 
@@ -115,7 +121,7 @@ class TrendAgent(BaseAgent):
         elif trend_strength == "WEAK":
             direction_score = max(0.0, direction_score - 0.1)
 
-        if direction == DIRECTION_PASS and regime_score < 0.3:
+        if direction == DIRECTION_PASS:
             reasoning.append("Market too quiet — no trend signal")
 
         return AgentReport(

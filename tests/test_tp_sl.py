@@ -55,3 +55,15 @@ class TestTPSLEngine:
         import pytest
         with pytest.raises(ValueError, match="entry=None"):
             TPSLEngine().calculate(entry=None, atr=500.0, side="LONG")
+
+    def test_constructor_override_changes_stop_distance(self):
+        result = TPSLEngine(atr_multiplier=2.5).calculate(entry=50000.0, atr=500.0, side="LONG")
+
+        assert result["stop"] == 48750.0
+
+    def test_zero_arg_engine_reflects_config_atr_multiplier(self, monkeypatch):
+        monkeypatch.setattr("execution.tp_sl.ATR_MULTIPLIER", 3.0)
+
+        result = TPSLEngine().calculate(entry=50000.0, atr=500.0, side="LONG")
+
+        assert result["stop"] == 48500.0

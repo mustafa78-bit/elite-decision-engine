@@ -1,8 +1,19 @@
 from fastapi import APIRouter, Query
 
-from database import Signal, Trade, get_session
+from database import FINAL_STATUSES, PaperTrade, Signal, Trade, get_session
 
 router = APIRouter()
+
+
+def _dollar_pnl(trade: Trade, paper_trade: PaperTrade | None) -> float | None:
+    """Real dollar pnl (price delta x real quantity), falling back to the raw
+    per-unit value when no matching PaperTrade exists."""
+
+    if trade.pnl is None:
+        return None
+    if paper_trade is not None and paper_trade.quantity is not None:
+        return paper_trade.quantity * trade.pnl
+    return trade.pnl
 
 
 @router.get("/backtest")
@@ -15,8 +26,9 @@ def run_backtest(limit: int = Query(200, ge=1, le=1000)):
             .limit(limit)
             .all()
         )
-        trades = (
-            session.query(Trade)
+        trade_results = (
+            session.query(Trade, PaperTrade)
+            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
             .order_by(Trade.created_at.desc())
             .limit(limit)
             .all()
@@ -28,13 +40,20 @@ def run_backtest(limit: int = Query(200, ge=1, le=1000)):
     approved = sum(1 for s in signals if s.approved)
     rejected = total_signals - approved
 
+    trades = [t for t, _ in trade_results]
     total_trades = len(trades)
-    closed_trades = [t for t in trades if t.status == "CLOSED"]
+    closed_trades = [t for t in trades if t.status in FINAL_STATUSES]
     open_trades = [t for t in trades if t.status == "OPEN"] if trades else []
 
-    wins = sum(1 for t in closed_trades if t.pnl and t.pnl > 0)
-    losses = sum(1 for t in closed_trades if t.pnl and t.pnl < 0)
-    total_pnl = sum(t.pnl or 0 for t in trades)
+    closed_results_perf = [
+        (t, pt) for t, pt in trade_results
+        if t.status in FINAL_STATUSES and t.status != "CANCEL"
+    ]
+    closed_trades_perf = [t for t, _ in closed_results_perf]
+
+    wins = sum(1 for t in closed_trades_perf if t.pnl and t.pnl > 0)
+    losses = sum(1 for t in closed_trades_perf if t.pnl and t.pnl < 0)
+    total_pnl = sum(_dollar_pnl(t, pt) or 0 for t, pt in trade_results)
 
     roi = 0
     trade_capital = 10000
@@ -42,21 +61,15 @@ def run_backtest(limit: int = Query(200, ge=1, le=1000)):
         gross_risk = trade_capital * total_trades * 0.02
         roi = (total_pnl / gross_risk) * 100 if gross_risk > 0 else 0
 
-    win_rate = (wins / len(closed_trades)) * 100 if closed_trades else 0
-    avg_win = (
-        sum(t.pnl for t in closed_trades if t.pnl and t.pnl > 0) / wins
-        if wins > 0
-        else 0
-    )
-    avg_loss = (
-        sum(abs(t.pnl) for t in closed_trades if t.pnl and t.pnl < 0) / losses
-        if losses > 0
-        else 0
-    )
+    win_rate = (wins / len(closed_trades_perf)) * 100 if closed_trades_perf else 0
+    win_dollar_pnls = [_dollar_pnl(t, pt) for t, pt in closed_results_perf if t.pnl and t.pnl > 0]
+    loss_dollar_pnls = [_dollar_pnl(t, pt) for t, pt in closed_results_perf if t.pnl and t.pnl < 0]
+    avg_win = sum(win_dollar_pnls) / wins if wins > 0 else 0
+    avg_loss = sum(abs(p) for p in loss_dollar_pnls) / losses if losses > 0 else 0
 
     profit_factor = avg_win / avg_loss if avg_loss > 0 else 0
 
-    pnls = [t.pnl for t in closed_trades if t.pnl is not None]
+    pnls = [_dollar_pnl(t, pt) for t, pt in closed_results_perf if t.pnl is not None]
     running_max = 0
     max_drawdown = 0
     cumulative = 0

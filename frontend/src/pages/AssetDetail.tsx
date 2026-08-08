@@ -378,7 +378,7 @@ export default function AssetDetail() {
                   <Button variant="ghost" size="sm" onClick={loadCandles}>Retry</Button>
                 </div>
               ) : (
-                <ChartPanel data={candles} />
+                <ChartPanel data={candles} timeframe={timeframe} />
               )}
             </div>
 

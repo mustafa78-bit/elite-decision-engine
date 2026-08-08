@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from dataclasses import asdict
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
-from database import FINAL_STATUSES, Signal, Trade, get_session
+from database import FINAL_STATUSES, PaperTrade, Signal, Trade, get_session
 from decision.aggregator import DecisionAggregator
 from market.services import MarketDataService
 from performance_engine import PerformanceEngine
@@ -22,13 +23,15 @@ class TerminalService:
 
     def __init__(
         self,
-        market_service: Optional[MarketDataService] = None,
-        scanner: Optional[OpportunityScanner] = None,
-        aggregator: Optional[DecisionAggregator] = None,
+        market_service: MarketDataService | None = None,
+        scanner: OpportunityScanner | None = None,
+        aggregator: DecisionAggregator | None = None,
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.scanner = scanner or OpportunityScanner()
-        self.aggregator = aggregator or DecisionAggregator()
+        self.aggregator = aggregator or DecisionAggregator(
+            scanner=self.scanner, market_service=self.market_service
+        )
 
     def get_overview(self) -> dict[str, Any]:
         return {
@@ -39,7 +42,7 @@ class TerminalService:
             "recent_signals": self._get_recent_signals(),
             "top_opportunities": self._get_top_opportunities(),
             "risk_status": self._get_risk_status(),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     def get_market(self) -> dict[str, Any]:
@@ -62,6 +65,12 @@ class TerminalService:
 
     def get_performance(self) -> dict[str, Any]:
         return self._get_performance_summary()
+
+    def get_decision(self, symbol: str, timeframe: str = "1h") -> dict[str, Any] | None:
+        result = self.aggregator.analyze(symbol, timeframe)
+        if result is None:
+            return None
+        return asdict(result)
 
     def _get_market_health(self) -> dict[str, Any]:
         asset = self.market_service.get_asset("BTC")
@@ -122,23 +131,54 @@ class TerminalService:
         try:
             session = get_session()
             try:
-                trades = session.query(Trade).filter(Trade.status == "OPEN").all()
+                results = (
+                    session.query(Trade, PaperTrade)
+                    .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+                    .filter(Trade.status == "OPEN")
+                    .all()
+                )
             finally:
                 session.close()
 
-            return [
-                {
+            open_trades = []
+            for item in results:
+                if isinstance(item, Trade):
+                    t, pt = item, None
+                else:
+                    try:
+                        t, pt = item
+                    except (TypeError, ValueError):
+                        t, pt = item, None
+
+                # Fetch correct entry price (use t.entry)
+                entry_val = float(t.entry) if t.entry else 0.0
+
+                # Fetch current_price from self.market_service, fallback to t.exit_price or t.entry
+                current_price = 0.0
+                if t.symbol:
+                    try:
+                        current_price = float(self.market_service.get_price(t.symbol))
+                    except Exception:
+                        current_price = 0.0
+
+                if not current_price:
+                    current_price = float(t.exit_price) if t.exit_price else entry_val
+
+                # Fetch quantity from PaperTrade
+                qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 0.0
+
+                open_trades.append({
                     "id": t.id,
                     "symbol": t.symbol,
                     "side": t.side,
-                    "entry_price": float(t.entry_price) if t.entry_price else 0,
-                    "current_price": float(t.exit_price) if t.exit_price else float(t.entry_price or 0),
-                    "quantity": float(t.quantity) if t.quantity else 0,
+                    "entry_price": entry_val,
+                    "current_price": current_price,
+                    "quantity": qty,
                     "pnl": round(float(t.pnl or 0), 2),
                     "created_at": t.created_at.isoformat() if t.created_at else "",
-                }
-                for t in trades
-            ]
+                })
+
+            return open_trades
         except Exception as e:
             logger.warning("Open trades error: %s", e)
             return []

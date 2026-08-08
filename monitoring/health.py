@@ -1,8 +1,9 @@
 import logging
 import time
-from config import API_ENV, CHECK_INTERVAL, MIN_SCORE, MAX_OPEN_TRADES
-from database import FINAL_STATUSES
-from database import get_session
+from typing import Any
+
+from config import API_ENV, CHECK_INTERVAL, MAX_OPEN_TRADES, MIN_SCORE
+from database import FINAL_STATUSES, get_session
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +11,7 @@ _ENGINE_START_TIME: float = time.time()
 
 _INTERNAL_ERRORS: dict[str, int] = {}
 _LAST_SUCCESS: dict[str, float] = {}
+_LAST_KNOWN_STATUS: dict[str, str] = {}
 
 
 def _track_result(component: str, ok: bool, latency: float) -> None:
@@ -65,13 +67,16 @@ class HealthService:
                     counts[name] = -1
             session.close()
             lat = (time.monotonic() - start) * 1000
+            ok = all(c >= 0 for c in counts.values())
+            _track_result("database_tables", ok, lat)
             return {
-                "status": "ok" if all(c >= 0 for c in counts.values()) else "degraded",
+                "status": "ok" if ok else "degraded",
                 "latency_ms": round(lat, 1),
                 "row_counts": counts,
             }
         except Exception as e:
             lat = (time.monotonic() - start) * 1000
+            _track_result("database_tables", False, lat)
             return {
                 "status": "error",
                 "latency_ms": round(lat, 1),
@@ -124,6 +129,7 @@ class HealthService:
 
     @staticmethod
     def execution() -> dict:
+        start = time.monotonic()
         try:
             from execution.execution_loop import ExecutionLoop
             result = {
@@ -142,8 +148,12 @@ class HealthService:
             except Exception as e:
                 result["status"] = "degraded"
                 result["detail"] = str(e)
+            lat = (time.monotonic() - start) * 1000
+            _track_result("execution", result["status"] == "ok", lat)
             return result
         except Exception as e:
+            lat = (time.monotonic() - start) * 1000
+            _track_result("execution", False, lat)
             return {
                 "status": "error",
                 "detail": str(e),
@@ -194,9 +204,12 @@ class HealthService:
     def risk() -> dict:
         try:
             from config import (
-                MAX_OPEN_TRADES, MAX_EXPOSURE_PER_SYMBOL,
-                MAX_PORTFOLIO_EXPOSURE, MAX_DAILY_LOSS,
-                MAX_POSITION_SIZE_USD, ACCOUNT_EQUITY,
+                ACCOUNT_EQUITY,
+                MAX_DAILY_LOSS,
+                MAX_EXPOSURE_PER_SYMBOL,
+                MAX_OPEN_TRADES,
+                MAX_PORTFOLIO_EXPOSURE,
+                MAX_POSITION_SIZE_USD,
             )
             return {
                 "status": "ok",
@@ -251,12 +264,12 @@ class HealthService:
         errs = HealthService.errors()
         met = HealthService.metrics()
 
-        component_statuses = [db, col, cache, exec_status]
+        component_statuses = [db, tbl, col, cache, exec_status, met]
         for d in deps.values():
             component_statuses.append(d)
         overall = "ok"
         for s in component_statuses:
-            if s.get("status") == "error":
+            if s.get("status") != "ok":
                 overall = "degraded"
                 break
 
@@ -275,6 +288,51 @@ class HealthService:
             "risk_config": HealthService.risk(),
             "config": HealthService.config(),
         }
+
+    @staticmethod
+    def check_and_alert(dispatcher: Any = None, failure_threshold: int = 3) -> dict[str, dict]:
+        """Run core health checks and emit an alert (via `dispatcher.emit`) only when
+        a component transitions between healthy and unhealthy — never on every tick.
+
+        A component only counts as "unhealthy" once its consecutive-failure count
+        (tracked by `_track_result`, already called inside `database()`/`collector()`/
+        `execution()`) reaches `failure_threshold`, to avoid alerting on a single
+        transient blip.
+        """
+        checks = {
+            "database": HealthService.database(),
+            "collector": HealthService.collector(),
+            "execution": HealthService.execution(),
+            "database_tables": HealthService.database_tables(),
+        }
+
+        if dispatcher is None:
+            return checks
+
+        from notifications.events import TradeEvent
+
+        for component, result in checks.items():
+            is_failing = _INTERNAL_ERRORS.get(component, 0) >= failure_threshold
+            current_status = "unhealthy" if is_failing else "ok"
+            previous_status = _LAST_KNOWN_STATUS.get(component)
+
+            if previous_status is not None and previous_status != current_status:
+                if current_status == "unhealthy":
+                    dispatcher.emit(TradeEvent.SYSTEM_HEALTH_DEGRADED, {
+                        "component": component,
+                        "status": result.get("status"),
+                        "detail": result.get("detail"),
+                        "consecutive_failures": _INTERNAL_ERRORS.get(component, 0),
+                    })
+                else:
+                    dispatcher.emit(TradeEvent.SYSTEM_HEALTH_RECOVERED, {
+                        "component": component,
+                        "status": result.get("status"),
+                    })
+
+            _LAST_KNOWN_STATUS[component] = current_status
+
+        return checks
 
 
 def check_database() -> dict:

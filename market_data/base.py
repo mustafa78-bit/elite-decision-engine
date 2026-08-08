@@ -23,7 +23,7 @@ class IntelligenceProvider(Protocol):
     def fetch_all(self) -> Any:
         ...
 
-    def fetch_for_symbol(self, symbol: str) -> Optional[Any]:
+    def fetch_for_symbol(self, symbol: str) -> Any | None:
         ...
 
     def check_freshness(self, symbol: str) -> dict:

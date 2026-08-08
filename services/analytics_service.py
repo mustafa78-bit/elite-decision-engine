@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Any, Optional
 
 from database import FINAL_STATUSES, Trade, get_session
 from dto.analytics import (
+    KPIDTO,
     AnalyticsDTO,
     DailyAnalyticsDTO,
     DrawdownAnalyticsDTO,
     HeatmapDataDTO,
-    KPIDTO,
     MonthlyAnalyticsDTO,
     PerformanceTrendDTO,
     RiskAnalyticsDTO,
@@ -20,10 +21,9 @@ from dto.analytics import (
     WeeklyAnalyticsDTO,
     WinLossAnalyticsDTO,
 )
+from services.pnl import get_trades_with_dollar_pnl, get_trades_with_exposure
 
 logger = logging.getLogger(__name__)
-
-
 
 
 class AnalyticsService:
@@ -31,9 +31,9 @@ class AnalyticsService:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
-        portfolio_engine: Optional[Any] = None,
-        performance_engine: Optional[Any] = None,
+        session_factory: Callable[[], Any] | None = None,
+        portfolio_engine: Any | None = None,
+        performance_engine: Any | None = None,
     ):
         self.session_factory = session_factory or get_session
         self._portfolio = portfolio_engine
@@ -42,42 +42,51 @@ class AnalyticsService:
     def full_analytics(self, limit: int = 1000) -> AnalyticsDTO:
         session = self.session_factory()
         try:
-            trades = (
-                session.query(Trade)
-                .order_by(Trade.created_at.desc())
-                .limit(limit)
-                .all()
-            )
+            trades_with_pnl = get_trades_with_dollar_pnl(session)
+
+            def get_created_at(t_pnl):
+                t = t_pnl[0]
+                if not t.created_at:
+                    return datetime.min
+                if t.created_at.tzinfo is not None:
+                    return t.created_at.replace(tzinfo=None)
+                return t.created_at
+
+            # Sort by created_at desc and apply limit manually or in python
+            trades_with_pnl.sort(key=get_created_at, reverse=True)
+            trades_with_pnl = trades_with_pnl[:limit]
+
             return AnalyticsDTO(
-                daily=self._daily_analytics(trades),
-                weekly=self._weekly_analytics(trades),
-                monthly=self._monthly_analytics(trades),
-                win_loss=self._win_loss_analytics(trades),
-                by_symbol=self._symbol_analytics(trades),
-                by_strategy=self._strategy_analytics(trades),
-                risk=self._risk_analytics(trades, session),
-                drawdown=self._drawdown_analytics(trades),
-                heatmap=self._heatmap_data(trades),
-                trends=self._performance_trends(trades),
-                kpis=self._compute_kpis(trades),
+                daily=self._daily_analytics(trades_with_pnl),
+                weekly=self._weekly_analytics(trades_with_pnl),
+                monthly=self._monthly_analytics(trades_with_pnl),
+                win_loss=self._win_loss_analytics(trades_with_pnl),
+                by_symbol=self._symbol_analytics(trades_with_pnl),
+                by_strategy=self._strategy_analytics(trades_with_pnl),
+                risk=self._risk_analytics(trades_with_pnl, session),
+                drawdown=self._drawdown_analytics(trades_with_pnl),
+                heatmap=self._heatmap_data(trades_with_pnl),
+                trends=self._performance_trends(trades_with_pnl),
+                kpis=self._compute_kpis(trades_with_pnl),
             )
         finally:
             session.close()
 
-    def _daily_analytics(self, trades: list[Trade]) -> list[DailyAnalyticsDTO]:
-        daily: dict[str, list[Trade]] = defaultdict(list)
-        for t in trades:
+    def _daily_analytics(self, trades: list[tuple[Trade, float]]) -> list[DailyAnalyticsDTO]:
+        daily: dict[str, list[tuple[Trade, float]]] = defaultdict(list)
+        for t_pnl in trades:
+            t = t_pnl[0]
             if t.created_at:
                 day = t.created_at.strftime("%Y-%m-%d") if hasattr(t.created_at, "strftime") else str(t.created_at)[:10]
-                daily[day].append(t)
+                daily[day].append(t_pnl)
 
         result = []
         for day in sorted(daily.keys(), reverse=True)[:30]:
             day_trades = daily[day]
-            closed = [t for t in day_trades if t.status in FINAL_STATUSES]
-            wins = [t for t in closed if t.pnl and t.pnl > 0]
-            losses = [t for t in closed if t.pnl and t.pnl < 0]
-            total_pnl = sum(t.pnl or 0 for t in closed)
+            closed = [t_pnl for t_pnl in day_trades if t_pnl[0].status in FINAL_STATUSES]
+            wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+            losses = [t_pnl for t_pnl in closed if t_pnl[1] < 0]
+            total_pnl = sum(t_pnl[1] for t_pnl in closed)
             result.append(DailyAnalyticsDTO(
                 date=day,
                 total_trades=len(day_trades),
@@ -89,21 +98,22 @@ class AnalyticsService:
             ))
         return result
 
-    def _weekly_analytics(self, trades: list[Trade]) -> list[WeeklyAnalyticsDTO]:
-        weekly: dict[str, list[Trade]] = defaultdict(list)
-        for t in trades:
+    def _weekly_analytics(self, trades: list[tuple[Trade, float]]) -> list[WeeklyAnalyticsDTO]:
+        weekly: dict[str, list[tuple[Trade, float]]] = defaultdict(list)
+        for t_pnl in trades:
+            t = t_pnl[0]
             if t.created_at:
                 iso = t.created_at.isocalendar() if hasattr(t.created_at, "isocalendar") else datetime(2024, 1, 1).isocalendar()
                 week_key = f"{iso[0]}-W{iso[1]:02d}"
-                weekly[week_key].append(t)
+                weekly[week_key].append(t_pnl)
 
         result = []
         for wk in sorted(weekly.keys(), reverse=True)[:12]:
             wk_trades = weekly[wk]
-            closed = [t for t in wk_trades if t.status in FINAL_STATUSES]
-            wins = [t for t in closed if t.pnl and t.pnl > 0]
-            losses = [t for t in closed if t.pnl and t.pnl < 0]
-            total_pnl = sum(t.pnl or 0 for t in closed)
+            closed = [t_pnl for t_pnl in wk_trades if t_pnl[0].status in FINAL_STATUSES]
+            wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+            losses = [t_pnl for t_pnl in closed if t_pnl[1] < 0]
+            total_pnl = sum(t_pnl[1] for t_pnl in closed)
             result.append(WeeklyAnalyticsDTO(
                 week=wk,
                 total_trades=len(wk_trades),
@@ -115,20 +125,21 @@ class AnalyticsService:
             ))
         return result
 
-    def _monthly_analytics(self, trades: list[Trade]) -> list[MonthlyAnalyticsDTO]:
-        monthly: dict[str, list[Trade]] = defaultdict(list)
-        for t in trades:
+    def _monthly_analytics(self, trades: list[tuple[Trade, float]]) -> list[MonthlyAnalyticsDTO]:
+        monthly: dict[str, list[tuple[Trade, float]]] = defaultdict(list)
+        for t_pnl in trades:
+            t = t_pnl[0]
             if t.created_at:
                 month_key = t.created_at.strftime("%Y-%m") if hasattr(t.created_at, "strftime") else str(t.created_at)[:7]
-                monthly[month_key].append(t)
+                monthly[month_key].append(t_pnl)
 
         result = []
         for mo in sorted(monthly.keys(), reverse=True)[:12]:
             mo_trades = monthly[mo]
-            closed = [t for t in mo_trades if t.status in FINAL_STATUSES]
-            wins = [t for t in closed if t.pnl and t.pnl > 0]
-            losses = [t for t in closed if t.pnl and t.pnl < 0]
-            total_pnl = sum(t.pnl or 0 for t in closed)
+            closed = [t_pnl for t_pnl in mo_trades if t_pnl[0].status in FINAL_STATUSES]
+            wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+            losses = [t_pnl for t_pnl in closed if t_pnl[1] < 0]
+            total_pnl = sum(t_pnl[1] for t_pnl in closed)
             result.append(MonthlyAnalyticsDTO(
                 month=mo,
                 total_trades=len(mo_trades),
@@ -140,26 +151,26 @@ class AnalyticsService:
             ))
         return result
 
-    def _win_loss_analytics(self, trades: list[Trade]) -> WinLossAnalyticsDTO:
-        closed = [t for t in trades if t.status in FINAL_STATUSES]
-        wins = [t for t in closed if t.pnl and t.pnl > 0]
-        losses = [t for t in closed if t.pnl and t.pnl < 0]
+    def _win_loss_analytics(self, trades: list[tuple[Trade, float]]) -> WinLossAnalyticsDTO:
+        closed = [t_pnl for t_pnl in trades if t_pnl[0].status in FINAL_STATUSES]
+        wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+        losses = [t_pnl for t_pnl in closed if t_pnl[1] < 0]
         total_closed = len(closed)
 
         if not closed:
             return WinLossAnalyticsDTO()
 
-        gross_profit = sum(t.pnl or 0 for t in wins)
-        gross_loss = abs(sum(t.pnl or 0 for t in losses))
+        gross_profit = sum(t_pnl[1] for t_pnl in wins)
+        gross_loss = abs(sum(t_pnl[1] for t_pnl in losses))
 
         return WinLossAnalyticsDTO(
             total_wins=len(wins),
             total_losses=len(losses),
             win_rate=round((len(wins) / total_closed * 100), 1) if total_closed else 0,
-            avg_win=round((sum(t.pnl or 0 for t in wins) / len(wins)), 2) if wins else 0,
-            avg_loss=round((abs(sum(t.pnl or 0 for t in losses)) / len(losses)), 2) if losses else 0,
-            largest_win=round(max(t.pnl or 0 for t in wins), 2) if wins else 0,
-            largest_loss=round(min(t.pnl or 0 for t in losses), 2) if losses else 0,
+            avg_win=round((sum(t_pnl[1] for t_pnl in wins) / len(wins)), 2) if wins else 0,
+            avg_loss=round((abs(sum(t_pnl[1] for t_pnl in losses)) / len(losses)), 2) if losses else 0,
+            largest_win=round(max(t_pnl[1] for t_pnl in wins), 2) if wins else 0,
+            largest_loss=round(min(t_pnl[1] for t_pnl in losses), 2) if losses else 0,
             gross_profit=round(gross_profit, 2),
             gross_loss=round(gross_loss, 2),
             profit_factor=round(gross_profit / gross_loss, 2) if gross_loss > 0 else (999.99 if gross_profit > 0 else 0),
@@ -167,19 +178,19 @@ class AnalyticsService:
             avg_holding_time_loss=0.0,
         )
 
-    def _symbol_analytics(self, trades: list[Trade]) -> list[SymbolAnalyticsDTO]:
-        by_symbol: dict[str, list[Trade]] = defaultdict(list)
-        for t in trades:
-            by_symbol[t.symbol or "UNKNOWN"].append(t)
+    def _symbol_analytics(self, trades: list[tuple[Trade, float]]) -> list[SymbolAnalyticsDTO]:
+        by_symbol: dict[str, list[tuple[Trade, float]]] = defaultdict(list)
+        for t_pnl in trades:
+            by_symbol[t_pnl[0].symbol or "UNKNOWN"].append(t_pnl)
 
         result = []
         for symbol, sym_trades in sorted(by_symbol.items()):
-            closed = [t for t in sym_trades if t.status in FINAL_STATUSES]
-            wins = [t for t in closed if t.pnl and t.pnl > 0]
-            losses = [t for t in closed if t.pnl and t.pnl < 0]
-            total_pnl = sum(t.pnl or 0 for t in closed)
-            gross_profit = sum(t.pnl or 0 for t in wins)
-            gross_loss = abs(sum(t.pnl or 0 for t in losses))
+            closed = [t_pnl for t_pnl in sym_trades if t_pnl[0].status in FINAL_STATUSES]
+            wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+            losses = [t_pnl for t_pnl in closed if t_pnl[1] < 0]
+            total_pnl = sum(t_pnl[1] for t_pnl in closed)
+            gross_profit = sum(t_pnl[1] for t_pnl in wins)
+            gross_loss = abs(sum(t_pnl[1] for t_pnl in losses))
             result.append(SymbolAnalyticsDTO(
                 symbol=symbol,
                 total_trades=len(closed),
@@ -192,19 +203,19 @@ class AnalyticsService:
             ))
         return sorted(result, key=lambda x: x.total_pnl, reverse=True)
 
-    def _strategy_analytics(self, trades: list[Trade]) -> list[StrategyAnalyticsDTO]:
-        by_side: dict[str, list[Trade]] = defaultdict(list)
-        for t in trades:
-            side = t.side or "UNKNOWN"
-            by_side[side].append(t)
+    def _strategy_analytics(self, trades: list[tuple[Trade, float]]) -> list[StrategyAnalyticsDTO]:
+        by_side: dict[str, list[tuple[Trade, float]]] = defaultdict(list)
+        for t_pnl in trades:
+            side = t_pnl[0].side or "UNKNOWN"
+            by_side[side].append(t_pnl)
 
         result = []
         for strategy, side_trades in by_side.items():
-            closed = [t for t in side_trades if t.status in FINAL_STATUSES]
-            wins = [t for t in closed if t.pnl and t.pnl > 0]
-            losses = [t for t in closed if t.pnl and t.pnl < 0]
-            total_pnl = sum(t.pnl or 0 for t in closed)
-            pnls = [t.pnl or 0 for t in closed]
+            closed = [t_pnl for t_pnl in side_trades if t_pnl[0].status in FINAL_STATUSES]
+            wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+            losses = [t_pnl for t_pnl in closed if t_pnl[1] < 0]
+            total_pnl = sum(t_pnl[1] for t_pnl in closed)
+            pnls = [t_pnl[1] for t_pnl in closed]
             sharpe = self._compute_sharpe(pnls)
             dd = self._compute_max_drawdown(pnls)
             result.append(StrategyAnalyticsDTO(
@@ -221,8 +232,8 @@ class AnalyticsService:
             ))
         return sorted(result, key=lambda x: x.overall_score, reverse=True)
 
-    def _risk_analytics(self, trades: list[Trade], session: Any) -> RiskAnalyticsDTO:
-        open_trades = [t for t in trades if t.status == "OPEN"]
+    def _risk_analytics(self, trades: list[tuple[Trade, float]], session: Any) -> RiskAnalyticsDTO:
+        open_trades = [t_pnl for t_pnl in trades if t_pnl[0].status == "OPEN"]
         rejected_signals = 0
         rejection_reasons: dict[str, int] = {}
         total_signals = 0
@@ -239,12 +250,13 @@ class AnalyticsService:
         except Exception:
             pass
 
+        open_trades_with_exposure = get_trades_with_exposure(session, Trade.status == "OPEN")
         symbol_exposure: dict[str, float] = {}
-        for t in open_trades:
+        for t, exposure in open_trades_with_exposure:
             sym = t.symbol or "UNKNOWN"
-            symbol_exposure[sym] = symbol_exposure.get(sym, 0) + (t.entry or 0)
+            symbol_exposure[sym] = symbol_exposure.get(sym, 0) + exposure
 
-        from config import MAX_OPEN_TRADES, MAX_PORTFOLIO_EXPOSURE, MAX_DAILY_LOSS, MAX_EXPOSURE_PER_SYMBOL
+        from config import MAX_DAILY_LOSS, MAX_EXPOSURE_PER_SYMBOL, MAX_OPEN_TRADES, MAX_PORTFOLIO_EXPOSURE
 
         return RiskAnalyticsDTO(
             max_open_trades=MAX_OPEN_TRADES,
@@ -260,10 +272,10 @@ class AnalyticsService:
             rejection_reasons=rejection_reasons,
         )
 
-    def _drawdown_analytics(self, trades: list[Trade]) -> DrawdownAnalyticsDTO:
-        closed = [t for t in trades if t.status in FINAL_STATUSES]
-        closed_sorted = sorted(closed, key=lambda t: t.created_at or datetime.min)
-        pnls = [t.pnl or 0 for t in closed_sorted]
+    def _drawdown_analytics(self, trades: list[tuple[Trade, float]]) -> DrawdownAnalyticsDTO:
+        closed = [t_pnl for t_pnl in trades if t_pnl[0].status in FINAL_STATUSES]
+        closed_sorted = sorted(closed, key=lambda t_pnl: t_pnl[0].created_at or datetime.min)
+        pnls = [t_pnl[1] for t_pnl in closed_sorted]
 
         if not pnls:
             return DrawdownAnalyticsDTO()
@@ -271,7 +283,6 @@ class AnalyticsService:
         peak = 0.0
         max_dd = 0.0
         cumulative = 0.0
-        dd_start = 0.0
         in_drawdown = False
         recovery_count = 0
         total_recovery_time = 0.0
@@ -314,13 +325,14 @@ class AnalyticsService:
             longest_drawdown_hours=round(longest_dd / 60, 2) if longest_dd > 0 else 0,
         )
 
-    def _heatmap_data(self, trades: list[Trade]) -> list[HeatmapDataDTO]:
+    def _heatmap_data(self, trades: list[tuple[Trade, float]]) -> list[HeatmapDataDTO]:
         by_symbol_day: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
-        for t in trades:
-            if t.created_at and t.pnl is not None:
+        for t_pnl in trades:
+            t = t_pnl[0]
+            if t.created_at and t_pnl[1] is not None:
                 sym = t.symbol or "UNKNOWN"
                 day = t.created_at.strftime("%Y-%m-%d") if hasattr(t.created_at, "strftime") else "UNKNOWN"
-                by_symbol_day[sym][day] += t.pnl
+                by_symbol_day[sym][day] += t_pnl[1]
 
         result = []
         for symbol, days in by_symbol_day.items():
@@ -333,7 +345,7 @@ class AnalyticsService:
             ))
         return result
 
-    def _performance_trends(self, trades: list[Trade]) -> list[PerformanceTrendDTO]:
+    def _performance_trends(self, trades: list[tuple[Trade, float]]) -> list[PerformanceTrendDTO]:
         daily_data = self._daily_analytics(trades)
         pnl_values = [d.pnl for d in daily_data]
 
@@ -360,11 +372,11 @@ class AnalyticsService:
             )
         ]
 
-    def _compute_kpis(self, trades: list[Trade]) -> list[KPIDTO]:
-        closed = [t for t in trades if t.status in FINAL_STATUSES]
-        wins = [t for t in closed if t.pnl and t.pnl > 0]
-        losses = [t for t in closed if t.pnl and t.pnl < 0]
-        total_pnl = sum(t.pnl or 0 for t in closed)
+    def _compute_kpis(self, trades: list[tuple[Trade, float]]) -> list[KPIDTO]:
+        closed = [t_pnl for t_pnl in trades if t_pnl[0].status in FINAL_STATUSES]
+        wins = [t_pnl for t_pnl in closed if t_pnl[1] > 0]
+        losses = [t_pnl for t_pnl in closed if t_pnl[1] < 0]
+        total_pnl = sum(t_pnl[1] for t_pnl in closed)
 
         return [
             KPIDTO(name="Total PnL", value=round(total_pnl, 2), unit="USD", trend=self._pnl_trend(trades), status="positive" if total_pnl > 0 else "negative" if total_pnl < 0 else "neutral"),
@@ -372,23 +384,31 @@ class AnalyticsService:
             KPIDTO(name="Total Trades", value=len(closed), unit="count", trend="stable", status="neutral"),
             KPIDTO(name="Avg PnL", value=round(total_pnl / len(closed), 2) if closed else 0, unit="USD", trend="stable", status="neutral"),
             KPIDTO(name="Profit Factor", value=round(self._profit_factor(wins, losses), 2), unit="ratio", trend="stable", status="good"),
-            KPIDTO(name="Max Drawdown", value=round(self._compute_max_drawdown([t.pnl or 0 for t in closed]), 2), unit="USD", trend="stable", status="warning"),
+            KPIDTO(name="Max Drawdown", value=round(self._compute_max_drawdown([t_pnl[1] for t_pnl in closed]), 2), unit="USD", trend="stable", status="warning"),
         ]
 
-    def _daily_loss(self, trades: list[Trade]) -> float:
-        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    def _daily_loss(self, trades: list[tuple[Trade, float]]) -> float:
+        today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+
+        def is_today(closed_at):
+            if closed_at is None:
+                return False
+            ca = closed_at.replace(tzinfo=None) if closed_at.tzinfo else closed_at
+            ts = today.replace(tzinfo=None)
+            return ca >= ts
+
+
         return round(
             sum(
-                abs(t.pnl or 0)
-                for t in trades
-                if t.pnl and t.pnl < 0
-                and t.closed_at is not None
-                and t.closed_at >= today
+                abs(t_pnl[1])
+                for t_pnl in trades
+                if t_pnl[1] < 0
+                and is_today(t_pnl[0].closed_at)
             ),
             2,
         )
 
-    def _pnl_trend(self, trades: list[Trade]) -> str:
+    def _pnl_trend(self, trades: list[tuple[Trade, float]]) -> str:
         daily = self._daily_analytics(trades)
         recent = [d.pnl for d in daily[:7]]
         if len(recent) < 2:
@@ -400,9 +420,9 @@ class AnalyticsService:
             return "declining"
         return "stable"
 
-    def _profit_factor(self, wins: list[Trade], losses: list[Trade]) -> float:
-        gp = sum(t.pnl or 0 for t in wins)
-        gl = abs(sum(t.pnl or 0 for t in losses))
+    def _profit_factor(self, wins: list[tuple[Trade, float]], losses: list[tuple[Trade, float]]) -> float:
+        gp = sum(t_pnl[1] for t_pnl in wins)
+        gl = abs(sum(t_pnl[1] for t_pnl in losses))
         return gp / gl if gl > 0 else (999.99 if gp > 0 else 0)
 
     def _compute_sharpe(self, pnls: list[float]) -> float:

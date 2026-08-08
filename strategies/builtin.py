@@ -15,7 +15,7 @@ class TrendFollowStrategy(Strategy):
 
     name = "trend_follow"
 
-    def evaluate(self, symbol: str, market_data: Any) -> Optional[StrategyResult]:
+    def evaluate(self, symbol: str, market_data: Any) -> StrategyResult | None:
         df = self._ensure_df(market_data)
         if df is None or len(df) < 50:
             return None
@@ -36,7 +36,7 @@ class TrendFollowStrategy(Strategy):
         return "EMA trend follower: LONG when price > EMA20 > EMA50, SHORT when opposite"
 
     @staticmethod
-    def _ensure_df(data: Any) -> Optional[pd.DataFrame]:
+    def _ensure_df(data: Any) -> pd.DataFrame | None:
         if isinstance(data, pd.DataFrame):
             return data
         return None
@@ -47,7 +47,7 @@ class MeanReversionStrategy(Strategy):
 
     name = "mean_reversion"
 
-    def evaluate(self, symbol: str, market_data: Any) -> Optional[StrategyResult]:
+    def evaluate(self, symbol: str, market_data: Any) -> StrategyResult | None:
         df = self._ensure_df(market_data)
         if df is None or len(df) < 20:
             return None
@@ -72,7 +72,7 @@ class MeanReversionStrategy(Strategy):
         return "RSI mean reversion: LONG when RSI < 30, SHORT when RSI > 70"
 
     @staticmethod
-    def _ensure_df(data: Any) -> Optional[pd.DataFrame]:
+    def _ensure_df(data: Any) -> pd.DataFrame | None:
         if isinstance(data, pd.DataFrame):
             return data
         return None

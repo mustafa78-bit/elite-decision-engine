@@ -8,13 +8,15 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime
 from statistics import mean, stdev
-from typing import Any, Callable, Optional
+from typing import Any
 
 from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, Trade, get_session
+from database import PaperTrade as PaperTradeModel
 
 logger = logging.getLogger(__name__)
 _RFR = 0.0  # risk-free rate default
@@ -40,8 +42,8 @@ class PerformanceEngine:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
-        initial_equity: Optional[float] = None,
+        session_factory: Callable[[], Any] | None = None,
+        initial_equity: float | None = None,
         risk_free_rate: float = _RFR,
     ) -> None:
         self.session_factory = session_factory or get_session
@@ -56,12 +58,27 @@ class PerformanceEngine:
             session.close()
 
     def _compute(self, session: Any) -> PerformanceStats:
-        closed = session.query(Trade).filter(Trade.status.in_(FINAL_STATUSES)).all()
+        results = (
+            session.query(Trade, PaperTradeModel)
+            .outerjoin(PaperTradeModel, PaperTradeModel.position_id == Trade.id)
+            .filter(Trade.status.in_(FINAL_STATUSES))
+            .all()
+        )
 
-        if not closed:
+        if not results:
             return PerformanceStats()
 
-        pnls = [t.pnl for t in closed if t.pnl is not None]
+        closed = [row[0] for row in results]
+
+        pnls = []
+        for trade, paper_trade in results:
+            if trade.pnl is not None:
+                if paper_trade is not None:
+                    qty = paper_trade.quantity if paper_trade.quantity is not None else 0.0
+                    pnls.append(qty * trade.pnl)
+                else:
+                    pnls.append(trade.pnl)
+
         if not pnls:
             return PerformanceStats()
 

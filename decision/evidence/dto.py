@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 from uuid import uuid4
 
@@ -20,8 +20,8 @@ class EvidenceItem:
     weight: float = 1.0
     supports_decision: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
-    source: Optional[SourceTrace] = None
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source: SourceTrace | None = None
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     version: str = ""
 
     def __post_init__(self) -> None:
@@ -64,13 +64,13 @@ class EvidenceReport:
     timeline: list[EvidenceItem] = field(default_factory=list)
     sources: list[SourceTrace] = field(default_factory=list)
     decision_id: str = ""
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def __post_init__(self) -> None:
         if not self.decision_id:
             object.__setattr__(self, "decision_id", uuid4().hex[:12])
         if not self.created_at:
-            object.__setattr__(self, "created_at", datetime.now(timezone.utc).isoformat())
+            object.__setattr__(self, "created_at", datetime.now(UTC).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         return {

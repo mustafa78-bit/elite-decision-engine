@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime, timezone
+from typing import Any, Optional
 
-from database import Trade, FINAL_STATUSES, get_session
+from config import ACCOUNT_EQUITY
+from database import FINAL_STATUSES, Trade, get_session
 
 logger = logging.getLogger(__name__)
 
 
 class PortfolioService:
-    def __init__(self, session_factory: Optional[Callable[[], Any]] = None):
+    def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
     def summary(self) -> dict[str, Any]:
@@ -76,8 +78,9 @@ class PortfolioService:
         best = max((t.pnl or 0) for t in closed) if closed else 0
         worst = min((t.pnl or 0) for t in closed) if closed else 0
         avg_dur = self._avg_duration(closed)
+        total_balance = ACCOUNT_EQUITY + total_pnl + open_pnl
         return {
-            "total_balance": 0.0,
+            "total_balance": round(total_balance, 2),
             "open_pnl": round(open_pnl, 2),
             "realized_pnl": round(total_pnl, 2),
             "total_pnl": round(total_pnl + open_pnl, 2),
@@ -130,18 +133,19 @@ class PortfolioService:
     def _compute_risk(self, trades: list[Trade]) -> dict[str, Any]:
         open_trades = [t for t in trades if t.status == "OPEN"]
         closed = [t for t in trades if t.status in FINAL_STATUSES]
-        total_exposure = sum(abs(t.pnl or 0) for t in open_trades)
+        # Use abs(t.entry) as a per-unit-price proxy pending real quantity tracking on Trade/PaperTrade
+        total_exposure = sum(abs(t.entry or 0) for t in open_trades)
         pnls = [t.pnl or 0 for t in closed]
         var95 = self._value_at_risk(pnls, 0.95)
         downside = self._expected_downside(pnls)
         gp = sum(t.pnl or 0 for t in closed if t.pnl and t.pnl > 0)
-        gl = abs(sum(t.pnl or 0 for t in closed if t.pnl and t.pnl < 0))
         md = self._max_drawdown(trades)
         rf = gp / md if md > 0 else 0
         by_sym: dict[str, float] = {}
         for t in open_trades:
             sym = t.symbol or "?"
-            by_sym[sym] = by_sym.get(sym, 0) + abs(t.pnl or 0)
+            # Use abs(t.entry) as a per-unit-price proxy pending real quantity tracking on Trade/PaperTrade
+            by_sym[sym] = by_sym.get(sym, 0) + abs(t.entry or 0)
         total = sum(by_sym.values()) or 1
         concentration = {s: round(v / total, 4) for s, v in by_sym.items()}
         return {
@@ -164,7 +168,7 @@ class PortfolioService:
 
     def _max_drawdown(self, trades: list[Trade]) -> float:
         closed = [t for t in trades if t.status in FINAL_STATUSES]
-        sorted_trades = sorted(closed, key=lambda t: t.created_at or datetime.min.replace(tzinfo=timezone.utc))
+        sorted_trades = sorted(closed, key=lambda t: t.created_at or datetime.min.replace(tzinfo=UTC))
         peak = 0.0
         max_dd = 0.0
         running = 0.0
@@ -179,7 +183,7 @@ class PortfolioService:
 
     def _current_drawdown(self, trades: list[Trade]) -> float:
         closed = [t for t in trades if t.status in FINAL_STATUSES]
-        sorted_trades = sorted(closed, key=lambda t: t.created_at or datetime.min.replace(tzinfo=timezone.utc))
+        sorted_trades = sorted(closed, key=lambda t: t.created_at or datetime.min.replace(tzinfo=UTC))
         peak = 0.0
         running = 0.0
         for t in sorted_trades:
@@ -189,7 +193,7 @@ class PortfolioService:
         return peak - running
 
     def _equity_curve(self, trades: list[Trade]) -> list[dict[str, Any]]:
-        sorted_trades = sorted(trades, key=lambda t: t.created_at or datetime.min.replace(tzinfo=timezone.utc))
+        sorted_trades = sorted(trades, key=lambda t: t.created_at or datetime.min.replace(tzinfo=UTC))
         curve = []
         running = 0.0
         for t in sorted_trades:
@@ -220,7 +224,7 @@ class PortfolioService:
         return [{"date": k, "pnl": round(v, 2)} for k, v in sorted(daily.items())]
 
     def _drawdown_curve(self, trades: list[Trade]) -> list[dict[str, Any]]:
-        sorted_trades = sorted(trades, key=lambda t: t.created_at or datetime.min.replace(tzinfo=timezone.utc))
+        sorted_trades = sorted(trades, key=lambda t: t.created_at or datetime.min.replace(tzinfo=UTC))
         curve = []
         peak = 0.0
         running = 0.0
@@ -249,12 +253,13 @@ class PortfolioService:
         return sum(negatives) / len(negatives)
 
     def _avg_risk_per_trade(self, trades: list[Trade]) -> float:
-        entries = [abs(t.entry or 0) for t in trades if t.entry]
-        if not entries:
+        # Calculate risk using entry-to-stop distance, excluding trades missing either entry or stop
+        risks = [abs((t.entry or 0) - (t.stop or 0)) for t in trades if t.entry is not None and t.stop is not None]
+        if not risks:
             return 0.0
-        return sum(entries) / len(entries)
+        return sum(risks) / len(risks)
 
-    def _avg_duration(self, trades: list[Trade]) -> Optional[str]:
+    def _avg_duration(self, trades: list[Trade]) -> str | None:
         durations = []
         for t in trades:
             if t.created_at and t.closed_at:

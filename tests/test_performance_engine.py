@@ -7,15 +7,15 @@ Wins/Losses, Average Holding Time, Trade Frequency.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
 from database import (
+    CANCEL,
     CLOSED,
     STOP_LOSS,
     TAKE_PROFIT,
-    CANCEL,
     PaperTrade,
     Trade,
 )
@@ -26,6 +26,14 @@ _INFINITE = 999.99
 
 
 def _make_trade(db_session, **overrides):
+    signal_id = overrides.get("signal_id", 1)
+    if signal_id is not None:
+        from database import Signal
+        existing_signal = db_session.query(Signal).filter(Signal.id == signal_id).first()
+        if not existing_signal:
+            sig = Signal(id=signal_id, symbol=overrides.get("symbol", "BTCUSDT"), side=overrides.get("side", "LONG"))
+            db_session.add(sig)
+            db_session.flush()
     kwargs = dict(
         signal_id=1,
         symbol="BTCUSDT",
@@ -88,7 +96,7 @@ def test_empty(session_factory):
 
 
 def test_single_win(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     trade = _make_trade(
         db_session, status="TP_HIT", pnl=2000.0,
         created_at=now - timedelta(hours=24),
@@ -132,7 +140,7 @@ def test_single_win(db_session, session_factory):
 
 
 def test_single_loss(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     trade = _make_trade(
         db_session, status="SL_HIT", pnl=-1000.0,
         created_at=now - timedelta(hours=12),
@@ -173,7 +181,7 @@ def test_single_loss(db_session, session_factory):
 
 
 def test_mixed_trades(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = _make_trade(
         db_session, signal_id=1, status="TP_HIT", pnl=3000.0,
         created_at=now - timedelta(hours=48), closed_at=now - timedelta(hours=24),
@@ -224,7 +232,7 @@ def test_mixed_trades(db_session, session_factory):
 
 
 def test_consecutive_streaks(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     results = [2000.0, 1500.0, 1000.0, -500.0, -300.0, 2500.0, -800.0]
     trades = []
     for i, pnl in enumerate(results):
@@ -271,7 +279,7 @@ def test_consecutive_streaks(db_session, session_factory):
 
 
 def test_holding_time_and_frequency(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = _make_trade(
         db_session, signal_id=1, status="TP_HIT", pnl=1000.0,
         created_at=now - timedelta(hours=48), closed_at=now - timedelta(hours=24),
@@ -310,7 +318,7 @@ def test_holding_time_and_frequency(db_session, session_factory):
 
 
 def test_payoff_ratio_all_wins(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = _make_trade(
         db_session, signal_id=1, status="TP_HIT", pnl=500.0,
         created_at=now - timedelta(hours=24), closed_at=now,
@@ -344,7 +352,7 @@ def test_payoff_ratio_all_wins(db_session, session_factory):
 
 
 def test_expectancy_all_losses(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = _make_trade(
         db_session, signal_id=1, status="SL_HIT", pnl=-500.0,
         created_at=now - timedelta(hours=24), closed_at=now,
@@ -380,7 +388,7 @@ def test_expectancy_all_losses(db_session, session_factory):
 
 
 def test_sharpe_sortino_flat(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = _make_trade(
         db_session, signal_id=1, status="TP_HIT", pnl=0.0,
         created_at=now - timedelta(hours=24), closed_at=now,
@@ -411,7 +419,7 @@ def test_sharpe_sortino_flat(db_session, session_factory):
 
 
 def test_recovery_factor(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = _make_trade(
         db_session, signal_id=1, status="SL_HIT", pnl=-2000.0,
         created_at=now - timedelta(hours=48), closed_at=now - timedelta(hours=24),
@@ -450,7 +458,7 @@ def test_recovery_factor(db_session, session_factory):
 
 
 def test_cancelled_trades_excluded(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = _make_trade(
         db_session, signal_id=1, status="CANCEL", pnl=0.0,
         created_at=now - timedelta(hours=24), closed_at=now,
@@ -480,7 +488,7 @@ def test_cancelled_trades_excluded(db_session, session_factory):
 
 
 def test_integration_with_portfolio(db_session, session_factory):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     t1 = _make_trade(
         db_session, signal_id=1, status="TP_HIT", pnl=2000.0,
         created_at=now - timedelta(hours=24), closed_at=now,

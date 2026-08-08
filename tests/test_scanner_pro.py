@@ -1,6 +1,7 @@
 """Tests for Elite Scanner PRO modules."""
 
 from unittest.mock import MagicMock
+
 import pandas as pd
 
 from scanner.confidence import ConfidenceScorer
@@ -51,6 +52,28 @@ class TestProbabilityEngine:
         prob2, _ = self.engine.estimate(composite_score=0.0)
         assert prob2 >= 0
 
+    def test_short_probability_btc_bearish_boost(self):
+        prob_neutral, _ = self.engine.estimate(composite_score=0.5, side="SHORT")
+        prob_bearish, _ = self.engine.estimate(composite_score=0.5, btc_trend="BEARISH", side="SHORT")
+        assert prob_bearish > prob_neutral
+
+    def test_short_probability_btc_bullish_penalty(self):
+        prob_neutral, _ = self.engine.estimate(composite_score=0.5, side="SHORT")
+        prob_bullish, _ = self.engine.estimate(composite_score=0.5, btc_trend="BULLISH", side="SHORT")
+        assert prob_bullish < prob_neutral
+
+    def test_short_probability_greed_shorting_opportunity(self):
+        prob, signals = self.engine.estimate(composite_score=0.5, fear_greed_value=70, side="SHORT")
+        assert "GREED_SHORTING_OPPORTUNITY" in signals
+
+    def test_short_probability_extreme_greed_opportunity(self):
+        prob, signals = self.engine.estimate(composite_score=0.5, fear_greed_value=90, side="SHORT")
+        assert "EXTREME_GREED_OPPORTUNITY" in signals
+
+    def test_short_probability_funding_long_edge(self):
+        prob, signals = self.engine.estimate(composite_score=0.5, funding_level="HIGH_LONG", side="SHORT")
+        assert "HIGH_FUNDING_LONG_EDGE" in signals
+
 
 class TestRiskScorer:
 
@@ -81,6 +104,39 @@ class TestRiskScorer:
     def test_risk_bounds(self):
         risk, _ = self.scorer.score(volatility_class="EXTREME", risk_feature="HIGH", atr_pct=10.0)
         assert 0 <= risk <= 1
+
+    def test_risk_scorer_end_to_end_with_feature_store(self):
+        from market.features import FeatureStore
+        store = FeatureStore()
+
+        # A realistic low-price/high-relative-volatility input (e.g. Dogecoin: price 0.15, atr 0.02)
+        features = store.extract({
+            "ema20": 0.15,
+            "ema50": 0.15,
+            "ema200": 0.15,
+            "rsi": 50,
+            "atr": 0.02,
+            "volatility_score": 0.3,
+            "volume_score": 0.5,
+        })
+
+        # Confirm that the features carry the correct pct metrics
+        assert features["atr_pct"] is not None
+        assert abs(features["atr_pct"] - 13.333) < 0.01
+        assert features["risk"] == "MEDIUM"  # atr_pct is ~13.33 (>5.0% adds 2 to risk level)
+
+        # Run end-to-end scoring
+        risk, signals = self.scorer.score(
+            volatility_class=features.get("volatility_class"),
+            risk_feature=features.get("risk"),
+            atr_pct=features.get("atr_pct"),
+            liquidity_score=0.5,
+            reversal_score=0.0,
+        )
+
+        # Percentage-based atr risk check should have successfully fired
+        assert "HIGH_ATR_RISK" in signals
+        assert risk > 0.0
 
 
 class TestConfidenceScorer:
@@ -131,7 +187,7 @@ class TestMarketFilter:
         r = ScanResult(symbol="BTC", trend_score=0.0, momentum_score=0.0,
                        breakout_score=0.0, reversal_score=0.0, liquidity_score=0.0,
                        features={"trend": "BULLISH"})
-        should, reason = self.filter.should_filter(r, btc_trend="BEARISH")
+        should, reason = self.filter.should_filter(r, side="LONG", btc_trend="BEARISH")
         assert should
         assert "BTC_BEARISH_CONTRADICTS" in reason
 
@@ -139,7 +195,7 @@ class TestMarketFilter:
         r = ScanResult(symbol="BTC", trend_score=0.0, momentum_score=0.6,
                        breakout_score=0.0, reversal_score=0.4, liquidity_score=0.0,
                        features={"trend": "BULLISH"})
-        should, reason = self.filter.should_filter(r, fear_greed_label="EXTREME_GREED")
+        should, reason = self.filter.should_filter(r, side="LONG", fear_greed_label="EXTREME_GREED")
         assert should
 
     def test_market_closed(self):
@@ -150,9 +206,61 @@ class TestMarketFilter:
 
     def test_normal_market_no_filter(self):
         r = ScanResult(symbol="BTC")
-        should, reason = self.filter.should_filter(r, btc_trend="BULLISH")
+        should, reason = self.filter.should_filter(r, side="LONG", btc_trend="BULLISH")
         assert not should
         assert reason is None
+
+    def test_bullish_trend_but_ranked_short_with_bearish_btc_kept(self):
+        # features["trend"] is BULLISH but the real ranked side is SHORT, and BTC
+        # is BEARISH — a bearish BTC context confirms a SHORT, it doesn't contradict it.
+        r = ScanResult(symbol="BTC", trend_score=0.6, momentum_score=-0.9,
+                       breakout_score=-0.8, reversal_score=-0.7, liquidity_score=0.0,
+                       features={"trend": "BULLISH"})
+        should, reason = self.filter.should_filter(r, side="SHORT", btc_trend="BEARISH")
+        assert not should
+        assert reason is None
+
+    def test_genuine_contradiction_long_with_bearish_btc_filtered(self):
+        r = ScanResult(symbol="BTC", trend_score=0.6, momentum_score=0.5,
+                       breakout_score=0.5, reversal_score=0.5, liquidity_score=0.0,
+                       features={"trend": "BULLISH"})
+        should, reason = self.filter.should_filter(r, side="LONG", btc_trend="BEARISH")
+        assert should
+        assert "BTC_BEARISH_CONTRADICTS" in reason
+
+
+class TestScannerMarketFilterIntegration:
+    def test_scanner_keeps_short_opportunity_with_bearish_btc(self):
+        # Prove that an opportunity with features["trend"]=BULLISH but a real
+        # ranked side of SHORT is kept when btc_trend=BEARISH (a confirming
+        # signal for a SHORT, not a contradiction).
+        from market.models import Asset, AssetMetadata
+        from scanner.core import OpportunityScanner
+        from scanner.models import Opportunity
+
+        mock_service = MagicMock()
+        mock_ranker = MagicMock()
+        mock_ranker.rank.return_value = [
+            Opportunity(symbol="BTCUSDT", side="SHORT", strategy="reversal", score=0.5, confidence=50.0)
+        ]
+
+        ohlcv = pd.DataFrame({"close": [50000.0], "volume": [100.0]})
+        asset = Asset(
+            symbol="BTCUSDT",
+            metadata=AssetMetadata(symbol="BTCUSDT"),
+            price=50000.0,
+            ohlcv=ohlcv,
+            indicators={"ema20": 110, "ema50": 105, "ema200": 100, "rsi": 60},
+            features={"trend": "BULLISH", "momentum": "STRONG", "liquidity": "HIGH", "risk": "LOW", "volatility_class": "NORMAL"},
+        )
+        asset.context = {"session": "OPEN", "btc": {"btc_trend": "BEARISH"}}
+        mock_service.get_asset.return_value = asset
+
+        scanner = OpportunityScanner(market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"])
+        ops = scanner.scan()
+        assert len(ops) == 1
+        assert ops[0].symbol == "BTCUSDT"
+        assert ops[0].side == "SHORT"
 
 
 class TestFalseSignalFilter:

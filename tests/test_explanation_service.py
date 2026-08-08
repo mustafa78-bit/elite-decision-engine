@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 
 from dto.explanations import (
     ConfidenceBreakdownDTO,
@@ -120,6 +121,51 @@ class TestExplanationService:
         assert explanation.reasoning.symbol == "BTCUSDT"
         assert explanation.timeline.signal_id == 1
         assert len(explanation.timeline.events) == 2
+
+    def test_explain_signal_without_scores_reconstructs_from_signal_fields(self):
+        class SignalWithRealScoring:
+            id = 42
+            symbol = "SOLUSDT"
+            side = "LONG"
+            timeframe = "4h"
+            status = "OPEN"
+            price = 145.5
+            score = 0.85
+            confidence = 88.0
+            trend_score = 1.0
+            volume_score = 0.8
+            btc_health = 0.7
+            risk_score = 0.6
+            rsi = 62.0
+            atr = 5.5
+
+        signal = SignalWithRealScoring()
+        service = ExplanationService()
+        explanation = service.explain_signal(signal)
+
+        assert explanation.reasoning is not None
+        assert explanation.reasoning.signal_id == 42
+        assert explanation.reasoning.symbol == "SOLUSDT"
+        assert explanation.reasoning.side == "LONG"
+        assert explanation.reasoning.timeframe == "4h"
+        assert explanation.reasoning.entry_price == 145.5
+        assert explanation.reasoning.status == "OPEN"
+        assert explanation.reasoning.decision == "APPROVE"
+
+        cb = explanation.reasoning.confidence_breakdown
+        assert cb is not None
+        assert cb.trend_score == 1.0
+        assert cb.volume_score == 0.8
+        assert cb.btc_score == 0.7
+        assert cb.risk_score == 0.6
+        assert cb.final_score == 0.85
+        assert cb.confidence == 88.0
+
+        mc = explanation.reasoning.market_contribution
+        assert mc is not None
+        assert mc.price == 145.5
+        assert mc.rsi == 62.0
+        assert mc.atr == 5.5
 
     def test_explain_signal_with_scores(self):
         service = ExplanationService()

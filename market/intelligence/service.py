@@ -20,19 +20,30 @@ from market_data.open_interest.models import detect_oi_trend
 
 logger = logging.getLogger(__name__)
 
+_TIMEFRAME_MINUTES = {
+    "1m": 1, "5m": 5, "15m": 15, "30m": 30,
+    "1h": 60, "4h": 240, "1d": 1440, "1w": 10080,
+}
+
+
+def _candles_per_24h(timeframe: str) -> int:
+    """Number of candles that span a real 24h window for this timeframe."""
+    minutes = _TIMEFRAME_MINUTES.get(timeframe, 60)
+    return max(1, 1440 // minutes)
+
 
 class IntelligenceService:
     """Aggregate all intelligence sources into a unified bundle per symbol."""
 
     def __init__(
         self,
-        funding_collector: Optional[FundingCollector] = None,
-        oi_collector: Optional[OpenInterestCollector] = None,
-        fear_greed: Optional[FearGreedService] = None,
-        news: Optional[NewsService] = None,
-        whale: Optional[WhaleService] = None,
-        exchange_flow: Optional[ExchangeFlowService] = None,
-        liquidity: Optional[LiquidityContextAnalyzer] = None,
+        funding_collector: FundingCollector | None = None,
+        oi_collector: OpenInterestCollector | None = None,
+        fear_greed: FearGreedService | None = None,
+        news: NewsService | None = None,
+        whale: WhaleService | None = None,
+        exchange_flow: ExchangeFlowService | None = None,
+        liquidity: LiquidityContextAnalyzer | None = None,
     ) -> None:
         self.funding_collector = funding_collector or FundingCollector()
         self.oi_collector = oi_collector or OpenInterestCollector()
@@ -114,7 +125,7 @@ class IntelligenceService:
         asset.intelligence = bundle
         return asset
 
-    def _get_funding(self, symbol: str) -> Optional[dict[str, Any]]:
+    def _get_funding(self, symbol: str) -> dict[str, Any] | None:
         try:
             rate = self.funding_collector.fetch_for_symbol(symbol)
             if rate is not None:
@@ -129,7 +140,7 @@ class IntelligenceService:
             logger.debug("Funding unavailable for %s: %s", symbol, e)
         return None
 
-    def _get_open_interest(self, symbol: str) -> Optional[dict[str, Any]]:
+    def _get_open_interest(self, symbol: str) -> dict[str, Any] | None:
         try:
             oi_data = self.oi_collector.fetch_with_trend(symbol)
             if oi_data.get("value", 0) > 0:
@@ -139,11 +150,12 @@ class IntelligenceService:
         return None
 
     @staticmethod
-    def _estimate_24h_change(asset: Asset) -> Optional[float]:
+    def _estimate_24h_change(asset: Asset) -> float | None:
         ohlcv = asset.ohlcv
-        if ohlcv is not None and len(ohlcv) >= 24:
+        window = _candles_per_24h(asset.timeframe)
+        if ohlcv is not None and len(ohlcv) >= window:
             price_now = float(ohlcv["close"].iloc[-1])
-            price_24h = float(ohlcv["close"].iloc[-24])
+            price_24h = float(ohlcv["close"].iloc[-window])
             if price_24h > 0:
                 return round((price_now - price_24h) / price_24h * 100, 2)
         return None

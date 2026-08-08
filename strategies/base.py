@@ -25,7 +25,7 @@ class Strategy(ABC):
     name: str = "base"
 
     @abstractmethod
-    def evaluate(self, symbol: str, market_data: Any) -> Optional[StrategyResult]:
+    def evaluate(self, symbol: str, market_data: Any) -> StrategyResult | None:
         ...
 
     @abstractmethod

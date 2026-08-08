@@ -10,6 +10,7 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 from market.intelligence.whale import WhaleService
@@ -29,16 +30,16 @@ class WhaleAgent(BaseAgent):
         name: str = "Whale",
         weight: float = 1.0,
         priority: int = 3,
-        whale_service: Optional[WhaleService] = None,
+        whale_service: WhaleService | None = None,
     ) -> None:
         super().__init__(name=name, weight=weight, priority=priority)
         self.whale_service = whale_service or WhaleService()
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"
@@ -87,7 +88,6 @@ class WhaleAgent(BaseAgent):
         high_severity = any(s.get("severity") == "high" for s in whale_signals)
 
         reasoning: list[str] = []
-        direction = DIRECTION_NEUTRAL
         confidence = min(1.0, max_confidence)
 
         types = [s.get("type", "UNKNOWN") for s in whale_signals]
@@ -95,18 +95,86 @@ class WhaleAgent(BaseAgent):
             count = types.count(signal_type)
             reasoning.append(f"{count}x {signal_type} signal(s)")
 
-        if "WHALE_MOVE" in types:
-            if high_severity:
-                direction = DIRECTION_BULLISH if side.upper() == "LONG" else DIRECTION_BEARISH
-                reasoning.append("High-confidence whale movement detected")
+        has_directional = any(t in {"WHALE_WALL", "EXTREME_FUNDING"} for t in types) or any(
+            s.get("type") == "WHALE_TRADE" and s.get("direction") in ("buy", "sell")
+            for s in whale_signals
+        )
+
+        if has_directional:
+            # Weighted consensus across directional signal types. direction_val
+            # is always the LITERAL market direction (+1 bullish, -1 bearish) --
+            # normalize_direction() below converts it relative to trade side, the
+            # same convention every other council agent follows.
+            total_influence = 0.0
+            for s in whale_signals:
+                s_type = s.get("type")
+                s_conf = s.get("confidence", 0.5)
+                s_sev = s.get("severity", "medium")
+
+                if s_sev == "high":
+                    s_weight = 2.0
+                elif s_sev == "medium":
+                    s_weight = 1.0
+                else:
+                    s_weight = 0.5
+
+                if s_type == "WHALE_WALL":
+                    wall_type = s.get("wall_type")
+                    direction_val = 1 if wall_type == "Support" else -1
+                    reasoning.append(f"Whale wall: {wall_type} (conf={s_conf})")
+                elif s_type == "EXTREME_FUNDING":
+                    fund_dir = s.get("direction")
+                    direction_val = 1 if fund_dir == "premium" else -1
+                    reasoning.append(f"Extreme funding: {fund_dir} (conf={s_conf})")
+                elif s_type == "WHALE_TRADE":
+                    # Real direction from Binance's isBuyerMaker (see
+                    # market/intelligence/whale.py) -- aggressive buying is
+                    # bullish, aggressive selling is bearish. A WHALE_TRADE
+                    # with no extractable direction (direction=None) is
+                    # treated as non-directional, same as the else branch.
+                    trade_dir = s.get("direction")
+                    direction_val = 1 if trade_dir == "buy" else -1 if trade_dir == "sell" else 0
+                    reasoning.append(f"Large trade: {trade_dir or 'unknown'}-side (conf={s_conf})")
+                elif s_type == "WHALE_MOVE":
+                    # Open-interest buildup carries no inherent buy/sell
+                    # direction of its own (see market/intelligence/whale.py) --
+                    # treat it like any other non-directional type below,
+                    # rather than always biasing total_influence bullish.
+                    direction_val = 0
+                    reasoning.append("Whale movement detected")
+                else:
+                    direction_val = 0
+                    if s_type == "HIGH_VOLUME":
+                        reasoning.append("Unusually high volume")
+
+                total_influence += direction_val * s_weight * s_conf
+
+            if total_influence > 0.05:
+                literal_direction = DIRECTION_BULLISH
+            elif total_influence < -0.05:
+                literal_direction = DIRECTION_BEARISH
             else:
-                reasoning.append("Moderate whale movement — monitor closely")
+                literal_direction = DIRECTION_NEUTRAL
+        else:
+            # Legacy non-directional fallback: WHALE_MOVE/HIGH_VOLUME carry no
+            # inherent market direction of their own, so a high-severity reading
+            # is treated as a literal-bullish signal, same as before.
+            literal_direction = DIRECTION_NEUTRAL
+            if "WHALE_MOVE" in types:
+                if high_severity:
+                    literal_direction = DIRECTION_BULLISH
+                    reasoning.append("High-confidence whale movement detected")
+                else:
+                    reasoning.append("Moderate whale movement — monitor closely")
 
-        if "HIGH_VOLUME" in types:
-            reasoning.append("Unusually high volume — possible institutional activity")
+            if "HIGH_VOLUME" in types:
+                reasoning.append("Unusually high volume — possible institutional activity")
+            # No further catch-all here: HIGH_VOLUME and a direction-less
+            # WHALE_TRADE genuinely carry no buy/sell information, so a
+            # high-severity/high-confidence reading of either must stay
+            # DIRECTION_NEUTRAL rather than being biased bullish by default.
 
-        if high_severity and confidence > 0.7:
-            direction = DIRECTION_BULLISH if side.upper() == "LONG" else DIRECTION_BEARISH
+        direction = normalize_direction(literal_direction, side)
 
         return AgentReport(
             agent_name=self.name,

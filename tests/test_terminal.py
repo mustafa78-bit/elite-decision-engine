@@ -1,11 +1,12 @@
 """Tests for Elite Terminal Backend."""
 
 from unittest.mock import MagicMock, patch
+
 import pandas as pd
 
-from services.terminal_service import TerminalService
-from market.models import Asset, AssetMetadata
 from market.intelligence.models import IntelligenceBundle
+from market.models import Asset, AssetMetadata
+from services.terminal_service import TerminalService
 
 
 class TestTerminalService:
@@ -87,6 +88,11 @@ class TestTerminalService:
         )
         mock_market.get_asset.return_value = asset
         self.service.market_service = mock_market
+
+        mock_scanner = MagicMock()
+        mock_scanner.top_opportunities.return_value = []
+        self.service.scanner = mock_scanner
+
         overview = self.service.get_overview()
         assert "market" in overview
         assert "portfolio" in overview
@@ -108,6 +114,53 @@ class TestTerminalService:
         result = self.service._get_performance_summary()
         assert isinstance(result, dict)
 
+    def test_get_open_trades_with_real_data(self, db_session, monkeypatch, session_factory):
+        monkeypatch.setattr("services.terminal_service.get_session", session_factory)
+        from database import PaperTrade, Signal, Trade
+        sig = Signal(id=10, symbol="ETHUSDT", side="LONG")
+        db_session.add(sig)
+        db_session.flush()
+        trade = Trade(id=10, signal_id=10, symbol="ETHUSDT", side="LONG", entry=3000.0, status="OPEN")
+        db_session.add(trade)
+        db_session.flush()
+        pt = PaperTrade(position_id=10, symbol="ETHUSDT", side="LONG", entry=3000.0, quantity=2.5, status="OPEN")
+        db_session.add(pt)
+        db_session.flush()
+        result = self.service.get_open_trades()
+        assert len(result) == 1
+        open_t = result[0]
+        assert open_t["id"] == 10
+        assert open_t["symbol"] == "ETHUSDT"
+        assert open_t["side"] == "LONG"
+        assert open_t["entry_price"] == 3000.0
+        assert open_t["quantity"] == 2.5
+        assert open_t["current_price"] == 3000.0
+
+    def test_aggregator_reuses_scanner_and_market_service(self):
+        service = TerminalService()
+        assert service.aggregator.scanner is service.scanner
+        assert service.aggregator.market_service is service.market_service
+
+    def test_get_decision_returns_dict(self):
+        from decision.models import DecisionResult
+        mock_aggregator = MagicMock()
+        mock_aggregator.analyze.return_value = DecisionResult(
+            symbol="BTCUSDT", side="LONG", decision="APPROVE",
+            score=0.8, confidence=75.0, reasons=["Strong trend"],
+        )
+        self.service.aggregator = mock_aggregator
+        result = self.service.get_decision("BTCUSDT")
+        assert result["symbol"] == "BTCUSDT"
+        assert result["decision"] == "APPROVE"
+        assert result["confidence"] == 75.0
+        mock_aggregator.analyze.assert_called_once_with("BTCUSDT", "1h")
+
+    def test_get_decision_returns_none_when_no_data(self):
+        mock_aggregator = MagicMock()
+        mock_aggregator.analyze.return_value = None
+        self.service.aggregator = mock_aggregator
+        assert self.service.get_decision("UNKNOWNCOIN") is None
+
 
 class TestTerminalAPI:
 
@@ -121,3 +174,48 @@ class TestTerminalAPI:
         assert event.event == "SCANNER_UPDATE"
         payload = ScannerPayload()
         assert payload.symbol == ""
+
+    def test_get_open_trades_endpoint(self, api_client, db_session):
+        from database import PaperTrade, Signal, Trade
+        sig = Signal(id=20, symbol="BTCUSDT", side="SHORT")
+        db_session.add(sig)
+        db_session.flush()
+        trade = Trade(id=20, signal_id=20, symbol="BTCUSDT", side="SHORT", entry=60000.0, status="OPEN")
+        db_session.add(trade)
+        db_session.flush()
+        pt = PaperTrade(position_id=20, symbol="BTCUSDT", side="SHORT", entry=60000.0, quantity=0.5, status="OPEN")
+        db_session.add(pt)
+        db_session.flush()
+        resp = api_client.get("/terminal/open-trades")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body) == 1
+        assert body[0]["id"] == 20
+        assert body[0]["symbol"] == "BTCUSDT"
+        assert body[0]["side"] == "SHORT"
+        assert body[0]["entry_price"] == 60000.0
+        assert body[0]["quantity"] == 0.5
+
+    def test_decision_endpoint_returns_result(self, api_client, monkeypatch):
+        mock_service = MagicMock()
+        mock_service.get_decision.return_value = {
+            "symbol": "BTCUSDT", "side": "LONG", "decision": "APPROVE",
+            "confidence": 82.0, "reasons": ["Strong trend"], "warnings": [],
+            "signals": [], "timeline": [], "intelligence_summary": {},
+            "feature_summary": {}, "score": 0.8, "probability": 0.7,
+            "risk_score": 0.2, "timestamp": "2026-08-07T00:00:00+00:00",
+        }
+        monkeypatch.setattr("api.routes.terminal._service", mock_service)
+        resp = api_client.get("/terminal/decision/BTCUSDT")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["symbol"] == "BTCUSDT"
+        assert body["decision"] == "APPROVE"
+        mock_service.get_decision.assert_called_once_with("BTCUSDT", "1h")
+
+    def test_decision_endpoint_404_when_no_data(self, api_client, monkeypatch):
+        mock_service = MagicMock()
+        mock_service.get_decision.return_value = None
+        monkeypatch.setattr("api.routes.terminal._service", mock_service)
+        resp = api_client.get("/terminal/decision/UNKNOWNCOIN")
+        assert resp.status_code == 404

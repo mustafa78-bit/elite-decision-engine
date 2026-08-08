@@ -18,8 +18,6 @@ def parse_decision_result(result: Any, symbol: str = "") -> list[EvidenceItem]:
     reasons = getattr(result, "reasons", [])
     warnings = getattr(result, "warnings", [])
 
-    cat = get_category("decision_quality")
-
     items.append(
         EvidenceItem(
             title=f"Decision: {decision}",
@@ -87,7 +85,7 @@ def parse_risk_decision(result: Any, symbol: str = "") -> list[EvidenceItem]:
     checks = getattr(result, "checks", ())
     if isinstance(checks, dict):
         for check_name, check_value in checks.items():
-            severity = "HIGH"
+            passed = bool(check_value)
             desc = f"{check_name}: {check_value}"
             items.append(
                 EvidenceItem(
@@ -95,9 +93,9 @@ def parse_risk_decision(result: Any, symbol: str = "") -> list[EvidenceItem]:
                     description=desc,
                     engine="risk_engine",
                     category="risk_volatility",
-                    severity=severity,
+                    severity="LOW" if passed else "HIGH",
                     confidence=0.85,
-                    supports_decision=False,
+                    supports_decision=passed,
                     source=SourceTrace(origin=symbol or "unknown", engine="risk_engine"),
                 )
             )
@@ -127,7 +125,6 @@ def parse_scanner_opportunity(result: Any) -> list[EvidenceItem]:
 
     symbol = getattr(result, "symbol", "UNKNOWN")
     side = getattr(result, "side", "LONG")
-    score = getattr(result, "score", 0.0)
     confidence = getattr(result, "confidence", 0.0)
     strategy = getattr(result, "strategy", "unknown")
     reason = getattr(result, "reason", "")
@@ -176,15 +173,18 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
     agreeing = getattr(result, "sources_agreeing", 0)
     disagreeing = getattr(result, "sources_disagreeing", 0)
 
+    is_veto = direction == "PASS"
+    summary_severity = "CRITICAL" if is_veto else ("HIGH" if agreement in ("strong", "moderate") else "MEDIUM")
+
     items.append(
         EvidenceItem(
             title=f"Council: {direction} ({agreement})",
             description=f"{agreeing} for, {disagreeing} against — score {score:.1f}",
             engine="council",
             category="council_consensus",
-            severity="HIGH" if agreement in ("strong", "moderate") else "MEDIUM",
+            severity=summary_severity,
             confidence=score / 100.0 if score > 1.0 else score,
-            supports_decision=True,
+            supports_decision=direction == "BULLISH",
             source=SourceTrace(origin=symbol, engine="council"),
         )
     )
@@ -195,6 +195,7 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
         agent_dir = getattr(agent, "direction", "NEUTRAL")
         agent_conf = getattr(agent, "confidence", 0.0)
         agent_reasoning = getattr(agent, "reasoning", [])
+        agent_severity = "CRITICAL" if agent_dir == "PASS" else "MEDIUM"
 
         items.append(
             EvidenceItem(
@@ -202,9 +203,9 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
                 description="; ".join(agent_reasoning[:3]) if agent_reasoning else f"{agent_name} votes {agent_dir}",
                 engine="council",
                 category="council_agent",
-                severity="MEDIUM",
+                severity=agent_severity,
                 confidence=agent_conf / 100.0 if agent_conf > 1.0 else agent_conf,
-                supports_decision=True,
+                supports_decision=agent_dir == "BULLISH",
                 source=SourceTrace(origin=symbol, engine="council"),
             )
         )
@@ -266,7 +267,7 @@ def parse_portfolio_summary(result: Any) -> list[EvidenceItem]:
     return items
 
 
-def parse_market_regime(result: Any) -> list[EvidenceItem]:
+def parse_market_regime(result: Any, side: str = "LONG") -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
     if isinstance(result, dict):
@@ -283,7 +284,13 @@ def parse_market_regime(result: Any) -> list[EvidenceItem]:
         score = getattr(result, "score", 0.0)
 
     bullish_trends = ("BULLISH", "RECOVERING")
-    is_bullish = trend in bullish_trends
+    bearish_trends = ("BEARISH", "WEAKENING")
+
+    side_upper = str(side).upper().strip() if side else "LONG"
+    if side_upper == "SHORT":
+        supports_decision = trend in bearish_trends
+    else:
+        supports_decision = trend in bullish_trends
 
     items.append(
         EvidenceItem(
@@ -293,7 +300,7 @@ def parse_market_regime(result: Any) -> list[EvidenceItem]:
             category="market_regime",
             severity="HIGH" if volatility in ("EXTREME", "HIGH") else "MEDIUM",
             confidence=score,
-            supports_decision=is_bullish,
+            supports_decision=supports_decision,
             source=SourceTrace(origin="global", engine="market_regime"),
         )
     )
@@ -315,10 +322,11 @@ def parse_market_regime(result: Any) -> list[EvidenceItem]:
     return items
 
 
-def parse_whale_result(results: Any) -> list[EvidenceItem]:
+def parse_whale_result(results: Any, side: str = "LONG") -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
     whale_list = results if isinstance(results, list) else []
+    side_upper = str(side).upper().strip() if side else "LONG"
 
     for w in whale_list:
         symbol = w.get("symbol", "UNKNOWN")
@@ -326,6 +334,23 @@ def parse_whale_result(results: Any) -> list[EvidenceItem]:
         severity = w.get("severity", "medium")
         description = w.get("description", "")
         confidence = w.get("confidence", 0.5)
+
+        wall_type = w.get("wall_type")
+        funding_direction = w.get("direction")
+
+        if wall_type == "Support" or funding_direction == "premium":
+            is_bullish: bool | None = True
+        elif wall_type == "Resistance" or funding_direction == "discount":
+            is_bullish = False
+        else:
+            is_bullish = None
+
+        if is_bullish is None:
+            supports_decision = True
+        elif side_upper == "SHORT":
+            supports_decision = not is_bullish
+        else:
+            supports_decision = is_bullish
 
         items.append(
             EvidenceItem(
@@ -335,7 +360,7 @@ def parse_whale_result(results: Any) -> list[EvidenceItem]:
                 category="whale_activity",
                 severity=severity.upper(),
                 confidence=confidence,
-                supports_decision=True,
+                supports_decision=supports_decision,
                 source=SourceTrace(origin=symbol, engine="whale"),
             )
         )
@@ -346,7 +371,6 @@ def parse_whale_result(results: Any) -> list[EvidenceItem]:
 def parse_explain_result(result: Any) -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
-    decision = getattr(result, "decision", "")
     confidence = getattr(result, "confidence", 0.0)
     reasons = getattr(result, "reasons", [])
     warnings = getattr(result, "warnings", [])

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 SUPPORTING_WEIGHT = 1.0
 CONTRADICTING_WEIGHT = 1.2
 

@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
-from database import Trade, Watchlist, Notification, UserSettings
-from dto.preferences import UserPreferencesDTO, ThemeConfigDTO, LayoutConfigDTO
-from dto.watchlists import WatchlistDTO, WatchlistCreateDTO, WatchlistUpdateDTO
+from database import Notification, Trade, UserSettings, Watchlist
 from dto.notifications_detail import NotificationDetailDTO, NotificationStatsDTO
-from dto.portfolio_detail import PortfolioSummaryDTO, PortfolioDistributionDTO, PortfolioPerformanceDTO, PortfolioRiskDTO
+from dto.portfolio_detail import (
+    PortfolioDistributionDTO,
+    PortfolioPerformanceDTO,
+    PortfolioRiskDTO,
+    PortfolioSummaryDTO,
+)
+from dto.preferences import LayoutConfigDTO, ThemeConfigDTO, UserPreferencesDTO
+from dto.watchlists import WatchlistCreateDTO, WatchlistDTO, WatchlistUpdateDTO
 
 
 class TestBatch2DTOs:
@@ -77,15 +82,18 @@ class TestBatch2DTOs:
 class TestPortfolioService:
 
     def test_empty_portfolio_summary(self, db_session):
+        from config import ACCOUNT_EQUITY
         from services.portfolio_service import PortfolioService
         svc = PortfolioService(session_factory=lambda: db_session)
         s = svc.summary()
         assert s["total_trades"] == 0
         assert s["open_trades"] == 0
+        assert s["total_balance"] == round(ACCOUNT_EQUITY, 2)
 
     def test_portfolio_with_trades(self, db_session):
+        from config import ACCOUNT_EQUITY
         from services.portfolio_service import PortfolioService
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                              tp1=52000, rr=2.0, status="TP_HIT", pnl=2000.0,
                              created_at=now - timedelta(days=2), closed_at=now - timedelta(days=2)))
@@ -98,10 +106,11 @@ class TestPortfolioService:
         assert s["total_trades"] == 2
         assert s["win_rate"] == 50.0
         assert s["total_pnl"] == 1500.0
+        assert s["total_balance"] == round(ACCOUNT_EQUITY + 1500.0, 2)
 
     def test_portfolio_distribution(self, db_session):
         from services.portfolio_service import PortfolioService
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                              tp1=52000, rr=2.0, status="TP_HIT", pnl=2000.0, created_at=now))
         db_session.add(Trade(symbol="ETHUSDT", side="SHORT", entry=3000, stop=3100,
@@ -114,7 +123,7 @@ class TestPortfolioService:
 
     def test_portfolio_performance(self, db_session):
         from services.portfolio_service import PortfolioService
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                              tp1=52000, rr=2.0, status="TP_HIT", pnl=2000.0,
                              created_at=now - timedelta(days=2), closed_at=now - timedelta(days=2)))
@@ -129,6 +138,34 @@ class TestPortfolioService:
         svc = PortfolioService(session_factory=lambda: db_session)
         r = svc.risk_metrics()
         assert r["current_exposure"] == 0.0
+
+    def test_portfolio_risk_exposure_and_average_risk_distance(self, db_session):
+        from services.portfolio_service import PortfolioService
+        # Add open trade to check exposure based on entry price
+        db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49000.0,
+                             status="OPEN", pnl=10.0)) # pnl should not be used for exposure
+        # Add closed trades to check risk_per_trade distance calculation
+        now = datetime.now(UTC)
+        db_session.add(Trade(symbol="ETHUSDT", side="SHORT", entry=3000.0, stop=3100.0,
+                             status="SL_HIT", pnl=-100.0, created_at=now, closed_at=now))
+        db_session.add(Trade(symbol="SOLUSDT", side="LONG", entry=150.0, stop=140.0,
+                             status="TP_HIT", pnl=200.0, created_at=now, closed_at=now))
+        db_session.flush()
+
+        svc = PortfolioService(session_factory=lambda: db_session)
+        r = svc.risk_metrics()
+
+        # Exposure should be entry price of the open trade: 50000.0
+        assert r["current_exposure"] == 50000.0
+
+        # Concentration should reflect absolute entry price (100% BTCUSDT since it's the only open trade)
+        assert r["symbol_concentration"] == {"BTCUSDT": 1.0}
+
+        # Average risk per trade should use abs(entry - stop) distances of the closed trades:
+        # Trade 1: abs(3000.0 - 3100.0) = 100.0
+        # Trade 2: abs(150.0 - 140.0) = 10.0
+        # Average: (100.0 + 10.0) / 2 = 55.0
+        assert r["risk_per_trade"] == 55.0
 
     def test_portfolio_full(self, db_session):
         from services.portfolio_service import PortfolioService
@@ -439,7 +476,7 @@ class TestKPIServiceEnhanced:
 
     def test_kpi_service_with_trades(self, db_session):
         from services.kpi_service import KPIService
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                              tp1=52000, rr=2.0, status="TP_HIT", pnl=2000.0,
                              created_at=now - timedelta(days=2), closed_at=now - timedelta(days=2)))

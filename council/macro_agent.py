@@ -10,17 +10,20 @@ from council.base import (
     DIRECTION_PASS,
     AgentReport,
     BaseAgent,
+    normalize_direction,
 )
 from execution.pipeline import TradingSignal
 
 logger = logging.getLogger(__name__)
 
 FUNDING_RISK_MAP: dict[str, float] = {
-    "VERY_HIGH": 0.1,
-    "HIGH": 0.3,
-    "MODERATE": 0.5,
-    "LOW": 0.7,
-    "NEUTRAL": 0.5,
+    "extreme": 0.1,
+    "high": 0.3,
+    "elevated": 0.4,
+    "neutral": 0.5,
+    "elevated_negative": 0.6,
+    "high_negative": 0.7,
+    "extreme_negative": 0.9,
 }
 
 FEAR_GREED_MAP: dict[str, float] = {
@@ -55,9 +58,9 @@ class MacroAgent(BaseAgent):
 
     def evaluate(
         self,
-        signal: Optional[TradingSignal] = None,
-        scores: Optional[dict[str, Any]] = None,
-        market_data: Optional[Any] = None,
+        signal: TradingSignal | None = None,
+        scores: dict[str, Any] | None = None,
+        market_data: Any | None = None,
         **kwargs: Any,
     ) -> AgentReport:
         symbol = getattr(signal, "symbol", "?") if signal else "?"
@@ -83,8 +86,7 @@ class MacroAgent(BaseAgent):
         exchange_flow = bundle.exchange_flow or {}
 
         funding_rate = funding.get("annualized_rate", 0)
-        funding_level = funding.get("level", "NEUTRAL")
-        funding_risk = funding.get("risk_score", 0.5)
+        funding_level = funding.get("level", "neutral")
 
         oi_value = open_interest.get("value", 0)
         oi_trend_name = open_interest.get("trend", "FLAT")
@@ -92,7 +94,6 @@ class MacroAgent(BaseAgent):
 
         fg_label = fear_greed.get("label", "NEUTRAL")
         fg_value = fear_greed.get("value", 50)
-        fg_confidence = fear_greed.get("confidence", 0.5)
 
         liq_score = liquidity.get("score", 0.5)
         liq_level = liquidity.get("level", "NEUTRAL")
@@ -111,12 +112,12 @@ class MacroAgent(BaseAgent):
             reasoning.append(
                 f"Funding rate: {funding_rate:+.6f} ({funding_level})"
             )
-            if funding_level in ("HIGH", "VERY_HIGH"):
+            if funding_level in ("extreme", "high", "elevated"):
                 bearish_count += 1
                 reasoning.append("Elevated funding — crowded long")
-            elif funding_level in ("LOW",):
+            elif funding_level in ("extreme_negative", "high_negative", "elevated_negative"):
                 bullish_count += 1
-                reasoning.append("Low funding — favourable")
+                reasoning.append("Negative funding — short squeeze risk / favorable")
 
         if oi_value > 0:
             oi_dir = OI_TREND_MAP.get(oi_trend_name, DIRECTION_NEUTRAL)
@@ -149,10 +150,10 @@ class MacroAgent(BaseAgent):
         if exchange_flow:
             scores_list.append(flow_confidence)
             reasoning.append(f"Exchange flow: {flow_direction}")
-            if flow_direction == "INFLOW":
+            if flow_direction == "NET_INFLOW":
                 bearish_count += 1
                 reasoning.append("Exchange inflow — potential selling pressure")
-            elif flow_direction == "OUTFLOW":
+            elif flow_direction == "NET_OUTFLOW":
                 bullish_count += 1
                 reasoning.append("Exchange outflow — accumulation signal")
 
@@ -163,6 +164,8 @@ class MacroAgent(BaseAgent):
             direction = DIRECTION_BULLISH
         elif bearish_count > bullish_count:
             direction = DIRECTION_BEARISH
+
+        direction = normalize_direction(direction, side)
 
         return AgentReport(
             agent_name=self.name,

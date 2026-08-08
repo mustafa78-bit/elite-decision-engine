@@ -12,9 +12,9 @@ Verifies:
 import pandas as pd
 import pytest
 
+from core.confidence_engine import ConfidenceEngine
 from execution.execution_loop import ExecutionLoop, ExecutionLoopResult
 from execution.pipeline import DecisionPipeline
-from core.confidence_engine import ConfidenceEngine
 
 
 class MockRiskManager:
@@ -24,7 +24,7 @@ class MockRiskManager:
         return True, ""
 
     def evaluate_trade(self, candidate):
-        from risk.models import RiskDecision, RiskCheckDetail, risk_decision_from_checks
+        from risk.models import RiskCheckDetail, RiskDecision, risk_decision_from_checks
         return risk_decision_from_checks([
             RiskCheckDetail(name="MOCK", passed=True, detail=""),
         ])
@@ -129,8 +129,8 @@ class FakeSignalRanker:
 class FakeRankedSignal:
     """Minimal RankedSignal protocol implementation."""
 
-    def __init__(self, identifier="1", composite_score=0.9, recommendation="STRONG_BUY"):
-        self.identifier = identifier
+    def __init__(self, signal_id=1, composite_score=0.95, recommendation="STRONG_BUY"):
+        self.signal_id = signal_id
         self.composite_score = composite_score
         self.recommendation = recommendation
 
@@ -195,11 +195,22 @@ class TestDecisionPipelineAI:
         assert candidate.memory_context["losses"] == 1
         assert candidate.memory_context["avg_pnl"] == -75.0
 
-    def test_pipeline_no_ai_modules_backward_compat(self):
+    def test_pipeline_defaults_regime_ai_and_trade_memory_when_not_provided(self):
+        # When regime_ai/trade_memory aren't explicitly injected, the pipeline
+        # now default-constructs real instances (get_regime_ai()/TradeMemory())
+        # rather than silently leaving this enrichment permanently dead.
         pipeline = make_pipeline(regime_ai=None, trade_memory=None)
+        assert pipeline.regime_ai is not None
+        assert pipeline.trade_memory is not None
+
         candidate = pipeline.evaluate(FakeSignal())
         assert candidate is not None
-        assert candidate.regime_context is None
+        # A real RegimeAI.detect() call always returns a populated dict.
+        assert candidate.regime_context is not None
+        assert "regime" in candidate.regime_context
+        # memory_context legitimately stays None here -- there's no matching
+        # trade history for this signal in the real (likely empty) trade memory,
+        # not because trade_memory itself is missing.
         assert candidate.memory_context is None
 
     def test_pipeline_regime_and_memory_together(self):
@@ -230,21 +241,48 @@ class TestExecutionLoopAI:
         )
 
     def test_loop_ranks_signals(self):
+        # We pass signals such that the first one has a lower score, and the second one has a higher score.
+        # This asserts that the signals are actually sorted/reordered by composite_score.
         ranked = [
-            FakeRankedSignal(identifier="1", composite_score=0.95, recommendation="STRONG_BUY"),
-            FakeRankedSignal(identifier="2", composite_score=0.60, recommendation="BUY"),
+            FakeRankedSignal(signal_id=2, composite_score=0.95, recommendation="STRONG_BUY"),
+            FakeRankedSignal(signal_id=1, composite_score=0.60, recommendation="BUY"),
         ]
         ranker = FakeSignalRanker(ranked=ranked)
 
         pipeline = make_pipeline()
         loop = self._make_loop(pipeline=pipeline, signal_ranker=ranker)
 
-        signals = [FakeSignal(sid=1), FakeSignal(sid=2)]
+        signals = [
+            FakeSignal(sid=1, symbol="BTCUSDT"),
+            FakeSignal(sid=2, symbol="ETHUSDT"),
+        ]
         result = loop.run_once(signals)
 
         assert result.processed == 2
         assert ranker.last_input is not None
         assert len(ranker.last_input) == 2
+
+        # Verify that the signals were processed in sorted order:
+        # ETHUSDT (sid=2, higher composite score 0.95) should be processed first.
+        # BTCUSDT (sid=1, lower composite score 0.60) should be processed second.
+        assert result.trades[0]["symbol"] == "ETHUSDT"
+        assert result.trades[1]["symbol"] == "BTCUSDT"
+
+    def test_loop_with_real_signal_ranking_ai(self):
+        from scoring.signal_ranking_ai import SignalRankingAI
+        ranker = SignalRankingAI()
+
+        pipeline = make_pipeline()
+        loop = self._make_loop(pipeline=pipeline, signal_ranker=ranker)
+
+        signals = [
+            FakeSignal(sid=1, symbol="BTCUSDT"),
+            FakeSignal(sid=2, symbol="ETHUSDT"),
+        ]
+        result = loop.run_once(signals)
+
+        # Confirm both processed successfully and no exception was raised/swallowed
+        assert result.processed == 2
 
     def test_loop_no_ranker_backward_compat(self):
         loop = self._make_loop(signal_ranker=None)
@@ -259,7 +297,6 @@ class TestExecutionLoopAI:
             regime_ai=FakeRegimeAI(),
             trade_memory=trade_memory,
         )
-        loop = self._make_loop(pipeline=pipeline)
         signal = FakeSignal(sid=1)
         candidate = pipeline.evaluate(signal)
         assert candidate is not None
@@ -296,7 +333,7 @@ class TestExecutionLoopProcessSignal:
             return False, "mock rejection"
 
         def evaluate_trade(self, candidate):
-            from risk.models import RiskDecision, RiskCheckDetail, risk_decision_from_checks
+            from risk.models import RiskCheckDetail, RiskDecision, risk_decision_from_checks
             return risk_decision_from_checks([
                 RiskCheckDetail(name="MOCK", passed=False, detail="mock rejection"),
             ])

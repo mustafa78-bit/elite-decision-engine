@@ -65,3 +65,23 @@ def test_all_api_routes_registered():
     expected = {"/performance", "/portfolio", "/risk", "/position-sizing", "/signals", "/health", "/market"}
     for p in expected:
         assert p in paths, f"Missing route: {p}"
+
+
+def test_cors_preflight_on_protected_route_gets_cors_headers_not_bare_401():
+    """CORSMiddleware must run before auth_middleware so a preflight OPTIONS
+    request to a protected route gets real CORS headers back, instead of a
+    header-less 401 from auth_middleware that the browser would treat as a
+    failed preflight and block the real request entirely. Regression test for
+    the middleware-ordering bug described in docs/FRONTEND_AUTH_FIX_REPORT.md.
+    """
+    client = TestClient(app)
+    resp = client.options(
+        "/portfolio",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.headers.get("access-control-allow-origin") == "http://localhost:5173"

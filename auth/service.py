@@ -1,8 +1,8 @@
 import bcrypt
 
+import database
 from auth.jwt import create_access_token
 from database import User
-import database
 
 
 def hash_password(password: str) -> str:

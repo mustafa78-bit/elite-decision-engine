@@ -7,36 +7,36 @@ from uuid import uuid4
 import pytest
 
 from decision.evidence import (
+    ENGINE_VERSIONS,
+    REGISTRY,
+    Conflict,
+    EvidenceBuilder,
+    EvidenceCategory,
     EvidenceEngine,
     EvidenceItem,
     EvidenceReport,
-    EvidenceBuilder,
     SourceTrace,
-    EvidenceCategory,
+    build_timeline,
     calculate_confidence,
+    calculate_decision_quality,
     calculate_evidence_strength,
     calculate_explainability,
-    calculate_decision_quality,
-    get_category,
-    REGISTRY,
-    ENGINE_VERSIONS,
-    get_version,
-    Conflict,
     detect_conflicts,
-    build_timeline,
+    get_category,
+    get_version,
     timeline_summary,
 )
+from decision.evidence.confidence import SEVERITY_WEIGHTS, SOURCE_WEIGHTS, STRENGTH_WEIGHTS
 from decision.evidence.parser import (
+    parse_council_report,
     parse_decision_result,
+    parse_explain_result,
+    parse_market_regime,
+    parse_portfolio_summary,
     parse_risk_decision,
     parse_scanner_opportunity,
-    parse_council_report,
-    parse_portfolio_summary,
-    parse_market_regime,
     parse_whale_result,
-    parse_explain_result,
 )
-from decision.evidence.confidence import SEVERITY_WEIGHTS, SOURCE_WEIGHTS, STRENGTH_WEIGHTS
 
 
 class TestSourceTrace:
@@ -209,6 +209,25 @@ class TestParseRiskDecision:
         items = parse_risk_decision(result, "ETH")
         assert len(items) >= 1
 
+    def test_dict_checks_passed_check_supports_decision(self):
+        # A truthy check_value means the check PASSED -- it must be
+        # classified as supporting evidence, not hardcoded as contradicting
+        # (the dict branch previously ignored check_value entirely).
+        result = DictObj({"allowed": True, "reason": "", "checks": {"exposure_check": True}})
+        items = parse_risk_decision(result, "ETH")
+        check_items = [i for i in items if i.category == "risk_volatility"]
+        assert len(check_items) == 1
+        assert check_items[0].supports_decision is True
+        assert check_items[0].severity == "LOW"
+
+    def test_dict_checks_failed_check_contradicts_decision(self):
+        result = DictObj({"allowed": True, "reason": "", "checks": {"exposure_check": False}})
+        items = parse_risk_decision(result, "ETH")
+        check_items = [i for i in items if i.category == "risk_volatility"]
+        assert len(check_items) == 1
+        assert check_items[0].supports_decision is False
+        assert check_items[0].severity == "HIGH"
+
 
 class TestParseScannerOpportunity:
     def test_parses_opportunity(self):
@@ -231,6 +250,39 @@ class TestParseCouncilReport:
         items = parse_council_report(result)
         assert len(items) >= 2
 
+    def test_bullish_consensus_supports(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BULLISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 4, "sources_disagreeing": 1, "agent_reports": []})
+        items = parse_council_report(result)
+        assert items[0].supports_decision is True
+
+    def test_bearish_consensus_contradicts(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BEARISH", "consensus_score": 15.0, "agreement_level": "strong", "sources_agreeing": 1, "sources_disagreeing": 4, "agent_reports": []})
+        items = parse_council_report(result)
+        assert items[0].supports_decision is False
+
+    def test_neutral_consensus_does_not_support(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "NEUTRAL", "consensus_score": 50.0, "agreement_level": "none", "sources_agreeing": 2, "sources_disagreeing": 2, "agent_reports": []})
+        items = parse_council_report(result)
+        assert items[0].supports_decision is False
+
+    def test_pass_veto_does_not_support_and_is_critical(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "PASS", "consensus_score": 0.0, "agreement_level": "none", "sources_agreeing": 0, "sources_disagreeing": 0, "agent_reports": []})
+        items = parse_council_report(result)
+        assert items[0].supports_decision is False
+        assert items[0].severity == "CRITICAL"
+
+    def test_per_agent_direction_classified_independently(self):
+        bullish_agent = DictObj({"agent_name": "TrendAgent", "direction": "BULLISH", "confidence": 80.0, "reasoning": ["Trend up"]})
+        bearish_agent = DictObj({"agent_name": "MacroAgent", "direction": "BEARISH", "confidence": 70.0, "reasoning": ["Macro headwinds"]})
+        veto_agent = DictObj({"agent_name": "RiskAgent", "direction": "PASS", "confidence": 90.0, "reasoning": ["Risk too high"]})
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BULLISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 2, "sources_disagreeing": 1, "agent_reports": [bullish_agent, bearish_agent, veto_agent]})
+        items = parse_council_report(result)
+        agent_items = {i.title: i for i in items if i.category == "council_agent"}
+        assert agent_items["TrendAgent: BULLISH"].supports_decision is True
+        assert agent_items["MacroAgent: BEARISH"].supports_decision is False
+        assert agent_items["RiskAgent: PASS"].supports_decision is False
+        assert agent_items["RiskAgent: PASS"].severity == "CRITICAL"
+
 
 class TestParsePortfolioSummary:
     def test_drawdown_contradicts(self):
@@ -246,6 +298,31 @@ class TestParseMarketRegime:
         items = parse_market_regime(result)
         supporting = [i for i in items if i.supports_decision]
         assert len(supporting) >= 1
+
+    def test_bullish_regime_supports_long_explicit(self):
+        result = {"regime": "TREND", "trend": "BULLISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        items = parse_market_regime(result, side="LONG")
+        supporting = [i for i in items if i.supports_decision]
+        assert len(supporting) >= 1
+
+    def test_bearish_regime_supports_short(self):
+        result = {"regime": "TREND", "trend": "BEARISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        items = parse_market_regime(result, side="SHORT")
+        supporting = [i for i in items if i.supports_decision]
+        assert len(supporting) >= 1
+
+    def test_bullish_regime_contradicts_short(self):
+        result = {"regime": "TREND", "trend": "BULLISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        items = parse_market_regime(result, side="SHORT")
+        contradicting = [i for i in items if not i.supports_decision and i.title.startswith("Market:")]
+        assert len(contradicting) >= 1
+
+    def test_neutral_trend_never_supports_long_or_short(self):
+        result = {"regime": "RANGE", "trend": "NEUTRAL", "trend_strength": "WEAK", "volatility_class": "NORMAL", "score": 0.5}
+        items_long = parse_market_regime(result, side="LONG")
+        assert not items_long[0].supports_decision
+        items_short = parse_market_regime(result, side="SHORT")
+        assert not items_short[0].supports_decision
 
     def test_high_volatility_adds_contradicting(self):
         result = {"regime": "RANGE", "trend": "NEUTRAL", "trend_strength": "WEAK", "volatility_class": "EXTREME", "score": 0.5}
@@ -266,6 +343,43 @@ class TestParseWhaleResult:
     def test_empty_list(self):
         items = parse_whale_result([])
         assert len(items) == 0
+
+    def test_support_wall_supports_long(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_WALL", "wall_type": "Support", "severity": "high", "confidence": 0.9}]
+        items = parse_whale_result(whales, side="LONG")
+        assert items[0].supports_decision is True
+
+    def test_resistance_wall_contradicts_long(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_WALL", "wall_type": "Resistance", "severity": "high", "confidence": 0.9}]
+        items = parse_whale_result(whales, side="LONG")
+        assert items[0].supports_decision is False
+
+    def test_resistance_wall_supports_short(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_WALL", "wall_type": "Resistance", "severity": "high", "confidence": 0.9}]
+        items = parse_whale_result(whales, side="SHORT")
+        assert items[0].supports_decision is True
+
+    def test_support_wall_contradicts_short(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_WALL", "wall_type": "Support", "severity": "high", "confidence": 0.9}]
+        items = parse_whale_result(whales, side="SHORT")
+        assert items[0].supports_decision is False
+
+    def test_premium_funding_supports_long(self):
+        whales = [{"symbol": "BTC", "type": "EXTREME_FUNDING", "direction": "premium", "severity": "high", "confidence": 0.85}]
+        items = parse_whale_result(whales, side="LONG")
+        assert items[0].supports_decision is True
+
+    def test_discount_funding_supports_short(self):
+        whales = [{"symbol": "BTC", "type": "EXTREME_FUNDING", "direction": "discount", "severity": "high", "confidence": 0.85}]
+        items = parse_whale_result(whales, side="SHORT")
+        assert items[0].supports_decision is True
+
+    def test_non_directional_signal_defaults_to_supporting(self):
+        whales = [{"symbol": "BTC", "type": "WHALE_MOVE", "severity": "high", "confidence": 0.8}]
+        items_long = parse_whale_result(whales, side="LONG")
+        items_short = parse_whale_result(whales, side="SHORT")
+        assert items_long[0].supports_decision is True
+        assert items_short[0].supports_decision is True
 
 
 class TestParseExplainResult:
@@ -507,6 +621,27 @@ class TestEvidenceBuilder:
         assert report.evidence_strength > 0.0
         assert report.explainability > 0.0
         assert report.recommendation == "BUY"
+
+    def test_build_with_all_inputs_short_favorable_market(self):
+        builder = EvidenceBuilder()
+        decision = DictObj({"decision": "SELL", "side": "SHORT", "confidence": 80.0, "score": 0.8, "risk_score": 0.2, "reasons": [], "warnings": []})
+        scanner = DictObj({"symbol": "BTC", "side": "SHORT", "score": 0.85, "confidence": 90.0, "strategy": "momentum", "reason": "Strong bearish trend", "signals": []})
+        council = DictObj({"symbol": "BTC", "consensus_direction": "BEARISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 4, "sources_disagreeing": 1, "agent_reports": []})
+        market = {"regime": "TREND", "trend": "BEARISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        portfolio = DictObj({"current_exposure": 5000, "max_exposure": 10000, "open_pnl": 200, "win_rate": 55.0})
+        report = builder.build(
+            decision_result=decision,
+            scanner_result=scanner,
+            council_result=council,
+            market_regime_result=market,
+            portfolio_result=portfolio,
+            recommendation="SELL",
+        )
+        # A BEARISH trend market regime must support a SHORT decision, not
+        # contradict it -- this is the exact bug this sprint fixes.
+        regime_items = [i for i in report.supporting_evidence if i.engine == "market_regime" and i.title.startswith("Market:")]
+        assert len(regime_items) == 1
+        assert regime_items[0].supports_decision is True
 
 
 class TestEvidenceEngine:

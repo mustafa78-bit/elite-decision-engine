@@ -14,10 +14,10 @@ router = APIRouter()
 
 
 def _get_explanation_service():
-    from services.explanation_service import ExplanationService
-    from scoring.scoring_engine import ScoringEngine
     from core.confidence_engine import ConfidenceEngine
     from market_data.intelligence import IntelligenceCollector
+    from scoring.scoring_engine import ScoringEngine
+    from services.explanation_service import ExplanationService
     return ExplanationService(
         scoring_engine=ScoringEngine(),
         confidence_engine=ConfidenceEngine(),

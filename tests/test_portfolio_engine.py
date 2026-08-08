@@ -4,23 +4,33 @@ Verifies all portfolio computations: equity, PnL, exposure, position
 count, cash, win/loss tracking, equity curve, and drawdown.
 """
 
+from datetime import UTC
+
 import pytest
 
-from portfolio import PortfolioEngine, PortfolioSnapshot
 from database import (
+    CANCEL,
     CLOSED,
     OPEN,
+    SL_HIT,
     STOP_LOSS,
     TAKE_PROFIT,
     TP_HIT,
-    SL_HIT,
-    CANCEL,
     PaperTrade,
     Trade,
 )
+from portfolio import PortfolioEngine, PortfolioSnapshot
 
 
 def _make_trade(db_session, **overrides):
+    signal_id = overrides.get("signal_id", 1)
+    if signal_id is not None:
+        from database import Signal
+        existing_signal = db_session.query(Signal).filter(Signal.id == signal_id).first()
+        if not existing_signal:
+            sig = Signal(id=signal_id, symbol=overrides.get("symbol", "BTCUSDT"), side=overrides.get("side", "LONG"))
+            db_session.add(sig)
+            db_session.flush()
     kwargs = dict(
         signal_id=1,
         symbol="BTCUSDT",
@@ -288,12 +298,15 @@ def test_cash_calculation(db_session, session_factory):
     )
     snap = engine.snapshot(current_prices={"BTCUSDT": 51000.0})
 
-    # equity = 10000 + 1000 = 11000
+    # equity = 10000 + 1000 (unrealized) = 11000
     # exposure = 50000
-    # cash = 11000 - 50000 = -39000
+    # cash = initial_capital + realized_pnl - exposure = 10000 + 0 - 50000 = -40000
+    # (unrealized PnL is mark-to-market value tied up in the open position,
+    # not spendable cash, so it must NOT be added to cash even though it's
+    # part of total_equity)
     assert snap.total_equity == 11000.0
     assert snap.exposure == 50000.0
-    assert snap.cash == snap.total_equity - snap.exposure
+    assert snap.cash == -40000.0
 
 
 # ── Profit factor ───────────────────────────────────────────────────────────
@@ -404,3 +417,235 @@ def test_cancelled_trade_not_in_open(db_session, session_factory):
     assert snap.open_trades == 0
     assert snap.position_count == 0
     assert snap.exposure == 0.0
+
+
+def test_equity_curve_ignores_trade_without_paper_trade(db_session, session_factory):
+    # This test proves Bug 1 is fixed.
+    # We construct a closed Trade that has a huge raw per-unit delta (pnl=500.0) but no matching PaperTrade.
+    _make_trade(db_session, signal_id=1, status=TP_HIT, pnl=500.0)
+
+    # We also construct a closed Trade with a matching PaperTrade that has a small real dollar PnL (pnl=10.0, qty=1.0)
+    t_with_paper = _make_trade(db_session, signal_id=2, status=TP_HIT, pnl=10.0)
+    _make_paper_trade(
+        db_session,
+        position_id=t_with_paper.id,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=50000.0,
+        quantity=1.0,
+        pnl=10.0,
+        status=TAKE_PROFIT,
+    )
+
+    engine = PortfolioEngine(
+        session_factory=session_factory,
+        initial_capital=10000.0,
+    )
+    snap = engine.snapshot()
+
+    # The equity curve should ONLY reflect the $10 real dollar PnL, not the $500 per-unit delta.
+    # Initial: 10000.0, Trade 2: 10010.0. The trade without paper trade should be skipped entirely.
+    assert len(snap.equity_curve) == 2
+    assert snap.equity_curve[0] == 10000.0
+    assert snap.equity_curve[1] == 10010.0
+    assert snap.max_drawdown == 0.0
+
+
+def test_metric_coverage_honesty(db_session, session_factory):
+    # This test proves Bug 2 is fixed.
+    # We create 3 closed Trade rows.
+    # Only 1 of them has a matching PaperTrade with real PnL.
+    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT, pnl=20.0)
+    _make_paper_trade(
+        db_session,
+        position_id=t1.id,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=50000.0,
+        quantity=2.0,
+        pnl=10.0,  # real dollar PnL is pt.pnl * pt.quantity = 20.0
+        status=TAKE_PROFIT,
+    )
+
+    # Trades 2 and 3 do NOT have PaperTrade records.
+    _make_trade(db_session, signal_id=2, status=SL_HIT, pnl=-5.0)
+    _make_trade(db_session, signal_id=3, status=TP_HIT, pnl=15.0)
+
+    engine = PortfolioEngine(
+        session_factory=session_factory,
+        initial_capital=10000.0,
+    )
+    snap = engine.snapshot()
+
+    # We expect closed_trades to show 3.
+    assert snap.closed_trades == 3
+    # closed_trades_with_pnl should show 1.
+    assert snap.closed_trades_with_pnl == 1
+    # Realized PnL should reflect only the trade with the PaperTrade match ($20.0).
+    assert snap.realized_pnl == 20.0
+    # Winning and losing trades counts for metrics calculations should reflect only the PaperTrade subset.
+    assert snap.winning_trades == 1
+    assert snap.losing_trades == 0
+    assert snap.win_rate == 100.0
+
+
+# ── Root PortfolioEngine (portfolio_engine.py) tests ────────────────────────
+
+
+def test_root_portfolio_engine_unrealized_and_equity(db_session, session_factory):
+    from database import Signal
+    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
+
+    # Seed Signals to satisfy FK constraint on Trade.signal_id
+    sig1 = Signal(id=101, symbol="BTCUSDT", side="LONG")
+    sig2 = Signal(id=102, symbol="ETHUSDT", side="LONG")
+    db_session.add(sig1)
+    db_session.add(sig2)
+    db_session.flush()
+
+    # Open trade with positive unrealized pnl
+    _make_trade(db_session, id=101, signal_id=101, symbol="BTCUSDT", status="OPEN", pnl=150.0)
+    # Open trade with negative unrealized pnl
+    _make_trade(db_session, id=102, signal_id=102, symbol="ETHUSDT", status="OPEN", pnl=-50.0)
+
+    engine = RootPortfolioEngine(
+        session_factory=session_factory,
+        initial_equity=10000.0,
+    )
+    stats = engine.stats()
+
+    # unrealized_pnl should be 150.0 + (-50.0) = 100.0
+    assert stats.unrealized_pnl == 100.0
+    # equity should be initial_equity + total_pnl + unrealized_pnl = 10000.0 + 0 + 100.0 = 10100.0
+    assert stats.equity == 10100.0
+
+
+def test_root_portfolio_engine_daily_pnl_timezone_aware(db_session, session_factory):
+    from datetime import datetime, timezone
+
+    from database import Signal
+    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
+
+    # Seed Signal to satisfy FK constraint on Trade.signal_id
+    sig1 = Signal(id=103, symbol="BTCUSDT", side="LONG")
+    db_session.add(sig1)
+    db_session.flush()
+
+    # Closed trade with timezone-aware closed_at
+    aware_now = datetime.now(UTC)
+    _make_trade(
+        db_session,
+        id=103,
+        signal_id=103,
+        symbol="BTCUSDT",
+        status="CLOSED",
+        pnl=250.0,
+        closed_at=aware_now,
+    )
+
+    engine = RootPortfolioEngine(
+        session_factory=session_factory,
+        initial_equity=10000.0,
+    )
+
+    # This should not raise "TypeError: can't compare offset-naive and offset-aware datetimes"
+    stats = engine.stats()
+
+    assert stats.daily_pnl == 250.0
+    assert stats.total_pnl == 250.0
+    assert stats.equity == 10250.0
+
+
+def test_root_portfolio_engine_mixed_quantity_real_dollars(db_session, session_factory):
+    from datetime import datetime, timedelta
+
+    from portfolio_engine import PortfolioEngine as RootPortfolioEngine
+
+    now = datetime.now(UTC)
+
+    # BTC Trade (Win, closed)
+    btc_trade = _make_trade(
+        db_session,
+        signal_id=10,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=60000.0,
+        pnl=500.0,
+        status="CLOSED",
+        created_at=now - timedelta(hours=4),
+        closed_at=now - timedelta(hours=3),
+    )
+    _make_paper_trade(
+        db_session,
+        position_id=btc_trade.id,
+        symbol="BTCUSDT",
+        side="LONG",
+        entry=60000.0,
+        exit_price=60500.0,
+        quantity=0.01,
+        pnl=500.0,
+        status="CLOSED",
+    )
+
+    # ETH Trade (Loss, closed)
+    eth_trade = _make_trade(
+        db_session,
+        signal_id=11,
+        symbol="ETHUSDT",
+        side="SHORT",
+        entry=3000.0,
+        pnl=-100.0,
+        status="CLOSED",
+        created_at=now - timedelta(hours=2),
+        closed_at=now - timedelta(hours=1),
+    )
+    _make_paper_trade(
+        db_session,
+        position_id=eth_trade.id,
+        symbol="ETHUSDT",
+        side="SHORT",
+        entry=3000.0,
+        exit_price=3100.0,
+        quantity=2.0,
+        pnl=-100.0,
+        status="CLOSED",
+    )
+
+    # SOL Trade (still OPEN, no matching PaperTrade -- exercises the qty=1.0 fallback)
+    _make_trade(
+        db_session,
+        signal_id=12,
+        symbol="SOLUSDT",
+        side="LONG",
+        entry=100.0,
+        pnl=5.0,
+        status="OPEN",
+    )
+
+    db_session.flush()
+
+    engine = RootPortfolioEngine(
+        session_factory=session_factory,
+        initial_equity=10000.0,
+    )
+    stats = engine.stats()
+
+    # Total Real PnL should be (500 * 0.01) + (-100 * 2.0) = 5.0 - 200.0 = -195.0
+    assert stats.total_pnl == -195.0
+
+    # Profit Factor should be gross_profit / gross_loss = 5.0 / 200.0 = 0.025 -> rounds to 0.03
+    assert stats.profit_factor == 0.03
+
+    # Equity Curve: [10000.0, 10005.0, 9805.0]
+    assert stats.equity_curve == [10000.0, 10005.0, 9805.0]
+
+    # Max Drawdown from peak (10005.0) to valley (9805.0)
+    expected_dd = round(((10005.0 - 9805.0) / 10005.0) * 100, 2)
+    assert stats.max_drawdown == expected_dd
+
+    # Unrealized PnL: the OPEN SOL trade has no matching PaperTrade, so it
+    # falls back to the raw per-unit value (quantity=1.0) -- 5.0.
+    assert stats.unrealized_pnl == 5.0
+
+    # equity = initial_equity + total_pnl + unrealized_pnl = 10000 - 195 + 5 = 9810
+    assert stats.equity == 9810.0

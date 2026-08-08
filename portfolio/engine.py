@@ -1,21 +1,24 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from config import ACCOUNT_EQUITY
 from database import (
+    CANCEL,
     CLOSED,
     OPEN,
+    SL_HIT,
     STOP_LOSS,
     TAKE_PROFIT,
     TP_HIT,
-    SL_HIT,
-    CANCEL,
-    PaperTrade as PaperTradeModel,
     Trade,
     get_session,
+)
+from database import (
+    PaperTrade as PaperTradeModel,
 )
 from portfolio.core import PortfolioSnapshot
 
@@ -30,15 +33,15 @@ class PortfolioEngine:
 
     def __init__(
         self,
-        session_factory: Optional[Callable[[], Any]] = None,
-        initial_capital: Optional[float] = None,
+        session_factory: Callable[[], Any] | None = None,
+        initial_capital: float | None = None,
     ) -> None:
         self.session_factory = session_factory or get_session
         self.initial_capital = initial_capital if initial_capital is not None else ACCOUNT_EQUITY
 
     def snapshot(
         self,
-        current_prices: Optional[dict[str, float]] = None,
+        current_prices: dict[str, float] | None = None,
     ) -> PortfolioSnapshot:
         session = self.session_factory()
         try:
@@ -52,7 +55,6 @@ class PortfolioEngine:
         current_prices: dict[str, float],
     ) -> PortfolioSnapshot:
         all_trades = session.query(Trade).all()
-        trade_by_id = {t.id: t for t in all_trades}
 
         all_paper_trades = session.query(PaperTradeModel).all()
         open_paper_trades = [pt for pt in all_paper_trades if pt.status == OPEN]
@@ -106,7 +108,10 @@ class PortfolioEngine:
 
         total_pnl = realized_pnl + unrealized_pnl
         total_equity = self.initial_capital + total_pnl
-        cash = total_equity - exposure
+        # Cash is what's actually free -- unrealized PnL is mark-to-market
+        # value tied up in open positions, not spendable cash. Only realized
+        # PnL (already settled) adds to the cash balance.
+        cash = self.initial_capital + realized_pnl - exposure
 
         win_rate = (winning_trades / total_wl * 100) if total_wl > 0 else 0.0
         if gross_loss > 0:
@@ -116,15 +121,16 @@ class PortfolioEngine:
         else:
             profit_factor = 0.0
 
-        # ── Equity curve & drawdown (from Trade model, PnL × rough qty) ─
-        # Use PaperTrade data for equity curve when available; fall back to
-        # Trade.pnl for trades without PaperTrade records.
-        closed_trades_with_pnl = [
+        # ── Equity curve & drawdown ──────────────────────────────────────
+        # Use PaperTrade data for equity curve. If a trade does not have a matching
+        # PaperTrade, we skip its contribution entirely to avoid injecting wrong-magnitude
+        # per-unit price deltas into a dollar-denominated equity curve.
+        trades_with_known_pnl = [
             t for t in closed_trades
             if t.pnl is not None
         ]
         sorted_closed = sorted(
-            closed_trades_with_pnl,
+            trades_with_known_pnl,
             key=lambda t: t.closed_at or t.created_at,
         )
         equity_curve = [float(self.initial_capital)]
@@ -135,10 +141,9 @@ class PortfolioEngine:
                 (p for p in closed_paper_trades if p.position_id == t.id),
                 None,
             )
-            if pt is not None:
-                step = float(pt.pnl or 0) * float(pt.quantity or 0)
-            else:
-                step = float(t.pnl or 0)
+            if pt is None:
+                continue
+            step = float(pt.pnl or 0) * float(pt.quantity or 0)
             new_eq = equity_curve[-1] + step
             equity_curve.append(new_eq)
             if new_eq > peak:
@@ -147,6 +152,13 @@ class PortfolioEngine:
                 dd = (peak - new_eq) / peak
                 if dd > max_dd:
                     max_dd = dd
+
+        logger.info(
+            "Portfolio metrics computed. closed_trades=%s, closed_trades_with_pnl=%s. "
+            "win_rate and profit_factor are calculated over the closed_trades_with_pnl subset.",
+            str(len(closed_trades)),
+            str(len(closed_paper_trades)),
+        )
 
         return PortfolioSnapshot(
             total_equity=round(total_equity, 2),
@@ -168,4 +180,5 @@ class PortfolioEngine:
             max_drawdown=round(max_dd * 100, 2),
             equity_curve=[round(e, 2) for e in equity_curve],
             initial_capital=self.initial_capital,
+            closed_trades_with_pnl=len(closed_paper_trades),
         )

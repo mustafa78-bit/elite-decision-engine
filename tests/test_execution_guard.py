@@ -75,3 +75,34 @@ class TestExecutionGuardEvaluate:
         guard = ExecutionGuard(exchange=HyperliquidExchange(), session_factory=session_factory)
         result = guard.can_execute(symbol="BTC", side="LONG", entry_price=50000.0, quantity=0.001)
         assert "EXCHANGE_OFFLINE" in result.checks or "exchange_online" in result.checks
+
+    def test_risk_budget_guard_scales_with_real_quantity_not_unit_price(self, session_factory):
+        # With default config: ACCOUNT_EQUITY=10000, RISK_PER_TRADE_PERCENT=1.0, MAX_POSITION_SIZE_USD=100000
+        # A realistically-sized position: BTC at 50,000, quantity 0.5 (notional = $25,000)
+        # Old code compared $25,000 against a $100 "budget" limit and failed.
+        # Fixed code compares $25,000 against $100,000 limit and should pass.
+        guard = ExecutionGuard(exchange=HyperliquidExchange(), session_factory=session_factory)
+        decision = guard.evaluate_execution(
+            symbol="BTC", side="LONG", entry_price=50000.0, quantity=0.5,
+        )
+        assert decision.allowed is True
+
+        # Verify specific RISK_BUDGET_EXCEEDED check passed
+        budget_check = next(c for c in decision.checks if c.name == "RISK_BUDGET_EXCEEDED")
+        assert budget_check.passed is True
+        assert budget_check.value == 25000.0
+        assert budget_check.limit == 100000.0
+
+    def test_risk_budget_guard_fails_on_genuine_over_budget(self, session_factory):
+        # A position exceeding MAX_POSITION_SIZE_USD: BTC at 50,000, quantity 2.1 (notional = $105,000)
+        guard = ExecutionGuard(exchange=HyperliquidExchange(), session_factory=session_factory)
+        decision = guard.evaluate_execution(
+            symbol="BTC", side="LONG", entry_price=50000.0, quantity=2.1,
+        )
+        assert decision.allowed is False
+
+        budget_check = next(c for c in decision.checks if c.name == "RISK_BUDGET_EXCEEDED")
+        assert budget_check.passed is False
+        assert "exceeds max position size limit" in budget_check.detail
+        assert budget_check.value == 105000.0
+        assert budget_check.limit == 100000.0

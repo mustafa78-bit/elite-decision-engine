@@ -1,7 +1,9 @@
 """Unit tests for PaperExecutor core logic (no external API dependencies)."""
 
-import pytest
+from datetime import UTC
+
 import pandas as pd
+import pytest
 
 from database import Trade
 from execution.paper_executor import PaperExecutor, PaperTradeRequest
@@ -366,7 +368,7 @@ class TestCloseTradeValidation:
         )
         trade = Trade(
             symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49250.0, tp1=51000.0,
-            status="TP_HIT", exit_price=51000.0, closed_at=datetime.now(timezone.utc),
+            status="TP_HIT", exit_price=51000.0, closed_at=datetime.now(UTC),
         )
         db_session.add(trade)
         db_session.flush()
@@ -410,7 +412,7 @@ class TestMonitorStaleTrade:
             "execution.paper_executor.NotificationDispatcher.emit",
             lambda *a, **kw: None,
         )
-        old = datetime.now(timezone.utc) - timedelta(days=30)
+        old = datetime.now(UTC) - timedelta(days=30)
         trade = Trade(
             symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49250.0, tp1=51000.0,
             status="OPEN", created_at=old,
@@ -426,3 +428,188 @@ class TestMonitorStaleTrade:
         closed = [r for r in results if r.status == "CLOSED"]
         assert len(closed) == 1
         assert closed[0].realized_pnl is not None
+
+
+# ---------------------------------------------------------------------------
+# TradeMemory Integration Tests
+# ---------------------------------------------------------------------------
+
+class TestPaperExecutorTradeMemoryIntegration:
+
+    def test_open_trade_creates_journal_entry(self, db_session, session_factory, monkeypatch):
+        from database import JournalEntry
+        # Initialize executor
+        executor = PaperExecutor(
+            collector=_MockCollector(),
+            session_factory=session_factory,
+        )
+
+        # Open trade
+        trade = executor.open_trade(
+            symbol="BTCUSDT",
+            side="LONG",
+            entry=50000.0,
+            stop_loss=49000.0,
+            take_profit=51000.0,
+        )
+
+        assert trade is not None
+        assert trade.id is not None
+
+        # Verify a JournalEntry has been created with matching trade_id
+        entry = db_session.query(JournalEntry).filter(JournalEntry.trade_id == trade.id).first()
+        assert entry is not None
+        assert entry.symbol == "BTCUSDT"
+        assert entry.side == "LONG"
+        assert entry.entry_price == 50000.0
+        assert entry.entry_reason == "Manual paper trade"
+        assert entry.result == "PENDING"
+
+    def test_close_trade_updates_journal_entry(self, db_session, session_factory, monkeypatch):
+        from database import JournalEntry, Signal
+        monkeypatch.setattr(
+            "execution.paper_executor.NotificationDispatcher.emit",
+            lambda *a, **kw: None,
+        )
+
+        executor = PaperExecutor(
+            collector=_MockCollector(),
+            session_factory=session_factory,
+        )
+
+        # Open trade
+        trade = executor.open_trade(
+            symbol="BTCUSDT",
+            side="LONG",
+            entry=50000.0,
+            stop_loss=49000.0,
+            take_profit=51000.0,
+        )
+
+        assert trade is not None
+
+        # Close trade
+        executor.close_trade(trade_id=trade.id, exit_price=52000.0, status="CLOSED", close_reason="Manual stop")
+
+        # Verify matching JournalEntry is updated using a fresh session
+        session = session_factory()
+        try:
+            entry = session.query(JournalEntry).filter(JournalEntry.trade_id == trade.id).first()
+            assert entry is not None
+            assert entry.entry_reason == "Manual paper trade"
+            assert entry.exit_price == 52000.0
+            assert entry.pnl == 2000.0
+            assert entry.result == "WIN"  # Since PnL is positive
+            assert entry.exit_reason == "Manual stop"
+            assert "lessons" in entry.notes
+            assert "Manually closed" in entry.notes
+        finally:
+            session.close()
+
+    def test_close_trade_journal_entry_uses_real_dollar_pnl(self, db_session, session_factory, monkeypatch):
+        from database import JournalEntry, PaperTrade
+
+        monkeypatch.setattr(
+            "execution.paper_executor.NotificationDispatcher.emit",
+            lambda *a, **kw: None,
+        )
+
+        executor = PaperExecutor(
+            collector=_MockCollector(),
+            session_factory=session_factory,
+        )
+
+        trade = executor.open_trade(
+            symbol="BTCUSDT",
+            side="LONG",
+            entry=50000.0,
+            stop_loss=49000.0,
+            take_profit=51000.0,
+        )
+        assert trade is not None
+
+        # A real PaperTrade with a mixed (non-1.0) quantity, matching the
+        # position via position_id -- exactly what _dollar_pnl() looks up.
+        session = session_factory()
+        try:
+            paper_trade = PaperTrade(
+                position_id=trade.id, symbol="BTCUSDT", side="LONG",
+                entry=50000.0, quantity=0.02, status="OPEN",
+            )
+            session.add(paper_trade)
+            session.commit()
+        finally:
+            session.close()
+
+        # Raw per-unit delta is 2000.0 (52000 - 50000); real dollar pnl = 0.02 * 2000.0 = 40.0
+        executor.close_trade(trade_id=trade.id, exit_price=52000.0, status="CLOSED", close_reason="Manual stop")
+
+        session = session_factory()
+        try:
+            entry = session.query(JournalEntry).filter(JournalEntry.trade_id == trade.id).first()
+            assert entry is not None
+            assert entry.pnl == 40.0
+            assert entry.result == "WIN"
+        finally:
+            session.close()
+
+    def test_trade_memory_failures_handled_gracefully_on_open(self, db_session, session_factory, monkeypatch):
+        # Mock TradeMemory.record to raise an exception
+        from memory.trade_memory import TradeMemory
+        def mock_record_raise(*args, **kwargs):
+            raise RuntimeError("Database failure in TradeMemory")
+
+        monkeypatch.setattr(TradeMemory, "record", mock_record_raise)
+
+        executor = PaperExecutor(
+            collector=_MockCollector(),
+            session_factory=session_factory,
+        )
+
+        # Opening a trade should STILL succeed even if TradeMemory fails
+        trade = executor.open_trade(
+            symbol="ETHUSDT",
+            side="LONG",
+            entry=3000.0,
+            stop_loss=2900.0,
+            take_profit=3200.0,
+        )
+
+        assert trade is not None
+        assert trade.id is not None
+        assert trade.symbol == "ETHUSDT"
+
+    def test_trade_memory_failures_handled_gracefully_on_close(self, db_session, session_factory, monkeypatch):
+        from database import JournalEntry
+        monkeypatch.setattr(
+            "execution.paper_executor.NotificationDispatcher.emit",
+            lambda *a, **kw: None,
+        )
+
+        executor = PaperExecutor(
+            collector=_MockCollector(),
+            session_factory=session_factory,
+        )
+
+        # Open trade
+        trade = executor.open_trade(
+            symbol="ETHUSDT",
+            side="LONG",
+            entry=3000.0,
+            stop_loss=2900.0,
+            take_profit=3200.0,
+        )
+
+        assert trade is not None
+
+        # Now mock TradeMemory.close to raise an exception
+        from memory.trade_memory import TradeMemory
+        def mock_close_raise(*args, **kwargs):
+            raise RuntimeError("Database failure in TradeMemory close")
+
+        monkeypatch.setattr(TradeMemory, "close", mock_close_raise)
+
+        # Closing the trade should STILL succeed even if TradeMemory fails
+        res = executor.close_trade(trade_id=trade.id, exit_price=3100.0, status="CLOSED")
+        assert res is not None
+        assert res.status == "CLOSED"

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timezone
+
 import pytest
-from database import Trade, Signal, Notification
-from datetime import datetime, timezone
+
+from database import Notification, PaperTrade, Signal, Trade
 
 
 class TestDashboardAPI:
@@ -28,7 +30,7 @@ class TestDashboardAPI:
         assert body["total_trades"] == 0
 
     def test_dashboard_portfolio_with_trades(self, api_client, db_session):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for pnl in [1000, 2000, -500]:
             db_session.add(Trade(
                 symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
@@ -47,6 +49,58 @@ class TestDashboardAPI:
         assert body["total_trades"] == 3
         assert body["open_trades"] == 1
         assert body["total_pnl"] == 2500.0
+
+    def test_dashboard_portfolio_with_mixed_quantities(self, api_client, db_session):
+        from datetime import timedelta
+
+        from config import ACCOUNT_EQUITY
+        now = datetime.now(UTC)
+
+        # BTC trade: raw per-unit pnl 1000.0, quantity 0.5 -> real dollar pnl 500.0
+        btc_trade = Trade(
+            symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
+            tp1=52000, rr=2.0, status="TP_HIT", pnl=1000.0, created_at=now - timedelta(hours=2),
+        )
+        db_session.add(btc_trade)
+        db_session.flush()
+        db_session.add(PaperTrade(
+            position_id=btc_trade.id, symbol="BTCUSDT", side="LONG",
+            entry=50000.0, exit_price=51000.0, quantity=0.5, pnl=1000.0, status="CLOSED",
+        ))
+
+        # ETH trade: raw per-unit pnl 100.0, quantity 3.0 -> real dollar pnl 300.0
+        eth_trade = Trade(
+            symbol="ETHUSDT", side="SHORT", entry=3000, stop=3050,
+            tp1=2900, rr=2.0, status="TP_HIT", pnl=100.0, created_at=now - timedelta(hours=1),
+        )
+        db_session.add(eth_trade)
+        db_session.flush()
+        db_session.add(PaperTrade(
+            position_id=eth_trade.id, symbol="ETHUSDT", side="SHORT",
+            entry=3000.0, exit_price=2900.0, quantity=3.0, pnl=100.0, status="CLOSED",
+        ))
+
+        # SOL trade: no matching PaperTrade -> falls back to quantity 1.0, real dollar pnl -50.0
+        db_session.add(Trade(
+            symbol="SOLUSDT", side="LONG", entry=100, stop=95,
+            tp1=110, rr=2.0, status="SL_HIT", pnl=-50.0, created_at=now,
+        ))
+        db_session.flush()
+
+        resp = api_client.get("/dashboard/portfolio")
+        assert resp.status_code == 200
+        body = resp.json()
+
+        # Real dollar total: 500.0 (BTC) + 300.0 (ETH) - 50.0 (SOL) = 750.0
+        assert body["total_trades"] == 3
+        assert body["total_pnl"] == 750.0
+        assert body["equity"] == round(ACCOUNT_EQUITY + 750.0, 2)
+
+        # Chronological cumulative real-dollar equity curve:
+        # BTC (+500) -> cum 500, peak 500, dd 0
+        # ETH (+300) -> cum 800, peak 800, dd 0
+        # SOL (-50)  -> cum 750, peak 800, dd 50
+        assert body["max_drawdown"] == 50.0
 
     def test_dashboard_monitoring(self, api_client):
         resp = api_client.get("/dashboard/monitoring")
@@ -109,3 +163,44 @@ class TestDashboardAPI:
         body = resp.json()
         assert "kpis" in body
         assert len(body["kpis"]) == 10
+
+    def test_dashboard_hero_scores_flow(self, api_client, db_session):
+        # 1. Test generate_signals copies scores from Opportunity to Signal
+        from scanner.models import Opportunity
+        from services.signal_generator import generate_signals
+
+        opp = Opportunity(
+            symbol="BTCUSDT",
+            side="LONG",
+            strategy="trend",
+            score=0.8,
+            confidence=85.0,
+            price=60000.0,
+            trend_score=0.75,
+            funding_score=0.6,
+            oi_score=0.5,
+            cvd_score=0.8,
+            risk_score=0.4,
+        )
+
+        num_created = generate_signals([opp], timeframe="1h", session=db_session)
+        assert num_created == 1
+
+        created_signal = db_session.query(Signal).filter(Signal.symbol == "BTCUSDT", Signal.status == "OPEN").first()
+        assert created_signal is not None
+        assert created_signal.trend_score == 0.75
+        assert created_signal.funding_score == 0.6
+        assert created_signal.oi_score == 0.5
+        assert created_signal.cvd_score == 0.8
+        assert created_signal.risk_score == 0.4
+
+        # 2. Query GET /dashboard/hero and verify they propagate and compute correct decision/confidence
+        resp = api_client.get("/dashboard/hero")
+        assert resp.status_code == 200
+        body = resp.json()
+
+        assert body["symbol"] == "BTCUSDT"
+        assert body["risk"] == 0.4
+        # Since scores are >= 0.5, they all contribute to the ExplainEngine average computation and decision
+        assert body["decision"] in ("BUY", "STRONG_BUY", "SELL", "STRONG_SELL", "HOLD")
+        assert body["confidence"] > 0.0

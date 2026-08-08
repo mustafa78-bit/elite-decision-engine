@@ -1,8 +1,6 @@
 def morning_briefing(context: dict) -> str:
     portfolio = context.get("portfolio_summary", {})
-    performance = context.get("portfolio_performance", {})
     regime = context.get("market_regime", {})
-    risk = context.get("risk_metrics", {})
     council = context.get("council_latest", {})
     scanner = context.get("scanner_signals", {})
 

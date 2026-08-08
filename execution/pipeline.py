@@ -9,16 +9,16 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Protocol, Sequence
+from typing import Any, Optional, Protocol
 
 from core.confidence_engine import ConfidenceEngine
 from filters.btc_filter import BTCHealthFilter
 from market_data.collector import HyperliquidCollector
 from memory.trade_memory import TradeMemory
-from scoring.regime_ai import RegimeAI
+from scoring.regime_ai import RegimeAI, get_regime_ai
 from scoring.scoring_engine import ScoringEngine
-
 
 APPROVED_DECISIONS = frozenset({"APPROVE", "STRONG_APPROVE"})
 
@@ -68,13 +68,13 @@ class TradeCandidate:
     symbol: str
     side: str
     timeframe: str
-    entry: Optional[float]
+    entry: float | None
     scores: Mapping[str, Any]
     confidence: float
     decision: str
     signal: TradingSignal
-    regime_context: Optional[dict[str, Any]] = None
-    memory_context: Optional[dict[str, Any]] = None
+    regime_context: dict[str, Any] | None = None
+    memory_context: dict[str, Any] | None = None
 
 
 class DecisionPipeline:
@@ -82,15 +82,15 @@ class DecisionPipeline:
 
     def __init__(
         self,
-        collector: Optional[MarketDataCollector] = None,
-        filters: Optional[Sequence[Any]] = None,
-        scoring_engine: Optional[SignalScorer] = None,
-        confidence_engine: Optional[ConfidenceCalculator] = None,
-        logger: Optional[logging.Logger] = None,
+        collector: MarketDataCollector | None = None,
+        filters: Sequence[Any] | None = None,
+        scoring_engine: SignalScorer | None = None,
+        confidence_engine: ConfidenceCalculator | None = None,
+        logger: logging.Logger | None = None,
         market_data_limit: int = 500,
-        regime_ai: Optional[RegimeAI] = None,
-        trade_memory: Optional[TradeMemory] = None,
-        market_service: Optional[Any] = None,
+        regime_ai: RegimeAI | None = None,
+        trade_memory: TradeMemory | None = None,
+        market_service: Any | None = None,
     ) -> None:
         """Initialize the pipeline with injectable dependencies."""
 
@@ -100,11 +100,11 @@ class DecisionPipeline:
         self.confidence_engine = confidence_engine or ConfidenceEngine()
         self.logger = logger or logging.getLogger(__name__)
         self.market_data_limit = market_data_limit
-        self.regime_ai = regime_ai
-        self.trade_memory = trade_memory
+        self.regime_ai = regime_ai if regime_ai is not None else get_regime_ai()
+        self.trade_memory = trade_memory if trade_memory is not None else TradeMemory()
         self.market_service = market_service
 
-    def evaluate(self, signal: TradingSignal) -> Optional[TradeCandidate]:
+    def evaluate(self, signal: TradingSignal) -> TradeCandidate | None:
         """Return an approved trade candidate for a signal, or ``None``."""
 
         try:
@@ -115,7 +115,7 @@ class DecisionPipeline:
                 self.logger.warning("Market data fetch returned no rows for %s", signal.symbol)
                 return None
 
-            if not self._passes_filters(market_data):
+            if not self._passes_filters(market_data, signal):
                 self.logger.info("Signal rejected by filters: %s %s", signal.symbol, signal.side)
                 return None
 
@@ -141,7 +141,7 @@ class DecisionPipeline:
                 )
                 return None
 
-            regime_context: Optional[dict[str, Any]] = None
+            regime_context: dict[str, Any] | None = None
             if self.regime_ai is not None:
                 regime_values = {
                     "ema20": scores.get("ema20"),
@@ -158,9 +158,13 @@ class DecisionPipeline:
                     regime_context.get("regime", "UNKNOWN"),
                 )
 
-            memory_context: Optional[dict[str, Any]] = None
+            memory_context: dict[str, Any] | None = None
             if self.trade_memory is not None:
-                recent = self.trade_memory.list(limit=20)
+                try:
+                    recent = self.trade_memory.list(limit=20)
+                except Exception as exc:
+                    self.logger.warning("Trade memory lookup failed for %s: %s", signal.symbol, exc)
+                    recent = []
                 same_symbol = [
                     e for e in recent
                     if e.symbol == signal.symbol.upper()
@@ -220,9 +224,9 @@ class DecisionPipeline:
             limit=self.market_data_limit,
         )
 
-    def _passes_filters(self, market_data: Any) -> bool:
+    def _passes_filters(self, market_data: Any, signal: TradingSignal) -> bool:
         for signal_filter in self.filters:
-            result = self._evaluate_filter(signal_filter, market_data)
+            result = self._evaluate_filter(signal_filter, market_data, signal)
             if not self._filter_passed(result):
                 self.logger.info(
                     "Filter rejected signal: %s returned %r",
@@ -232,12 +236,22 @@ class DecisionPipeline:
                 return False
         return True
 
-    def _evaluate_filter(self, signal_filter: Any, market_data: Any) -> Any:
+    def _evaluate_filter(self, signal_filter: Any, market_data: Any, signal: TradingSignal) -> Any:
         evaluate = getattr(signal_filter, "evaluate", None)
         if callable(evaluate):
             signature = inspect.signature(evaluate)
             if len(signature.parameters) == 0:
                 return evaluate()
+
+            params = list(signature.parameters.keys())
+            if len(params) >= 2:
+                bound_args = signature.bind_partial(market_data)
+                if "side" in signature.parameters:
+                    bound_args.arguments["side"] = signal.side
+                elif len(params) >= 2:
+                    bound_args.arguments[params[1]] = signal.side
+                return evaluate(*bound_args.args, **bound_args.kwargs)
+
             return evaluate(market_data)
 
         is_healthy = getattr(signal_filter, "is_healthy", None)
@@ -274,7 +288,7 @@ class DecisionPipeline:
             return market_data is None
 
     @staticmethod
-    def _optional_float(value: Any) -> Optional[float]:
+    def _optional_float(value: Any) -> float | None:
         if value is None:
             return None
         return float(value)
