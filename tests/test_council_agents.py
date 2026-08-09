@@ -478,7 +478,7 @@ class TestMacroAgent:
         agent = MacroAgent()
         bundle = MagicMock()
         bundle.funding = {"annualized_rate": 0.0001, "level": "neutral", "risk_score": 0.2}
-        bundle.open_interest = {"value": 1e9, "trend": "RISING", "strength": 0.7}
+        bundle.open_interest = {"value": 1e9, "trend": "strong_increase", "strength": 0.7}
         bundle.fear_greed = {"label": "FEAR", "value": 30, "confidence": 0.6}
         bundle.liquidity_context = {"score": 0.8, "level": "HIGH"}
         bundle.exchange_flow = {"direction": "NET_OUTFLOW", "confidence": 0.75}
@@ -489,6 +489,24 @@ class TestMacroAgent:
         assert len(report.reasoning) >= 4
         assert report.data_points["bullish_signals"] >= 2
         assert report.data_points["composite_score"] > 0
+
+    def test_oi_trend_uses_real_detect_oi_trend_vocabulary(self, mock_signal):
+        # Regression: OI_TREND_MAP previously keyed on "RISING"/"FALLING"/
+        # "FLAT", which market_data/open_interest/models.py's
+        # detect_oi_trend() never produces (real vocabulary is lowercase
+        # strong_increase/increase/strong_decrease/decrease/neutral) -- the
+        # map never matched anything, so OI trend never contributed to
+        # bullish/bearish count regardless of real open interest movement.
+        agent = MacroAgent()
+        bundle = MagicMock()
+        bundle.funding = {"annualized_rate": 0, "level": "neutral"}
+        bundle.open_interest = {"value": 1e9, "trend": "strong_increase", "strength": 0.9}
+        bundle.fear_greed = {"label": "NEUTRAL", "value": 50}
+        bundle.liquidity_context = {"score": 0.5, "level": "NEUTRAL"}
+        bundle.exchange_flow = {"direction": "NEUTRAL", "confidence": 0.5}
+
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.data_points["bullish_signals"] >= 1
 
     def test_evaluate_no_bundle(self, mock_signal):
         agent = MacroAgent()
@@ -504,7 +522,7 @@ class TestMacroAgent:
 
         bundle = MagicMock()
         bundle.funding = {"annualized_rate": 0.0001, "level": "neutral", "risk_score": 0.2}
-        bundle.open_interest = {"value": 1e9, "trend": "RISING", "strength": 0.7}
+        bundle.open_interest = {"value": 1e9, "trend": "strong_increase", "strength": 0.7}
         bundle.fear_greed = {"label": "FEAR", "value": 30, "confidence": 0.6}
         bundle.liquidity_context = {"score": 0.8, "level": "HIGH"}
         bundle.exchange_flow = {"direction": "NET_OUTFLOW", "confidence": 0.75}
@@ -520,7 +538,7 @@ class TestMacroAgent:
         liquidity."""
         bundle = MagicMock()
         bundle.funding = {"annualized_rate": 0, "level": "NEUTRAL"}
-        bundle.open_interest = {"value": 0, "trend": "FLAT"}
+        bundle.open_interest = {"value": 0, "trend": "neutral"}
         bundle.fear_greed = {"label": "NEUTRAL", "value": 50}
         bundle.liquidity_context = {"score": 0.5, "level": "NEUTRAL"}
         return bundle

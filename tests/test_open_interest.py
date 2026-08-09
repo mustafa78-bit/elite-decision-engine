@@ -1,5 +1,7 @@
 """Tests for open interest data models and collection."""
 
+from unittest.mock import patch
+
 import pytest
 
 from market_data.open_interest.collector import OpenInterestCollector
@@ -115,3 +117,22 @@ class TestOpenInterestCollector:
         assert isinstance(result, dict)
         assert "symbol" in result
         assert "trend" in result
+
+    def test_fetch_with_trend_accumulates_real_history_across_calls(self):
+        # Regression: fetch_with_trend() previously wrapped only the current
+        # snapshot in a single-element list before calling detect_oi_trend(),
+        # which requires len(records) >= 2 -- so it always returned
+        # trend="unknown", strength=0.0 regardless of real OI movement. It
+        # now accumulates a real rolling history across calls, so a genuine
+        # trend becomes available once called at least twice for a symbol.
+        collector = OpenInterestCollector()
+        snapshots = [
+            OpenInterest(symbol="BTC", value=1000.0, timestamp=1),
+            OpenInterest(symbol="BTC", value=1200.0, timestamp=2),
+        ]
+        with patch.object(collector, "fetch_for_symbol", side_effect=snapshots):
+            first = collector.fetch_with_trend("BTC")
+            assert first["trend"] == "unknown"
+
+            second = collector.fetch_with_trend("BTC")
+            assert second["trend"] != "unknown"

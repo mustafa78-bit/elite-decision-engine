@@ -51,3 +51,15 @@ class TestHyperliquidProvider:
         self.mock_oi.fetch_with_trend.side_effect = Exception("API error")
         result = self.provider.get_open_interest("ETH")
         assert "error" in result
+
+    def test_get_open_interest_returns_real_data(self):
+        # Regression: fetch_with_trend() returns a plain dict, not an object
+        # -- hasattr(dict, "open_interest") is always False, so this
+        # previously discarded real data on every successful call and always
+        # returned open_interest=0.0, trend="UNKNOWN".
+        self.mock_oi.fetch_with_trend.return_value = {
+            "symbol": "ETH", "value": 12345.6, "trend": "strong_increase", "strength": 0.8,
+        }
+        result = self.provider.get_open_interest("ETH")
+        assert result["open_interest"] == 12345.6
+        assert result["trend"] == "strong_increase"

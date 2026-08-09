@@ -35,9 +35,15 @@ FEAR_GREED_MAP: dict[str, float] = {
 }
 
 OI_TREND_MAP: dict[str, str] = {
-    "RISING": DIRECTION_BULLISH,
-    "FALLING": DIRECTION_BEARISH,
-    "FLAT": DIRECTION_NEUTRAL,
+    # Real vocabulary from market_data/open_interest/models.py's
+    # detect_oi_trend(), reached via OpenInterestCollector.fetch_with_trend()
+    # -- "RISING"/"FALLING"/"FLAT" never appear there, so this map never
+    # matched anything before.
+    "strong_increase": DIRECTION_BULLISH,
+    "increase": DIRECTION_BULLISH,
+    "strong_decrease": DIRECTION_BEARISH,
+    "decrease": DIRECTION_BEARISH,
+    "neutral": DIRECTION_NEUTRAL,
 }
 
 
@@ -89,7 +95,7 @@ class MacroAgent(BaseAgent):
         funding_level = funding.get("level", "neutral")
 
         oi_value = open_interest.get("value", 0)
-        oi_trend_name = open_interest.get("trend", "FLAT")
+        oi_trend_name = open_interest.get("trend", "unknown")
         oi_strength = open_interest.get("strength", 0.5)
 
         fg_label = fear_greed.get("label", "NEUTRAL")

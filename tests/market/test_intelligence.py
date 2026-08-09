@@ -229,6 +229,20 @@ class TestWhaleService:
         assert "WHALE_MOVE" in types
 
     @patch("market.intelligence.whale.WhaleService._binance_request")
+    def test_whale_move_detected_from_real_oi_trend_vocabulary(self, mock_binance_request):
+        # Regression: this branch checked `trend in ("INCREASING", "SHARP_RISE")`,
+        # a vocabulary detect_oi_trend() never produces (real values are
+        # strong_increase/increase/etc., uppercased to STRONG_INCREASE/INCREASE) --
+        # the OI-based WHALE_MOVE path could never fire from real data.
+        mock_binance_request.return_value = None
+        self.mock_oi.fetch_with_trend.return_value = {
+            "value": 1000.0, "trend": "increase", "strength": 0.4,
+        }
+        signals = self.service.detect("BTC", volume_score=0.1, volatility_score=0.1)
+        oi_signals = [s for s in signals if s["type"] == "WHALE_MOVE" and "open interest" in s["description"]]
+        assert len(oi_signals) == 1
+
+    @patch("market.intelligence.whale.WhaleService._binance_request")
     def test_no_signals_low_volume(self, mock_binance_request):
         mock_binance_request.return_value = None
         signals = self.service.detect("BTC", volume_score=0.3, volatility_score=0.3)

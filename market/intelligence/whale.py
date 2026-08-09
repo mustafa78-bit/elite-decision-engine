@@ -192,7 +192,11 @@ class WhaleService:
                 if oi_trend and oi_trend.get("value", 0) > 0:
                     trend = oi_trend.get("trend", "unknown").upper()
                     strength = oi_trend.get("strength", 0.0)
-                    if trend in ("INCREASING", "SHARP_RISE") or strength > 0.5:
+                    # detect_oi_trend() (market_data/open_interest/models.py)
+                    # only ever produces STRONG_INCREASE/INCREASE/STRONG_DECREASE/
+                    # DECREASE/NEUTRAL/UNKNOWN once uppercased -- "INCREASING"/
+                    # "SHARP_RISE" never matched anything real.
+                    if trend in ("STRONG_INCREASE", "INCREASE") or strength > 0.5:
                         real_data_success = True
                         signals.append({
                             "type": "WHALE_MOVE",

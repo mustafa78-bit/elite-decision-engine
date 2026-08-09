@@ -64,11 +64,15 @@ class HyperliquidProvider:
     def get_open_interest(self, symbol: str) -> dict[str, Any]:
         coin = symbol.replace("USDT", "")
         try:
+            # fetch_with_trend() returns a plain dict (keys: symbol, value,
+            # trend, strength, timestamp), not an object -- hasattr() on a
+            # dict for a non-existent attribute is always False, so this
+            # previously discarded real data on every successful call.
             result = self._oi.fetch_with_trend(coin)
             return {
                 "symbol": symbol,
-                "open_interest": result.open_interest if hasattr(result, "open_interest") else 0.0,
-                "trend": result.trend if hasattr(result, "trend") else "UNKNOWN",
+                "open_interest": result.get("value", 0.0),
+                "trend": result.get("trend", "unknown"),
             }
         except Exception as e:
             logger.warning("OI fetch failed for %s: %s", symbol, e)

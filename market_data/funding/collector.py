@@ -20,7 +20,14 @@ class FundingCollector:
         self._session = requests.Session()
 
     def fetch_all(self) -> FundingResult:
-        payload = {"type": "allMids"}
+        # metaAndAssetCtxs is Hyperliquid's bulk endpoint for current
+        # per-asset context (funding, mark price, open interest, ...) --
+        # returns [meta, assetCtxs] where meta["universe"][i]["name"] and
+        # assetCtxs[i] describe the same asset at the same index. Previously
+        # this hit allMids (current mid-market PRICES, e.g. BTC ~60000.0)
+        # and stored the raw price directly as the "funding rate", producing
+        # an astronomically large annualized_rate for every symbol.
+        payload = {"type": "metaAndAssetCtxs"}
         try:
             response = self._session.post(
                 self.BASE_URL,
@@ -29,17 +36,31 @@ class FundingCollector:
             )
             response.raise_for_status()
             data = response.json()
-            if not isinstance(data, dict):
-                logger.warning("Unexpected allMids response type: %s", type(data).__name__)
+            if not isinstance(data, list) or len(data) != 2:
+                logger.warning("Unexpected metaAndAssetCtxs response shape: %s", type(data).__name__)
+                return FundingResult()
+            meta, asset_ctxs = data[0], data[1]
+            universe = meta.get("universe", []) if isinstance(meta, dict) else []
+            if not isinstance(asset_ctxs, list) or not isinstance(universe, list):
+                logger.warning("Unexpected metaAndAssetCtxs meta/assetCtxs types")
                 return FundingResult()
             rates: list[FundingRate] = []
-            for symbol, mid in data.items():
-                rates.append(FundingRate(
-                    symbol=str(symbol),
-                    rate=float(mid) if isinstance(mid, (int, float)) else 0.0,
-                    timestamp=0,
-                    next_funding_time=0,
-                ))
+            for asset, ctx in zip(universe, asset_ctxs):
+                if not isinstance(asset, dict) or not isinstance(ctx, dict):
+                    continue
+                symbol = asset.get("name")
+                funding = ctx.get("funding")
+                if symbol is None or funding is None:
+                    continue
+                try:
+                    rates.append(FundingRate(
+                        symbol=str(symbol),
+                        rate=float(funding),
+                        timestamp=0,
+                        next_funding_time=0,
+                    ))
+                except (ValueError, TypeError):
+                    continue
             return FundingResult(rates=tuple(rates))
         except requests.RequestException as e:
             logger.warning("Failed to fetch funding data: %s", e)
