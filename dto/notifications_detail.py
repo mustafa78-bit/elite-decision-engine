@@ -30,11 +30,11 @@ class NotificationStatsDTO:
 
 @dataclass
 class NotificationPreferenceDTO:
+    # signal_approved/signal_rejected/risk_warning were removed -- they
+    # referenced event categories that don't exist anywhere in
+    # notifications/events.py and have no emit() call site in the backend.
     trade_opened: bool = True
     trade_closed: bool = True
-    signal_approved: bool = True
-    signal_rejected: bool = False
-    risk_warning: bool = True
     system_alert: bool = True
 
     def to_dict(self) -> dict[str, Any]:

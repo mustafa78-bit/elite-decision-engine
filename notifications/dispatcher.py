@@ -3,14 +3,54 @@ import logging
 from typing import Any, Optional
 
 from api.websocket.manager import WebSocketManager
-from database import Notification, get_session
+from database import Notification, UserSettings, get_session
 from notifications.events import TradeEvent
 from notifications.serializer import serialize_event
 
 logger = logging.getLogger(__name__)
 
+# Maps an event to the notification_preferences key that gates its proactive
+# Telegram alert. DB persistence and websocket broadcast stay unconditional
+# for every event -- only the interruptive Telegram push is gated, so the
+# notification center's history always stays complete regardless of alert
+# preferences.
+_TELEGRAM_PREFERENCE_KEY_BY_EVENT = {
+    TradeEvent.TRADE_OPENED: "trade_opened",
+    TradeEvent.TRADE_CLOSED: "trade_closed",
+    TradeEvent.SYSTEM_HEALTH_DEGRADED: "system_alert",
+    TradeEvent.SYSTEM_HEALTH_RECOVERED: "system_alert",
+}
+
+# Telegram alerting is single-tenant today: TELEGRAM_CHAT_ID is one global
+# config value, not per-user chat routing (no multi-recipient support exists
+# anywhere in this app). Preferences are gated against this one primary
+# account's settings rather than inventing per-user routing the rest of the
+# app doesn't support yet -- revisit if/when real multi-user Telegram
+# delivery is built.
+_PRIMARY_USER_ID = 1
+
+
+def _telegram_alert_enabled(event: str) -> bool:
+    key = _TELEGRAM_PREFERENCE_KEY_BY_EVENT.get(event)
+    if key is None:
+        return True
+    session = None
+    try:
+        session = get_session()
+        settings = session.query(UserSettings).filter(UserSettings.user_id == _PRIMARY_USER_ID).first()
+    except Exception as e:
+        logger.warning("Failed to load notification preferences, defaulting to enabled: %s", e)
+        return True
+    finally:
+        if session is not None:
+            session.close()
+    if settings is None or not settings.notification_preferences:
+        return True
+    return settings.notification_preferences.get(key, True)
+
 
 def _persist_notification(event: str, payload: dict) -> None:
+    session = None
     try:
         session = get_session()
         notif = Notification(
@@ -22,7 +62,8 @@ def _persist_notification(event: str, payload: dict) -> None:
     except Exception as e:
         logger.warning("Failed to persist notification: %s", e)
     finally:
-        session.close()
+        if session is not None:
+            session.close()
 
 
 class NotificationDispatcher:
@@ -73,7 +114,11 @@ class NotificationDispatcher:
             TradeEvent.SYSTEM_HEALTH_DEGRADED,
             TradeEvent.SYSTEM_HEALTH_RECOVERED,
         )
-        if event in proactive_events and self.telegram_bot_manager is not None:
+        if (
+            event in proactive_events
+            and self.telegram_bot_manager is not None
+            and _telegram_alert_enabled(event)
+        ):
             try:
                 msg = ""
                 if event == TradeEvent.TRADE_OPENED:
