@@ -1,5 +1,7 @@
 """Tests for funding rate data models and collection."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from market_data.funding.collector import FundingCollector
@@ -238,6 +240,42 @@ class TestFundingCollector:
         collector = FundingCollector()
         result = collector.fetch_all()
         assert isinstance(result, FundingResult)
+
+    def test_fetch_all_returns_real_funding_rates_not_mid_prices(self):
+        # Regression: fetch_all() previously hit allMids (current mid-market
+        # PRICES, e.g. ~60000.0 for BTC) and stored the raw price directly as
+        # FundingRate.rate. metaAndAssetCtxs returns [meta, assetCtxs] where
+        # meta["universe"][i] and assetCtxs[i] describe the same asset.
+        collector = FundingCollector()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = [
+            {"universe": [{"name": "BTC"}, {"name": "ETH"}]},
+            [{"funding": "0.0000125", "markPx": "60000.0"}, {"funding": "-0.00008", "markPx": "3000.0"}],
+        ]
+        with patch.object(collector._session, "post", return_value=mock_response):
+            result = collector.fetch_all()
+
+        assert len(result.rates) == 2
+        btc = result.rate_for("BTC")
+        assert btc is not None
+        assert btc.rate == pytest.approx(0.0000125)
+        # A real funding rate stays in a sane annualized range -- the old bug
+        # (raw price as rate) produced an astronomical annualized_rate.
+        assert abs(btc.annualized_rate) < 10.0
+
+        eth = result.rate_for("ETH")
+        assert eth is not None
+        assert eth.rate == pytest.approx(-0.00008)
+
+    def test_fetch_all_returns_empty_on_unexpected_shape(self):
+        collector = FundingCollector()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = {"mids": {"BTC": "60000.0"}}
+        with patch.object(collector._session, "post", return_value=mock_response):
+            result = collector.fetch_all()
+        assert result.rates == ()
 
     def test_fetch_for_symbol_returns_rate_or_none(self):
         collector = FundingCollector()

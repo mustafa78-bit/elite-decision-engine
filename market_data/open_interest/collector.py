@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict, deque
 from datetime import UTC
 from typing import Optional
 
@@ -18,6 +19,13 @@ class OpenInterestCollector:
     def __init__(self, timeout: int = 20):
         self.timeout = timeout
         self._session = requests.Session()
+        # Hyperliquid's info API has no historical open-interest endpoint
+        # (unlike fundingHistory for funding rates) -- fetch_with_trend()
+        # accumulates real history across calls instead, so a trend becomes
+        # available once this collector has been called at least twice for
+        # a given symbol (still "unknown" on the very first call, which is
+        # honest -- there's genuinely no prior data point yet).
+        self._history: dict[str, deque[OpenInterest]] = defaultdict(lambda: deque(maxlen=24))
 
     def fetch_all(self) -> OpenInterestResult:
         payload = {"type": "openInterests"}
@@ -56,7 +64,9 @@ class OpenInterestCollector:
         current = self.fetch_for_symbol(symbol)
         if current is None:
             return {"symbol": symbol, "value": 0, "trend": "unknown", "strength": 0.0}
-        records = [current]
+        history = self._history[symbol]
+        history.append(current)
+        records = list(history)[-limit:]
         trend = detect_oi_trend(records)
         return {
             "symbol": symbol,
