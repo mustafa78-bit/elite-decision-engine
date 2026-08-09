@@ -225,6 +225,24 @@ class TestContextBuilder:
             ctx = self.builder.build(["whale_activity"])
             assert ctx.whale_activity is None
 
+    def test_load_scanner_success(self):
+        # Regression test: _load_scanner() used to import a nonexistent
+        # scanner.core.ScannerEngine, which raised ImportError on every call
+        # (silently swallowed, so scanner data was always missing from OLLO
+        # briefings). The real class is OpportunityScanner.
+        mock_opp = MagicMock()
+        mock_opp.symbol = "BTCUSDT"
+        mock_opp.side = "LONG"
+        mock_opp.score = 0.85
+        mock_scanner = MagicMock()
+        mock_scanner.scan.return_value = [mock_opp]
+
+        with patch("scanner.core.OpportunityScanner", return_value=mock_scanner):
+            ctx = self.builder.build(["scanner_signals"])
+            assert ctx.scanner_signals is not None
+            assert ctx.scanner_signals["signal_count"] == 1
+            assert len(ctx.errors) == 0
+
     def test_load_risk_success_and_failure(self):
         # 1. Success case using mocks
         from risk.models import RiskCheckDetail, RiskDecision
