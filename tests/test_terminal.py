@@ -136,6 +136,25 @@ class TestTerminalService:
         assert open_t["quantity"] == 2.5
         assert open_t["current_price"] == 3000.0
 
+    def test_get_open_trades_pnl_uses_real_dollar_value_not_raw_per_unit(self, db_session, monkeypatch, session_factory):
+        # trade.pnl is a raw per-unit price delta; this endpoint already
+        # fetches the real quantity from PaperTrade one line above -- it just
+        # wasn't multiplying pnl by it.
+        monkeypatch.setattr("services.terminal_service.get_session", session_factory)
+        from database import PaperTrade, Signal, Trade
+        sig = Signal(id=11, symbol="ETHUSDT", side="LONG")
+        db_session.add(sig)
+        db_session.flush()
+        trade = Trade(id=11, signal_id=11, symbol="ETHUSDT", side="LONG", entry=3000.0, status="OPEN", pnl=80.0)
+        db_session.add(trade)
+        db_session.flush()
+        pt = PaperTrade(position_id=11, symbol="ETHUSDT", side="LONG", entry=3000.0, quantity=0.25, status="OPEN")
+        db_session.add(pt)
+        db_session.flush()
+        result = self.service.get_open_trades()
+        assert len(result) == 1
+        assert result[0]["pnl"] == 20.0
+
     def test_aggregator_reuses_scanner_and_market_service(self):
         service = TerminalService()
         assert service.aggregator.scanner is service.scanner

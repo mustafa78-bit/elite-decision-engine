@@ -34,6 +34,15 @@ class TestWidgetsAPI:
         assert resp.status_code == 200
         assert "status" in resp.json()
 
+    def test_monitoring_widget_reports_healthy_when_db_is_actually_fine(self, api_client):
+        # The check previously passed a class-name string to session.execute(),
+        # which always raised -- reporting "degraded" unconditionally
+        # regardless of real DB health.
+        resp = api_client.get("/widgets/monitoring")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "healthy"
+        assert resp.json()["database_status"] == "connected"
+
     def test_get_notifications_widget(self, api_client):
         resp = api_client.get("/widgets/notifications")
         assert resp.status_code == 200

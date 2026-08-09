@@ -65,6 +65,34 @@ class TestProductionEngineWiring:
         finally:
             simulator_routes._engine = None
 
+    def test_get_engine_registers_ws_listeners_exactly_once_across_calls(self):
+        # /ws/simulator previously registered 4 broadcast listeners on every
+        # new connection against the module-level singleton engine, whose
+        # listener lists have no unsubscribe API -- an unbounded leak under
+        # normal reconnect churn. Listener registration now happens once,
+        # inside _get_engine()'s construction guard, not per-connection.
+        simulator_routes._engine = None
+        try:
+            engine_first_call = simulator_routes._get_engine()
+            state_listeners_after_first = len(engine_first_call._state_listeners)
+            trade_listeners_after_first = len(engine_first_call._trade_listeners)
+            decision_listeners_after_first = len(engine_first_call._decision_listeners)
+            candle_listeners_after_first = len(engine_first_call._candle_listeners)
+
+            # Simulates what repeated /ws/simulator connections do: call
+            # _get_engine() again without resetting the singleton.
+            engine_second_call = simulator_routes._get_engine()
+            engine_third_call = simulator_routes._get_engine()
+
+            assert engine_second_call is engine_first_call
+            assert engine_third_call is engine_first_call
+            assert len(engine_first_call._state_listeners) == state_listeners_after_first
+            assert len(engine_first_call._trade_listeners) == trade_listeners_after_first
+            assert len(engine_first_call._decision_listeners) == decision_listeners_after_first
+            assert len(engine_first_call._candle_listeners) == candle_listeners_after_first
+        finally:
+            simulator_routes._engine = None
+
 
 class TestAIModeActuallyTrades:
     @pytest.mark.asyncio

@@ -258,10 +258,18 @@ def get_paper_summary():
         total_pnl = (
             session.query(PaperTradeModel)
             .filter(PaperTradeModel.pnl.isnot(None))
-            .with_entities(PaperTradeModel.pnl)
+            .with_entities(PaperTradeModel.pnl, PaperTradeModel.quantity)
             .all()
         )
-        pnl_sum = sum(row[0] for row in total_pnl if row[0] is not None)
+        # PaperTradeModel.pnl is a raw per-unit price delta, not a dollar
+        # amount (same convention as Trade.pnl, see services/pnl.py) --
+        # summing it directly across trades of different sizes has no real
+        # financial meaning. quantity already lives on the same row.
+        pnl_sum = sum(
+            (row.pnl or 0.0) * (row.quantity or 1.0)
+            for row in total_pnl
+            if row.pnl is not None
+        )
 
         return {
             "orders": {
