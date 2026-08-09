@@ -10,10 +10,7 @@ from typing import Any, Optional
 from database import (
     CANCEL,
     CLOSED,
-    OPEN,
     SL_HIT,
-    STOP_LOSS,
-    TAKE_PROFIT,
     TP_HIT,
     Trade,
     get_session,
@@ -23,12 +20,16 @@ from database import (
 )
 from performance.core import PerformanceReport
 from portfolio.core import PortfolioSnapshot
+from services.pnl import trade_dollar_pnl
 
 logger = logging.getLogger(__name__)
 
 _RFR = 0.0
 _INFINITE = 999.99
-_PAPER_TERMINAL = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
+# Trade's terminal-status vocabulary (TP_HIT/SL_HIT/...), not PaperTrade's
+# (TAKE_PROFIT/STOP_LOSS/...) -- Trade.status is the real source of truth,
+# see the comment in _compute() below.
+_TRADE_TERMINAL = frozenset({TP_HIT, SL_HIT, CLOSED, CANCEL})
 
 
 class PerformanceEngine:
@@ -56,20 +57,29 @@ class PerformanceEngine:
         session: Any,
         snapshot: PortfolioSnapshot,
     ) -> PerformanceReport:
-        all_paper = session.query(PaperTradeModel).all()
-        closed_paper = [pt for pt in all_paper if pt.status in _PAPER_TERMINAL]
+        # Trade.status is the real source of truth for open/closed -- the
+        # matching PaperTrade row's own .status is never actually updated by
+        # the real close path in production (see portfolio/engine.py's
+        # _compute() for the full explanation), so filtering on
+        # PaperTrade.status here would silently always see zero closed
+        # trades. PaperTrade is only used below for its real quantity.
+        results = (
+            session.query(Trade, PaperTradeModel)
+            .outerjoin(PaperTradeModel, PaperTradeModel.position_id == Trade.id)
+            .all()
+        )
+        closed_pairs = [
+            (t, pt) for t, pt in results
+            if t.status in _TRADE_TERMINAL and t.pnl is not None
+        ]
 
-        if not closed_paper:
+        if not closed_pairs:
             return PerformanceReport()
 
         # Build (pnl_total, trade_obj) pairs sorted by close time
-        trade_pnls: list[tuple[float, PaperTradeModel]] = []
-        for pt in closed_paper:
-            pnl_total = float(pt.pnl or 0) * float(pt.quantity or 0)
-            trade_pnls.append((pnl_total, pt))
-
-        all_trades = session.query(Trade).all()
-        trade_by_id = {t.id: t for t in all_trades}
+        trade_pnls: list[tuple[float, Trade]] = [
+            (trade_dollar_pnl(t, pt), t) for t, pt in closed_pairs
+        ]
 
         # ── Equity-curve based ratios ────────────────────────────────────
         equity_curve = snapshot.equity_curve
@@ -165,7 +175,7 @@ class PerformanceEngine:
         # --- 11 / 12  Consecutive Wins / Losses ---
         sorted_trades = sorted(
             trade_pnls,
-            key=lambda x: _get_close_time(x[1], trade_by_id),
+            key=lambda x: _get_close_time(x[1]),
         )
         cur_wins = 0
         cur_losses = 0
@@ -188,29 +198,26 @@ class PerformanceEngine:
 
         # --- 13  Average Holding Time ---
         holding_times: list[float] = []
-        for pt in closed_paper:
-            trade = trade_by_id.get(pt.position_id)
-            if trade is not None and trade.created_at is not None and trade.closed_at is not None:
-                delta = trade.closed_at - trade.created_at
+        for _, t in trade_pnls:
+            if t.created_at is not None and t.closed_at is not None:
+                delta = t.closed_at - t.created_at
                 holding_times.append(delta.total_seconds() / 3600)
         avg_hold = mean(holding_times) if holding_times else 0.0
 
         # --- 14  Trade Frequency (trades per day) ---
-        if holding_times and len(closed_paper) > 0:
+        if holding_times and closed_pairs:
             oldest: datetime | None = None
             newest: datetime | None = None
-            for pt in closed_paper:
-                trade = trade_by_id.get(pt.position_id)
-                if trade is not None:
-                    if trade.created_at is not None and (oldest is None or trade.created_at < oldest):
-                        oldest = trade.created_at
-                    if trade.closed_at is not None and (newest is None or trade.closed_at > newest):
-                        newest = trade.closed_at
+            for _, t in trade_pnls:
+                if t.created_at is not None and (oldest is None or t.created_at < oldest):
+                    oldest = t.created_at
+                if t.closed_at is not None and (newest is None or t.closed_at > newest):
+                    newest = t.closed_at
             if oldest is not None and newest is not None:
                 days_span = max((newest - oldest).total_seconds() / 86400, 1.0)
             else:
                 days_span = 1.0
-            freq = len(closed_paper) / days_span
+            freq = len(closed_pairs) / days_span
         else:
             freq = 0.0
 
@@ -232,11 +239,10 @@ class PerformanceEngine:
         )
 
 
-def _get_close_time(
-    pt: PaperTradeModel,
-    trade_by_id: dict[int, Any],
-) -> datetime:
-    trade = trade_by_id.get(pt.position_id)
-    if trade is not None and trade.closed_at is not None:
+def _get_close_time(trade: Trade) -> datetime:
+    if trade.closed_at is not None:
         return trade.closed_at
-    return datetime.min
+    # datetime.min is timezone-naive; Trade.closed_at is DateTime(timezone=True)
+    # and comes back timezone-aware on a Postgres backend. Mixing naive and
+    # aware datetimes in the same sort raises TypeError.
+    return datetime.min.replace(tzinfo=timezone.utc)
