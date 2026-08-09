@@ -227,6 +227,32 @@ class TestNotificationsAPI:
         resp = api_client.delete("/notifications/999")
         assert resp.status_code == 404
 
+    def test_notifications_require_auth(self, api_client):
+        api_client.headers.pop("Authorization", None)
+        assert api_client.get("/notifications").status_code == 401
+
+    def test_another_user_cannot_read_or_modify_this_notification(self, api_client, session_factory):
+        from auth.jwt import create_access_token
+
+        session = session_factory()
+        n = Notification(event_type="TRADE_OPENED", user_id=1)
+        session.add(n)
+        session.commit()
+        nid = n.id
+        session.close()
+
+        other_user_token = create_access_token({"sub": "2", "username": "other"})
+        headers = {"Authorization": f"Bearer {other_user_token}"}
+
+        assert api_client.get(f"/notifications/{nid}", headers=headers).status_code == 404
+        assert api_client.put(f"/notifications/{nid}/read", headers=headers).status_code == 404
+        assert api_client.delete(f"/notifications/{nid}", headers=headers).status_code == 404
+
+        # Confirm it's genuinely untouched, not silently modified.
+        still_there = api_client.get(f"/notifications/{nid}")
+        assert still_there.status_code == 200
+        assert still_there.json()["read"] is False
+
 
 class TestTimelineAPI:
 

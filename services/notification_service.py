@@ -5,9 +5,21 @@ from collections.abc import Callable
 from datetime import UTC
 from typing import Any, Optional
 
+from sqlalchemy import or_
+
 from database import Notification, get_session
 
 logger = logging.getLogger(__name__)
+
+
+def _owned_by(user_id: int):
+    # Historical rows persisted before user_id was populated (or by a
+    # system/background source with no specific user) are treated as
+    # belonging to every real user rather than becoming permanently
+    # invisible -- this app is still single-tenant in practice (see
+    # notifications/dispatcher.py's _PRIMARY_USER_ID), so there is no real
+    # cross-user data behind a NULL row today.
+    return or_(Notification.user_id == user_id, Notification.user_id.is_(None))
 
 
 class NotificationService:
@@ -15,13 +27,13 @@ class NotificationService:
         self.session_factory = session_factory or get_session
 
     def list_notifications(
-        self, limit: int = 50, offset: int = 0,
+        self, user_id: int, limit: int = 50, offset: int = 0,
         unread_only: bool = False,
         event_type: str | None = None,
     ) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            q = session.query(Notification)
+            q = session.query(Notification).filter(_owned_by(user_id))
             if unread_only:
                 q = q.filter(Notification.read == False)  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
             if event_type:
@@ -33,23 +45,29 @@ class NotificationService:
                 "total": total,
                 "offset": offset,
                 "limit": limit,
-                "unread": session.query(Notification).filter(Notification.read == False).count(),  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
+                "unread": session.query(Notification).filter(
+                    _owned_by(user_id), Notification.read == False,  # noqa: E712
+                ).count(),
             }
         finally:
             session.close()
 
-    def get_notification(self, notification_id: int) -> dict[str, Any] | None:
+    def get_notification(self, notification_id: int, user_id: int) -> dict[str, Any] | None:
         session = self.session_factory()
         try:
-            n = session.query(Notification).filter(Notification.id == notification_id).first()
+            n = session.query(Notification).filter(
+                Notification.id == notification_id, _owned_by(user_id),
+            ).first()
             return self._to_dict(n) if n else None
         finally:
             session.close()
 
-    def mark_read(self, notification_id: int) -> bool:
+    def mark_read(self, notification_id: int, user_id: int) -> bool:
         session = self.session_factory()
         try:
-            n = session.query(Notification).filter(Notification.id == notification_id).first()
+            n = session.query(Notification).filter(
+                Notification.id == notification_id, _owned_by(user_id),
+            ).first()
             if not n:
                 return False
             n.read = True
@@ -61,14 +79,14 @@ class NotificationService:
         finally:
             session.close()
 
-    def mark_all_read(self, event_type: str | None = None) -> int:
+    def mark_all_read(self, user_id: int, event_type: str | None = None) -> int:
         session = self.session_factory()
         try:
-            q = session.query(Notification).filter(Notification.read == False)  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
+            q = session.query(Notification).filter(_owned_by(user_id), Notification.read == False)  # noqa: E712
             if event_type:
                 q = q.filter(Notification.event_type == event_type)
             count = q.count()
-            q.update({"read": True})
+            q.update({"read": True}, synchronize_session=False)
             session.commit()
             return count
         except Exception:
@@ -77,10 +95,12 @@ class NotificationService:
         finally:
             session.close()
 
-    def delete_notification(self, notification_id: int) -> bool:
+    def delete_notification(self, notification_id: int, user_id: int) -> bool:
         session = self.session_factory()
         try:
-            n = session.query(Notification).filter(Notification.id == notification_id).first()
+            n = session.query(Notification).filter(
+                Notification.id == notification_id, _owned_by(user_id),
+            ).first()
             if not n:
                 return False
             session.delete(n)
@@ -92,12 +112,12 @@ class NotificationService:
         finally:
             session.close()
 
-    def delete_all_read(self) -> int:
+    def delete_all_read(self, user_id: int) -> int:
         session = self.session_factory()
         try:
-            q = session.query(Notification).filter(Notification.read == True)  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
+            q = session.query(Notification).filter(_owned_by(user_id), Notification.read == True)  # noqa: E712
             count = q.count()
-            q.delete()
+            q.delete(synchronize_session=False)
             session.commit()
             return count
         except Exception:
@@ -106,20 +126,20 @@ class NotificationService:
         finally:
             session.close()
 
-    def stats(self) -> dict[str, Any]:
+    def stats(self, user_id: int) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            total = session.query(Notification).count()
-            unread = session.query(Notification).filter(Notification.read == False).count()  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
+            total = session.query(Notification).filter(_owned_by(user_id)).count()
+            unread = session.query(Notification).filter(_owned_by(user_id), Notification.read == False).count()  # noqa: E712
             from sqlalchemy import func
             by_type_rows = session.query(
                 Notification.event_type, func.count(Notification.id)
-            ).group_by(Notification.event_type).all()
+            ).filter(_owned_by(user_id)).group_by(Notification.event_type).all()
             by_type = {row[0]: row[1] for row in by_type_rows}
             from datetime import datetime, timedelta
             seven_days_ago = datetime.now(UTC) - timedelta(days=7)
             recent = session.query(Notification).filter(
-                Notification.created_at >= seven_days_ago
+                _owned_by(user_id), Notification.created_at >= seven_days_ago,
             ).count()
             return {
                 "total": total,

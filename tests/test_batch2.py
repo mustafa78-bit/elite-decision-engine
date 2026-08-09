@@ -406,86 +406,104 @@ class TestNotificationService:
     def test_list_notifications_empty(self, db_session):
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        result = svc.list_notifications()
+        result = svc.list_notifications(user_id=1)
         assert result["total"] == 0
         assert result["notifications"] == []
 
     def test_create_and_list(self, db_session):
-        n = Notification(event_type="TRADE_OPENED", payload={"trade_id": 1})
+        n = Notification(event_type="TRADE_OPENED", payload={"trade_id": 1}, user_id=1)
         db_session.add(n)
         db_session.flush()
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        result = svc.list_notifications()
+        result = svc.list_notifications(user_id=1)
+        assert result["total"] == 1
+        assert result["notifications"][0]["event_type"] == "TRADE_OPENED"
+
+    def test_list_notifications_excludes_other_users(self, db_session):
+        db_session.add(Notification(event_type="TRADE_OPENED", user_id=1))
+        db_session.add(Notification(event_type="TRADE_CLOSED", user_id=2))
+        db_session.flush()
+        from services.notification_service import NotificationService
+        svc = NotificationService(session_factory=lambda: db_session)
+        result = svc.list_notifications(user_id=1)
         assert result["total"] == 1
         assert result["notifications"][0]["event_type"] == "TRADE_OPENED"
 
     def test_mark_read(self, db_session):
-        n = Notification(event_type="TEST")
+        n = Notification(event_type="TEST", user_id=1)
         db_session.add(n)
         db_session.flush()
         nid = n.id
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        assert svc.mark_read(nid) is True
-        result = svc.get_notification(nid)
+        assert svc.mark_read(nid, user_id=1) is True
+        result = svc.get_notification(nid, user_id=1)
         assert result["read"] is True
 
     def test_mark_read_nonexistent(self, db_session):
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        assert svc.mark_read(999) is False
+        assert svc.mark_read(999, user_id=1) is False
+
+    def test_mark_read_wrong_user_returns_false(self, db_session):
+        n = Notification(event_type="TEST", user_id=2)
+        db_session.add(n)
+        db_session.flush()
+        from services.notification_service import NotificationService
+        svc = NotificationService(session_factory=lambda: db_session)
+        assert svc.mark_read(n.id, user_id=1) is False
 
     def test_mark_all_read(self, db_session):
         for i in range(3):
-            db_session.add(Notification(event_type="TEST"))
+            db_session.add(Notification(event_type="TEST", user_id=1))
         db_session.flush()
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        count = svc.mark_all_read()
+        count = svc.mark_all_read(user_id=1)
         assert count == 3
-        stats = svc.stats()
+        stats = svc.stats(user_id=1)
         assert stats["unread"] == 0
 
     def test_delete_notification(self, db_session):
-        n = Notification(event_type="TEST")
+        n = Notification(event_type="TEST", user_id=1)
         db_session.add(n)
         db_session.flush()
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        assert svc.delete_notification(n.id) is True
-        assert svc.get_notification(n.id) is None
+        assert svc.delete_notification(n.id, user_id=1) is True
+        assert svc.get_notification(n.id, user_id=1) is None
 
     def test_delete_all_read(self, db_session):
-        n = Notification(event_type="TEST", read=True)
+        n = Notification(event_type="TEST", read=True, user_id=1)
         db_session.add(n)
-        db_session.add(Notification(event_type="TEST", read=False))
+        db_session.add(Notification(event_type="TEST", read=False, user_id=1))
         db_session.flush()
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        count = svc.delete_all_read()
+        count = svc.delete_all_read(user_id=1)
         assert count == 1
-        result = svc.list_notifications()
+        result = svc.list_notifications(user_id=1)
         assert result["total"] == 1
 
     def test_stats(self, db_session):
-        db_session.add(Notification(event_type="TRADE_OPENED"))
-        db_session.add(Notification(event_type="TRADE_CLOSED"))
-        db_session.add(Notification(event_type="TRADE_OPENED"))
+        db_session.add(Notification(event_type="TRADE_OPENED", user_id=1))
+        db_session.add(Notification(event_type="TRADE_CLOSED", user_id=1))
+        db_session.add(Notification(event_type="TRADE_OPENED", user_id=1))
         db_session.flush()
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        stats = svc.stats()
+        stats = svc.stats(user_id=1)
         assert stats["total"] == 3
         assert stats["by_type"]["TRADE_OPENED"] == 2
 
     def test_list_with_filters(self, db_session):
-        db_session.add(Notification(event_type="A"))
-        db_session.add(Notification(event_type="B"))
+        db_session.add(Notification(event_type="A", user_id=1))
+        db_session.add(Notification(event_type="B", user_id=1))
         db_session.flush()
         from services.notification_service import NotificationService
         svc = NotificationService(session_factory=lambda: db_session)
-        result = svc.list_notifications(event_type="A")
+        result = svc.list_notifications(user_id=1, event_type="A")
         assert result["total"] == 1
 
 
