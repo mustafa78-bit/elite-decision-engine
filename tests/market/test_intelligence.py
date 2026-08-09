@@ -156,7 +156,13 @@ class TestNewsService:
         assert articles[1]["sentiment"] == "negative"
 
     @patch("market.intelligence.news.NewsService._fetch_rss_items")
-    def test_rss_sentiment_fallback_rules(self, mock_fetch_rss):
+    @patch("services.ai.provider_factory.create_provider")
+    def test_rss_sentiment_fallback_rules(self, mock_create_provider, mock_fetch_rss):
+        # No API key configured -- forces analyze() past the LLM branch and
+        # into the rule-based fallback this test actually means to exercise.
+        # Without this, CI environments with a real NVIDIA_API_KEY secret
+        # make a live, non-deterministic LLM call instead.
+        mock_create_provider.return_value = None
         # Mock RSS feed entries
         mock_fetch_rss.return_value = [
             {"title": "Bitcoin surges past $60k", "published": "2026-07-31T00:00:00Z"},
@@ -168,6 +174,20 @@ class TestNewsService:
         assert articles[0]["sentiment"] == "positive"  # from keyword fallback
         assert articles[1]["headline"] == "BTC drops 5%"
         assert articles[1]["sentiment"] == "negative"  # from keyword fallback
+
+    def test_rule_based_sentiment_matches_inflected_forms(self):
+        # Regression: \bword\b alone missed common inflections real headlines
+        # use ("surges", "growing", "falling") since there's no word boundary
+        # between e.g. "surge" and the trailing "s" in "surges".
+        assert self.service._rule_based_sentiment("Market surges to new highs") == "positive"
+        assert self.service._rule_based_sentiment("Adoption growing steadily") == "positive"
+        assert self.service._rule_based_sentiment("Token falling sharply") == "negative"
+
+    def test_rule_based_sentiment_avoids_substring_false_positives(self):
+        # The word-boundary requirement must still block "up" inside "update"
+        # and "low" inside "below" -- the exact case the original fix targeted.
+        assert self.service._rule_based_sentiment("Exchange update released") == "neutral"
+        assert self.service._rule_based_sentiment("Volume sits below average today") == "neutral"
 
     def test_sentiment_score_positive(self):
         articles = [
