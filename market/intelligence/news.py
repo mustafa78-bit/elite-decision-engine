@@ -23,10 +23,15 @@ class NewsService:
         pos_words = ["surge", "bull", "gain", "up", "rise", "grow", "rally", "high", "positive", "accumulate", "boost", "support", "skyrocket", "profit", "win", "adopt", "launch", "breakout"]
         neg_words = ["crash", "bear", "drop", "down", "fall", "decline", "sell", "low", "negative", "liquidate", "drain", "resistance", "plunge", "loss", "lose", "ban", "hack", "scam", "lawsuit", "fud"]
 
-        # Word-boundary match -- plain substring containment false-positives
-        # on common words (e.g. "up" inside "update", "low" inside "below").
-        pos_count = sum(1 for w in pos_words if re.search(rf"\b{re.escape(w)}\b", text))
-        neg_count = sum(1 for w in neg_words if re.search(rf"\b{re.escape(w)}\b", text))
+        # Word-boundary match, allowing a short inflectional suffix (surge ->
+        # surges/surging) -- plain substring containment false-positives on
+        # common words (e.g. "up" inside "update", "low" inside "below"), but
+        # an exact \bword\b match misses the inflected forms real headlines
+        # actually use. \w{0,3} covers -s/-es/-ed/-ing while the leading \b
+        # still keeps "update"/"below" excluded (no boundary before "up"/"low"
+        # there to begin with).
+        pos_count = sum(1 for w in pos_words if re.search(rf"\b{re.escape(w)}\w{{0,3}}\b", text))
+        neg_count = sum(1 for w in neg_words if re.search(rf"\b{re.escape(w)}\w{{0,3}}\b", text))
 
         if pos_count > neg_count:
             return "positive"
