@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
+from config import SCORE_WEIGHTS
 from council.base import (
     DIRECTION_BEARISH,
     DIRECTION_BULLISH,
@@ -12,7 +13,6 @@ from council.base import (
     BaseAgent,
     normalize_direction,
 )
-from config import SCORE_WEIGHTS
 from execution.pipeline import TradingSignal
 from scoring.scoring_engine import ScoringEngine
 
