@@ -155,6 +155,26 @@ class TestTerminalService:
         assert len(result) == 1
         assert result[0]["pnl"] == 20.0
 
+    def test_get_open_trades_pnl_falls_back_to_raw_value_without_matching_paper_trade(
+        self, db_session, monkeypatch, session_factory
+    ):
+        # No PaperTrade row -- displayed "quantity" is honestly 0 (unknown),
+        # but "pnl" must still fall back to the raw per-unit value (the same
+        # qty=1.0 convention services/pnl.py uses everywhere else), not be
+        # silently zeroed out just because quantity itself is unknown.
+        monkeypatch.setattr("services.terminal_service.get_session", session_factory)
+        from database import Signal, Trade
+        sig = Signal(id=12, symbol="ETHUSDT", side="LONG")
+        db_session.add(sig)
+        db_session.flush()
+        trade = Trade(id=12, signal_id=12, symbol="ETHUSDT", side="LONG", entry=3000.0, status="OPEN", pnl=45.0)
+        db_session.add(trade)
+        db_session.flush()
+        result = self.service.get_open_trades()
+        assert len(result) == 1
+        assert result[0]["quantity"] == 0.0
+        assert result[0]["pnl"] == 45.0
+
     def test_aggregator_reuses_scanner_and_market_service(self):
         service = TerminalService()
         assert service.aggregator.scanner is service.scanner
