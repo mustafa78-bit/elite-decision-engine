@@ -24,15 +24,17 @@ class WatchlistService:
         finally:
             session.close()
 
-    def get_watchlist(self, watchlist_id: int) -> dict[str, Any] | None:
+    def get_watchlist(self, watchlist_id: int, user_id: int) -> dict[str, Any] | None:
         session = self.session_factory()
         try:
-            row = session.query(Watchlist).filter(Watchlist.id == watchlist_id).first()
+            row = session.query(Watchlist).filter(
+                Watchlist.id == watchlist_id, Watchlist.user_id == user_id
+            ).first()
             return self._to_dict(row) if row else None
         finally:
             session.close()
 
-    def create_watchlist(self, name: str, symbols: list[str] | None = None, user_id: int | None = None) -> dict[str, Any]:
+    def create_watchlist(self, name: str, user_id: int, symbols: list[str] | None = None) -> dict[str, Any]:
         session = self.session_factory()
         try:
             row = Watchlist(name=name, symbols=symbols or [], user_id=user_id)
@@ -46,10 +48,12 @@ class WatchlistService:
         finally:
             session.close()
 
-    def update_watchlist(self, watchlist_id: int, data: dict[str, Any]) -> dict[str, Any] | None:
+    def update_watchlist(self, watchlist_id: int, user_id: int, data: dict[str, Any]) -> dict[str, Any] | None:
         session = self.session_factory()
         try:
-            row = session.query(Watchlist).filter(Watchlist.id == watchlist_id).first()
+            row = session.query(Watchlist).filter(
+                Watchlist.id == watchlist_id, Watchlist.user_id == user_id
+            ).first()
             if not row:
                 return None
             if "name" in data:
@@ -73,10 +77,12 @@ class WatchlistService:
         finally:
             session.close()
 
-    def delete_watchlist(self, watchlist_id: int) -> bool:
+    def delete_watchlist(self, watchlist_id: int, user_id: int) -> bool:
         session = self.session_factory()
         try:
-            row = session.query(Watchlist).filter(Watchlist.id == watchlist_id).first()
+            row = session.query(Watchlist).filter(
+                Watchlist.id == watchlist_id, Watchlist.user_id == user_id
+            ).first()
             if not row:
                 return False
             session.delete(row)
@@ -88,11 +94,11 @@ class WatchlistService:
         finally:
             session.close()
 
-    def add_symbol(self, watchlist_id: int, symbol: str) -> dict[str, Any] | None:
-        return self.update_watchlist(watchlist_id, {"add_symbols": [symbol]})
+    def add_symbol(self, watchlist_id: int, user_id: int, symbol: str) -> dict[str, Any] | None:
+        return self.update_watchlist(watchlist_id, user_id, {"add_symbols": [symbol]})
 
-    def remove_symbol(self, watchlist_id: int, symbol: str) -> dict[str, Any] | None:
-        return self.update_watchlist(watchlist_id, {"remove_symbols": [symbol]})
+    def remove_symbol(self, watchlist_id: int, user_id: int, symbol: str) -> dict[str, Any] | None:
+        return self.update_watchlist(watchlist_id, user_id, {"remove_symbols": [symbol]})
 
     def _to_dict(self, row: Watchlist) -> dict[str, Any]:
         return {

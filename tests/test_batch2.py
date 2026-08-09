@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
-from database import Notification, Trade, UserSettings, Watchlist
+from database import Notification, PaperTrade, Trade, UserSettings, Watchlist
 from dto.notifications_detail import NotificationDetailDTO, NotificationStatsDTO
 from dto.portfolio_detail import (
     PortfolioDistributionDTO,
@@ -176,6 +176,48 @@ class TestPortfolioService:
         assert "performance" in f
         assert "risk" in f
 
+    def test_summary_uses_real_dollar_pnl_not_raw_per_unit_pnl(self, db_session):
+        # Trade.pnl is a raw per-unit price delta, not a dollar amount (see
+        # services/pnl.py) -- a trade with quantity=0.1 and a $50 per-unit
+        # move has real dollar PnL of $5, not $50.
+        from services.portfolio_service import PortfolioService
+        now = datetime.now(UTC)
+        trade = Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
+                      tp1=52000, rr=2.0, status="TP_HIT", pnl=50.0,
+                      created_at=now, closed_at=now)
+        db_session.add(trade)
+        db_session.flush()
+        db_session.add(PaperTrade(
+            position_id=trade.id, symbol="BTCUSDT", side="LONG",
+            entry=50000, quantity=0.1, status="TP_HIT",
+        ))
+        db_session.flush()
+
+        svc = PortfolioService(session_factory=lambda: db_session)
+        s = svc.summary()
+
+        assert s["total_pnl"] == 5.0
+        assert s["realized_pnl"] == 5.0
+        assert s["best_trade_pnl"] == 5.0
+
+    def test_risk_exposure_uses_real_notional_not_raw_entry_price(self, db_session):
+        # Same bug class in _compute_risk: an open trade's exposure should be
+        # entry_price * real quantity, not the raw per-unit entry price.
+        from services.portfolio_service import PortfolioService
+        trade = Trade(symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49000.0, status="OPEN")
+        db_session.add(trade)
+        db_session.flush()
+        db_session.add(PaperTrade(
+            position_id=trade.id, symbol="BTCUSDT", side="LONG",
+            entry=50000.0, quantity=0.1, status="OPEN",
+        ))
+        db_session.flush()
+
+        svc = PortfolioService(session_factory=lambda: db_session)
+        r = svc.risk_metrics()
+
+        assert r["current_exposure"] == 5000.0
+
 
 class TestTimelineService:
 
@@ -283,56 +325,80 @@ class TestWatchlistService:
     def test_create_and_get_watchlist(self, db_session):
         from services.watchlist_service import WatchlistService
         svc = WatchlistService(session_factory=lambda: db_session)
-        created = svc.create_watchlist(name="Test", symbols=["BTCUSDT"])
+        created = svc.create_watchlist(name="Test", user_id=1, symbols=["BTCUSDT"])
         assert created["name"] == "Test"
         assert created["symbols"] == ["BTCUSDT"]
-        got = svc.get_watchlist(created["id"])
+        got = svc.get_watchlist(created["id"], user_id=1)
         assert got is not None
         assert got["id"] == created["id"]
 
     def test_create_watchlist_defaults(self, db_session):
         from services.watchlist_service import WatchlistService
         svc = WatchlistService(session_factory=lambda: db_session)
-        created = svc.create_watchlist(name="Default")
+        created = svc.create_watchlist(name="Default", user_id=1)
         assert created["symbols"] == []
 
     def test_update_watchlist_name(self, db_session):
         from services.watchlist_service import WatchlistService
         svc = WatchlistService(session_factory=lambda: db_session)
-        created = svc.create_watchlist(name="Old")
-        updated = svc.update_watchlist(created["id"], {"name": "New"})
+        created = svc.create_watchlist(name="Old", user_id=1)
+        updated = svc.update_watchlist(created["id"], user_id=1, data={"name": "New"})
         assert updated["name"] == "New"
 
     def test_add_symbol(self, db_session):
         from services.watchlist_service import WatchlistService
         svc = WatchlistService(session_factory=lambda: db_session)
-        created = svc.create_watchlist(name="Test")
-        updated = svc.add_symbol(created["id"], "ETHUSDT")
+        created = svc.create_watchlist(name="Test", user_id=1)
+        updated = svc.add_symbol(created["id"], user_id=1, symbol="ETHUSDT")
         assert "ETHUSDT" in updated["symbols"]
 
     def test_remove_symbol(self, db_session):
         from services.watchlist_service import WatchlistService
         svc = WatchlistService(session_factory=lambda: db_session)
-        created = svc.create_watchlist(name="Test", symbols=["BTCUSDT", "ETHUSDT"])
-        updated = svc.remove_symbol(created["id"], "BTCUSDT")
+        created = svc.create_watchlist(name="Test", user_id=1, symbols=["BTCUSDT", "ETHUSDT"])
+        updated = svc.remove_symbol(created["id"], user_id=1, symbol="BTCUSDT")
         assert "BTCUSDT" not in updated["symbols"]
 
     def test_delete_watchlist(self, db_session):
         from services.watchlist_service import WatchlistService
         svc = WatchlistService(session_factory=lambda: db_session)
-        created = svc.create_watchlist(name="Test")
-        assert svc.delete_watchlist(created["id"]) is True
-        assert svc.get_watchlist(created["id"]) is None
+        created = svc.create_watchlist(name="Test", user_id=1)
+        assert svc.delete_watchlist(created["id"], user_id=1) is True
+        assert svc.get_watchlist(created["id"], user_id=1) is None
 
     def test_delete_nonexistent(self, db_session):
         from services.watchlist_service import WatchlistService
         svc = WatchlistService(session_factory=lambda: db_session)
-        assert svc.delete_watchlist(999) is False
+        assert svc.delete_watchlist(999, user_id=1) is False
 
     def test_add_symbol_nonexistent(self, db_session):
         from services.watchlist_service import WatchlistService
         svc = WatchlistService(session_factory=lambda: db_session)
-        assert svc.add_symbol(999, "BTCUSDT") is None
+        assert svc.add_symbol(999, user_id=1, symbol="BTCUSDT") is None
+
+    def test_get_watchlist_owned_by_another_user_returns_none(self, db_session):
+        # The IDOR this fix closes: user 2 must not be able to read user 1's
+        # watchlist by ID alone.
+        from services.watchlist_service import WatchlistService
+        svc = WatchlistService(session_factory=lambda: db_session)
+        created = svc.create_watchlist(name="User1's list", user_id=1)
+        assert svc.get_watchlist(created["id"], user_id=2) is None
+
+    def test_update_watchlist_owned_by_another_user_returns_none(self, db_session):
+        from services.watchlist_service import WatchlistService
+        svc = WatchlistService(session_factory=lambda: db_session)
+        created = svc.create_watchlist(name="User1's list", user_id=1)
+        result = svc.update_watchlist(created["id"], user_id=2, data={"name": "Hijacked"})
+        assert result is None
+        # Confirm it was genuinely untouched, not silently updated then hidden.
+        assert svc.get_watchlist(created["id"], user_id=1)["name"] == "User1's list"
+
+    def test_delete_watchlist_owned_by_another_user_fails(self, db_session):
+        from services.watchlist_service import WatchlistService
+        svc = WatchlistService(session_factory=lambda: db_session)
+        created = svc.create_watchlist(name="User1's list", user_id=1)
+        assert svc.delete_watchlist(created["id"], user_id=2) is False
+        assert svc.get_watchlist(created["id"], user_id=1) is not None
 
 
 class TestNotificationService:
