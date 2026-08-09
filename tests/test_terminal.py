@@ -115,7 +115,15 @@ class TestTerminalService:
         assert isinstance(result, dict)
 
     def test_get_open_trades_with_real_data(self, db_session, monkeypatch, session_factory):
+        # current_price comes from market_service.get_price(), a live call --
+        # mock it so this test is deterministic instead of depending on
+        # real-time ETH price (previously this only "passed" by accident,
+        # because a since-fixed bug made get_price() always fail and fall
+        # back to entry_val).
         monkeypatch.setattr("services.terminal_service.get_session", session_factory)
+        mock_market = MagicMock()
+        mock_market.get_price.return_value = 3050.0
+        self.service.market_service = mock_market
         from database import PaperTrade, Signal, Trade
         sig = Signal(id=10, symbol="ETHUSDT", side="LONG")
         db_session.add(sig)
@@ -134,7 +142,7 @@ class TestTerminalService:
         assert open_t["side"] == "LONG"
         assert open_t["entry_price"] == 3000.0
         assert open_t["quantity"] == 2.5
-        assert open_t["current_price"] == 3000.0
+        assert open_t["current_price"] == 3050.0
 
     def test_get_open_trades_pnl_uses_real_dollar_value_not_raw_per_unit(self, db_session, monkeypatch, session_factory):
         # trade.pnl is a raw per-unit price delta; this endpoint already
