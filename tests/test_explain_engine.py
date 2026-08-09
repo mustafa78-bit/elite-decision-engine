@@ -10,9 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from database import DecisionExplanation, Signal
 from explain import ExplainEngine, ExplainInput, ExplainResult
-from explain.engine import ExplainService
 
 # ── Unit tests: pure ExplainEngine ──────────────────────────────────────────
 
@@ -230,99 +228,3 @@ def test_deterministic():
     assert r1.reasons == r2.reasons
     assert r1.summary == r2.summary
 
-
-# ── Integration tests: ExplainService with DB ─────────────────────────────
-
-
-def test_service_saves_to_db(db_session, session_factory):
-    signal = Signal(
-        symbol="BTCUSDT",
-        side="LONG",
-        score=0.80,
-        risk_score=0.70,
-        trend_score=0.75,
-        status="OPEN",
-    )
-    db_session.add(signal)
-    db_session.flush()
-
-    service = ExplainService(session_factory=session_factory)
-    model = service.explain_signal(signal, whale_score=0.60, news_score=0.55)
-
-    assert isinstance(model, DecisionExplanation)
-    assert model.id is not None
-    assert model.symbol == "BTCUSDT"
-    assert model.side == "LONG"
-    assert model.decision == "BUY"
-    assert model.confidence >= 50.0
-    assert len(model.reasons) > 0
-    assert len(model.risk_notes) > 0
-    assert model.summary != ""
-    assert model.technical_score == 0.80
-    assert model.whale_score == 0.60
-    assert model.news_score == 0.55
-    assert model.risk_score == 0.70
-    assert model.trend_score == 0.75
-
-
-def test_service_with_portfolio_and_performance(db_session, session_factory):
-    signal = Signal(symbol="ETHUSDT", side="SHORT", score=0.75, risk_score=0.60)
-    db_session.add(signal)
-    db_session.flush()
-
-    from performance.core import PerformanceReport
-    from portfolio.core import PortfolioSnapshot
-
-    snap = PortfolioSnapshot(
-        total_equity=12000.0,
-        initial_capital=10000.0,
-        unrealized_pnl=1000.0,
-        realized_pnl=1000.0,
-        exposure=2000.0,
-        total_pnl=2000.0,
-        profit_factor=2.5,
-        win_rate=60.0,
-        max_drawdown=8.0,
-    )
-    perf = PerformanceReport(
-        sharpe_ratio=1.5,
-        sortino_ratio=2.0,
-        calmar_ratio=0.8,
-    )
-
-    service = ExplainService(session_factory=session_factory)
-    model = service.explain_signal(signal, snapshot=snap, performance=perf)
-
-    assert model.decision == "SELL"
-    assert model.confidence >= 50.0
-    assert model.portfolio_total_equity == 12000.0
-    assert model.performance_sharpe == 1.5
-
-
-def test_service_explain_input(session_factory):
-    inp = _make_input(
-        symbol="BTCUSDT",
-        side="BUY",
-        technical_score=0.90,
-        risk_score=0.80,
-        trend_score=0.85,
-    )
-    service = ExplainService(session_factory=session_factory)
-    model = service.explain(inp)
-    assert model.decision in ("BUY", "HOLD")
-    assert model.confidence > 0
-
-
-def test_from_signal_static():
-    signal = Signal(
-        symbol="BTCUSDT", side="LONG", score=0.80,
-        risk_score=0.70, trend_score=0.75,
-    )
-    inp = ExplainEngine.from_signal(signal)
-    assert inp.symbol == "BTCUSDT"
-    assert inp.side == "LONG"
-    assert inp.technical_score == 0.80
-    assert inp.risk_score == 0.70
-    assert inp.trend_score == 0.75
-    assert inp.whale_score == 0.0
-    assert inp.news_score == 0.0

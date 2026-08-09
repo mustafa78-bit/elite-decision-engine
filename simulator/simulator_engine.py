@@ -53,13 +53,11 @@ class SimulatorEngine:
         report_generator: ReportGenerator | None = None,
         council_engine: Any | None = None,
         evidence_engine: Any | None = None,
-        explain_engine: Any | None = None,
     ) -> None:
         self._replay = replay_engine or MarketReplayEngine()
         self._reports = report_generator or ReportGenerator()
         self._council = council_engine
         self._evidence = evidence_engine
-        self._explain = explain_engine
         self._indicator_engine = IndicatorEngine()
         self._volume_engine = VolumeEngine()
         self._volatility_engine = VolatilityEngine()
@@ -427,11 +425,6 @@ class SimulatorEngine:
             else:
                 evidence_strength = conf
 
-            if self._explain is not None:
-                inp = self._make_explain_input(candle, conf, direction)
-                explain_result = self._explain.explain(inp)
-                explanation = explain_result.to_dict() if hasattr(explain_result, "to_dict") else {}
-
             risk_score_val = 1.0 - conf if direction in ("BEARISH",) else conf
 
             decision_signal = "HOLD"
@@ -768,33 +761,6 @@ class SimulatorEngine:
                 "risk": round(risk_score * SCORE_WEIGHTS["risk"], 4),
             },
         }
-
-    def _make_explain_input(self, candle: SimulatedCandle, confidence: float, direction: str) -> Any:
-        try:
-            from explain.core import ExplainInput
-            return ExplainInput(
-                symbol=self._state.config.symbol if self._state else "BTC",
-                side="LONG" if direction == "BULLISH" else "SHORT",
-                technical_score=confidence,
-                whale_score=0.5,
-                news_score=0.5,
-                risk_score=0.5,
-                trend_score=0.5,
-                portfolio_total_equity=self._state.portfolio_value if self._state else 10000,
-                portfolio_unrealized_pnl=0,
-                portfolio_realized_pnl=self._state.total_pnl if self._state else 0,
-                portfolio_exposure=0,
-                portfolio_initial_capital=self._state.config.initial_capital if self._state else 10000,
-                performance_sharpe=0,
-                performance_sortino=0,
-                performance_calmar=0,
-                performance_profit_factor=0,
-                performance_win_rate=0,
-                performance_total_pnl=self._state.total_pnl if self._state else 0,
-                performance_max_drawdown=0,
-            )
-        except ImportError:
-            return None
 
     def _estimate_atr(self) -> float | None:
         candles = self._replay.get_range(max(0, self._replay.index - 14), 14)

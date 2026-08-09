@@ -1,17 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from typing import Any, Optional
 
-from database import (
-    DecisionExplanation,
-    Signal,
-    get_session,
-)
 from explain.core import ExplainInput, ExplainResult
-from performance.core import PerformanceReport
-from portfolio.core import PortfolioSnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -239,101 +231,3 @@ class ExplainEngine:
         if score > 0:
             return "weak"
         return "none"
-
-    @staticmethod
-    def from_signal(
-        signal: Signal,
-        snapshot: PortfolioSnapshot | None = None,
-        performance: PerformanceReport | None = None,
-    ) -> ExplainInput:
-        return ExplainInput(
-            symbol=signal.symbol or "",
-            side=signal.side or "",
-            technical_score=signal.score or 0.0,
-            whale_score=signal.funding_score or signal.oi_score or 0.0,
-            news_score=signal.cvd_score or 0.0,
-            risk_score=signal.risk_score or 0.0,
-            trend_score=signal.trend_score or 0.0,
-            portfolio_total_equity=snapshot.total_equity if snapshot else 0.0,
-            portfolio_unrealized_pnl=snapshot.unrealized_pnl if snapshot else 0.0,
-            portfolio_realized_pnl=snapshot.realized_pnl if snapshot else 0.0,
-            portfolio_exposure=snapshot.exposure if snapshot else 0.0,
-            portfolio_initial_capital=snapshot.initial_capital if snapshot else 0.0,
-            performance_sharpe=performance.sharpe_ratio if performance else 0.0,
-            performance_sortino=performance.sortino_ratio if performance else 0.0,
-            performance_calmar=performance.calmar_ratio if performance else 0.0,
-            performance_profit_factor=snapshot.profit_factor if snapshot else 0.0,
-            performance_win_rate=snapshot.win_rate if snapshot else 0.0,
-            performance_total_pnl=snapshot.total_pnl if snapshot else 0.0,
-            performance_max_drawdown=snapshot.max_drawdown if snapshot else 0.0,
-        )
-
-
-class ExplainService:
-
-    def __init__(
-        self,
-        session_factory: Callable[[], Any] | None = None,
-    ) -> None:
-        self.session_factory = session_factory or get_session
-        self._engine = ExplainEngine()
-
-    def explain_signal(
-        self,
-        signal: Signal,
-        snapshot: PortfolioSnapshot | None = None,
-        performance: PerformanceReport | None = None,
-        whale_score: float = 0.0,
-        news_score: float = 0.0,
-    ) -> DecisionExplanation:
-        inp = ExplainEngine.from_signal(signal, snapshot, performance)
-        if whale_score > 0.0:
-            inp.whale_score = whale_score
-        if news_score > 0.0:
-            inp.news_score = news_score
-        return self._save(inp)
-
-    def explain(
-        self,
-        inp: ExplainInput,
-    ) -> DecisionExplanation:
-        return self._save(inp)
-
-    def _save(self, inp: ExplainInput) -> DecisionExplanation:
-        result = self._engine.explain(inp)
-        session = self.session_factory()
-        try:
-            model = DecisionExplanation(
-                signal_id=0,
-                symbol=inp.symbol,
-                side=inp.side,
-                decision=result.decision,
-                confidence=result.confidence,
-                reasons=result.reasons,
-                warnings=result.warnings,
-                supporting_signals=result.supporting_signals,
-                risk_notes=result.risk_notes,
-                summary=result.summary,
-                technical_score=inp.technical_score,
-                whale_score=inp.whale_score,
-                news_score=inp.news_score,
-                risk_score=inp.risk_score,
-                trend_score=inp.trend_score,
-                portfolio_total_equity=inp.portfolio_total_equity,
-                portfolio_unrealized_pnl=inp.portfolio_unrealized_pnl,
-                portfolio_realized_pnl=inp.portfolio_realized_pnl,
-                portfolio_exposure=inp.portfolio_exposure,
-                performance_sharpe=inp.performance_sharpe,
-                performance_sortino=inp.performance_sortino,
-                performance_calmar=inp.performance_calmar,
-                performance_profit_factor=inp.performance_profit_factor,
-            )
-            session.add(model)
-            session.commit()
-            session.refresh(model)
-            return model
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
