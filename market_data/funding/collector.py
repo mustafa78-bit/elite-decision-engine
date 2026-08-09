@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Any, Optional
 
 import requests
@@ -71,12 +72,19 @@ class FundingCollector:
         return result.rate_for(symbol)
 
     def fetch_funding_history(self, symbol: str, limit: int = 100) -> FundingResult:
+        # Hyperliquid's fundingHistory takes "coin"/"startTime" as top-level
+        # fields, not a nested "req" object, and has no direct "limit" --
+        # the previous {"req": {"coin": ..., "limit": ...}} shape always
+        # 422'd. Funding entries are ~8h apart (interval_hours default
+        # below), so look back `limit` intervals plus a small buffer to
+        # comfortably cover `limit` real entries, then truncate client-side.
+        start_time = int(
+            (datetime.now(UTC) - timedelta(hours=8 * (limit + 1))).timestamp() * 1000
+        )
         payload = {
             "type": "fundingHistory",
-            "req": {
-                "coin": symbol.replace("USDT", ""),
-                "limit": limit,
-            },
+            "coin": symbol.replace("USDT", ""),
+            "startTime": start_time,
         }
         try:
             response = self._session.post(
@@ -89,6 +97,21 @@ class FundingCollector:
             if not isinstance(data, list):
                 logger.warning("Unexpected funding history response type: %s", type(data).__name__)
                 return FundingResult()
+            data = data[-limit:]
+            # Real fundingHistory entries never include an "interval" field
+            # (only coin/fundingRate/premium/time) -- the old hardcoded
+            # default of 8h silently understated annualized_rate by ~8x now
+            # that Hyperliquid pays funding hourly, misclassifying real risk
+            # as merely "elevated" instead of "extreme"/"high". Derive the
+            # real interval from consecutive entry timestamps instead of
+            # guessing; only fall back to 8h when there's too little data
+            # (a single entry) to derive anything.
+            fallback_interval_hours = 8.0
+            times = [int(e["time"]) for e in data if isinstance(e, dict) and e.get("time") is not None]
+            if len(times) >= 2:
+                diffs = [b - a for a, b in zip(times, times[1:]) if b > a]
+                if diffs:
+                    fallback_interval_hours = (sum(diffs) / len(diffs)) / 1000 / 3600
             rates: list[FundingRate] = []
             for entry in data:
                 try:
@@ -97,7 +120,7 @@ class FundingCollector:
                         rate=float(entry.get("fundingRate", 0)),
                         timestamp=int(entry.get("time", 0)),
                         next_funding_time=int(entry.get("nextFundingTime", 0)),
-                        interval_hours=float(entry.get("interval", 8)),
+                        interval_hours=float(entry.get("interval", fallback_interval_hours)),
                     )
                     errors = validate_funding_rate(rate)
                     if errors:
