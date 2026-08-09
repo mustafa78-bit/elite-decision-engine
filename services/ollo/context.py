@@ -42,7 +42,7 @@ _CONTEXT_LOADERS: dict[str, str] = {
     "portfolio_distribution": "services.portfolio_service.PortfolioService",
     "portfolio_performance": "services.portfolio_service.PortfolioService",
     "portfolio_risk": "services.portfolio_service.PortfolioService",
-    "scanner_signals": "scanner.core.ScannerEngine",
+    "scanner_signals": "scanner.core.OpportunityScanner",
     "market_regime": "scoring.regime_ai.RegimeAI",
     "risk_metrics": "risk_manager",
     "whale_activity": "market.intelligence.whale.WhaleService",
@@ -75,7 +75,7 @@ class ContextBuilder:
     def _load(self, key: str, loader_path: str, room: str = "") -> Any:
         if loader_path == "services.portfolio_service.PortfolioService":
             return self._load_portfolio(key)
-        if loader_path == "scanner.core.ScannerEngine":
+        if loader_path == "scanner.core.OpportunityScanner":
             return self._load_scanner()
         if loader_path == "scoring.regime_ai.RegimeAI":
             return self._load_regime()
@@ -109,8 +109,8 @@ class ContextBuilder:
 
     def _load_scanner(self) -> Any:
         try:
-            from scanner.core import ScannerEngine
-            engine = ScannerEngine()
+            from scanner.core import OpportunityScanner
+            engine = OpportunityScanner()
             results = engine.scan()
             count = len(results) if results else 0
             return {
