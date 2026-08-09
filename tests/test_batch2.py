@@ -465,6 +465,7 @@ class TestDashboardCache:
         # every entry cached for default_ttl regardless of what the caller
         # asked for.
         import time
+
         from api.cache import DashboardCache
         cache = DashboardCache(default_ttl=60)
         cache.set("short-lived", "val1", ttl=0)
