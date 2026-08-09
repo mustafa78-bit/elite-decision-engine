@@ -249,6 +249,34 @@ class TestWidgetService:
         result = svc.get_widget("portfolio")
         assert result["total_trades"] == 0
 
+    def test_widget_portfolio_equity_and_max_drawdown_are_computed_not_hardcoded(self, db_session):
+        # Regression: equity/max_drawdown were previously hardcoded to 0.0
+        # unconditionally, regardless of real trade history.
+        from datetime import UTC, datetime, timedelta
+
+        from config import ACCOUNT_EQUITY
+        from services.widget_service import WidgetService
+
+        now = datetime.now(UTC)
+        t1 = Trade(symbol="BTCUSDT", side="LONG", entry=100.0, status="TP_HIT", pnl=50.0, closed_at=now - timedelta(minutes=10))
+        db_session.add(t1)
+        db_session.flush()
+        db_session.add(PaperTrade(position_id=t1.id, symbol="BTCUSDT", side="LONG", entry=100.0, quantity=1.0, status="TP_HIT"))
+
+        t2 = Trade(symbol="ETHUSDT", side="LONG", entry=50.0, status="SL_HIT", pnl=-20.0, closed_at=now)
+        db_session.add(t2)
+        db_session.flush()
+        db_session.add(PaperTrade(position_id=t2.id, symbol="ETHUSDT", side="LONG", entry=50.0, quantity=1.0, status="SL_HIT"))
+        db_session.flush()
+
+        svc = WidgetService(session_factory=lambda: db_session)
+        result = svc.get_widget("portfolio")
+
+        # total_pnl = 50 - 20 = 30; equity = ACCOUNT_EQUITY + 30
+        assert result["equity"] == round(ACCOUNT_EQUITY + 30.0, 2)
+        # Peak after t1 (+50) is 50; running after t2 (-20) is 30 -> drawdown 20
+        assert result["max_drawdown"] == 20.0
+
     def test_widget_monitoring(self, db_session):
         from services.widget_service import WidgetService
         svc = WidgetService(session_factory=lambda: db_session)

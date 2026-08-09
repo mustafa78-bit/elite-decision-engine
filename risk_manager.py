@@ -72,6 +72,19 @@ class RiskManager:
     def _evaluate(self, candidate: Any, session: Any) -> RiskDecision:
         entry = candidate.entry or 0.0
 
+        # candidate_notional feeds directly into the SYMBOL_EXPOSURE/
+        # PORTFOLIO_EXPOSURE checks below. A candidate with no `scores` at
+        # all (e.g. risk/execution_guard.py's minimal _Candidate, which
+        # intentionally carries only symbol/entry) is a different, accepted
+        # calling pattern -- entry-as-notional there is a deliberate
+        # approximation, not a bug, so that behavior is unchanged.
+        #
+        # But once a real TradingSignal-shaped candidate IS present (has
+        # `scores`), entry is a raw per-unit price, not a dollar notional --
+        # it must never be used as a silent fallback if real position
+        # sizing fails (a real position could be several units, making
+        # entry a large understatement of true notional). Fail closed
+        # instead of guessing in that case.
         candidate_notional = entry
         if hasattr(candidate, "scores"):
             try:
@@ -79,7 +92,13 @@ class RiskManager:
                 candidate_notional = position_size.notional_value or 0.0
             except Exception as e:
                 logger.warning("Failed to calculate position size speculatively: %s", e)
-                candidate_notional = entry
+                return risk_decision_from_checks([
+                    RiskCheckDetail(
+                        name=RejectionCode.INVALID_TRADE,
+                        passed=False,
+                        detail=f"Position size calculation failed -- cannot safely evaluate exposure: {e}",
+                    )
+                ])
 
         checks: list[RiskCheckDetail] = []
 

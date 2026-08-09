@@ -105,6 +105,36 @@ class TestHyperliquidExchange:
         assert pos.entry_price == Decimal("50000.0")
         assert pos.current_price == Decimal("51050")
 
+    def test_positions_unrealized_pnl_scaled_by_real_quantity(self, db_session, monkeypatch):
+        # Regression: unrealized_pnl was passed through as Trade.pnl
+        # directly -- a raw per-unit price delta, not a dollar amount (this
+        # codebase's established convention, see services/pnl.py) -- never
+        # multiplied by the real filled quantity computed a few lines above
+        # for Position.quantity.
+        from database import PaperOrder, Signal, Trade
+        sig = Signal(id=3, symbol="BTC", side="BUY", approved=True)
+        db_session.add(sig)
+        db_session.flush()
+
+        trade = Trade(id=30, signal_id=3, symbol="BTC", side="LONG", entry=50000.0, status="OPEN", pnl=100.0)
+        db_session.add(trade)
+        db_session.flush()
+
+        order = PaperOrder(id=300, symbol="BTC", side="BUY", quantity=2.5, filled_quantity=2.5, status="FILLED", trade_id=30)
+        db_session.add(order)
+        db_session.flush()
+
+        ex = HyperliquidExchange()
+        from exchange.models import Ticker
+        monkeypatch.setattr(ex, "ticker", lambda sym: Ticker(
+            symbol=sym, bid=Decimal("51000"), ask=Decimal("51100"), last=Decimal("51050"),
+            volume_24h=Decimal("0"), high_24h=Decimal("0"), low_24h=Decimal("0"), change_24h=Decimal("0")
+        ))
+
+        pos_list = ex.positions()
+        assert len(pos_list) == 1
+        assert pos_list[0].unrealized_pnl == Decimal("250.0")  # 100.0 per-unit * 2.5 qty
+
     def test_positions_no_paper_order(self, db_session, monkeypatch):
         from database import Signal, Trade
         sig = Signal(id=2, symbol="ETH", side="BUY", approved=True)

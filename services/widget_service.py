@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from sqlalchemy import text
 
+from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, Notification, PaperTrade, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
@@ -74,11 +75,25 @@ class WidgetService:
                 total_trades=len(closed),
                 open_trades=len(open_t),
                 win_rate=round(wr, 1),
-                equity=0.0,
-                max_drawdown=0.0,
+                equity=round(ACCOUNT_EQUITY + total_pnl, 2),
+                max_drawdown=round(self._max_drawdown(closed), 2),
             ).to_dict()
         finally:
             session.close()
+
+    def _max_drawdown(self, closed: list[tuple[Trade, float]]) -> float:
+        sorted_closed = sorted(closed, key=lambda pair: pair[0].closed_at or pair[0].created_at)
+        peak = 0.0
+        max_dd = 0.0
+        running = 0.0
+        for _, pnl in sorted_closed:
+            running += pnl
+            if running > peak:
+                peak = running
+            dd = peak - running
+            if dd > max_dd:
+                max_dd = dd
+        return max_dd
 
     def _monitoring_widget(self, **kwargs) -> dict[str, Any]:
         from monitoring.health import HealthService

@@ -92,6 +92,23 @@ class TestRiskManager:
         allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
         assert allowed is True
 
+    def test_position_size_failure_fails_closed_not_raw_price_fallback(self, db_session, session_factory):
+        # Regression: candidate_notional previously silently fell back to
+        # the candidate's raw per-unit entry price (not a dollar notional)
+        # whenever position_sizer.calculate() raised, feeding a wrong,
+        # understated number straight into the exposure checks below --
+        # a real position of several units would have its notional
+        # understated by that same factor, letting an oversized trade
+        # silently pass. Must fail closed (reject) instead of guessing.
+        class FailingSizer:
+            def calculate(self, candidate):
+                raise RuntimeError("sizing blew up")
+
+        mgr = RiskManager(session_factory=session_factory, position_sizer=FailingSizer())
+        allowed, reason = mgr.can_open_trade(_make_candidate(symbol="BTCUSDT", entry=50000.0))
+        assert allowed is False
+        assert "position size" in reason.lower()
+
     def test_reject_symbol_exposure(self, db_session, session_factory):
         _seed_trade(db_session, symbol="BTCUSDT", entry=180000.0, quantity=1.0)
 

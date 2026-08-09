@@ -205,7 +205,11 @@ class BinanceExchange(ExchangeAdapter):
                         quantity=qty,
                         entry_price=Decimal(str(t.entry)),
                         current_price=current_price,
-                        unrealized_pnl=Decimal(str(t.pnl or 0)),
+                        # t.pnl is a raw per-unit price delta, not a dollar
+                        # amount (this codebase's convention, see
+                        # services/pnl.py) -- must be scaled by real qty,
+                        # already computed above for Position.quantity.
+                        unrealized_pnl=Decimal(str(t.pnl or 0)) * qty,
                     ))
                 return result
             finally:
