@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from statistics import mean, stdev
 from typing import Any, Optional
 
@@ -245,4 +245,4 @@ def _get_close_time(trade: Trade) -> datetime:
     # datetime.min is timezone-naive; Trade.closed_at is DateTime(timezone=True)
     # and comes back timezone-aware on a Postgres backend. Mixing naive and
     # aware datetimes in the same sort raises TypeError.
-    return datetime.min.replace(tzinfo=timezone.utc)
+    return datetime.min.replace(tzinfo=UTC)
