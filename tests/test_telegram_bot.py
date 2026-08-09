@@ -219,3 +219,66 @@ def test_telegram_bot_manager_no_token():
         setup_ok = manager.setup()
         assert setup_ok is False
         assert manager.application is None
+
+
+class TestSendAlertRetriesOnFloodControl:
+    """SPRINT_JULES_TELEGRAM_ALERT_FLOOD_NO_RATE_LIMITING.md.
+
+    A burst of TRADE_CLOSED events (e.g. a mass stop-loss hit) fires one
+    independent send per event with no spacing -- Telegram's real 429
+    response surfaces as python-telegram-bot's RetryAfter. Previously
+    send_alert()'s bare `except Exception` swallowed it silently on the
+    first failure; now it retries after the server-specified delay.
+    """
+
+    def _manager_with_mock_bot(self):
+        manager = TelegramBotManager()
+        manager.application = MagicMock()
+        manager.application.bot.send_message = AsyncMock()
+        return manager
+
+    @pytest.mark.asyncio
+    async def test_retries_and_succeeds_after_a_single_rate_limit_hit(self):
+        from telegram.error import RetryAfter
+
+        manager = self._manager_with_mock_bot()
+        manager.application.bot.send_message.side_effect = [
+            RetryAfter(retry_after=1),
+            None,
+        ]
+
+        with patch("services.telegram.bot.TELEGRAM_TOKEN", "fake-token"), \
+             patch("services.telegram.bot.TELEGRAM_CHAT_ID", "12345"), \
+             patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            await manager.send_alert("Burst alert")
+
+        assert manager.application.bot.send_message.call_count == 2
+        mock_sleep.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_gives_up_after_max_retries_without_raising(self):
+        from telegram.error import RetryAfter
+
+        manager = self._manager_with_mock_bot()
+        manager.application.bot.send_message.side_effect = RetryAfter(retry_after=1)
+
+        with patch("services.telegram.bot.TELEGRAM_TOKEN", "fake-token"), \
+             patch("services.telegram.bot.TELEGRAM_CHAT_ID", "12345"), \
+             patch("asyncio.sleep", new=AsyncMock()):
+            # send_alert()'s own outer try/except keeps this from propagating,
+            # matching the existing "never crash the caller" contract.
+            await manager.send_alert("Burst alert")
+
+        assert manager.application.bot.send_message.call_count == 4  # 1 + 3 retries
+
+    @pytest.mark.asyncio
+    async def test_no_retry_needed_when_send_succeeds_immediately(self):
+        manager = self._manager_with_mock_bot()
+
+        with patch("services.telegram.bot.TELEGRAM_TOKEN", "fake-token"), \
+             patch("services.telegram.bot.TELEGRAM_CHAT_ID", "12345"), \
+             patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
+            await manager.send_alert("Normal alert")
+
+        assert manager.application.bot.send_message.call_count == 1
+        mock_sleep.assert_not_awaited()
