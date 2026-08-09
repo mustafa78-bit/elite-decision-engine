@@ -5,7 +5,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { TableCell, TableHead } from "../components/ui/table";
 import { apiFetch } from "../api/client";
-import { cn, formatCompact, formatPercent } from "../lib/utils";
+import { cn } from "../lib/utils";
 import { useTerminalStore } from "../stores/terminal-store";
 import { useNavigate } from "react-router-dom";
 
@@ -24,22 +24,28 @@ interface ScannerExplanation {
   signals: SignalExplanation[];
 }
 
+// Matches api/routes/scanner.py's real GET /scanner/category/{category}
+// response shape exactly -- there is no elite_score/ai_decision/volume/
+// funding/liquidity/btc_correlation/explanation field on the backend today.
 interface ScannerResult {
   rank: number;
   symbol: string;
   side: string;
   strategy: string;
-  elite_score: number;
-  ai_decision: string;
+  score: number;
+  probability: number;
+  risk_score: number;
   confidence: number;
-  risk: number;
-  volume: number;
-  funding: number;
-  liquidity: string;
-  btc_correlation: number;
   price: number;
   signals: string[];
   explanation?: ScannerExplanation | null;
+}
+
+function deriveDecision(side: string, confidence: number): string {
+  const isLong = side === "LONG";
+  if (confidence >= 80) return isLong ? "STRONG_BUY" : "STRONG_SELL";
+  if (confidence >= 60) return isLong ? "BUY" : "SELL";
+  return "NEUTRAL";
 }
 
 interface SavedFilter {
@@ -87,18 +93,6 @@ function getRiskColor(risk: number): string {
   return "text-[var(--accent-red)]";
 }
 
-function getFundingColor(funding: number): string {
-  if (funding > 0) return "text-[var(--accent-green)]";
-  if (funding < 0) return "text-[var(--accent-red)]";
-  return "text-[var(--text-muted)]";
-}
-
-function getCorrelationColor(corr: number): string {
-  if (corr > 0.5) return "text-[var(--accent-blue)]";
-  if (corr < -0.5) return "text-[var(--accent-red)]";
-  return "text-[var(--text-muted)]";
-}
-
 function getDecisionBadge(decision: string): { variant: "success" | "info" | "default" | "warning" | "danger"; label: string } {
   switch (decision) {
     case "STRONG_BUY": return { variant: "success", label: "STRONG BUY" };
@@ -107,14 +101,6 @@ function getDecisionBadge(decision: string): { variant: "success" | "info" | "de
     case "SELL": return { variant: "warning", label: "SELL" };
     case "STRONG_SELL": return { variant: "danger", label: "STRONG SELL" };
     default: return { variant: "default", label: decision };
-  }
-}
-
-function getLiquidityBadge(liquidity: string): { variant: "success" | "warning" | "default"; label: string } {
-  switch (liquidity.toUpperCase()) {
-    case "HIGH": return { variant: "success", label: "High" };
-    case "MEDIUM": return { variant: "warning", label: "Med" };
-    default: return { variant: "default", label: "Low" };
   }
 }
 
@@ -159,7 +145,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
 
   if (!result) return null;
 
-  const decision = getDecisionBadge(result.ai_decision);
+  const decision = getDecisionBadge(deriveDecision(result.side, result.confidence));
 
   return (
     <>
@@ -208,8 +194,8 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
                 Elite Score
               </span>
-              <span className={cn("text-xs font-mono tabular-nums", getScoreColor(result.elite_score))}>
-                {result.elite_score.toFixed(1)}
+              <span className={cn("text-xs font-mono tabular-nums", getScoreColor(result.confidence))}>
+                {result.confidence.toFixed(1)}
               </span>
             </div>
             <div className="widget-body space-y-2">
@@ -217,11 +203,11 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500",
-                    result.elite_score >= 60 ? "bg-[var(--accent-green)]" :
-                    result.elite_score >= 40 ? "bg-[var(--accent-yellow)]" :
+                    result.confidence >= 60 ? "bg-[var(--accent-green)]" :
+                    result.confidence >= 40 ? "bg-[var(--accent-yellow)]" :
                     "bg-[var(--accent-red)]",
                   )}
-                  style={{ width: `${result.elite_score}%` }}
+                  style={{ width: `${result.confidence}%` }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
@@ -233,8 +219,8 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--text-muted)]">Risk</span>
-                  <span className={cn("font-mono tabular-nums", getRiskColor(result.risk))}>
-                    {result.risk.toFixed(2)}
+                  <span className={cn("font-mono tabular-nums", getRiskColor(result.risk_score))}>
+                    {result.risk_score.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -367,27 +353,15 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Volume</span>
+                <span className="text-[var(--text-muted)]">Composite Score</span>
                 <span className="font-mono tabular-nums text-[var(--text-primary)]">
-                  {formatCompact(result.volume)}
+                  {result.score.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Funding</span>
-                <span className={cn("font-mono tabular-nums", getFundingColor(result.funding))}>
-                  {formatPercent(result.funding)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Liquidity</span>
-                <Badge variant={getLiquidityBadge(result.liquidity).variant} className="text-[8px]">
-                  {getLiquidityBadge(result.liquidity).label}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">BTC Correlation</span>
-                <span className={cn("font-mono tabular-nums", getCorrelationColor(result.btc_correlation))}>
-                  {result.btc_correlation >= 0 ? "+" : ""}{result.btc_correlation.toFixed(2)}
+                <span className="text-[var(--text-muted)]">Probability</span>
+                <span className="font-mono tabular-nums text-[var(--text-primary)]">
+                  {result.probability.toFixed(1)}%
                 </span>
               </div>
               {result.signals.length > 0 && (
@@ -677,16 +651,13 @@ export default function Scanner() {
                       <TableHead className="w-24">AI Decision</TableHead>
                       <TableHead className="w-18">Conf</TableHead>
                       <TableHead className="w-14">Risk</TableHead>
-                      <TableHead className="w-20">Volume</TableHead>
-                      <TableHead className="w-18">Funding</TableHead>
-                      <TableHead className="w-18">Liq</TableHead>
-                      <TableHead className="w-20">BTC Corr</TableHead>
+                      <TableHead className="w-20">Score</TableHead>
+                      <TableHead className="w-20">Probability</TableHead>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((result) => {
-                      const decision = getDecisionBadge(result.ai_decision);
-                      const liq = getLiquidityBadge(result.liquidity);
+                      const decision = getDecisionBadge(deriveDecision(result.side, result.confidence));
                       return (
                         <tr
                           key={`${result.symbol}-${result.rank}`}
@@ -726,15 +697,15 @@ export default function Scanner() {
                                 <div
                                   className={cn(
                                     "h-full rounded-full",
-                                    result.elite_score >= 60 ? "bg-[var(--accent-green)]" :
-                                    result.elite_score >= 40 ? "bg-[var(--accent-yellow)]" :
+                                    result.confidence >= 60 ? "bg-[var(--accent-green)]" :
+                                    result.confidence >= 40 ? "bg-[var(--accent-yellow)]" :
                                     "bg-[var(--accent-red)]",
                                   )}
-                                  style={{ width: `${result.elite_score}%` }}
+                                  style={{ width: `${result.confidence}%` }}
                                 />
                               </div>
-                              <span className={cn("text-[11px] font-mono tabular-nums", getScoreColor(result.elite_score))}>
-                                {result.elite_score.toFixed(1)}
+                              <span className={cn("text-[11px] font-mono tabular-nums", getScoreColor(result.confidence))}>
+                                {result.confidence.toFixed(1)}
                               </span>
                             </div>
                           </TableCell>
@@ -749,28 +720,18 @@ export default function Scanner() {
                             </span>
                           </TableCell>
                           <TableCell className="w-14">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getRiskColor(result.risk))}>
-                              {result.risk.toFixed(2)}
+                            <span className={cn("text-[11px] font-mono tabular-nums", getRiskColor(result.risk_score))}>
+                              {result.risk_score.toFixed(2)}
                             </span>
                           </TableCell>
                           <TableCell className="w-20">
                             <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
-                              {formatCompact(result.volume)}
+                              {result.score.toFixed(2)}
                             </span>
-                          </TableCell>
-                          <TableCell className="w-18">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getFundingColor(result.funding))}>
-                              {result.funding >= 0 ? "+" : ""}{result.funding.toFixed(4)}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="w-18">
-                            <Badge variant={liq.variant} className="text-[8px]">
-                              {liq.label}
-                            </Badge>
                           </TableCell>
                           <TableCell className="w-20">
-                            <span className={cn("text-[11px] font-mono tabular-nums", getCorrelationColor(result.btc_correlation))}>
-                              {result.btc_correlation >= 0 ? "+" : ""}{result.btc_correlation.toFixed(2)}
+                            <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
+                              {result.probability.toFixed(1)}%
                             </span>
                           </TableCell>
                         </tr>
