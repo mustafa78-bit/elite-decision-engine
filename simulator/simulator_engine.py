@@ -533,13 +533,33 @@ class SimulatorEngine:
             close_reason = None
             exit_price = None
 
-            if trade.stop_loss > 0:
-                if trade.side == "LONG" and candle.low <= trade.stop_loss:
-                    close_reason = "STOP_LOSS"
-                    exit_price = trade.stop_loss
-                elif trade.side == "SHORT" and candle.high >= trade.stop_loss:
-                    close_reason = "STOP_LOSS"
-                    exit_price = trade.stop_loss
+            # Trailing stop ratchets favorably with the best price seen since
+            # entry, then coexists with a fixed stop_loss (if also set) as
+            # whichever level is tighter -- i.e. the one that triggers first
+            # as price moves against the position.
+            effective_stop = trade.stop_loss if trade.stop_loss > 0 else None
+            effective_stop_is_trailing = False
+            if trade.trailing_stop is not None and trade.trailing_stop > 0:
+                if trade.side == "LONG":
+                    trade.trailing_stop_peak = max(trade.trailing_stop_peak or trade.entry_price, candle.high)
+                    trailing_level = trade.trailing_stop_peak - trade.trailing_stop
+                    if effective_stop is None or trailing_level > effective_stop:
+                        effective_stop = trailing_level
+                        effective_stop_is_trailing = True
+                else:
+                    trade.trailing_stop_peak = min(trade.trailing_stop_peak or trade.entry_price, candle.low)
+                    trailing_level = trade.trailing_stop_peak + trade.trailing_stop
+                    if effective_stop is None or trailing_level < effective_stop:
+                        effective_stop = trailing_level
+                        effective_stop_is_trailing = True
+
+            if effective_stop is not None:
+                if trade.side == "LONG" and candle.low <= effective_stop:
+                    close_reason = "TRAILING_STOP" if effective_stop_is_trailing else "STOP_LOSS"
+                    exit_price = effective_stop
+                elif trade.side == "SHORT" and candle.high >= effective_stop:
+                    close_reason = "TRAILING_STOP" if effective_stop_is_trailing else "STOP_LOSS"
+                    exit_price = effective_stop
 
             if close_reason is None and trade.take_profit > 0:
                 if trade.side == "LONG" and candle.high >= trade.take_profit:

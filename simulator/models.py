@@ -141,6 +141,7 @@ class SimulatedTrade:
     stop_loss: float
     take_profit: float
     trailing_stop: float | None = None
+    trailing_stop_peak: float | None = None
     status: str = "OPEN"
     exit_price: float | None = None
     exit_time: int | None = None

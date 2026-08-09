@@ -278,8 +278,8 @@ class ReportGenerator:
             return 50.0
         # "REVERSAL" was never a real close_reason any producer emits --
         # simulator_engine.py only ever sets STOP_LOSS/TAKE_PROFIT/
-        # MANUAL_CLOSE -- so the previous reversals penalty was permanently
-        # a no-op. Removed rather than left as dead code.
+        # TRAILING_STOP/MANUAL_CLOSE -- so the previous reversals penalty was
+        # permanently a no-op. Removed rather than left as dead code.
         panic_sells = sum(1 for t in trades if t.close_reason == "STOP_LOSS" and abs(t.pnl_percent) > 5)
         score = 100.0 - (panic_sells * 5)
         return max(0.0, min(100.0, score))
