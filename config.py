@@ -7,7 +7,21 @@ load_dotenv()
 
 logger = logging.getLogger("config")
 
-API_ENV = os.getenv("API_ENV", "development")
+API_ENV = os.getenv("API_ENV")
+if API_ENV is None:
+    # No silent default: API_ENV == "development" disables all auth in
+    # api/middleware.py and api/websocket/manager.py. Silently defaulting to
+    # "development" meant any deployment that simply forgot to set this var
+    # (a hand-assembled .env, a PaaS without docker-compose.prod.yml's
+    # explicit API_ENV: production) would run with zero authentication on
+    # every non-public route and every websocket, with no warning at all.
+    raise RuntimeError(
+        "FATAL: API_ENV must be set explicitly to 'development' or 'production' "
+        "-- there is no default, since silently defaulting to 'development' "
+        "previously disabled all authentication whenever this var was merely "
+        "forgotten. Set API_ENV=development for local dev or API_ENV=production "
+        "for any real deployment."
+    )
 VERSION = os.getenv("APP_VERSION", "0.9.0")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
