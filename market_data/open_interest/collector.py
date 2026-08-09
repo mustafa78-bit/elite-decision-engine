@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections import defaultdict, deque
 from datetime import UTC
 from typing import Optional
@@ -28,7 +29,15 @@ class OpenInterestCollector:
         self._history: dict[str, deque[OpenInterest]] = defaultdict(lambda: deque(maxlen=24))
 
     def fetch_all(self) -> OpenInterestResult:
-        payload = {"type": "openInterests"}
+        # "openInterests" is not a real Hyperliquid info type -- every call
+        # here 422'd and this collector has never actually returned data.
+        # metaAndAssetCtxs (the same bulk endpoint market_data/funding/
+        # collector.py's FundingCollector.fetch_all() uses) returns
+        # [meta, assetCtxs] where meta["universe"][i]["name"] and
+        # assetCtxs[i]["openInterest"] describe the same asset at the same
+        # index. No per-entry timestamp is provided by this endpoint -- it's
+        # a live snapshot, so "now" is the honest fetch timestamp.
+        payload = {"type": "metaAndAssetCtxs"}
         try:
             response = self._session.post(
                 self.BASE_URL,
@@ -37,16 +46,28 @@ class OpenInterestCollector:
             )
             response.raise_for_status()
             data = response.json()
-            if not isinstance(data, list):
-                logger.warning("Unexpected open interests response type: %s", type(data).__name__)
+            if not isinstance(data, list) or len(data) != 2:
+                logger.warning("Unexpected metaAndAssetCtxs response shape: %s", type(data).__name__)
                 return OpenInterestResult()
+            meta, asset_ctxs = data[0], data[1]
+            universe = meta.get("universe", []) if isinstance(meta, dict) else []
+            if not isinstance(asset_ctxs, list) or not isinstance(universe, list):
+                logger.warning("Unexpected metaAndAssetCtxs meta/assetCtxs types")
+                return OpenInterestResult()
+            now = int(time.time())
             records: list[OpenInterest] = []
-            for entry in data:
+            for asset, ctx in zip(universe, asset_ctxs):
+                if not isinstance(asset, dict) or not isinstance(ctx, dict):
+                    continue
+                symbol = asset.get("name")
+                oi = ctx.get("openInterest")
+                if symbol is None or oi is None:
+                    continue
                 try:
                     records.append(OpenInterest(
-                        symbol=str(entry.get("coin", "?")),
-                        value=float(entry.get("value", 0)),
-                        timestamp=int(entry.get("time", 0)),
+                        symbol=str(symbol),
+                        value=float(oi),
+                        timestamp=now,
                     ))
                 except (ValueError, TypeError) as e:
                     logger.debug("Failed to parse OI entry: %s", e)
