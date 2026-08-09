@@ -1,5 +1,7 @@
 from fastapi import Request
+
 from api.rate_limit import get_forwarded_client_ip, is_trusted_proxy
+
 
 def test_is_trusted_proxy():
     # Loopback
