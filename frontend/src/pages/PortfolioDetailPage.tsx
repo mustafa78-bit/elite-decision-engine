@@ -102,8 +102,8 @@ export default function PortfolioDetailPage() {
             <CardTitle>Sharpe</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className={`text-lg font-mono ${risk.sharpe >= 1 ? "text-[var(--accent-green)]" : "text-[var(--accent-yellow)]"}`}>
-              {risk.sharpe.toFixed(2)}
+            <span className={`text-lg font-mono ${summary.sharpe_ratio >= 1 ? "text-[var(--accent-green)]" : "text-[var(--accent-yellow)]"}`}>
+              {summary.sharpe_ratio.toFixed(2)}
             </span>
           </CardContent>
         </Card>
@@ -116,18 +116,18 @@ export default function PortfolioDetailPage() {
           </CardHeader>
           <CardContent>
             <span className="text-lg font-mono text-[var(--accent-red)]">
-              -${risk.max_drawdown.toFixed(2)}
+              -${summary.max_drawdown.toFixed(2)}
             </span>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Calmar</CardTitle>
+            <CardTitle>Value at Risk (95%)</CardTitle>
           </CardHeader>
           <CardContent>
             <span className="text-lg font-mono text-[var(--text-primary)]">
-              {risk.calmar.toFixed(2)}
+              ${risk.var_95.toFixed(2)}
             </span>
           </CardContent>
         </Card>
@@ -144,16 +144,16 @@ export default function PortfolioDetailPage() {
         </Card>
       </div>
 
-      {distribution.by_symbol && Object.keys(distribution.by_symbol).length > 0 && (
+      {distribution.by_symbol && distribution.by_symbol.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Distribution by Symbol</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(distribution.by_symbol).map(([sym, val]) => (
-                <Badge key={sym} variant="info">
-                  {sym}: {typeof val === "number" ? val.toFixed(1) : String(val)}
+              {distribution.by_symbol.map((row) => (
+                <Badge key={row.symbol} variant="info">
+                  {row.symbol}: ${row.pnl.toFixed(2)} ({row.win_rate.toFixed(0)}% WR)
                 </Badge>
               ))}
             </div>
