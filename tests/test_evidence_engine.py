@@ -283,6 +283,30 @@ class TestParseCouncilReport:
         assert agent_items["RiskAgent: PASS"].supports_decision is False
         assert agent_items["RiskAgent: PASS"].severity == "CRITICAL"
 
+    def test_short_side_bearish_consensus_supports(self):
+        # Regression: parse_council_report() previously had no side parameter
+        # at all (unlike its siblings parse_market_regime/parse_whale_result),
+        # hardcoding supports_decision = direction == "BULLISH" -- a SHORT
+        # decision where council correctly agrees (BEARISH) was treated as
+        # contradicting evidence instead of supporting it.
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BEARISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 4, "sources_disagreeing": 1, "agent_reports": []})
+        items = parse_council_report(result, side="SHORT")
+        assert items[0].supports_decision is True
+
+    def test_short_side_bullish_consensus_contradicts(self):
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BULLISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 4, "sources_disagreeing": 1, "agent_reports": []})
+        items = parse_council_report(result, side="SHORT")
+        assert items[0].supports_decision is False
+
+    def test_short_side_per_agent_direction(self):
+        bullish_agent = DictObj({"agent_name": "TrendAgent", "direction": "BULLISH", "confidence": 80.0, "reasoning": ["Trend up"]})
+        bearish_agent = DictObj({"agent_name": "MacroAgent", "direction": "BEARISH", "confidence": 70.0, "reasoning": ["Macro headwinds"]})
+        result = DictObj({"symbol": "BTC", "consensus_direction": "BEARISH", "consensus_score": 85.0, "agreement_level": "strong", "sources_agreeing": 2, "sources_disagreeing": 1, "agent_reports": [bullish_agent, bearish_agent]})
+        items = parse_council_report(result, side="SHORT")
+        agent_items = {i.title: i for i in items if i.category == "council_agent"}
+        assert agent_items["TrendAgent: BULLISH"].supports_decision is False
+        assert agent_items["MacroAgent: BEARISH"].supports_decision is True
+
 
 class TestParsePortfolioSummary:
     def test_drawdown_contradicts(self):

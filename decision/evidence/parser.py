@@ -163,7 +163,7 @@ def parse_scanner_opportunity(result: Any) -> list[EvidenceItem]:
     return items
 
 
-def parse_council_report(result: Any) -> list[EvidenceItem]:
+def parse_council_report(result: Any, side: str = "LONG") -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
 
     symbol = getattr(result, "symbol", "UNKNOWN")
@@ -172,6 +172,8 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
     agreement = getattr(result, "agreement_level", "none")
     agreeing = getattr(result, "sources_agreeing", 0)
     disagreeing = getattr(result, "sources_disagreeing", 0)
+
+    side_upper = str(side).upper().strip() if side else "LONG"
 
     is_veto = direction == "PASS"
     summary_severity = "CRITICAL" if is_veto else ("HIGH" if agreement in ("strong", "moderate") else "MEDIUM")
@@ -184,7 +186,7 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
             category="council_consensus",
             severity=summary_severity,
             confidence=score / 100.0 if score > 1.0 else score,
-            supports_decision=direction == "BULLISH",
+            supports_decision=(direction == "BEARISH") if side_upper == "SHORT" else (direction == "BULLISH"),
             source=SourceTrace(origin=symbol, engine="council"),
         )
     )
@@ -205,7 +207,7 @@ def parse_council_report(result: Any) -> list[EvidenceItem]:
                 category="council_agent",
                 severity=agent_severity,
                 confidence=agent_conf / 100.0 if agent_conf > 1.0 else agent_conf,
-                supports_decision=agent_dir == "BULLISH",
+                supports_decision=(agent_dir == "BEARISH") if side_upper == "SHORT" else (agent_dir == "BULLISH"),
                 source=SourceTrace(origin=symbol, engine="council"),
             )
         )

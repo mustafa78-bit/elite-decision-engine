@@ -126,6 +126,18 @@ class TestBreakoutStrategy:
         score, signals = self.strategy.evaluate(asset)
         assert "EMA_CROSSOVER" not in signals
 
+    def test_ema_crossunder_detected(self):
+        # Regression: the mirror-image bearish case (SHORT-favorable) had no
+        # crossunder branch at all -- prior 15 bars above the EMA, recent 5
+        # bars crossing down through it and finishing below.
+        closes = [105.0] * 15 + [102.0, 101.0, 99.5, 99.0, 98.0]
+        volumes = [50.0] * 20
+        df = pd.DataFrame({"close": closes, "volume": volumes})
+        asset = _make_asset(price=98.0, indicators={"ema20": 100.0}, ohlcv=df)
+        score, signals = self.strategy.evaluate(asset)
+        assert "EMA_CROSSUNDER" in signals
+        assert score < 0
+
 
 class TestReversalStrategy:
 

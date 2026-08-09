@@ -75,7 +75,7 @@ class EvidenceBuilder:
             all_items.extend(items)
 
         if council_result is not None:
-            items = parse_council_report(council_result)
+            items = parse_council_report(council_result, side=side)
             all_items.extend(items)
 
         if portfolio_result is not None:
