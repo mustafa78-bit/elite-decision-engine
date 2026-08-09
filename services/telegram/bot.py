@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from telegram import Update
+from telegram.error import RetryAfter
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 from config import TELEGRAM_ALLOWED_CHAT_IDS, TELEGRAM_CHAT_ID, TELEGRAM_TOKEN
@@ -229,14 +230,40 @@ class TelegramBotManager:
         try:
             chunks = chunk_text(text)
             for chunk in chunks:
+                await self._send_message_with_retry(chunk)
+            logger.info("Telegram proactive alert sent successfully.")
+        except Exception as e:
+            logger.warning("Failed to send Telegram alert: %s", e)
+
+    async def _send_message_with_retry(self, chunk: str, max_retries: int = 3) -> None:
+        """Send one chunk, retrying on Telegram's own flood-control signal.
+
+        A burst of TRADE_CLOSED events (e.g. every open position hitting its
+        stop-loss in the same tick) fires one independent send per event with
+        no spacing between them -- python-telegram-bot raises RetryAfter
+        (Telegram's real 429 response) when that burst exceeds ~1 msg/sec per
+        chat. Retrying after the server-specified delay recovers messages
+        that would otherwise be silently dropped by send_alert()'s bare
+        `except Exception`; it doesn't prevent the burst itself (that's
+        option (b), a larger digest/coalescing redesign, scoped separately).
+        """
+        for attempt in range(max_retries + 1):
+            try:
                 await self.application.bot.send_message(
                     chat_id=TELEGRAM_CHAT_ID,
                     text=chunk,
                     parse_mode="HTML"
                 )
-            logger.info("Telegram proactive alert sent successfully.")
-        except Exception as e:
-            logger.warning("Failed to send Telegram alert: %s", e)
+                return
+            except RetryAfter as e:
+                if attempt >= max_retries:
+                    raise
+                wait_seconds = e.retry_after.total_seconds() if hasattr(e.retry_after, "total_seconds") else float(e.retry_after)
+                logger.warning(
+                    "Telegram flood control hit, retrying in %.1fs (attempt %d/%d)",
+                    wait_seconds, attempt + 1, max_retries,
+                )
+                await asyncio.sleep(wait_seconds)
 
     def send_alert_threadsafe(self, text: str) -> None:
         """Thread-safe method to trigger the send_alert coroutine on the captured main loop."""
