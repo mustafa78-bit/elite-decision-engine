@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from api.websocket.manager import WebSocketManager
-from notifications.dispatcher import NotificationDispatcher
+from notifications.dispatcher import NotificationDispatcher, _persist_notification
 from notifications.events import TradeEvent
 
 
@@ -23,6 +23,33 @@ def test_notification_dispatcher_emit():
 
     assert result["event"] == "TRADE_OPENED"
     assert result["payload"]["symbol"] == "BTCUSDT"
+
+
+def test_persist_notification_logs_instead_of_crashing_when_get_session_fails(monkeypatch, caplog):
+    # get_session() itself raising (DB unreachable, pool exhausted) previously
+    # left `session` unbound, so `finally: session.close()` raised a fresh
+    # NameError that propagated out of emit() -- turning exactly the alert
+    # meant to report a DB outage into an uncaught crash instead.
+    def raiser():
+        raise RuntimeError("db unreachable")
+
+    monkeypatch.setattr("notifications.dispatcher.get_session", raiser)
+
+    _persist_notification("SYSTEM_HEALTH_DEGRADED", {"component": "database"})
+
+    assert "Failed to persist notification" in caplog.text
+
+
+def test_emit_does_not_raise_when_persistence_is_totally_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        "notifications.dispatcher.get_session",
+        lambda: (_ for _ in ()).throw(RuntimeError("db unreachable")),
+    )
+
+    dispatcher = NotificationDispatcher()
+    result = dispatcher.emit(TradeEvent.SYSTEM_HEALTH_DEGRADED, {"component": "database"})
+
+    assert result["event"] == "SYSTEM_HEALTH_DEGRADED"
 
 
 @pytest.mark.asyncio

@@ -35,7 +35,13 @@ class TestTradeEngine:
         assert abs(trade.rr - 1.33) < 0.01
         assert trade.status == "OPEN"
 
-    def test_none_on_notification_failure(self, db_session, monkeypatch):
+    def test_trade_still_created_when_notification_emit_fails(self, db_session, monkeypatch):
+        # The trade is already durably committed before emit() runs -- a
+        # notification failure (e.g. a non-serializable payload, a DB
+        # hiccup) must not make create_trade() return None for a trade that
+        # actually exists, which would skip ExecutionLoop's PaperTrade/
+        # PaperOrder bookkeeping and silently lose the trade's alert
+        # forever. emit() is wrapped in its own try/except for this reason.
         signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")
         db_session.add(signal)
         db_session.flush()
@@ -49,7 +55,8 @@ class TestTradeEngine:
         )
 
         trade = TradeEngine().create_trade(signal=signal, entry=50000.0, atr=500.0)
-        assert trade is None
+        assert trade is not None
+        assert trade.status == "OPEN"
 
     def test_same_symbol_side_duplicate_returns_none(self, db_session):
         signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")

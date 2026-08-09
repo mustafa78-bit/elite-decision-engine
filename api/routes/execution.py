@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 from database import FINAL_STATUSES, Signal, Trade, get_session
-from notifications.dispatcher import NotificationDispatcher
 
 router = APIRouter()
 
