@@ -276,3 +276,19 @@ class TestExplanationService:
         assert metadata.processing_time_ms == 150.5
         assert metadata.total_sources_evaluated == 6
         assert metadata.explanation_version == "2.0"
+
+    def test_build_metadata_sources_available_reflects_real_injected_dependencies(self):
+        # Regression: sources_available/sources_unavailable were previously
+        # hardcoded to 6/0 unconditionally, regardless of which of the 6
+        # constructor dependencies were actually provided.
+        service_none = ExplanationService()
+        metadata_none = service_none._build_metadata(FakeSignal(), 0.0)
+        assert metadata_none.sources_available == 0
+        assert metadata_none.sources_unavailable == 6
+
+        service_some = ExplanationService(
+            scoring_engine=object(), confidence_engine=object(), trade_memory=object(),
+        )
+        metadata_some = service_some._build_metadata(FakeSignal(), 0.0)
+        assert metadata_some.sources_available == 3
+        assert metadata_some.sources_unavailable == 3
