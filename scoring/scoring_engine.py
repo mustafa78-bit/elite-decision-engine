@@ -84,7 +84,7 @@ class ScoringEngine:
                 trend_score += 0.5
 
         volume_score = volume.get("score", 0)
-        risk_score = self.risk.score(values, volatility)
+        risk_score = self.risk.score(values, volatility, price=entry)
 
         final_score = (
             trend_score * SCORE_WEIGHTS["trend"] +
