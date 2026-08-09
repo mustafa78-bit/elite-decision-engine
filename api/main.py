@@ -77,6 +77,8 @@ from core.engine import DecisionEngine
 from database import FINAL_STATUSES, Trade, get_session
 from execution.execution_loop import ExecutionLoop
 from execution.paper import PaperExecutor as PaperDomainExecutor
+from execution.paper_executor import PaperExecutor
+from execution.trade_engine import TradeEngine
 from market.services import MarketDataService
 from market_data.btc_health import BTCHealth
 from market_data.collector import HyperliquidCollector
@@ -124,12 +126,24 @@ async def lifespan(app: FastAPI):
         bot_task = asyncio.create_task(bot_manager.start())
         _background_tasks.add(bot_task)
 
+    # Single dispatcher shared by every real trade/health event source so
+    # TRADE_OPENED/TRADE_CLOSED actually reach the real WebSocketManager --
+    # TradeEngine/PaperExecutor previously default-constructed their own
+    # private NotificationDispatcher(websocket_manager=None) when not given
+    # one explicitly, so trade events were persisted to DB and sent to
+    # Telegram but never broadcast over any websocket in production.
+    shared_dispatcher = NotificationDispatcher(websocket_manager=manager)
+
     if AUTO_TRADING_ENABLED:
         scan_task = asyncio.create_task(_scan_and_generate_signals())
         _background_tasks.add(scan_task)
 
         decision_engine = DecisionEngine(
-            execution_loop=ExecutionLoop(trade_journal=PaperDomainExecutor())
+            execution_loop=ExecutionLoop(
+                trade_engine=TradeEngine(notifications=shared_dispatcher),
+                paper_executor=PaperExecutor(notifications=shared_dispatcher),
+                trade_journal=PaperDomainExecutor(),
+            )
         )
         engine_task = asyncio.create_task(decision_engine.run())
         _background_tasks.add(engine_task)
@@ -142,7 +156,7 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(_periodic_broadcast())
     _background_tasks.add(task)
 
-    health_task = asyncio.create_task(_health_monitor_loop())
+    health_task = asyncio.create_task(_health_monitor_loop(shared_dispatcher))
     _background_tasks.add(health_task)
 
     yield
@@ -515,14 +529,13 @@ async def _periodic_broadcast() -> None:
             logger.exception("Periodic broadcast iteration failed")
 
 
-async def _health_monitor_loop() -> None:
+async def _health_monitor_loop(dispatcher: NotificationDispatcher) -> None:
     """Periodically check core system health and alert (Telegram + websocket)
     only when a component transitions between healthy and unhealthy.
 
     Runs unconditionally (not gated behind AUTO_TRADING_ENABLED) — system health
     matters regardless of whether auto-trading is on.
     """
-    dispatcher = NotificationDispatcher(websocket_manager=manager)
     while True:
         try:
             await asyncio.sleep(HEALTH_CHECK_INTERVAL_SECONDS)
