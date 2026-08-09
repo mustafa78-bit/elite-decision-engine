@@ -381,17 +381,34 @@ class ExplanationService:
 
         return " | ".join(parts)
 
+    # The 6 dependencies this service can be constructed with -- each one
+    # backs exactly one contribution built in _build_reasoning() (scoring/
+    # confidence feed confidence_breakdown, intelligence_collector feeds
+    # intelligence_contribution, trade_memory feeds memory_contribution,
+    # strategy_scorer feeds strategy_contribution, regime_ai feeds market
+    # regime data inside market_contribution).
+    _SOURCE_ATTRS = (
+        "_scoring", "_confidence", "_intelligence",
+        "_memory", "_strategy_scorer", "_regime_ai",
+    )
+
     def _build_metadata(
         self, signal: Any, processing_time_ms: float
     ) -> DecisionMetadataDTO:
+        available = sum(1 for attr in self._SOURCE_ATTRS if getattr(self, attr) is not None)
+        total = len(self._SOURCE_ATTRS)
         return DecisionMetadataDTO(
             signal_id=getattr(signal, "id", 0),
             model_version="1.0",
             engine_version="1.0",
-            data_freshness_seconds=3600,
-            total_sources_evaluated=6,
-            sources_available=6,
-            sources_unavailable=0,
+            # No real per-source timestamp is tracked anywhere in this
+            # service -- 0 (the DTO's own default) is honest about that,
+            # unlike the previous hardcoded 3600 which looked precise but
+            # was fabricated.
+            data_freshness_seconds=0,
+            total_sources_evaluated=total,
+            sources_available=available,
+            sources_unavailable=total - available,
             processing_time_ms=round(processing_time_ms, 2),
             explanation_version="2.0",
         )
