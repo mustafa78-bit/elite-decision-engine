@@ -33,7 +33,13 @@ class HyperliquidProvider:
         timeframe: str = "1h",
         limit: int = 500,
     ) -> pd.DataFrame:
-        return self._collector.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
+        # get_funding()/get_open_interest() below both strip "USDT" before
+        # calling their collectors -- this one didn't, so every ticker-style
+        # symbol (e.g. "ETHUSDT", as scanner/core.py passes) hit Hyperliquid's
+        # candleSnapshot with an unknown coin id and 500'd, while only
+        # already-bare symbols like "BTC" ever worked.
+        coin = symbol.replace("USDT", "")
+        return self._collector.get_ohlcv(symbol=coin, timeframe=timeframe, limit=limit)
 
     def get_ticker(self, symbol: str) -> dict[str, Any]:
         df = self.get_ohlcv(symbol=symbol, limit=2)
