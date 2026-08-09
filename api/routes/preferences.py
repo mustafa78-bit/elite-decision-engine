@@ -83,12 +83,15 @@ def get_default_preferences():
             "chart_layout": "grid",
             "sidebar_collapsed": False,
         },
+        # signal_approved/signal_rejected/risk_warning were removed --
+        # they referenced event categories (SIGNAL_APPROVED, SIGNAL_REJECTED,
+        # RISK_WARNING) that don't exist anywhere in notifications/events.py
+        # and have no emit() call site in the backend at all. Only keys for
+        # events that are actually ever emitted belong here; a toggle for a
+        # non-existent event is pure misleading dead configuration.
         "notification_preferences": {
             "trade_opened": True,
             "trade_closed": True,
-            "signal_approved": True,
-            "signal_rejected": False,
-            "risk_warning": True,
             "system_alert": True,
         },
     }

@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from api.websocket.manager import WebSocketManager
+from database import UserSettings
 from notifications.dispatcher import NotificationDispatcher, _persist_notification
 from notifications.events import TradeEvent
 
@@ -212,3 +213,84 @@ async def test_dispatcher_broadcasts_from_worker_thread():
     sent = json.loads(ws_manager.broadcast.call_args[0][0])
     assert sent["event"] == "SYSTEM_HEALTH_DEGRADED"
     assert sent["payload"]["component"] == "database"
+
+
+def test_dispatcher_telegram_skipped_when_preference_disabled(db_session, session_factory, monkeypatch):
+    monkeypatch.setattr("notifications.dispatcher.get_session", session_factory)
+
+    db_session.add(UserSettings(user_id=1, notification_preferences={"trade_opened": False}))
+    db_session.commit()
+
+    mock_bot = MagicMock()
+    mock_bot.send_alert_threadsafe = MagicMock()
+    dispatcher = NotificationDispatcher(telegram_bot_manager=mock_bot)
+
+    result = dispatcher.emit(
+        TradeEvent.TRADE_OPENED,
+        {"trade_id": 1, "symbol": "BTCUSDT", "side": "LONG", "entry": 60000},
+    )
+
+    assert result["event"] == "TRADE_OPENED"
+    mock_bot.send_alert_threadsafe.assert_not_called()
+
+
+def test_dispatcher_telegram_sent_when_preference_enabled(db_session, session_factory, monkeypatch):
+    monkeypatch.setattr("notifications.dispatcher.get_session", session_factory)
+
+    db_session.add(UserSettings(user_id=1, notification_preferences={"trade_opened": True, "trade_closed": False}))
+    db_session.commit()
+
+    mock_bot = MagicMock()
+    mock_bot.send_alert_threadsafe = MagicMock()
+    dispatcher = NotificationDispatcher(telegram_bot_manager=mock_bot)
+
+    dispatcher.emit(
+        TradeEvent.TRADE_OPENED,
+        {"trade_id": 1, "symbol": "BTCUSDT", "side": "LONG", "entry": 60000},
+    )
+
+    mock_bot.send_alert_threadsafe.assert_called_once()
+
+
+def test_dispatcher_telegram_defaults_enabled_without_user_settings_row(db_session, session_factory, monkeypatch):
+    monkeypatch.setattr("notifications.dispatcher.get_session", session_factory)
+
+    mock_bot = MagicMock()
+    mock_bot.send_alert_threadsafe = MagicMock()
+    dispatcher = NotificationDispatcher(telegram_bot_manager=mock_bot)
+
+    dispatcher.emit(
+        TradeEvent.TRADE_CLOSED,
+        {"trade_id": 1, "symbol": "BTCUSDT", "side": "LONG", "pnl": 10.0},
+    )
+
+    mock_bot.send_alert_threadsafe.assert_called_once()
+
+
+def test_dispatcher_disabled_telegram_preference_does_not_block_persistence_or_broadcast(
+    db_session, session_factory, monkeypatch
+):
+    monkeypatch.setattr("notifications.dispatcher.get_session", session_factory)
+
+    db_session.add(UserSettings(user_id=1, notification_preferences={"trade_opened": False}))
+    db_session.commit()
+
+    ws_manager = MagicMock(spec=WebSocketManager)
+    ws_manager.broadcast = AsyncMock()
+    mock_bot = MagicMock()
+    mock_bot.send_alert_threadsafe = MagicMock()
+
+    dispatcher = NotificationDispatcher(websocket_manager=ws_manager, telegram_bot_manager=mock_bot)
+
+    result = dispatcher.emit(
+        TradeEvent.TRADE_OPENED,
+        {"trade_id": 1, "symbol": "BTCUSDT", "side": "LONG", "entry": 60000},
+    )
+
+    assert result["event"] == "TRADE_OPENED"
+    mock_bot.send_alert_threadsafe.assert_not_called()
+
+    from database import Notification
+
+    persisted = session_factory().query(Notification).filter_by(event_type="TRADE_OPENED").all()
+    assert len(persisted) == 1
