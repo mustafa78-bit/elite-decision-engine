@@ -136,6 +136,44 @@ def test_single_win(db_session, session_factory):
     assert report.recovery_factor == _INFINITE
 
 
+def test_report_computed_when_paper_trade_status_never_transitions(db_session, session_factory):
+    # Matches real production: the real close path only updates Trade.status/
+    # .pnl/.closed_at, never PaperTrade.status (nothing in the real trading
+    # loop calls execution/paper.py's close_position()). A performance report
+    # keyed off PaperTrade.status would always see zero closed trades and
+    # return the all-zero PerformanceReport() default forever.
+    now = datetime.now(UTC)
+    trade = _make_trade(
+        db_session, status="TP_HIT", pnl=2000.0,
+        created_at=now - timedelta(hours=24),
+        closed_at=now,
+    )
+    _make_paper_trade(
+        db_session, position_id=trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, status="OPEN",  # never transitioned, as in real prod
+    )
+
+    snap = PortfolioSnapshot(
+        total_equity=12000.0,
+        initial_capital=10000.0,
+        total_pnl=2000.0,
+        realized_pnl=2000.0,
+        equity_curve=[10000.0, 12000.0],
+        max_drawdown=0.0,
+        closed_trades=1,
+        winning_trades=1,
+        losing_trades=0,
+        win_rate=100.0,
+    )
+
+    engine = PerformanceEngine(session_factory=session_factory)
+    report = engine.report(snap)
+
+    assert report != PerformanceReport()
+    assert report.average_win == 2000.0
+    assert report.consecutive_wins == 1
+
+
 # ── Single loss ──────────────────────────────────────────────────────────────
 
 

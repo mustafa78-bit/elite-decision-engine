@@ -643,6 +643,26 @@ class TestEvidenceBuilder:
         assert len(regime_items) == 1
         assert regime_items[0].supports_decision is True
 
+    def test_build_from_council_and_market_regime_alone_derives_short_side(self):
+        # No decision_result/scanner_result supplied -- an API-supported
+        # combination that previously silently defaulted `side` to "LONG"
+        # even for a real SHORT thesis (SPRINT_JULES_EVIDENCE_BUILDER_SIDE_IGNORES_COUNCIL_RESULT.md).
+        builder = EvidenceBuilder()
+        council = DictObj({
+            "symbol": "BTC", "side": "SHORT", "consensus_direction": "BEARISH",
+            "consensus_score": 85.0, "agreement_level": "strong",
+            "sources_agreeing": 4, "sources_disagreeing": 1, "agent_reports": [],
+        })
+        market = {"regime": "TREND", "trend": "BEARISH", "trend_strength": "STRONG", "volatility_class": "NORMAL", "score": 0.85}
+        report = builder.build(
+            council_result=council,
+            market_regime_result=market,
+            recommendation="SELL",
+        )
+        regime_items = [i for i in report.supporting_evidence if i.engine == "market_regime" and i.title.startswith("Market:")]
+        assert len(regime_items) == 1
+        assert regime_items[0].supports_decision is True
+
 
 class TestEvidenceEngine:
     def test_initial_state(self):

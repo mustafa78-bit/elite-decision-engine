@@ -149,7 +149,7 @@ class TestScoringEngineUsesConfigWeights:
         )
         monkeypatch.setattr(
             "scoring.risk_engine.RiskEngine.score",
-            lambda _self, values, volatility: 0.5,
+            lambda _self, values, volatility, price=0.0: 0.5,
         )
 
         engine = ScoringEngine()
@@ -198,7 +198,7 @@ class TestScoringEngineUsesConfigWeights:
         )
         monkeypatch.setattr(
             "scoring.risk_engine.RiskEngine.score",
-            lambda _self, values, volatility: 0.5,
+            lambda _self, values, volatility, price=0.0: 0.5,
         )
 
         engine = ScoringEngine()

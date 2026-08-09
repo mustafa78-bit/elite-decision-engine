@@ -220,6 +220,12 @@ class SimulatorEngine:
         if trade:
             self._state.trades.append(trade)
             self._state.open_positions += 1
+            # Debit at open for both LONG and SHORT (mirrors _execute_ai_trade()
+            # and matches _process_candle()'s unrealized-equity formula, which
+            # assumes this same debit-at-open convention for both sides) --
+            # uses the trade's actual post-slippage fill price and charges the
+            # entry fee immediately, not just at close.
+            self._state.cash -= trade.quantity * trade.entry_price + trade.fees
             self._add_timeline("TRADE_MANUAL_OPEN", f"Manual {side} {trade.symbol} @ ${entry_price}", severity="trade")
             self._emit_state()
         return trade
@@ -503,7 +509,11 @@ class SimulatorEngine:
         if trade:
             state.trades.append(trade)
             state.open_positions += 1
-            state.cash -= quantity * entry
+            # trade.entry_price/trade.quantity are the actual stored (rounded,
+            # post-slippage) values -- the local `entry`/`quantity` above are
+            # the pre-slippage, unrounded inputs to _create_trade(). Also
+            # charges the entry fee immediately, not just at close.
+            state.cash -= trade.quantity * trade.entry_price + trade.fees
             self._add_timeline(
                 "TRADE_AI_OPEN",
                 f"AI {side} {state.config.symbol} @ ${entry:.2f} | qty={quantity:.4f}",
@@ -610,7 +620,18 @@ class SimulatorEngine:
                 self._state.win_count += 1
             else:
                 self._state.loss_count += 1
-            self._state.cash += trade.quantity * exit_price - total_fees_exit if trade.side == "LONG" else trade.quantity * exit_price - total_fees_exit
+            # Mirrors the debit-at-open convention used for both sides: a
+            # LONG credits the sale proceeds back (quantity*exit_price); a
+            # SHORT's open debit already "pre-paid" quantity*entry_price, so
+            # closing must both return that and apply the PnL, i.e.
+            # quantity*entry_price + quantity*(entry_price-exit_price) =
+            # quantity*(2*entry_price-exit_price) -- the same expression
+            # _process_candle()'s unrealized-equity formula already uses for
+            # OPEN SHORT positions, so the two stay consistent mid-trade too.
+            if trade.side == "LONG":
+                self._state.cash += trade.quantity * exit_price - total_fees_exit
+            else:
+                self._state.cash += trade.quantity * (2 * trade.entry_price - exit_price) - total_fees_exit
 
     def _status_change(self, status: SimStatus) -> None:
         if self._state:
@@ -673,10 +694,11 @@ class SimulatorEngine:
 
         df = pd.DataFrame([c.to_dict() for c in candles])
         try:
+            entry = float(df["close"].iloc[-1])
             values = self._indicator_engine.calculate(df)
             volume = self._volume_engine.score(df)
             volatility = self._volatility_engine.score(values)
-            risk_score = self._risk_engine.score(values, volatility)
+            risk_score = self._risk_engine.score(values, volatility, price=entry)
         except Exception as e:
             logger.warning("Real-data scoring failed at candle %s: %s", self._replay.index, e)
             return None
@@ -706,7 +728,7 @@ class SimulatorEngine:
         )
 
         return {
-            "entry": float(df["close"].iloc[-1]),
+            "entry": entry,
             "ema20": ema20,
             "ema50": ema50,
             "ema200": ema200,

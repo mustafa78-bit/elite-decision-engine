@@ -94,17 +94,27 @@ class TradeEngine:
             session.add(trade)
             session.commit()
 
-            self.notifications.emit(
-                TradeEvent.TRADE_OPENED,
-                {
-                    "trade_id": trade.id,
-                    "symbol": trade.symbol,
-                    "side": trade.side,
-                    "entry": trade.entry,
-                    "status": trade.status,
-                    "intelligence": intelligence or {},
-                },
-            )
+            # The trade is already durably committed above -- a failure here
+            # (e.g. a non-JSON-serializable intelligence payload, a DB hiccup
+            # inside notification persistence) must not make create_trade()
+            # return None for a trade that actually exists, which would skip
+            # PaperTrade/PaperOrder bookkeeping in ExecutionLoop and silently
+            # lose the TRADE_OPENED alert forever. Mirrors the same pattern
+            # paper_executor.py's TRADE_CLOSED emit call sites already use.
+            try:
+                self.notifications.emit(
+                    TradeEvent.TRADE_OPENED,
+                    {
+                        "trade_id": trade.id,
+                        "symbol": trade.symbol,
+                        "side": trade.side,
+                        "entry": trade.entry,
+                        "status": trade.status,
+                        "intelligence": intelligence or {},
+                    },
+                )
+            except Exception:
+                logger.exception("Failed to emit TRADE_OPENED for trade %s", trade.id)
 
             logger.info(
                 "Trade created: id=%s %s %s entry=%s stop=%s tp1=%s rr=%s",

@@ -11,8 +11,6 @@ from database import (
     CLOSED,
     OPEN,
     SL_HIT,
-    STOP_LOSS,
-    TAKE_PROFIT,
     TP_HIT,
     Trade,
     get_session,
@@ -21,10 +19,10 @@ from database import (
     PaperTrade as PaperTradeModel,
 )
 from portfolio.core import PortfolioSnapshot
+from services.pnl import trade_dollar_pnl
 
 logger = logging.getLogger(__name__)
 
-_PAPER_TERMINAL_STATUSES = frozenset({TAKE_PROFIT, STOP_LOSS, CLOSED, CANCEL})
 _TRADE_TERMINAL_STATUSES = frozenset({TP_HIT, SL_HIT, CLOSED, CANCEL})
 _INFINITE_PF = 999.99
 
@@ -54,48 +52,72 @@ class PortfolioEngine:
         session: Any,
         current_prices: dict[str, float],
     ) -> PortfolioSnapshot:
-        all_trades = session.query(Trade).all()
-
-        all_paper_trades = session.query(PaperTradeModel).all()
-        open_paper_trades = [pt for pt in all_paper_trades if pt.status == OPEN]
-        closed_paper_trades = [pt for pt in all_paper_trades if pt.status in _PAPER_TERMINAL_STATUSES]
-
-        open_trades = [t for t in all_trades if t.status == OPEN]
-        closed_trades = [t for t in all_trades if t.status in _TRADE_TERMINAL_STATUSES]
+        # Trade.status is the real source of truth for open/closed -- the
+        # matching PaperTrade row's own .status is never actually updated by
+        # the real close path (execution/paper_executor.py's
+        # _close_trade_record only mutates Trade; PaperTrade.status is set
+        # once at open and never transitioned in production), so filtering
+        # on PaperTrade.status here would silently treat every position as
+        # permanently OPEN. PaperTrade is only used below for its real
+        # quantity, via the same outer join the already-fixed root
+        # portfolio_engine.py uses.
+        results = (
+            session.query(Trade, PaperTradeModel)
+            .outerjoin(PaperTradeModel, PaperTradeModel.position_id == Trade.id)
+            .all()
+        )
+        open_pairs = [(t, pt) for t, pt in results if t.status == OPEN]
+        closed_pairs = [(t, pt) for t, pt in results if t.status in _TRADE_TERMINAL_STATUSES]
 
         # ── Position count ──────────────────────────────────────────────
-        position_count = len(open_trades)
+        position_count = len(open_pairs)
 
-        # ── Exposure (from PaperTrade × quantity) ───────────────────────
+        # ── Exposure (real notional: entry price × real quantity) ──────
+        # Exposure/unrealized PnL use the PaperTrade's own entry/quantity/side
+        # (the real fill data), same as before this fix -- only the set of
+        # *which* trades count as open changed (Trade.status-driven now).
+        # A Trade with no matching PaperTrade has no real quantity to scale
+        # by, so it's skipped here (same as the original PaperTrade-only
+        # query implicitly did).
         exposure = 0.0
         long_exposure = 0.0
         short_exposure = 0.0
-        for pt in open_paper_trades:
+        for t, pt in open_pairs:
+            if pt is None:
+                continue
             val = float(pt.entry or 0) * float(pt.quantity or 0)
             exposure += val
-            if pt.side == "LONG":
+            side = (pt.side or "").upper()
+            if side == "LONG":
                 long_exposure += val
-            elif pt.side == "SHORT":
+            elif side == "SHORT":
                 short_exposure += val
 
-        # ── Unrealized PnL ─────────────────────────────────────────────
+        # ── Unrealized PnL (side-aware) ─────────────────────────────────
         unrealized_pnl = 0.0
-        for pt in open_paper_trades:
+        for t, pt in open_pairs:
+            if pt is None:
+                continue
             price = current_prices.get(pt.symbol, float(pt.entry or 0))
             delta = price - float(pt.entry or 0)
-            if pt.side == "SHORT":
+            if (pt.side or "").upper() == "SHORT":
                 delta = -delta
             unrealized_pnl += delta * float(pt.quantity or 0)
 
-        # ── Realized PnL (per-unit pnl × quantity) ─────────────────────
+        # ── Realized PnL (per-unit pnl × real quantity) ─────────────────
         realized_pnl = 0.0
         winning_trades = 0
         losing_trades = 0
         total_wl = 0
         gross_profit = 0.0
         gross_loss = 0.0
-        for pt in closed_paper_trades:
-            pnl_val = float(pt.pnl or 0) * float(pt.quantity or 0)
+        # Requires a real matching PaperTrade too, not just a non-null
+        # Trade.pnl -- without one there's no real quantity to scale the raw
+        # per-unit pnl by, and trade_dollar_pnl()'s qty=1.0 fallback would
+        # inject a wrong-magnitude value into a dollar-denominated total.
+        closed_with_pnl = [(t, pt) for t, pt in closed_pairs if t.pnl is not None and pt is not None]
+        for t, pt in closed_with_pnl:
+            pnl_val = trade_dollar_pnl(t, pt)
             realized_pnl += pnl_val
             if pnl_val > 0:
                 winning_trades += 1
@@ -122,28 +144,15 @@ class PortfolioEngine:
             profit_factor = 0.0
 
         # ── Equity curve & drawdown ──────────────────────────────────────
-        # Use PaperTrade data for equity curve. If a trade does not have a matching
-        # PaperTrade, we skip its contribution entirely to avoid injecting wrong-magnitude
-        # per-unit price deltas into a dollar-denominated equity curve.
-        trades_with_known_pnl = [
-            t for t in closed_trades
-            if t.pnl is not None
-        ]
         sorted_closed = sorted(
-            trades_with_known_pnl,
-            key=lambda t: t.closed_at or t.created_at,
+            closed_with_pnl,
+            key=lambda pair: pair[0].closed_at or pair[0].created_at,
         )
         equity_curve = [float(self.initial_capital)]
         peak = float(self.initial_capital)
         max_dd = 0.0
-        for t in sorted_closed:
-            pt = next(
-                (p for p in closed_paper_trades if p.position_id == t.id),
-                None,
-            )
-            if pt is None:
-                continue
-            step = float(pt.pnl or 0) * float(pt.quantity or 0)
+        for t, pt in sorted_closed:
+            step = trade_dollar_pnl(t, pt)
             new_eq = equity_curve[-1] + step
             equity_curve.append(new_eq)
             if new_eq > peak:
@@ -156,8 +165,8 @@ class PortfolioEngine:
         logger.info(
             "Portfolio metrics computed. closed_trades=%s, closed_trades_with_pnl=%s. "
             "win_rate and profit_factor are calculated over the closed_trades_with_pnl subset.",
-            str(len(closed_trades)),
-            str(len(closed_paper_trades)),
+            str(len(closed_pairs)),
+            str(len(closed_with_pnl)),
         )
 
         return PortfolioSnapshot(
@@ -169,9 +178,9 @@ class PortfolioEngine:
             short_exposure=round(short_exposure, 2),
             position_count=position_count,
             cash=round(cash, 2),
-            total_trades=len(all_trades),
-            open_trades=len(open_trades),
-            closed_trades=len(closed_trades),
+            total_trades=len(results),
+            open_trades=len(open_pairs),
+            closed_trades=len(closed_pairs),
             winning_trades=winning_trades,
             losing_trades=losing_trades,
             win_rate=round(win_rate, 2),
@@ -180,5 +189,5 @@ class PortfolioEngine:
             max_drawdown=round(max_dd * 100, 2),
             equity_curve=[round(e, 2) for e in equity_curve],
             initial_capital=self.initial_capital,
-            closed_trades_with_pnl=len(closed_paper_trades),
+            closed_trades_with_pnl=len(closed_with_pnl),
         )
