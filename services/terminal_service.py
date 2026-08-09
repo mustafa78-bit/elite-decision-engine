@@ -14,6 +14,7 @@ from performance_engine import PerformanceEngine
 from portfolio_engine import PortfolioEngine
 from scanner.core import OpportunityScanner
 from scoring.risk_engine import RiskEngine
+from services.pnl import trade_dollar_pnl
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +175,11 @@ class TerminalService:
                     "entry_price": entry_val,
                     "current_price": current_price,
                     "quantity": qty,
-                    "pnl": round(float(t.pnl or 0) * qty, 2),
+                    # Uses the shared qty=1.0 fallback (services/pnl.py), not
+                    # the qty=0.0 displayed above for an unmatched trade --
+                    # zeroing pnl too would misrepresent a real nonzero
+                    # per-unit result as "broke even" instead of "unscaled".
+                    "pnl": round(trade_dollar_pnl(t, pt), 2),
                     "created_at": t.created_at.isoformat() if t.created_at else "",
                 })
 
