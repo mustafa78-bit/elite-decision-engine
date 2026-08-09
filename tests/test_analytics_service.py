@@ -238,7 +238,7 @@ class TestAnalyticsService:
 
     def test_analytics_service_mixed_quantities(self, db_session):
         from database import PaperTrade, Trade
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 1. Closed trade with quantity = 2.5 (real dollar pnl = 100.0 * 2.5 = 250.0)
         t1 = Trade(
