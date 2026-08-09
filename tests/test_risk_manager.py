@@ -160,8 +160,12 @@ class TestRiskManager:
 
     def test_reject_daily_loss(self, db_session, session_factory):
         today = datetime.now(UTC)
-        _seed_trade(db_session, status="SL_HIT", pnl=-8000.0, closed_at=today, close_reason="SL_HIT")
-        _seed_trade(db_session, status="SL_HIT", pnl=-3000.0, closed_at=today, close_reason="SL_HIT")
+        # quantity=1.0 -> real dollar loss equals the raw pnl here; a
+        # matching PaperTrade is required for these to count at all now that
+        # orphaned (no-PaperTrade) trades are excluded rather than having
+        # their raw per-unit pnl miscounted as dollar loss.
+        _seed_trade(db_session, status="SL_HIT", pnl=-8000.0, closed_at=today, close_reason="SL_HIT", quantity=1.0)
+        _seed_trade(db_session, status="SL_HIT", pnl=-3000.0, closed_at=today, close_reason="SL_HIT", quantity=1.0)
         mgr = RiskManager(session_factory=session_factory)
         allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
         assert allowed is False
@@ -216,6 +220,39 @@ class TestRiskManager:
         allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
         # Real dollar loss: -9000*0.5 + -9000*0.5 = -9000, under 10,000 -> should pass.
         # Raw per-unit sum: -9000 + -9000 = -18000, would have wrongly rejected.
+        assert allowed is True
+        assert reason == ""
+
+    def test_symbol_exposure_excludes_orphaned_trade_without_papertrade(self, db_session, session_factory):
+        # Trade has no `quantity` column at all -- when the PaperTrade journal
+        # write fails after the Trade commits (orphaning it), there is no real
+        # way to know its real notional. A raw entry price of 250,000 alone
+        # would, under the old code, get summed in as if it were already a
+        # dollar notional -- permanently blocking any new BTCUSDT trade
+        # regardless of real exposure. The fix excludes it instead of guessing.
+        _seed_trade(db_session, symbol="BTCUSDT", entry=250000.0, quantity=None)
+        mgr = RiskManager(session_factory=session_factory)
+        allowed, reason = mgr.can_open_trade(_make_candidate(symbol="BTCUSDT", entry=50000.0))
+        assert allowed is True
+        assert reason == ""
+
+    def test_portfolio_exposure_excludes_orphaned_trade_without_papertrade(self, db_session, session_factory):
+        _seed_trade(db_session, symbol="ETHUSDT", entry=600000.0, quantity=None)
+        mgr = RiskManager(session_factory=session_factory)
+        allowed, reason = mgr.can_open_trade(_make_candidate(symbol="BTCUSDT", entry=50000.0))
+        assert allowed is True
+        assert reason == ""
+
+    def test_daily_loss_excludes_orphaned_trade_without_papertrade(self, db_session, session_factory):
+        today = datetime.now(UTC)
+        # Raw per-unit pnl of -50000 with no PaperTrade -- old code would sum
+        # this directly as dollar loss and always reject; excluded instead.
+        _seed_trade(
+            db_session, status="SL_HIT", pnl=-50000.0,
+            closed_at=today, close_reason="SL_HIT", quantity=None,
+        )
+        mgr = RiskManager(session_factory=session_factory)
+        allowed, reason = mgr.can_open_trade(_make_candidate(entry=50000.0))
         assert allowed is True
         assert reason == ""
 

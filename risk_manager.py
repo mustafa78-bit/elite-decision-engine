@@ -114,7 +114,17 @@ class RiskManager:
             if paper_trade is not None:
                 current_symbol_total += (paper_trade.quantity or 0.0) * (paper_trade.entry or 0.0)
             else:
-                current_symbol_total += trade.entry or 0.0
+                # Trade has no matching PaperTrade row (e.g. the journal
+                # write failed after the Trade was committed) -- Trade has
+                # no quantity column, so trade.entry is a raw per-unit price,
+                # not notional dollars. Mixing it into a dollar sum would
+                # silently corrupt the exposure check; exclude and warn
+                # instead of guessing.
+                logger.warning(
+                    "RiskManager: OPEN trade %s (%s) has no matching PaperTrade -- "
+                    "excluded from symbol exposure total, not counted as notional",
+                    trade.id, trade.symbol,
+                )
         total_symbol = current_symbol_total + candidate_notional
         checks.append(RiskCheckDetail(
             name=RejectionCode.SYMBOL_EXPOSURE,
@@ -143,7 +153,11 @@ class RiskManager:
             if paper_trade is not None:
                 current_total += (paper_trade.quantity or 0.0) * (paper_trade.entry or 0.0)
             else:
-                current_total += trade.entry or 0.0
+                logger.warning(
+                    "RiskManager: OPEN trade %s (%s) has no matching PaperTrade -- "
+                    "excluded from portfolio exposure total, not counted as notional",
+                    trade.id, trade.symbol,
+                )
         portfolio_total = current_total + candidate_notional
         checks.append(RiskCheckDetail(
             name=RejectionCode.PORTFOLIO_EXPOSURE,
@@ -180,7 +194,12 @@ class RiskManager:
             if paper_trade is not None:
                 dollar_pnl = (paper_trade.quantity or 0.0) * trade.pnl
             else:
-                dollar_pnl = trade.pnl
+                logger.warning(
+                    "RiskManager: closed trade %s (%s) has no matching PaperTrade -- "
+                    "excluded from daily loss total, not counted as dollar PnL",
+                    trade.id, trade.symbol,
+                )
+                continue
             if dollar_pnl < 0:
                 total_loss += dollar_pnl
         abs_loss = abs(total_loss)
