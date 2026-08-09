@@ -70,16 +70,33 @@ class RiskManager:
             session.close()
 
     def _evaluate(self, candidate: Any, session: Any) -> RiskDecision:
-        entry = candidate.entry or 0.0
-
-        candidate_notional = entry
-        if hasattr(candidate, "scores"):
-            try:
-                position_size = self.position_sizer.calculate(candidate)
-                candidate_notional = position_size.notional_value or 0.0
-            except Exception as e:
-                logger.warning("Failed to calculate position size speculatively: %s", e)
-                candidate_notional = entry
+        # candidate_notional feeds directly into the SYMBOL_EXPOSURE/
+        # PORTFOLIO_EXPOSURE checks below -- entry is a raw per-unit price,
+        # not a dollar notional, so it must never be used as a silent
+        # fallback (a real position could be several units, making entry a
+        # large understatement of true notional). If real sizing can't be
+        # computed, we can't safely evaluate exposure at all -- fail closed
+        # instead of guessing.
+        if not hasattr(candidate, "scores"):
+            return risk_decision_from_checks([
+                RiskCheckDetail(
+                    name=RejectionCode.INVALID_TRADE,
+                    passed=False,
+                    detail="Candidate missing scores -- cannot compute real position size for exposure checks",
+                )
+            ])
+        try:
+            position_size = self.position_sizer.calculate(candidate)
+            candidate_notional = position_size.notional_value or 0.0
+        except Exception as e:
+            logger.warning("Failed to calculate position size speculatively: %s", e)
+            return risk_decision_from_checks([
+                RiskCheckDetail(
+                    name=RejectionCode.INVALID_TRADE,
+                    passed=False,
+                    detail=f"Position size calculation failed -- cannot safely evaluate exposure: {e}",
+                )
+            ])
 
         checks: list[RiskCheckDetail] = []
 
