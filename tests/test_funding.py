@@ -289,6 +289,34 @@ class TestFundingCollector:
         result = collector.fetch_funding_history("BTC", limit=1)
         assert isinstance(result, FundingResult)
 
+    def test_fetch_funding_history_uses_real_request_shape_and_derives_interval(self):
+        # Regression: the payload used to be {"req": {"coin": ..., "limit":
+        # ...}}, which Hyperliquid's real API always 422's on -- the real
+        # shape is top-level "coin"/"startTime". Real entries also never
+        # include an "interval" field, so interval_hours must be derived
+        # from consecutive entry timestamps (here: hourly, not the old
+        # hardcoded 8h default) rather than guessed.
+        collector = FundingCollector()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = [
+            {"coin": "BTC", "fundingRate": "0.0000030", "time": 1_000_000_000},
+            {"coin": "BTC", "fundingRate": "0.0000086", "time": 1_000_000_000 + 3_600_000},
+            {"coin": "BTC", "fundingRate": "0.0000051", "time": 1_000_000_000 + 7_200_000},
+        ]
+        with patch.object(collector._session, "post", return_value=mock_response) as mock_post:
+            result = collector.fetch_funding_history("BTC", limit=3)
+
+        call_payload = mock_post.call_args.kwargs["json"]
+        assert call_payload["type"] == "fundingHistory"
+        assert call_payload["coin"] == "BTC"
+        assert "startTime" in call_payload
+        assert "req" not in call_payload
+
+        assert len(result.rates) == 3
+        for rate in result.rates:
+            assert rate.interval_hours == pytest.approx(1.0, abs=0.01)
+
     def test_check_freshness_returns_dict(self):
         collector = FundingCollector()
         result = collector.check_freshness("BTC")
