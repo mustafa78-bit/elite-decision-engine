@@ -7,6 +7,7 @@ from typing import Any, Optional
 import pandas as pd
 
 from simulator.models import ScenarioType
+from simulator.replay_engine import synthesize_ohlc
 
 ScenarioDefinition = dict[str, Any]
 
@@ -174,17 +175,17 @@ def generate_scenario_data(
             vol_mult = cfg.get("volume_spike", 1.0)
 
         ret = rng.gauss(d, v)
+        o = price
         price *= 1 + ret
-        o = round(price / (1 + ret), 2)
-        h = round(price * (1 + abs(rng.gauss(0, v * 0.5))), 2)
-        lo = round(price * (1 - abs(rng.gauss(0, v * 0.5))), 2)
+        c = price
+        h, lo = synthesize_ohlc(o, c, abs(rng.gauss(0, v * 0.5)), abs(rng.gauss(0, v * 0.5)))
         vol = rng.uniform(100, 10000) * vol_mult
         data.append({
             "timestamp": times[i],
-            "open": o,
-            "high": h,
-            "low": lo,
-            "close": round(price, 2),
+            "open": round(o, 2),
+            "high": round(h, 2),
+            "low": round(lo, 2),
+            "close": round(c, 2),
             "volume": round(vol, 2),
         })
 
