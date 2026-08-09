@@ -11,7 +11,7 @@ from services.pnl import trade_dollar_pnl, trade_notional_exposure
 
 logger = logging.getLogger(__name__)
 
-TradePair = tuple[Trade, Optional[PaperTrade]]
+TradePair = tuple[Trade, PaperTrade | None]
 
 
 class PortfolioService:
