@@ -1,6 +1,8 @@
 import ipaddress
+
 from fastapi import Request
 from slowapi import Limiter
+
 
 def is_trusted_proxy(ip_str: str) -> bool:
     try:
