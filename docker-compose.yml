@@ -35,7 +35,7 @@ services:
       API_ENV: production
       DATABASE_URL: postgresql://postgres:postgres@db:5432/decision_engine
       CORS_ORIGINS: http://localhost:5173
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set -- this file also sets API_ENV=production, which enforces real JWT auth; a missing var must fail loudly, not silently fall back to a secret published in this repo}
     depends_on:
       db:
         condition: service_healthy

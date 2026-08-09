@@ -56,6 +56,7 @@ def _persist_notification(event: str, payload: dict) -> None:
         notif = Notification(
             event_type=event,
             payload=payload,
+            user_id=_PRIMARY_USER_ID,
         )
         session.add(notif)
         session.commit()
