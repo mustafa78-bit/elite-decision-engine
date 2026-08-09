@@ -11,6 +11,22 @@ from simulator.models import MarketRegime, SimulatedCandle
 
 logger = logging.getLogger(__name__)
 
+
+def synthesize_ohlc(open_price: float, close_price: float, high_noise: float, low_noise: float) -> tuple[float, float]:
+    """Compute (high, low) that always bound both open and close.
+
+    high_noise/low_noise are non-negative fractional perturbations (e.g. from
+    abs(rng.gauss(0, volatility * 0.5))) applied outward from the open/close
+    range, not from close alone -- bounding only against close lets open sit
+    outside [low, high] whenever a candle's return is large.
+    """
+    hi_base = max(open_price, close_price)
+    lo_base = min(open_price, close_price)
+    high = hi_base * (1 + high_noise)
+    low = lo_base * (1 - low_noise)
+    return high, low
+
+
 SUPPORTED_TIMEFRAMES = frozenset({"1m", "5m", "15m", "1h", "4h", "1d"})
 TIMEFRAME_MS = {
     "1m": 60000,
@@ -224,16 +240,21 @@ class MarketReplayEngine:
         rng = random.Random(seed)
         for t in times:
             ret = rng.gauss(drift, volatility)
+            open_price = price
             price *= 1 + ret
-            high = price * (1 + abs(rng.gauss(0, volatility * 0.5)))
-            low = price * (1 - abs(rng.gauss(0, volatility * 0.5)))
+            close_price = price
+            high, low = synthesize_ohlc(
+                open_price, close_price,
+                abs(rng.gauss(0, volatility * 0.5)),
+                abs(rng.gauss(0, volatility * 0.5)),
+            )
             volume = rng.uniform(100, 10000)
             data.append({
                 "timestamp": t,
-                "open": round(price / (1 + ret), 2),
+                "open": round(open_price, 2),
                 "high": round(high, 2),
                 "low": round(low, 2),
-                "close": round(price, 2),
+                "close": round(close_price, 2),
                 "volume": round(volume, 2),
             })
         return pd.DataFrame(data)
