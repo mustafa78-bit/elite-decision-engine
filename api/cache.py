@@ -11,21 +11,21 @@ logger = logging.getLogger(__name__)
 
 class DashboardCache:
     def __init__(self, default_ttl: int = 30):
-        self._cache: dict[str, tuple[float, Any]] = {}
+        self._cache: dict[str, tuple[float, Any, int]] = {}
         self._default_ttl = default_ttl
 
     def get(self, key: str) -> Any | None:
         entry = self._cache.get(key)
         if entry is None:
             return None
-        ts, value = entry
-        if time.time() - ts > self._default_ttl:
+        ts, value, ttl = entry
+        if time.time() - ts > ttl:
             del self._cache[key]
             return None
         return value
 
     def set(self, key: str, value: Any, ttl: int | None = None) -> None:
-        self._cache[key] = (time.time(), value)
+        self._cache[key] = (time.time(), value, ttl if ttl is not None else self._default_ttl)
 
     def invalidate(self, key: str) -> None:
         self._cache.pop(key, None)

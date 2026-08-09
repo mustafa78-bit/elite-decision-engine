@@ -4,6 +4,8 @@ import logging
 from collections.abc import Callable
 from typing import Any, Optional
 
+from sqlalchemy import text
+
 from database import FINAL_STATUSES, Notification, PaperTrade, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
@@ -84,7 +86,7 @@ class WidgetService:
         try:
             db_ok = True
             try:
-                session.execute(session.bind.dialect.statement_compiler(session.bind.dialect, None).__class__.__module__)
+                session.execute(text("SELECT 1"))
             except Exception:
                 db_ok = False
             return MonitoringDashboardWidgetDTO(

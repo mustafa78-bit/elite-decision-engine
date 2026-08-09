@@ -33,7 +33,14 @@ class DecisionEngine:
             update_signal_status(signal.id, "REJECTED")
 
     def _process_open_signals(self):
-        """Synchronous, blocking pass: fetch OPEN signals and process each."""
+        """Synchronous, blocking pass: fetch OPEN signals and process each.
+
+        Every signal is processed individually (a rejection on one signal
+        must not block the rest), but existing open trades still need their
+        TP/SL/staleness monitored on every tick -- run_once() always does
+        that as its last step, so it must run even when there are zero open
+        signals, not only as a side effect of processing a new one.
+        """
         signals = self.get_open_signals()
 
         if len(signals) == 0:
@@ -43,6 +50,9 @@ class DecisionEngine:
 
             for signal in signals:
                 self.process_signal(signal)
+
+        if len(signals) == 0:
+            self.execution_loop.run_once([])
 
     async def run(self):
 

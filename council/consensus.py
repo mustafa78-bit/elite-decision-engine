@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CouncilReport:
     symbol: str
+    side: str = "LONG"
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     consensus_direction: str = DIRECTION_NEUTRAL
     consensus_score: float = 0.0
@@ -159,6 +160,7 @@ class ConsensusEngine:
 
         return CouncilReport(
             symbol=symbol,
+            side=side,
             consensus_direction=consensus_direction,
             consensus_score=round(consensus_score, 4),
             agreement_level=agreement,

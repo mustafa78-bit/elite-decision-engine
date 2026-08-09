@@ -209,10 +209,14 @@ def test_mixed_positions(db_session, session_factory):
 
 
 def test_realized_pnl(db_session, session_factory):
-    trade = _make_trade(db_session, status=TP_HIT)
+    # Trade.pnl is the field the real close path actually updates
+    # (execution/paper_executor.py's _close_trade_record) -- PaperTrade.pnl
+    # is never touched by it in production, so the fixture must set the real
+    # per-unit value on the Trade for this to reflect reality.
+    trade = _make_trade(db_session, status=TP_HIT, pnl=2000.0)
     _make_paper_trade(
         db_session, position_id=trade.id, symbol="BTCUSDT", side="LONG",
-        entry=50000.0, quantity=1.0, pnl=2000.0, status=TAKE_PROFIT,
+        entry=50000.0, quantity=1.0, status=TAKE_PROFIT,
     )
 
     engine = PortfolioEngine(
@@ -231,10 +235,10 @@ def test_realized_pnl(db_session, session_factory):
 
 
 def test_realized_pnl_with_quantity(db_session, session_factory):
-    trade = _make_trade(db_session, status=TP_HIT)
+    trade = _make_trade(db_session, status=TP_HIT, pnl=1000.0)
     _make_paper_trade(
         db_session, position_id=trade.id, symbol="BTCUSDT", side="LONG",
-        entry=50000.0, quantity=2.0, pnl=1000.0, status=TAKE_PROFIT,
+        entry=50000.0, quantity=2.0, status=TAKE_PROFIT,
     )
 
     engine = PortfolioEngine(
@@ -252,20 +256,20 @@ def test_realized_pnl_with_quantity(db_session, session_factory):
 
 
 def test_win_loss_tracking(db_session, session_factory):
-    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT)
+    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT, pnl=2000.0)
     _make_paper_trade(
         db_session, position_id=t1.id, symbol="BTCUSDT", side="LONG",
-        entry=50000.0, quantity=1.0, pnl=2000.0, status=TAKE_PROFIT,
+        entry=50000.0, quantity=1.0, status=TAKE_PROFIT,
     )
-    t2 = _make_trade(db_session, signal_id=2, status=SL_HIT)
+    t2 = _make_trade(db_session, signal_id=2, status=SL_HIT, pnl=-1000.0)
     _make_paper_trade(
         db_session, position_id=t2.id, symbol="BTCUSDT", side="LONG",
-        entry=50000.0, quantity=1.0, pnl=-1000.0, status=STOP_LOSS,
+        entry=50000.0, quantity=1.0, status=STOP_LOSS,
     )
-    t3 = _make_trade(db_session, signal_id=3, status=TP_HIT)
+    t3 = _make_trade(db_session, signal_id=3, status=TP_HIT, pnl=500.0)
     _make_paper_trade(
         db_session, position_id=t3.id, symbol="ETHUSDT", side="SHORT",
-        entry=3000.0, quantity=5.0, pnl=500.0, status=TAKE_PROFIT,
+        entry=3000.0, quantity=5.0, status=TAKE_PROFIT,
     )
 
     engine = PortfolioEngine(
@@ -313,15 +317,15 @@ def test_cash_calculation(db_session, session_factory):
 
 
 def test_profit_factor(db_session, session_factory):
-    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT)
+    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT, pnl=3000.0)
     _make_paper_trade(
         db_session, position_id=t1.id, symbol="BTCUSDT", side="LONG",
-        entry=50000.0, quantity=1.0, pnl=3000.0, status=TAKE_PROFIT,
+        entry=50000.0, quantity=1.0, status=TAKE_PROFIT,
     )
-    t2 = _make_trade(db_session, signal_id=2, status=SL_HIT)
+    t2 = _make_trade(db_session, signal_id=2, status=SL_HIT, pnl=-1000.0)
     _make_paper_trade(
         db_session, position_id=t2.id, symbol="BTCUSDT", side="LONG",
-        entry=50000.0, quantity=1.0, pnl=-1000.0, status=STOP_LOSS,
+        entry=50000.0, quantity=1.0, status=STOP_LOSS,
     )
 
     engine = PortfolioEngine(
@@ -345,10 +349,10 @@ def test_equity_curve_and_drawdown(db_session, session_factory):
         initial_capital=10000.0,
     )
 
-    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT)
+    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT, pnl=2000.0)
     _make_paper_trade(
         db_session, position_id=t1.id, symbol="BTCUSDT", side="LONG",
-        entry=50000.0, quantity=1.0, pnl=2000.0, status=TAKE_PROFIT,
+        entry=50000.0, quantity=1.0, status=TAKE_PROFIT,
     )
 
     snap = engine.snapshot()
@@ -367,10 +371,10 @@ def test_mixed_open_and_closed(db_session, session_factory):
         db_session, position_id=t1.id, symbol="BTCUSDT", side="LONG",
         entry=50000.0, quantity=1.0, status=OPEN,
     )
-    t2 = _make_trade(db_session, signal_id=2, status=TP_HIT)
+    t2 = _make_trade(db_session, signal_id=2, status=TP_HIT, pnl=200.0)
     _make_paper_trade(
         db_session, position_id=t2.id, symbol="ETHUSDT", side="LONG",
-        entry=3000.0, quantity=10.0, pnl=200.0, status=TAKE_PROFIT,
+        entry=3000.0, quantity=10.0, status=TAKE_PROFIT,
     )
 
     engine = PortfolioEngine(
@@ -455,7 +459,9 @@ def test_metric_coverage_honesty(db_session, session_factory):
     # This test proves Bug 2 is fixed.
     # We create 3 closed Trade rows.
     # Only 1 of them has a matching PaperTrade with real PnL.
-    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT, pnl=20.0)
+    # Trade.pnl (10.0, the real per-unit value the close path actually
+    # writes) x PaperTrade.quantity (2.0) = 20.0 real dollar PnL.
+    t1 = _make_trade(db_session, signal_id=1, status=TP_HIT, pnl=10.0)
     _make_paper_trade(
         db_session,
         position_id=t1.id,
@@ -463,7 +469,6 @@ def test_metric_coverage_honesty(db_session, session_factory):
         side="LONG",
         entry=50000.0,
         quantity=2.0,
-        pnl=10.0,  # real dollar PnL is pt.pnl * pt.quantity = 20.0
         status=TAKE_PROFIT,
     )
 
@@ -487,6 +492,32 @@ def test_metric_coverage_honesty(db_session, session_factory):
     assert snap.winning_trades == 1
     assert snap.losing_trades == 0
     assert snap.win_rate == 100.0
+
+
+def test_realized_pnl_counted_when_paper_trade_status_never_transitions(db_session, session_factory):
+    # Matches real production exactly: execution/paper_executor.py's real
+    # close path (_close_trade_record) only ever updates Trade.status/.pnl/
+    # .closed_at -- the matching PaperTrade row's own .status is left at
+    # whatever it was set to at open time (OPEN) forever, since nothing in
+    # the real trading loop calls execution/paper.py's close_position(). A
+    # position count / realized-PnL calculation keyed off PaperTrade.status
+    # would treat this trade as permanently open and never count its profit.
+    trade = _make_trade(db_session, status=TP_HIT, pnl=2000.0)
+    _make_paper_trade(
+        db_session, position_id=trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, status=OPEN,  # never transitioned, as in real prod
+    )
+
+    engine = PortfolioEngine(
+        session_factory=session_factory,
+        initial_capital=10000.0,
+    )
+    snap = engine.snapshot()
+
+    assert snap.open_trades == 0
+    assert snap.closed_trades == 1
+    assert snap.realized_pnl == 2000.0
+    assert snap.winning_trades == 1
 
 
 # ── Root PortfolioEngine (portfolio_engine.py) tests ────────────────────────

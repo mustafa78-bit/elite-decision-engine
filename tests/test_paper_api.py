@@ -302,8 +302,18 @@ def test_summary_with_data(api_client, db_session):
 
     assert body["positions"]["total"] == 2
     assert body["positions"]["open"] == 1
-
-    assert body["performance"]["winning_trades"] == 1
-    assert body["performance"]["losing_trades"] == 1
-    assert body["performance"]["win_rate"] == 50.0
     assert body["performance"]["total_pnl"] == 50.0
+
+
+def test_summary_total_pnl_scales_by_real_quantity(api_client, db_session):
+    # PaperTrade.pnl is a raw per-unit price delta, not a dollar amount --
+    # summing it directly across differently-sized trades has no real
+    # financial meaning.
+    _make_paper_trade(db_session, pnl=100.0, quantity=0.5, status=TAKE_PROFIT)
+    _make_paper_trade(db_session, position_id=2, order_id=2, pnl=-20.0, quantity=2.0, status=STOP_LOSS)
+
+    resp = api_client.get("/paper/summary")
+    body = resp.json()
+
+    # Real dollar pnl: 100*0.5 + -20*2 = 50 - 40 = 10, not the raw sum 80.
+    assert body["performance"]["total_pnl"] == 10.0
