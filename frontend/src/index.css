@@ -18,8 +18,8 @@
   --accent-purple: #8B5CF6;
   --accent-orange: #F97316;
   --text-primary: #F5F8FC;
-  --text-secondary: #AAB7CF;
-  --text-muted: #6B7891;
+  --text-secondary: #CBD4E8;
+  --text-muted: #9AA6C2;
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
   --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.4);
   --radius-card: 20px;
@@ -235,6 +235,30 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+/* ====== GLOBAL TEXT SCALE-UP ======
+   Site-wide bump for the very small Tailwind arbitrary text sizes (text-[Npx])
+   used across ~300 components — labels/values were reading as too tiny and too
+   dim. This overrides those utility classes everywhere at once instead of
+   hand-editing every file. Larger sizes (14px+) are left alone. */
+[class*="text-[6px]"],
+[class*="text-[7px]"] { font-size: 10px !important; }
+[class*="text-[8px]"] { font-size: 11px !important; }
+[class*="text-[9px]"] { font-size: 12px !important; }
+[class*="text-[10px]"],
+[class*="text-[10.5px]"] { font-size: 13px !important; }
+[class*="text-[11px]"] { font-size: 14px !important; }
+[class*="text-[12px]"],
+[class*="text-[12.5px]"] { font-size: 14.5px !important; }
+[class*="text-[13px]"],
+[class*="text-[13.5px]"] { font-size: 15px !important; }
+
+/* Legacy widgets still use raw Tailwind gray-400/500/600 instead of the
+   --text-muted/--text-secondary tokens above — those read as too dark on this
+   dark background, brighten them to match. */
+.text-gray-600 { color: #9AA6C2 !important; }
+.text-gray-500 { color: #A8B4CE !important; }
+.text-gray-400 { color: #C7D0E3 !important; }
+
 /* ====== ACCESSIBILITY ====== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -242,7 +266,6 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .room-shell { animation: none !important; }
 }
 :focus-visible {
   outline: 1.5px solid var(--accent-blue);
