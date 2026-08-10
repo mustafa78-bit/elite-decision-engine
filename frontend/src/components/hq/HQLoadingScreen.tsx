@@ -21,9 +21,16 @@ const TOTAL_DURATION = 1000
 export default function HQLoadingScreen() {
   const { t } = useTranslation("commandDeck")
   const [steps, setSteps] = useState<SyncStep[]>(INITIAL_STEPS)
-  const [visible, setVisible] = useState(true)
   const [done, setDone] = useState(false)
 
+  // NOTE: this component intentionally never hides itself — the parent
+  // fully owns mount/unmount via `{showLoading && <HQLoadingScreen />}`.
+  // It previously unmounted itself off a fixed ~1.6s internal timer,
+  // independent of whether real data had actually finished loading; when
+  // subsystem fetches took longer than that, the screen would go blank
+  // (self-hidden) while the real content was still at opacity 0, leaving
+  // a black gap with nothing rendered. Holding here until the parent
+  // removes it guarantees something is always on screen.
   useEffect(() => {
     const startTime = Date.now()
     const stepDuration = TOTAL_DURATION / INITIAL_STEPS.length
@@ -49,10 +56,7 @@ export default function HQLoadingScreen() {
             }),
           )
           if (i === INITIAL_STEPS.length - 1) {
-            setTimeout(() => {
-              setDone(true)
-              setTimeout(() => setVisible(false), 400)
-            }, 200)
+            setTimeout(() => setDone(true), 200)
           }
         }, stepDuration * 0.3)
       }, startTime + i * stepDuration - Date.now())
@@ -63,18 +67,13 @@ export default function HQLoadingScreen() {
     return () => timers.forEach(clearTimeout)
   }, [])
 
-  if (!visible) return null
-
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center"
       style={{
         backgroundColor: "var(--bg-deep)",
       }}
-      animate={{
-        opacity: done ? 0 : 1,
-      }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      initial={{ opacity: 1 }}
     >
       {/* Title */}
       <div className="text-center mb-12">
