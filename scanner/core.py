@@ -234,7 +234,6 @@ class OpportunityScanner:
             market_session=ctx.get("session", ""),
             btc_trend=ctx.get("btc", {}).get("btc_trend", ""),
             fear_greed_label=intelligence.fear_greed.get("label", "") if intelligence else "",
-            funding_level=ctx.get("funding", {}).get("state", ""),
         )
 
     def _apply_filters(self, results: list[ScanResult]) -> list[ScanResult]:
@@ -280,7 +279,6 @@ class OpportunityScanner:
                 reversal_score=r.reversal_score,
                 liquidity_score=r.liquidity_score,
                 btc_trend=r.btc_trend or None,
-                funding_level=r.funding_level or None,
                 fear_greed_value=self._parse_fear_greed(r),
                 side=opp.side,
             )

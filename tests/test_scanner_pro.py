@@ -41,10 +41,6 @@ class TestProbabilityEngine:
         prob, signals = self.engine.estimate(composite_score=0.5, fear_greed_value=85)
         assert "EXTREME_GREED_CAUTION" in signals
 
-    def test_high_funding_long_penalty(self):
-        prob, signals = self.engine.estimate(composite_score=0.5, funding_level="HIGH_LONG")
-        assert "HIGH_FUNDING_LONG_PENALTY" in signals
-
     def test_probability_bounds(self):
         prob, _ = self.engine.estimate(composite_score=2.0, trend_score=1.0, breakout_score=1.0,
                                         liquidity_score=1.0, btc_trend="BULLISH")
@@ -69,10 +65,6 @@ class TestProbabilityEngine:
     def test_short_probability_extreme_greed_opportunity(self):
         prob, signals = self.engine.estimate(composite_score=0.5, fear_greed_value=90, side="SHORT")
         assert "EXTREME_GREED_OPPORTUNITY" in signals
-
-    def test_short_probability_funding_long_edge(self):
-        prob, signals = self.engine.estimate(composite_score=0.5, funding_level="HIGH_LONG", side="SHORT")
-        assert "HIGH_FUNDING_LONG_EDGE" in signals
 
 
 class TestRiskScorer:
