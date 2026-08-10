@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -57,21 +58,14 @@ interface SavedFilter {
 }
 
 const CATEGORIES = [
-  { id: "top-movers", label: "Top Movers" },
-  { id: "top-breakouts", label: "Top Breakouts" },
-  { id: "top-trends", label: "Top Trends" },
-  { id: "top-reversals", label: "Top Reversals" },
-  { id: "top-mean-reversions", label: "Mean Reversion" },
+  { id: "top-movers" },
+  { id: "top-breakouts" },
+  { id: "top-trends" },
+  { id: "top-reversals" },
+  { id: "top-mean-reversions" },
 ];
 
 const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"];
-
-const DEFAULT_FILTERS: SavedFilter[] = [
-  { id: "default", name: "Default", category: "top-movers", timeframe: "1h", market: "futures" },
-  { id: "high-conf", name: "High Confidence", category: "top-trends", timeframe: "4h", market: "futures" },
-  { id: "low-risk", name: "Low Risk", category: "top-breakouts", timeframe: "1h", market: "spot" },
-  { id: "high-volume", name: "High Volume", category: "top-movers", timeframe: "15m", market: "futures" },
-];
 
 function getScoreColor(score: number): string {
   if (score >= 80) return "text-[var(--accent-green)]";
@@ -93,20 +87,20 @@ function getRiskColor(risk: number): string {
   return "text-[var(--accent-red)]";
 }
 
-function getDecisionBadge(decision: string): { variant: "success" | "info" | "default" | "warning" | "danger"; label: string } {
+function getDecisionBadge(decision: string, t: (key: string) => string): { variant: "success" | "info" | "default" | "warning" | "danger"; label: string } {
   switch (decision) {
-    case "STRONG_BUY": return { variant: "success", label: "STRONG BUY" };
-    case "BUY": return { variant: "info", label: "BUY" };
-    case "NEUTRAL": return { variant: "default", label: "NEUTRAL" };
-    case "SELL": return { variant: "warning", label: "SELL" };
-    case "STRONG_SELL": return { variant: "danger", label: "STRONG SELL" };
+    case "STRONG_BUY": return { variant: "success", label: t("decision.STRONG_BUY") };
+    case "BUY": return { variant: "info", label: t("decision.BUY") };
+    case "NEUTRAL": return { variant: "default", label: t("decision.NEUTRAL") };
+    case "SELL": return { variant: "warning", label: t("decision.SELL") };
+    case "STRONG_SELL": return { variant: "danger", label: t("decision.STRONG_SELL") };
     default: return { variant: "default", label: decision };
   }
 }
 
 const STORAGE_KEY = "elite-scanner-filters";
 
-function loadSavedFilters(): SavedFilter[] {
+function loadSavedFilters(defaults: SavedFilter[]): SavedFilter[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -116,7 +110,7 @@ function loadSavedFilters(): SavedFilter[] {
   } catch {
     /* ignore */
   }
-  return DEFAULT_FILTERS;
+  return defaults;
 }
 
 function persistSavedFilters(filters: SavedFilter[]): void {
@@ -134,6 +128,8 @@ interface ExplainDrawerProps {
 }
 
 function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
+  const { t } = useTranslation("scanner");
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -145,7 +141,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
 
   if (!result) return null;
 
-  const decision = getDecisionBadge(deriveDecision(result.side, result.confidence));
+  const decision = getDecisionBadge(deriveDecision(result.side, result.confidence), t);
 
   return (
     <>
@@ -172,19 +168,19 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
               </Badge>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
-              Esc
+              {t("drawer.esc")}
             </Button>
           </div>
 
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                AI Summary
+                {t("drawer.aiSummary")}
               </span>
             </div>
             <div className="widget-body">
               <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                {result.explanation?.summary ?? "No summary available"}
+                {result.explanation?.summary ?? t("drawer.noSummary")}
               </p>
             </div>
           </div>
@@ -192,7 +188,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Elite Score
+                {t("drawer.eliteScore")}
               </span>
               <span className={cn("text-xs font-mono tabular-nums", getScoreColor(result.confidence))}>
                 {result.confidence.toFixed(1)}
@@ -212,25 +208,25 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
               </div>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Confidence</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.confidence")}</span>
                   <span className={cn("font-mono tabular-nums", getConfidenceColor(result.confidence))}>
                     {result.confidence.toFixed(0)}%
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Risk</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.risk")}</span>
                   <span className={cn("font-mono tabular-nums", getRiskColor(result.risk_score))}>
                     {result.risk_score.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Strategy</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.strategy")}</span>
                   <span className="font-mono text-[var(--text-primary)] uppercase">
                     {result.strategy}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Rank</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.rank")}</span>
                   <span className="font-mono text-[var(--text-primary)]">
                     #{result.rank}
                   </span>
@@ -243,7 +239,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
             <div className="widget-card">
               <div className="widget-header">
                 <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                  Trend Analysis
+                  {t("drawer.trendAnalysis")}
                 </span>
               </div>
               <div className="widget-body">
@@ -258,7 +254,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
             <div className="widget-card">
               <div className="widget-header">
                 <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                  Key Levels
+                  {t("drawer.keyLevels")}
                 </span>
               </div>
               <div className="widget-body space-y-1">
@@ -283,7 +279,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
             <div className="widget-card">
               <div className="widget-header">
                 <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                  Signals
+                  {t("drawer.signals")}
                 </span>
               </div>
               <div className="widget-body space-y-2">
@@ -313,7 +309,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
             <div className="widget-card">
               <div className="widget-header">
                 <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                  Risk Assessment
+                  {t("drawer.riskAssessment")}
                 </span>
               </div>
               <div className="widget-body">
@@ -328,7 +324,7 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
             <div className="widget-card">
               <div className="widget-header">
                 <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                  Volume Analysis
+                  {t("drawer.volumeAnalysis")}
                 </span>
               </div>
               <div className="widget-body">
@@ -342,31 +338,31 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Market Data
+                {t("drawer.marketData")}
               </span>
             </div>
             <div className="widget-body space-y-1.5 text-[11px]">
               <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Price</span>
+                <span className="text-[var(--text-muted)]">{t("drawer.price")}</span>
                 <span className="font-mono tabular-nums text-[var(--text-primary)]">
                   ${result.price.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Composite Score</span>
+                <span className="text-[var(--text-muted)]">{t("drawer.compositeScore")}</span>
                 <span className="font-mono tabular-nums text-[var(--text-primary)]">
                   {result.score.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Probability</span>
+                <span className="text-[var(--text-muted)]">{t("drawer.probability")}</span>
                 <span className="font-mono tabular-nums text-[var(--text-primary)]">
                   {result.probability.toFixed(1)}%
                 </span>
               </div>
               {result.signals.length > 0 && (
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--text-muted)]">Signal Badges</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.signalBadges")}</span>
                   <div className="flex gap-1 flex-wrap justify-end">
                     {result.signals.slice(0, 3).map((s) => (
                       <Badge key={s} variant="default" className="text-[8px]">
@@ -390,13 +386,20 @@ function ExplainDrawer({ result, open, onClose }: ExplainDrawerProps) {
 }
 
 export default function Scanner() {
+  const { t } = useTranslation(["scanner", "common"]);
+  const DEFAULT_FILTERS: SavedFilter[] = [
+    { id: "default", name: t("defaultFilters.default"), category: "top-movers", timeframe: "1h", market: "futures" },
+    { id: "high-conf", name: t("defaultFilters.highConf"), category: "top-trends", timeframe: "4h", market: "futures" },
+    { id: "low-risk", name: t("defaultFilters.lowRisk"), category: "top-breakouts", timeframe: "1h", market: "spot" },
+    { id: "high-volume", name: t("defaultFilters.highVolume"), category: "top-movers", timeframe: "15m", market: "futures" },
+  ];
   const [activeCategory, setActiveCategory] = useState("top-movers");
   const [timeframe, setTimeframe] = useState("1h");
   const [market, setMarket] = useState<"spot" | "futures">("futures");
   const [opportunities, setOpportunities] = useState<ScannerResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>(() => loadSavedFilters());
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>(() => loadSavedFilters(DEFAULT_FILTERS));
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<ScannerResult | null>(null);
@@ -415,7 +418,7 @@ export default function Scanner() {
       setOpportunities(data);
     } catch {
       setOpportunities([]);
-      setError("Failed to load scanner data. Check your connection and try again.");
+      setError(t("loadError"));
     } finally {
       setLoading(false);
     }
@@ -444,7 +447,7 @@ export default function Scanner() {
   }, []);
 
   const saveCurrentFilter = useCallback(() => {
-    const name = `Filter ${savedFilters.length + 1}`;
+    const name = t("newFilterName", { n: savedFilters.length + 1 });
     const newFilter: SavedFilter = {
       id: `filter-${Date.now()}`,
       name,
@@ -456,7 +459,7 @@ export default function Scanner() {
     setSavedFilters(updated);
     persistSavedFilters(updated);
     setActiveFilter(newFilter.id);
-  }, [savedFilters, activeCategory, timeframe, market]);
+  }, [savedFilters, activeCategory, timeframe, market, t]);
 
   const deleteFilter = useCallback((id: string) => {
     const updated = savedFilters.filter((f) => f.id !== id);
@@ -481,7 +484,7 @@ export default function Scanner() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
-            Market Scanner
+            {t("heading")}
           </h2>
           <div className="flex items-center gap-2">
             <div className="flex gap-2 items-center">
@@ -490,14 +493,14 @@ export default function Scanner() {
                 size="sm"
                 onClick={() => setMarket("spot")}
               >
-                Spot
+                {t("market.spot")}
               </Button>
               <Button
                 variant={market === "futures" ? "primary" : "secondary"}
                 size="sm"
                 onClick={() => setMarket("futures")}
               >
-                Futures
+                {t("market.futures")}
               </Button>
             </div>
           </div>
@@ -508,7 +511,7 @@ export default function Scanner() {
             <div className="flex items-center gap-3 flex-wrap">
               <div className="relative">
                 <Input
-                  placeholder="Search symbol or strategy..."
+                  placeholder={t("searchPlaceholder")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-52 h-7 text-xs"
@@ -522,8 +525,8 @@ export default function Scanner() {
                   onClick={() => setFilterMenuOpen(!filterMenuOpen)}
                 >
                   {activeFilter
-                    ? savedFilters.find((f) => f.id === activeFilter)?.name ?? "Saved Filters"
-                    : "Saved Filters"}
+                    ? savedFilters.find((f) => f.id === activeFilter)?.name ?? t("savedFilters")
+                    : t("savedFilters")}
                   <span className="ml-1.5 text-[10px] text-[var(--text-muted)]">
                     ▼
                   </span>
@@ -553,7 +556,7 @@ export default function Scanner() {
                           className="w-full px-3 py-1.5 text-xs text-[var(--accent-blue)] hover:bg-[var(--bg-hover)] text-left"
                           onClick={saveCurrentFilter}
                         >
-                          + Save Current
+                          {t("saveCurrent")}
                         </button>
                       </div>
                     </div>
@@ -587,7 +590,7 @@ export default function Scanner() {
               size="sm"
               onClick={() => setActiveCategory(cat.id)}
             >
-              {cat.label}
+              {t(`categories.${cat.id}`)}
             </Button>
           ))}
         </div>
@@ -598,7 +601,7 @@ export default function Scanner() {
               <div className="flex flex-col items-center gap-3 py-4">
                 <p className="text-xs text-[var(--accent-red)] font-mono text-center">{error}</p>
                 <Button variant="ghost" size="sm" onClick={() => loadCategory(activeCategory)}>
-                  Retry
+                  {t("common:retry")}
                 </Button>
               </div>
             </CardContent>
@@ -631,8 +634,8 @@ export default function Scanner() {
             <CardContent className="py-12 text-center">
               <p className="text-xs font-mono text-[var(--text-muted)]">
                 {search
-                  ? "No results match your search"
-                  : "No opportunities found for this category"}
+                  ? t("noResultsSearch")
+                  : t("noResultsCategory")}
               </p>
             </CardContent>
           </Card>
@@ -643,21 +646,21 @@ export default function Scanner() {
                 <table className="w-full caption-bottom text-sm">
                   <thead className="border-b border-[var(--border-subtle)]">
                     <tr>
-                      <TableHead className="w-8">#</TableHead>
-                      <TableHead className="w-24">Symbol</TableHead>
-                      <TableHead className="w-14">Side</TableHead>
-                      <TableHead className="w-24">Strategy</TableHead>
-                      <TableHead className="w-20">Elite Score</TableHead>
-                      <TableHead className="w-24">AI Decision</TableHead>
-                      <TableHead className="w-18">Conf</TableHead>
-                      <TableHead className="w-14">Risk</TableHead>
-                      <TableHead className="w-20">Score</TableHead>
-                      <TableHead className="w-20">Probability</TableHead>
+                      <TableHead className="w-8">{t("table.rank")}</TableHead>
+                      <TableHead className="w-24">{t("table.symbol")}</TableHead>
+                      <TableHead className="w-14">{t("table.side")}</TableHead>
+                      <TableHead className="w-24">{t("table.strategy")}</TableHead>
+                      <TableHead className="w-20">{t("table.eliteScore")}</TableHead>
+                      <TableHead className="w-24">{t("table.aiDecision")}</TableHead>
+                      <TableHead className="w-18">{t("table.confidence")}</TableHead>
+                      <TableHead className="w-14">{t("table.risk")}</TableHead>
+                      <TableHead className="w-20">{t("table.score")}</TableHead>
+                      <TableHead className="w-20">{t("table.probability")}</TableHead>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((result) => {
-                      const decision = getDecisionBadge(deriveDecision(result.side, result.confidence));
+                      const decision = getDecisionBadge(deriveDecision(result.side, result.confidence), t);
                       return (
                         <tr
                           key={`${result.symbol}-${result.rank}`}
@@ -746,7 +749,7 @@ export default function Scanner() {
 
         {!loading && filtered.length > 0 && (
           <p className="text-[10px] text-[var(--text-muted)] font-mono text-right">
-            {filtered.length} result{filtered.length !== 1 ? "s" : ""} — click to explain, double-click to navigate
+            {t("resultCount", { count: filtered.length })}
           </p>
         )}
       </div>

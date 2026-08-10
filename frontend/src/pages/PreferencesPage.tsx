@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
@@ -8,6 +9,7 @@ import { usePreferencesStore } from "../stores/preferences-store";
 import type { UserPreferencesDTO } from "../types/api/preferences";
 
 export default function PreferencesPage() {
+  const { t } = useTranslation("preferences");
   const [prefs, setPrefs] = useState<UserPreferencesDTO | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,11 +33,11 @@ export default function PreferencesPage() {
       const data = await fetchPreferences(1);
       setPrefs(data);
     } catch {
-      addGlobalToast("Failed to load preferences", "error");
+      addGlobalToast(t("toast.loadError"), "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -53,7 +55,7 @@ export default function PreferencesPage() {
   if (!prefs) {
     return (
       <div className="text-xs text-[var(--text-secondary)] font-mono uppercase">
-        No preferences data
+        {t("page.noData")}
       </div>
     );
   }
@@ -61,18 +63,18 @@ export default function PreferencesPage() {
   return (
     <div className="space-y-6">
       <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-        Founder Settings
+        {t("page.title")}
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Theme</CardTitle>
+            <CardTitle>{t("theme.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
               <span className="text-xs text-[var(--text-secondary)] font-mono">
-                Current: <span className="text-[var(--text-primary)]">{prefs.theme}</span>
+                {t("theme.current")} <span className="text-[var(--text-primary)]">{prefs.theme}</span>
               </span>
               <Button
                 size="sm"
@@ -82,13 +84,13 @@ export default function PreferencesPage() {
                   try {
                     await updateTheme(1, newTheme);
                     setPrefs((p) => (p ? { ...p, theme: newTheme } : p));
-                    addGlobalToast(`Theme changed to ${newTheme}`, "success");
+                    addGlobalToast(t("toast.themeChanged", { theme: newTheme }), "success");
                   } catch {
-                    addGlobalToast("Failed to update theme", "error");
+                    addGlobalToast(t("toast.themeUpdateError"), "error");
                   }
                 }}
               >
-                Toggle
+                {t("actions.toggle")}
               </Button>
             </div>
           </CardContent>
@@ -96,14 +98,14 @@ export default function PreferencesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Layout</CardTitle>
+            <CardTitle>{t("layout.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-[var(--text-secondary)] font-mono">
-                Sidebar:{" "}
+                {t("layout.sidebar")}{" "}
                 <span className="text-[var(--text-primary)]">
-                  {sidebarCollapsed ? "Collapsed" : "Expanded"}
+                  {sidebarCollapsed ? t("layout.collapsed") : t("layout.expanded")}
                 </span>
               </span>
               <Button
@@ -112,12 +114,12 @@ export default function PreferencesPage() {
                 onClick={() => {
                   localToggleSidebar();
                   addGlobalToast(
-                    `Sidebar ${!sidebarCollapsed ? "collapsed" : "expanded"}`,
+                    !sidebarCollapsed ? t("toast.sidebarCollapsed") : t("toast.sidebarExpanded"),
                     "success",
                   );
                 }}
               >
-                Toggle
+                {t("actions.toggle")}
               </Button>
             </div>
           </CardContent>
@@ -125,11 +127,11 @@ export default function PreferencesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Display</CardTitle>
+            <CardTitle>{t("display.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-secondary)] font-mono">Time Format</span>
+              <span className="text-xs text-[var(--text-secondary)] font-mono">{t("display.timeFormat")}</span>
               <div className="flex gap-1">
                 {(["12h", "24h"] as const).map((f) => (
                   <button
@@ -147,7 +149,7 @@ export default function PreferencesPage() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-secondary)] font-mono">Number Format</span>
+              <span className="text-xs text-[var(--text-secondary)] font-mono">{t("display.numberFormat")}</span>
               <div className="flex gap-1">
                 {(["usd", "compact"] as const).map((f) => (
                   <button
@@ -165,7 +167,7 @@ export default function PreferencesPage() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-secondary)] font-mono">Refresh Interval</span>
+              <span className="text-xs text-[var(--text-secondary)] font-mono">{t("display.refreshInterval")}</span>
               <select
                 value={refreshInterval}
                 onChange={(e) => setRefreshInterval(Number(e.target.value))}
@@ -179,7 +181,7 @@ export default function PreferencesPage() {
               </select>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-secondary)] font-mono">Default Symbol</span>
+              <span className="text-xs text-[var(--text-secondary)] font-mono">{t("display.defaultSymbol")}</span>
               <input
                 type="text"
                 value={defaultSymbol}

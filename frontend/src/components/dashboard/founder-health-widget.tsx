@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
@@ -23,6 +24,20 @@ const statusDot: Record<string, string> = {
 };
 
 export function FounderHealthWidget() {
+  const { t } = useTranslation("heroDashboard");
+  const statusLabels: Record<string, string> = {
+    ONLINE: t("founderHealthWidget.status.online"),
+    OFFLINE: t("founderHealthWidget.status.offline"),
+    DEGRADED: t("founderHealthWidget.status.degraded"),
+  };
+  const serviceLabels: Record<string, string> = {
+    Backend: t("founderHealthWidget.services.backend"),
+    Database: t("founderHealthWidget.services.database"),
+    WebSocket: t("founderHealthWidget.services.websocket"),
+    "Market Feed": t("founderHealthWidget.services.marketFeed"),
+    "Intelligence Engine": t("founderHealthWidget.services.intelligenceEngine"),
+    Notifications: t("founderHealthWidget.services.notifications"),
+  };
   const [services, setServices] = useState<ServiceStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,7 +121,7 @@ export function FounderHealthWidget() {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>System Health</CardTitle>
+        <CardTitle>{t("founderHealthWidget.title")}</CardTitle>
         <Badge
           variant={
             services.every((s) => s.status === "ONLINE")
@@ -117,12 +132,12 @@ export function FounderHealthWidget() {
           }
         >
           {loading
-            ? "CHECKING"
+            ? t("founderHealthWidget.checking")
             : services.every((s) => s.status === "ONLINE")
-              ? "ALL ONLINE"
+              ? t("founderHealthWidget.allOnline")
               : services.some((s) => s.status === "OFFLINE")
-                ? "SOME OFFLINE"
-                : "DEGRADED"}
+                ? t("founderHealthWidget.someOffline")
+                : t("founderHealthWidget.degraded")}
         </Badge>
       </CardHeader>
       <CardContent>
@@ -145,10 +160,10 @@ export function FounderHealthWidget() {
                     style={{ backgroundColor: statusDot[s.status] }}
                   />
                   <span className="text-[10px] font-mono text-[var(--text-secondary)]">
-                    {s.label}
+                    {serviceLabels[s.label] || s.label}
                   </span>
                 </div>
-                <Badge variant={statusVariant[s.status]}>{s.status}</Badge>
+                <Badge variant={statusVariant[s.status]}>{statusLabels[s.status] || s.status}</Badge>
               </div>
             ))}
           </div>

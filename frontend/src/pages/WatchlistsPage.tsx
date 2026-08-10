@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -15,6 +16,7 @@ import {
 import type { WatchlistDTO } from "../types/api/watchlist";
 
 export default function WatchlistsPage() {
+  const { t } = useTranslation("watchlists");
   const [watchlists, setWatchlists] = useState<WatchlistDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
@@ -26,11 +28,11 @@ export default function WatchlistsPage() {
       const res = await fetchWatchlists();
       setWatchlists(res.watchlists);
     } catch {
-      addGlobalToast("Failed to load watchlists", "error");
+      addGlobalToast(t("toast.loadFailed"), "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -42,9 +44,9 @@ export default function WatchlistsPage() {
       const wl = await createWatchlist(newName.trim());
       setWatchlists((prev) => [...prev, wl]);
       setNewName("");
-      addGlobalToast("Watchlist created", "success");
+      addGlobalToast(t("toast.created"), "success");
     } catch {
-      addGlobalToast("Failed to create watchlist", "error");
+      addGlobalToast(t("toast.createFailed"), "error");
     }
   }
 
@@ -52,9 +54,9 @@ export default function WatchlistsPage() {
     try {
       await deleteWatchlist(id);
       setWatchlists((prev) => prev.filter((w) => w.id !== id));
-      addGlobalToast("Watchlist deleted", "success");
+      addGlobalToast(t("toast.deleted"), "success");
     } catch {
-      addGlobalToast("Failed to delete watchlist", "error");
+      addGlobalToast(t("toast.deleteFailed"), "error");
     }
   }
 
@@ -64,9 +66,9 @@ export default function WatchlistsPage() {
       const wl = await addWatchlistSymbol(id, newSymbol.trim().toUpperCase());
       setWatchlists((prev) => prev.map((w) => (w.id === id ? wl : w)));
       setNewSymbol("");
-      addGlobalToast(`Added ${newSymbol.toUpperCase()}`, "success");
+      addGlobalToast(t("toast.symbolAdded", { symbol: newSymbol.toUpperCase() }), "success");
     } catch {
-      addGlobalToast("Failed to add symbol", "error");
+      addGlobalToast(t("toast.addSymbolFailed"), "error");
     }
   }
 
@@ -75,25 +77,25 @@ export default function WatchlistsPage() {
       const wl = await removeWatchlistSymbol(wlId, symbol);
       setWatchlists((prev) => prev.map((w) => (w.id === wlId ? wl : w)));
     } catch {
-      addGlobalToast("Failed to remove symbol", "error");
+      addGlobalToast(t("toast.removeSymbolFailed"), "error");
     }
   }
 
   return (
     <div className="space-y-6">
       <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-        Watchlists
+        {t("page.title")}
       </h2>
 
       <div className="flex items-center gap-2">
         <Input
-          placeholder="New watchlist name"
+          placeholder={t("page.newWatchlistPlaceholder")}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           className="max-w-xs"
         />
         <Button size="sm" onClick={handleCreate}>
-          Create
+          {t("page.create")}
         </Button>
       </div>
 
@@ -106,7 +108,7 @@ export default function WatchlistsPage() {
       ) : watchlists.length === 0 ? (
         <div className="border border-dashed border-[var(--border-subtle)] rounded p-8 text-center">
           <p className="text-xs text-[var(--text-muted)] font-mono uppercase tracking-widest">
-            No watchlists yet
+            {t("page.empty")}
           </p>
         </div>
       ) : (
@@ -121,7 +123,7 @@ export default function WatchlistsPage() {
                     variant="danger"
                     onClick={() => handleDelete(wl.id)}
                   >
-                    Delete
+                    {t("page.delete")}
                   </Button>
                 </div>
               </CardHeader>
@@ -141,7 +143,7 @@ export default function WatchlistsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Input
-                    placeholder="Add symbol..."
+                    placeholder={t("page.addSymbolPlaceholder")}
                     value={newSymbol}
                     onChange={(e) => setNewSymbol(e.target.value)}
                     className="flex-1"
@@ -151,7 +153,7 @@ export default function WatchlistsPage() {
                     variant="outline"
                     onClick={() => handleAddSymbol(wl.id)}
                   >
-                    Add
+                    {t("page.add")}
                   </Button>
                 </div>
               </CardContent>

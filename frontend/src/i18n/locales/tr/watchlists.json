@@ -1,0 +1,21 @@
+{
+  "page": {
+    "title": "İzleme Listeleri",
+    "newWatchlistPlaceholder": "Yeni izleme listesi adı",
+    "create": "Oluştur",
+    "delete": "Sil",
+    "addSymbolPlaceholder": "Sembol ekle...",
+    "add": "Ekle",
+    "empty": "Henüz izleme listesi yok"
+  },
+  "toast": {
+    "loadFailed": "İzleme listeleri yüklenemedi",
+    "created": "İzleme listesi oluşturuldu",
+    "createFailed": "İzleme listesi oluşturulamadı",
+    "deleted": "İzleme listesi silindi",
+    "deleteFailed": "İzleme listesi silinemedi",
+    "symbolAdded": "{{symbol}} eklendi",
+    "addSymbolFailed": "Sembol eklenemedi",
+    "removeSymbolFailed": "Sembol kaldırılamadı"
+  }
+}

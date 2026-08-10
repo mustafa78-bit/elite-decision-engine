@@ -1,0 +1,33 @@
+{
+  "page": {
+    "loading": "İstihbarat paneli yükleniyor...",
+    "loadError": "İstihbarat verisi yüklenemedi",
+    "title": "Canlı İstihbarat Paneli"
+  },
+  "marketOverview": {
+    "title": "Piyasa Durumu",
+    "price": "Fiyat",
+    "regime": "Rejim",
+    "btcHealth": "BTC Sağlığı",
+    "volatility": "Oynaklık",
+    "rsi": "RSI"
+  },
+  "signalFeed": {
+    "title": "Sinyal Akışı",
+    "total": "Toplam",
+    "open": "Açık",
+    "approved": "Onaylanan",
+    "rejected": "Reddedilen"
+  },
+  "riskMonitor": {
+    "title": "Risk İzleme",
+    "openPositions": "Açık Pozisyonlar",
+    "capacityUsed": "Kapasitenin %{{pct}}'i kullanıldı"
+  },
+  "tradeMonitor": {
+    "title": "İşlem İzleme",
+    "open": "Açık",
+    "closed": "Kapalı",
+    "totalPnl": "Toplam Kâr/Zarar"
+  }
+}

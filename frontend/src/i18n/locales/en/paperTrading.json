@@ -1,0 +1,32 @@
+{
+  "page": {
+    "loading": "Loading paper trading...",
+    "loadError": "Failed to load paper trading",
+    "noData": "No paper trading data",
+    "heading": "Paper Trading Terminal",
+    "openTrades": "Open Trades",
+    "closedTrades": "Closed Trades"
+  },
+  "paperPnLCard": {
+    "title": "Paper PnL",
+    "summary": "{{open}} open / {{closed}} closed"
+  },
+  "paperPerformanceCard": {
+    "title": "Paper Performance",
+    "total": "Total",
+    "winRate": "Win Rate",
+    "wins": "Wins",
+    "losses": "Losses"
+  },
+  "paperPositionTable": {
+    "noTrades": "No {{title}}",
+    "columns": {
+      "symbol": "Symbol",
+      "side": "Side",
+      "entry": "Entry",
+      "exit": "Exit",
+      "pnl": "PnL",
+      "status": "Status"
+    }
+  }
+}

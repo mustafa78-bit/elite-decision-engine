@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { createChart, ColorType, LineSeries } from "lightweight-charts";
 
 interface LineData {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function PerformanceChart({ equityCurve, height = 200 }: Props) {
+  const { t } = useTranslation("analytics");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function PerformanceChart({ equityCurve, height = 200 }: Props) {
   if (equityCurve.length === 0) {
     return (
       <div className="text-gray-500 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
-        No performance data
+        {t("performanceChart.noData")}
       </div>
     );
   }

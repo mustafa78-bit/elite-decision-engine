@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { KPIWidget } from "../components/dashboard/kpi-widget";
 import { MarketRegimeWidget } from "../components/dashboard/market-regime-widget";
@@ -56,6 +57,7 @@ interface PerfData {
 
 export default function HeroDashboard() {
   const navigate = useNavigate();
+  const { t } = useTranslation(["heroDashboard", "common"]);
   const { setCommandPaletteOpen } = useUIStore();
   const [mounted, setMounted] = useState(false);
   const [intel, setIntel] = useState<IntelligenceData | null>(null);
@@ -84,10 +86,10 @@ export default function HeroDashboard() {
   useEffect(() => { load(); }, []);
 
   const quickActions = [
-    { label: "New Trade", icon: "⚡", shortcut: "Ctrl+T", onClick: () => navigate("/trades") },
-    { label: "Scanner", icon: "🔍", shortcut: "Ctrl+S", onClick: () => navigate("/scanner") },
-    { label: "Command Palette", icon: "⌨", shortcut: "Ctrl+K", onClick: () => setCommandPaletteOpen(true) },
-    { label: "Run Backtest", icon: "🔄", shortcut: "Ctrl+B", onClick: () => navigate("/backtest") },
+    { label: t("page.quickActions.newTrade"), icon: "⚡", shortcut: "Ctrl+T", onClick: () => navigate("/trades") },
+    { label: t("page.quickActions.scanner"), icon: "🔍", shortcut: "Ctrl+S", onClick: () => navigate("/scanner") },
+    { label: t("page.quickActions.commandPalette"), icon: "⌨", shortcut: "Ctrl+K", onClick: () => setCommandPaletteOpen(true) },
+    { label: t("page.quickActions.runBacktest"), icon: "🔄", shortcut: "Ctrl+B", onClick: () => navigate("/backtest") },
   ];
 
   if (!mounted) {
@@ -122,34 +124,46 @@ export default function HeroDashboard() {
 
   const overallRisk = (intel?.risk?.open_trades ?? 0) >= 3 ? "HIGH" : (intel?.risk?.open_trades ?? 0) >= 1 ? "MEDIUM" : "LOW";
   const riskMetrics = [
-    { label: "Open Trades", value: String(openCount), status: (openCount >= 3 ? "danger" : openCount >= 1 ? "warning" : "good") as "good" | "warning" | "danger" },
-    { label: "Win Rate", value: perf?.win_rate != null ? `${perf.win_rate.toFixed(0)}%` : "--", status: "good" as const },
+    { label: t("page.riskMetricLabels.openTrades"), value: String(openCount), status: (openCount >= 3 ? "danger" : openCount >= 1 ? "warning" : "good") as "good" | "warning" | "danger" },
+    { label: t("page.riskMetricLabels.winRate"), value: perf?.win_rate != null ? `${perf.win_rate.toFixed(0)}%` : "--", status: "good" as const },
   ];
 
   const intelligenceItems = [
     {
       id: "1",
-      title: "Market Overview",
+      title: t("page.intelligence.marketOverview.title"),
       summary: intel?.market?.regime
-        ? `Market regime: ${intel.market.regime}. RSI: ${intel.market.rsi ?? "N/A"}. Volatility: ${intel.market.volatility != null ? (intel.market.volatility * 100).toFixed(0) : "N/A"}%.`
-        : "Market data loading...",
-      source: "AI Engine",
+        ? t("page.intelligence.marketOverview.summary", {
+            regime: intel.market.regime,
+            rsi: intel.market.rsi ?? "N/A",
+            volatility: intel.market.volatility != null ? (intel.market.volatility * 100).toFixed(0) : "N/A",
+          })
+        : t("page.intelligence.marketOverview.loading"),
+      source: t("page.intelligence.marketOverview.source"),
       timestamp: new Date().toISOString(),
       relevance: intel?.market?.rsi ?? 50,
     },
     {
       id: "2",
-      title: "Signal Activity",
-      summary: `${intel?.signals?.total ?? 0} total signals, ${intel?.signals?.approved ?? 0} approved, ${intel?.signals?.rejected ?? 0} rejected.`,
-      source: "Signal Engine",
+      title: t("page.intelligence.signalActivity.title"),
+      summary: t("page.intelligence.signalActivity.summary", {
+        total: intel?.signals?.total ?? 0,
+        approved: intel?.signals?.approved ?? 0,
+        rejected: intel?.signals?.rejected ?? 0,
+      }),
+      source: t("page.intelligence.signalActivity.source"),
       timestamp: new Date().toISOString(),
       relevance: intel?.signals?.approved != null ? Math.round((intel.signals.approved / Math.max(intel.signals.total ?? 1, 1)) * 100) : 0,
     },
     {
       id: "3",
-      title: "Trade Status",
-      summary: `${openCount} open trades, ${closedCount} closed. Total PnL: $${totalPnl.toLocaleString()}.`,
-      source: "Execution Engine",
+      title: t("page.intelligence.tradeStatus.title"),
+      summary: t("page.intelligence.tradeStatus.summary", {
+        open: openCount,
+        closed: closedCount,
+        pnl: totalPnl.toLocaleString(),
+      }),
+      source: t("page.intelligence.tradeStatus.source"),
       timestamp: new Date().toISOString(),
       relevance: Math.round((closedCount / Math.max(closedCount + openCount, 1)) * 100),
     },
@@ -166,15 +180,15 @@ export default function HeroDashboard() {
       <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
         <div className="text-center space-y-4 p-8">
           <div className="text-3xl opacity-30">⚠</div>
-          <p className="text-xs text-[var(--text-muted)] font-mono">Unable to load dashboard data</p>
+          <p className="text-xs text-[var(--text-muted)] font-mono">{t("page.loadError.title")}</p>
           <p className="text-[10px] text-[var(--text-secondary)] max-w-md">
-            Check that the backend is running and accessible at the configured API URL.
+            {t("page.loadError.detail")}
           </p>
           <button
             onClick={load}
             className="px-3 py-1.5 rounded-lg bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] text-[10px] font-mono hover:bg-[var(--accent-blue)]/20 transition-all"
           >
-            Retry
+            {t("common:retry")}
           </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
@@ -6,6 +7,7 @@ import { fetchScannerDashboard, type ScannerOpportunity } from "../../api/scanne
 import { catalystIcon, shortLabel } from "./MarketCatalystCard";
 
 function OpportunityRow({ opp }: { opp: ScannerOpportunity }) {
+  const { t } = useTranslation("commandDeck");
   const isLong = opp.side === "LONG";
   const sideColor = isLong ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]";
 
@@ -23,7 +25,7 @@ function OpportunityRow({ opp }: { opp: ScannerOpportunity }) {
       <div className="flex items-center justify-between mt-0.5">
         <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase">{opp.strategy}</span>
         <span className="text-[9px] font-mono text-[var(--text-muted)]">
-          {`Score ${opp.score.toFixed(1)}`}
+          {t("scannerOpportunities.score", { value: opp.score.toFixed(1) })}
         </span>
         <span className="text-[9px] font-mono text-[var(--text-primary)]">
           {`${(opp.confidence * 100).toFixed(0)}%`}
@@ -49,15 +51,16 @@ function OpportunityRow({ opp }: { opp: ScannerOpportunity }) {
 }
 
 export default function ScannerOpportunitiesPanel() {
+  const { t } = useTranslation(["commandDeck", "common"]);
   const { data: dash, loading, error, refetch } = useApi(() => fetchScannerDashboard(8), []);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ranked Opportunities</CardTitle>
+        <CardTitle>{t("scannerOpportunities.title")}</CardTitle>
         {dash && (
           <span className="text-[10px] font-mono text-[var(--text-muted)]">
-            {dash.opportunities_found} found
+            {t("scannerOpportunities.found", { count: dash.opportunities_found })}
           </span>
         )}
       </CardHeader>
@@ -70,12 +73,12 @@ export default function ScannerOpportunitiesPanel() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center gap-2 py-2">
-            <p className="text-[10px] text-[var(--accent-red)] font-mono">Failed to load</p>
-            <Button variant="ghost" size="sm" onClick={refetch}>Retry</Button>
+            <p className="text-[10px] text-[var(--accent-red)] font-mono">{t("scannerOpportunities.failedToLoad")}</p>
+            <Button variant="ghost" size="sm" onClick={refetch}>{t("common:common.retry")}</Button>
           </div>
         ) : !dash || dash.top_opportunities.length === 0 ? (
           <p className="text-[10px] text-[var(--text-muted)] font-mono text-center py-3">
-            No opportunities found
+            {t("scannerOpportunities.empty")}
           </p>
         ) : (
           <div>

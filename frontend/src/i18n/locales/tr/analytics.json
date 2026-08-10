@@ -1,0 +1,67 @@
+{
+  "page": {
+    "loading": "Analitik yükleniyor...",
+    "loadError": "Analitik yüklenemedi",
+    "noData": "Henüz işlem verisi yok — analiz oluşturmak için işlem yapmaya başlayın",
+    "sections": {
+      "performanceMetrics": "Performans Metrikleri",
+      "portfolioSummary": "Portföy Özeti",
+      "equityCurve": "Özkaynak Eğrisi",
+      "drawdown": "Düşüş",
+      "winRate": "Kazanma Oranı",
+      "summary": "Özet"
+    },
+    "metrics": {
+      "sharpeRatio": "Sharpe Oranı",
+      "sortinoRatio": "Sortino Oranı",
+      "profitFactor": "Kâr Faktörü",
+      "expectancy": "Beklenti",
+      "recoveryFactor": "Toparlanma Faktörü",
+      "calmarRatio": "Calmar Oranı",
+      "avgRMultiple": "Ort. R Katsayısı",
+      "avgHoldHours": "Ort. Tutma (sa)",
+      "bestTrade": "En İyi İşlem $",
+      "worstTrade": "En Kötü İşlem $",
+      "consecutiveWins": "Art Arda Kazanç",
+      "consecutiveLosses": "Art Arda Kayıp"
+    },
+    "portfolio": {
+      "totalTrades": "Toplam İşlem",
+      "open": "Açık",
+      "closed": "Kapalı",
+      "winRate": "Kazanma Oranı",
+      "lossRate": "Kayıp Oranı",
+      "totalPnl": "Toplam K/Z",
+      "dailyPnl": "Günlük K/Z",
+      "avgWin": "Ort. Kazanç",
+      "avgLoss": "Ort. Kayıp",
+      "avgReturn": "Ort. Getiri",
+      "maxDrawdown": "Maks. Düşüş",
+      "openExposure": "Açık Maruziyet"
+    }
+  },
+  "drawdownChart": {
+    "noData": "Düşüş verisi yok"
+  },
+  "performanceChart": {
+    "noData": "Performans verisi yok"
+  },
+  "performanceSummary": {
+    "title": "Performans Özeti",
+    "items": {
+      "totalTrades": "Toplam İşlem",
+      "winning": "Kazanan",
+      "losing": "Kaybeden",
+      "winRate": "Kazanma Oranı",
+      "totalPnl": "Toplam K/Z",
+      "avgWin": "Ort. Kazanç",
+      "avgLoss": "Ort. Kayıp",
+      "profitFactor": "Kâr Faktörü",
+      "maxDrawdown": "Maks. Düşüş"
+    }
+  },
+  "winRateChart": {
+    "title": "Kazanma / Kayıp Oranı",
+    "basedOn": "{{count}} kapalı işleme göre"
+  }
+}

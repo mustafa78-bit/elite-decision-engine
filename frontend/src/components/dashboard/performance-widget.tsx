@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 interface PerformanceWidgetProps {
@@ -17,9 +18,10 @@ export function PerformanceWidget({
   totalTrades = 0,
   profitFactor = 0,
 }: PerformanceWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
   const metrics = [
     {
-      label: "Sharpe",
+      label: t("performanceWidget.metrics.sharpe"),
       value: sharpeRatio.toFixed(2),
       color:
         sharpeRatio >= 1.5
@@ -29,7 +31,7 @@ export function PerformanceWidget({
             : "text-[var(--accent-red)]",
     },
     {
-      label: "Sortino",
+      label: t("performanceWidget.metrics.sortino"),
       value: sortinoRatio.toFixed(2),
       color:
         sortinoRatio >= 2
@@ -39,7 +41,7 @@ export function PerformanceWidget({
             : "text-[var(--accent-red)]",
     },
     {
-      label: "Win Rate",
+      label: t("performanceWidget.metrics.winRate"),
       value: `${winRate.toFixed(1)}%`,
       color:
         winRate >= 60
@@ -49,7 +51,7 @@ export function PerformanceWidget({
             : "text-[var(--accent-red)]",
     },
     {
-      label: "Profit Factor",
+      label: t("performanceWidget.metrics.profitFactor"),
       value: profitFactor.toFixed(2),
       color:
         profitFactor >= 2
@@ -59,7 +61,7 @@ export function PerformanceWidget({
             : "text-[var(--accent-red)]",
     },
     {
-      label: "Max DD",
+      label: t("performanceWidget.metrics.maxDd"),
       value: `${Math.abs(maxDrawdown).toFixed(1)}%`,
       color:
         Math.abs(maxDrawdown) < 15
@@ -69,7 +71,7 @@ export function PerformanceWidget({
             : "text-[var(--accent-red)]",
     },
     {
-      label: "Trades",
+      label: t("performanceWidget.metrics.trades"),
       value: totalTrades.toLocaleString(),
       color: "text-[var(--text-primary)]",
     },
@@ -78,7 +80,7 @@ export function PerformanceWidget({
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Performance</CardTitle>
+        <CardTitle>{t("performanceWidget.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 gap-2">

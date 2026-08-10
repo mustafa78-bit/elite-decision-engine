@@ -1,0 +1,22 @@
+{
+  "page": {
+    "title": "Bildirim Merkezi"
+  },
+  "center": {
+    "loading": "Bildirimler yükleniyor...",
+    "loadFailed": "Bildirimler yüklenemedi",
+    "retry": "Tekrar Dene",
+    "empty": "Henüz bildirim yok",
+    "unreadCount": "{{count}} okunmamış",
+    "allRead": "Tümü okundu"
+  },
+  "item": {
+    "markRead": "Okundu",
+    "eventLabels": {
+      "tradeOpened": "İşlem Açıldı",
+      "tradeClosed": "İşlem Kapandı",
+      "systemHealthDegraded": "Sağlık Bozuldu",
+      "systemHealthRecovered": "Sağlık Düzeldi"
+    }
+  }
+}

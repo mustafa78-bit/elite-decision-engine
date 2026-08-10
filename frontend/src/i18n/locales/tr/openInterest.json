@@ -1,0 +1,10 @@
+{
+  "page": {
+    "title": "Açık Pozisyon",
+    "empty": "Açık pozisyon verisi bulunamadı"
+  },
+  "card": {
+    "change24h": "24s Değişim",
+    "volume": "Hacim"
+  }
+}

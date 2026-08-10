@@ -1,0 +1,66 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add",
+    "remove": "Remove",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "filter": "Filter",
+    "refresh": "Refresh",
+    "export": "Export",
+    "noData": "No data available"
+  },
+  "header": {
+    "subtitle": "Decision Engine v1"
+  },
+  "nav": {
+    "brandSubtitle": "Decision Intelligence",
+    "systemOnline": "System Online",
+    "section": {
+      "commandDeck": { "title": "Command Deck", "subtitle": "Headquarters" },
+      "scannerRoom": { "title": "Scanner Room", "subtitle": "Asset Surveillance" },
+      "aiCouncilChamber": { "title": "AI Council Chamber", "subtitle": "Decision Intelligence" },
+      "riskOperations": { "title": "Risk Operations", "subtitle": "Risk & Exposure" },
+      "portfolioVault": { "title": "Portfolio Vault", "subtitle": "Capital Management" },
+      "capitalFlow": { "title": "Capital Flow", "subtitle": "Market Intelligence" },
+      "missionArchive": { "title": "Mission Archive", "subtitle": "Records & Journal" },
+      "systemCore": { "title": "System Core", "subtitle": "Operations & Config" }
+    },
+    "item": {
+      "commandDeck": "Command Deck",
+      "dashboard": "Dashboard",
+      "overview": "Overview",
+      "scanner": "Scanner",
+      "market": "Market",
+      "watchlists": "Watchlists",
+      "decisions": "Decision Center",
+      "signals": "Signals",
+      "intelligence": "Intelligence",
+      "risk": "Risk Control",
+      "regime": "Regime",
+      "portfolio": "Portfolio",
+      "funding": "Funding",
+      "openInterest": "Open Interest",
+      "trades": "Trade Journal",
+      "timeline": "Timeline",
+      "journal": "Journal",
+      "notifications": "Notifications",
+      "analytics": "Analytics",
+      "backtest": "Backtest",
+      "execution": "Execution",
+      "paperTrading": "Paper Trading",
+      "preferences": "Preferences",
+      "profile": "Profile"
+    }
+  }
+}

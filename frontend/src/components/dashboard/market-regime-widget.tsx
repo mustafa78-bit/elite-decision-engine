@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
@@ -12,6 +13,7 @@ const regimeBadge: Record<string, "success" | "warning" | "danger" | "info"> = {
 };
 
 export function MarketRegimeWidget() {
+  const { t } = useTranslation("heroDashboard");
   const { data, isLoading } = useQuery({
     queryKey: ["regime"],
     queryFn: fetchRegime,
@@ -26,7 +28,7 @@ export function MarketRegimeWidget() {
     <Card className="h-full">
       <CardContent className="p-4">
         <div className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
-          Market Regime
+          {t("marketRegimeWidget.title")}
         </div>
         <div className="flex items-center gap-2 mb-3">
           <Badge variant={regimeBadge[data.regime] || "default"}>
@@ -46,13 +48,13 @@ export function MarketRegimeWidget() {
         </div>
         <div className="grid grid-cols-3 gap-2 text-[11px] font-mono tabular-nums">
           <div>
-            <div className="text-[var(--text-muted)] text-[10px]">Vol</div>
+            <div className="text-[var(--text-muted)] text-[10px]">{t("marketRegimeWidget.vol")}</div>
             <div className="text-[var(--text-primary)]">
               {(data.volatility * 100).toFixed(1)}%
             </div>
           </div>
           <div>
-            <div className="text-[var(--text-muted)] text-[10px]">RSI</div>
+            <div className="text-[var(--text-muted)] text-[10px]">{t("marketRegimeWidget.rsi")}</div>
             <div className="text-[var(--text-primary)]">{data.rsi}</div>
           </div>
           <div>

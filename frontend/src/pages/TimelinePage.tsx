@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
@@ -13,6 +14,7 @@ const typeBadge: Record<string, string> = {
 };
 
 export default function TimelinePage() {
+  const { t } = useTranslation("timeline");
   const [events, setEvents] = useState<TimelineEventDTO[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -40,10 +42,10 @@ export default function TimelinePage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-          Timeline
+          {t("page.title")}
         </h2>
         <span className="text-[10px] text-[var(--text-muted)] font-mono">
-          {total} events
+          {t("page.eventsCount", { count: total })}
         </span>
       </div>
 
@@ -55,12 +57,12 @@ export default function TimelinePage() {
         </div>
       ) : error ? (
         <div className="border border-[var(--accent-red)]/30 bg-[var(--accent-red)]/10 rounded p-4 text-center cursor-pointer" onClick={load}>
-          <p className="text-xs text-[var(--accent-red)] font-mono">Failed to load timeline. Click to retry.</p>
+          <p className="text-xs text-[var(--accent-red)] font-mono">{t("page.loadError")}</p>
         </div>
       ) : events.length === 0 ? (
         <div className="border border-dashed border-[var(--border-subtle)] rounded p-8 text-center">
           <p className="text-xs text-[var(--text-muted)] font-mono uppercase tracking-widest">
-            No timeline events
+            {t("page.empty")}
           </p>
         </div>
       ) : (

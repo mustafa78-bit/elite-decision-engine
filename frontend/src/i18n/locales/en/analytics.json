@@ -1,0 +1,67 @@
+{
+  "page": {
+    "loading": "Loading analytics...",
+    "loadError": "Failed to load analytics",
+    "noData": "No trade data yet — start trading to generate analytics",
+    "sections": {
+      "performanceMetrics": "Performance Metrics",
+      "portfolioSummary": "Portfolio Summary",
+      "equityCurve": "Equity Curve",
+      "drawdown": "Drawdown",
+      "winRate": "Win Rate",
+      "summary": "Summary"
+    },
+    "metrics": {
+      "sharpeRatio": "Sharpe Ratio",
+      "sortinoRatio": "Sortino Ratio",
+      "profitFactor": "Profit Factor",
+      "expectancy": "Expectancy",
+      "recoveryFactor": "Recovery Factor",
+      "calmarRatio": "Calmar Ratio",
+      "avgRMultiple": "Avg R Multiple",
+      "avgHoldHours": "Avg Hold (hrs)",
+      "bestTrade": "Best Trade $",
+      "worstTrade": "Worst Trade $",
+      "consecutiveWins": "Consecutive Wins",
+      "consecutiveLosses": "Consecutive Losses"
+    },
+    "portfolio": {
+      "totalTrades": "Total Trades",
+      "open": "Open",
+      "closed": "Closed",
+      "winRate": "Win Rate",
+      "lossRate": "Loss Rate",
+      "totalPnl": "Total PnL",
+      "dailyPnl": "Daily PnL",
+      "avgWin": "Avg Win",
+      "avgLoss": "Avg Loss",
+      "avgReturn": "Avg Return",
+      "maxDrawdown": "Max Drawdown",
+      "openExposure": "Open Exposure"
+    }
+  },
+  "drawdownChart": {
+    "noData": "No drawdown data"
+  },
+  "performanceChart": {
+    "noData": "No performance data"
+  },
+  "performanceSummary": {
+    "title": "Performance Summary",
+    "items": {
+      "totalTrades": "Total Trades",
+      "winning": "Winning",
+      "losing": "Losing",
+      "winRate": "Win Rate",
+      "totalPnl": "Total PnL",
+      "avgWin": "Avg Win",
+      "avgLoss": "Avg Loss",
+      "profitFactor": "Profit Factor",
+      "maxDrawdown": "Max Drawdown"
+    }
+  },
+  "winRateChart": {
+    "title": "Win / Loss Rate",
+    "basedOn": "Based on {{count}} closed trades"
+  }
+}

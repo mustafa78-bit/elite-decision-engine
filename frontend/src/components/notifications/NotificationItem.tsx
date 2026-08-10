@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { NotificationRow } from "../../api/notifications";
 
 interface Props {
@@ -5,11 +6,11 @@ interface Props {
   onMarkRead: (id: number) => void;
 }
 
-const EVENT_LABELS: Record<string, string> = {
-  TRADE_OPENED: "Trade Opened",
-  TRADE_CLOSED: "Trade Closed",
-  SYSTEM_HEALTH_DEGRADED: "Health Degraded",
-  SYSTEM_HEALTH_RECOVERED: "Health Recovered",
+const EVENT_LABEL_KEYS: Record<string, string> = {
+  TRADE_OPENED: "item.eventLabels.tradeOpened",
+  TRADE_CLOSED: "item.eventLabels.tradeClosed",
+  SYSTEM_HEALTH_DEGRADED: "item.eventLabels.systemHealthDegraded",
+  SYSTEM_HEALTH_RECOVERED: "item.eventLabels.systemHealthRecovered",
 };
 
 const EVENT_COLORS: Record<string, string> = {
@@ -20,7 +21,7 @@ const EVENT_COLORS: Record<string, string> = {
 };
 
 function formatTime(iso: string | null): string {
-  if (!iso) return "\u2014";
+  if (!iso) return "—";
   const d = new Date(iso);
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
@@ -31,7 +32,9 @@ function previewPayload(payload: Record<string, unknown>): string {
 }
 
 export default function NotificationItem({ notification, onMarkRead }: Props) {
-  const label = EVENT_LABELS[notification.event_type] || notification.event_type;
+  const { t } = useTranslation("notifications");
+  const labelKey = EVENT_LABEL_KEYS[notification.event_type];
+  const label = labelKey ? t(labelKey) : notification.event_type;
   const color = EVENT_COLORS[notification.event_type] || "text-gray-400";
 
   return (
@@ -59,7 +62,7 @@ export default function NotificationItem({ notification, onMarkRead }: Props) {
           onClick={() => onMarkRead(notification.id)}
           className="text-[9px] text-gray-600 hover:text-gray-300 uppercase tracking-wider shrink-0 mt-1"
         >
-          Read
+          {t("item.markRead")}
         </button>
       )}
     </div>

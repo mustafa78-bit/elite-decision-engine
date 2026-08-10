@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
@@ -17,6 +18,21 @@ const statusVariant: Record<string, "success" | "danger" | "warning"> = {
 };
 
 export function MonitoringWidget() {
+  const { t } = useTranslation("heroDashboard");
+  const statusLabels: Record<string, string> = {
+    running: t("monitoringWidget.status.running"),
+    connected: t("monitoringWidget.status.connected"),
+    healthy: t("monitoringWidget.status.healthy"),
+    error: t("monitoringWidget.status.error"),
+    down: t("monitoringWidget.status.down"),
+    disconnected: t("monitoringWidget.status.disconnected"),
+    degraded: t("monitoringWidget.status.degraded"),
+    unknown: t("monitoringWidget.status.unknown"),
+  };
+  const nameLabels: Record<string, string> = {
+    database: t("monitoringWidget.names.database"),
+    collector: t("monitoringWidget.names.collector"),
+  };
   const { data, isLoading } = useQuery({
     queryKey: ["monitoring"],
     queryFn: fetchMonitoringWidgetStatus,
@@ -26,7 +42,7 @@ export function MonitoringWidget() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>System Health</CardTitle>
+        <CardTitle>{t("monitoringWidget.title")}</CardTitle>
         {data && (
           <Badge variant={data.status === "healthy" ? "success" : "warning"}>
             {data.status}
@@ -49,21 +65,21 @@ export function MonitoringWidget() {
                 animate={{ opacity: 1, x: 0 }}
               >
                 <span className="text-xs font-mono text-[var(--text-secondary)] uppercase tracking-wider">
-                  {name}
+                  {nameLabels[name] || name}
                 </span>
                 <Badge variant={statusVariant[status] || "default"}>
                   <span className="flex items-center gap-1">
                     {status === "connected" && (
                       <span className="w-1 h-1 rounded-full bg-[var(--accent-green)] animate-pulse" />
                     )}
-                    {status}
+                    {statusLabels[status] || status}
                   </span>
                 </Badge>
               </motion.div>
             ))}
             <div className="flex items-center justify-between py-1">
               <span className="text-xs font-mono text-[var(--text-secondary)] uppercase tracking-wider">
-                websocket clients
+                {t("monitoringWidget.websocketClients")}
               </span>
               <span className="text-xs font-mono text-[var(--text-primary)]">
                 {data.websocket_clients}
@@ -77,7 +93,7 @@ export function MonitoringWidget() {
           </div>
         ) : (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No monitoring data
+            {t("monitoringWidget.empty")}
           </div>
         )}
       </CardContent>

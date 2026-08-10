@@ -1,0 +1,32 @@
+{
+  "page": {
+    "loading": "Loading regime data...",
+    "loadError": "Failed to load regime data",
+    "heading": "Market Regime"
+  },
+  "regimePanel": {
+    "title": "Market Regime",
+    "regime": "Regime",
+    "trend": "Trend",
+    "volatility": "Volatility",
+    "btcHealth": "BTC Health",
+    "rsi": "RSI",
+    "ema": "EMA"
+  },
+  "regimeValues": {
+    "TREND": "TREND",
+    "DOWNTREND": "DOWNTREND",
+    "RANGE": "RANGE",
+    "DEAD": "DEAD"
+  },
+  "trendValues": {
+    "BULLISH": "BULLISH",
+    "BEARISH": "BEARISH",
+    "NEUTRAL": "NEUTRAL"
+  },
+  "volatilityValues": {
+    "LOW": "LOW",
+    "NORMAL": "NORMAL",
+    "HIGH": "HIGH"
+  }
+}

@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 interface FlowNode {
   label: string
@@ -21,6 +22,7 @@ const nodeIcons: Record<string, string> = {
 }
 
 function Node({ node }: { node: FlowNode }) {
+  const { t } = useTranslation("commandDeck")
   const [pulse, setPulse] = useState(false)
   const prevRef = useRef(node.active)
   const icon = nodeIcons[node.label] || "●"
@@ -63,20 +65,21 @@ function Node({ node }: { node: FlowNode }) {
           transition: "all 0.3s ease",
         }}
       >
-        {node.label}
+        {t(`missionFlow.node.${node.label}`)}
       </span>
     </div>
   )
 }
 
 export default function MissionFlow({ nodes }: Props) {
+  const { t } = useTranslation("commandDeck")
   if (nodes.length === 0) return null
 
   const activeCount = nodes.filter((n) => n.active).length
 
   return (
     <div>
-      <div className="hq-section-label">Mission Flow</div>
+      <div className="hq-section-label">{t("missionFlow.title")}</div>
       <div className="flex items-center justify-center gap-0">
         {nodes.map((node, i) => (
           <div key={node.label} className="flex items-center">
@@ -100,7 +103,7 @@ export default function MissionFlow({ nodes }: Props) {
         className="text-center mt-2 text-[7px] font-mono"
         style={{ color: "var(--text-muted)" }}
       >
-        {activeCount}/{nodes.length} online
+        {activeCount}/{nodes.length} {t("missionFlow.online")}
       </div>
     </div>
   )

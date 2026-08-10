@@ -1,0 +1,21 @@
+{
+  "loading": "Genel bakış yükleniyor...",
+  "loadError": "Genel bakış yüklenemedi",
+  "title": "Terminal Genel Bakışı",
+  "cards": {
+    "btcStatus": "BTC Durumu",
+    "trades": "İşlemler",
+    "risk": "Risk",
+    "performance": "Performans"
+  },
+  "labels": {
+    "rsi": "RSI",
+    "health": "Sağlık",
+    "open": "açık",
+    "closed": "kapalı",
+    "openSlashClosed": "Açık",
+    "loss": "Kayıp",
+    "winRate": "Kazanma Oranı",
+    "sharpe": "Sharpe"
+  }
+}

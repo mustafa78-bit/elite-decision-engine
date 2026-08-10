@@ -1,0 +1,149 @@
+{
+  "heading": "Karar Merkezi",
+  "tabs": {
+    "all": "Tümü",
+    "approved": "Onaylanan",
+    "rejected": "Reddedilen",
+    "watch": "İzlemede",
+    "executed": "Uygulanan",
+    "closed": "Kapanan"
+  },
+  "decision": {
+    "STRONG_BUY": "GÜÇLÜ AL",
+    "BUY": "AL",
+    "NEUTRAL": "NÖTR",
+    "SELL": "SAT",
+    "STRONG_SELL": "GÜÇLÜ SAT"
+  },
+  "outcome": {
+    "CORRECT": "Doğru",
+    "INCORRECT": "Yanlış",
+    "EXECUTED": "Uygulandı",
+    "CLOSED": "Kapandı",
+    "PENDING": "Beklemede"
+  },
+  "loadError": "Sinyaller yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+  "stats": {
+    "winRate": "Kazanma Oranı",
+    "avgConfidence": "Ort. Güven",
+    "avgRisk": "Ort. Risk",
+    "bestStrategy": "En İyi Strateji",
+    "weakestStrategy": "En Zayıf Strateji"
+  },
+  "noDecisions": "Bu filtre için karar bulunamadı",
+  "table": {
+    "symbol": "Sembol",
+    "side": "Yön",
+    "eliteScore": "Elite Skoru",
+    "confidence": "Güven",
+    "decision": "Karar",
+    "risk": "Risk",
+    "time": "Zaman",
+    "outcome": "Sonuç",
+    "explain": "Açıkla"
+  },
+  "explainAction": "Açıkla →",
+  "decisionCount_one": "{{count}} karar",
+  "decisionCount_other": "{{count}} karar",
+  "drawer": {
+    "esc": "Esc",
+    "eliteScore": "Elite Skoru",
+    "confidence": "Güven",
+    "risk": "Risk",
+    "outcome": "Sonuç",
+    "pnl": "K/Z"
+  },
+  "evidence": {
+    "summary": {
+      "label": "Özet",
+      "text": "{{symbol}} için %{{confidence}} güvenle {{decision}} sinyali. Çok faktörlü analize dayalı {{bias}} eğilim."
+    },
+    "bias": {
+      "bullish": "yükseliş yönlü",
+      "bearish": "düşüş yönlü"
+    },
+    "evidenceSection": {
+      "label": "Kanıt",
+      "text": "{{eliteScore}} skoru {{conviction}} bir kanaat gösteriyor. Çoklu zaman dilimi hizalanması yönsel eğilimi {{confirmText}}."
+    },
+    "conviction": {
+      "strong": "güçlü",
+      "moderate": "orta düzeyde",
+      "weak": "zayıf"
+    },
+    "confirms": "doğruluyor",
+    "doesNotConfirm": "doğrulamıyor",
+    "trend": {
+      "label": "Trend",
+      "text": "Trend skoru: {{score}}/100. Fiyat hareketi {{behavior}} gösteriyor.",
+      "pending": "Trend analizi bekleniyor..."
+    },
+    "trendBehavior": {
+      "strong": "güçlü bir trend davranışı",
+      "mixed": "karışık sinyaller",
+      "weak": "zayıf bir yönsel eğilim"
+    },
+    "volume": {
+      "label": "Hacim",
+      "text": "Hacim skoru: {{score}}/100. Hacim {{behavior}}.",
+      "pending": "Hacim analizi bekleniyor..."
+    },
+    "volumeBehavior": {
+      "confirms": "ortalamanın üzerinde katılımla hareketi doğruluyor",
+      "neutral": "nötr, ne doğruluyor ne de yalanlıyor"
+    },
+    "funding": {
+      "label": "Fonlama",
+      "text": "Bu varlık için fonlama oranları şu anda nötr. Mevcut sinyalle çelişecek aşırı bir pozisyonlanma tespit edilmedi."
+    },
+    "liquidity": {
+      "label": "Likidite",
+      "text": "Piyasa derinliği pozisyon büyüklüğü için yeterli. Alış-satış farkı normal aralıkta. Likidite sorunu tespit edilmedi."
+    },
+    "btcRegime": {
+      "label": "BTC Rejimi",
+      "text": "BTC korelasyon skoru: {{score}}/100. {{behavior}}",
+      "pending": "BTC rejim analizi bekleniyor..."
+    },
+    "btcBehavior": {
+      "strong": "Bitcoin rejimiyle güçlü korelasyon.",
+      "moderate": "Bitcoin ile orta düzeyde korelasyon.",
+      "low": "Bitcoin ile düşük korelasyon — varlık kendi yolunu izleyebilir."
+    },
+    "risk": {
+      "label": "Risk",
+      "text": "Risk skoru: {{risk}}. {{note}}"
+    },
+    "riskNote": {
+      "manageable": "Risk seviyeleri standart pozisyon büyüklüğüyle yönetilebilir.",
+      "moderate": "Orta düzey risk — pozisyon büyüklüğünün azaltılması düşünülebilir.",
+      "elevated": "Yüksek risk — dikkatli olunması önerilir."
+    },
+    "alternative": {
+      "label": "Alternatif Senaryo",
+      "long": "Yükseliş tezi başarısız olursa, son salınım diplerindeki kritik destek geçersiz kalır. Desteğin altına sarkma durumunda {{suggestion}} değerlendirilebilir.",
+      "short": "Düşüş tezi başarısız olursa, direncin üzerine bir kırılım kurulumu geçersiz kılar. Bu senaryoda short pozisyonları kapatıp daha iyi bir giriş beklemek düşünülebilir."
+    },
+    "longSuggestion": {
+      "btc": "short pozisyon açmak veya kenarda beklemek",
+      "other": "maruziyeti azaltıp yeniden değerlendirmek"
+    },
+    "historicalAccuracy": {
+      "label": "Geçmiş Doğruluk",
+      "text": "{{symbol}} üzerindeki benzer {{decision}} sinyalleri, mevcut piyasa rejiminde zamanın {{rate}} kadarında doğru çıktı."
+    },
+    "historicalRate": {
+      "high": "yaklaşık %72'si",
+      "low": "yaklaşık %58'i"
+    },
+    "finalRecommendation": {
+      "label": "Nihai AI Önerisi",
+      "text": "%{{confidence}} güvenle {{symbol}} için {{decision}}. {{note}}"
+    },
+    "finalNote": {
+      "favorable": "Kurulum güçlü teknik hizalanmayla olumlu görünüyor.",
+      "mixed": "Kurulumda karışık sinyaller var — kısmi pozisyon değerlendirilebilir.",
+      "weak": "Kurulum zayıf — daha net bir teyit beklemek önerilir."
+    }
+  }
+}

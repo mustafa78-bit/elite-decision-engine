@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTranslation } from "react-i18next"
 import { queryOLLO } from "../../api/ollo"
 import { useNavigate } from "react-router-dom"
 import type { OLLOResponse, OLLOBriefing } from "../../types/ollo"
@@ -23,6 +24,7 @@ const SpeechRecognition =
   (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
 export default function OLLOCommander({ greeting, briefing, loading, error }: Props) {
+  const { t } = useTranslation("commandDeck")
   const [mode, setMode] = useState<DisplayMode>("conversation")
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState("")
@@ -67,7 +69,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
 
       rec.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error)
-        setSpeechError(`Voice Error: ${event.error}`)
+        setSpeechError(t("olloCommander.errors.voiceError", { error: event.error }))
         setIsListening(false)
       }
 
@@ -81,7 +83,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
 
   const toggleListening = () => {
     if (!SpeechRecognition) {
-      setSpeechError("Speech recognition is not supported in this browser.")
+      setSpeechError(t("olloCommander.errors.speechNotSupported"))
       return
     }
     if (isListening) {
@@ -144,7 +146,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
       }
     } catch (e: any) {
       console.error(e)
-      setSpeechError("Failed to fetch response from OLLO.")
+      setSpeechError(t("olloCommander.errors.fetchFailed"))
     } finally {
       setIsQuerying(false)
     }
@@ -197,7 +199,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
         <button
           onClick={() => setLang((l) => (l === "en-US" ? "tr-TR" : "en-US"))}
           className="text-[10px] font-mono uppercase font-semibold text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80 transition-all"
-          title="Change language / Dili değiştir"
+          title="Change voice language (speech-to-text/text-to-speech) / Sesli dili değiştir"
         >
           {lang === "en-US" ? "English 🇺🇸" : "Türkçe 🇹🇷"}
         </button>
@@ -212,7 +214,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
           className="text-[10px] font-mono uppercase font-semibold transition-all"
           style={{ color: ttsEnabled ? "#3EDC97" : "var(--text-muted)" }}
         >
-          TTS: {ttsEnabled ? "ON" : "OFF"}
+          {t("olloCommander.tts")}: {ttsEnabled ? t("olloCommander.on") : t("olloCommander.off")}
         </button>
       </div>
 
@@ -232,7 +234,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
                 className="text-[7px] font-medium uppercase tracking-[0.18em] mb-1"
                 style={{ color: "var(--accent-blue)" }}
               >
-                {briefing!.kind} Briefing
+                {briefing!.kind} {t("olloCommander.briefingSuffix")}
               </div>
               <h3 className="text-xs font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
                 {briefing!.title}
@@ -254,7 +256,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
               className="text-center"
             >
               <h3 className="text-xs font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
-                {greeting.text.split("\n")[0] || "Welcome, Commander."}
+                {greeting.text.split("\n")[0] || t("olloCommander.welcomeFallback")}
               </h3>
               {greeting.sections && greeting.sections.length > 0 ? (
                 <div className="space-y-2 text-left mt-3">
@@ -302,7 +304,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
                     </p>
                     {msg.intent_route && (
                       <div className="text-[8px] font-mono text-[var(--accent-blue)] mt-1 animate-pulse">
-                        Navigating to {msg.intent_route}...
+                        {t("olloCommander.navigatingTo", { route: msg.intent_route })}
                       </div>
                     )}
                   </div>
@@ -320,7 +322,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
             </motion.div>
           ) : (
             <div className="text-center text-[10px] text-[var(--text-muted)] py-4">
-              Awaiting OLLO connection...
+              {t("olloCommander.awaitingConnection")}
             </div>
           )}
         </AnimatePresence>
@@ -335,7 +337,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
           onKeyDown={(e) => {
             if (e.key === "Enter") handleSend()
           }}
-          placeholder={isListening ? "Listening / Dinliyor..." : "Instruct OLLO Commander..."}
+          placeholder={isListening ? t("olloCommander.placeholderListening") : t("olloCommander.placeholderInstruct")}
           disabled={isListening}
           className="flex-1 bg-[var(--bg-base)] rounded-xl px-4 py-2.5 text-[10px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] border border-[var(--border-subtle)] focus:outline-none focus:border-[var(--accent-blue)] disabled:opacity-50"
         />
@@ -347,7 +349,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
               ? "bg-[var(--accent-red)]/25 border-[var(--accent-red)]/50 text-[var(--accent-red)] animate-pulse"
               : "bg-[var(--bg-base)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           }`}
-          title={isListening ? "Stop listening" : "Start speaking"}
+          title={isListening ? t("olloCommander.micStop") : t("olloCommander.micStart")}
         >
           <span className="text-sm">🎙️</span>
         </button>
@@ -357,7 +359,7 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
           disabled={!inputText.trim() || isQuerying}
           className="px-4 rounded-xl bg-[var(--accent-blue)] text-white text-[10px] font-mono font-semibold hover:bg-[var(--accent-blue)]/90 disabled:opacity-40 transition-all shrink-0"
         >
-          Send
+          {t("olloCommander.send")}
         </button>
       </div>
 

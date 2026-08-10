@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { PaperTradingData } from "../api/paper";
 import { fetchPaperTrading } from "../api/paper";
@@ -8,6 +9,7 @@ import PaperPerformanceCard from "../components/paper/PaperPerformanceCard";
 import PaperPositionTable from "../components/paper/PaperPositionTable";
 
 export default function PaperTrading() {
+  const { t } = useTranslation(["paperTrading", "common"]);
   const [data, setData] = useState<PaperTradingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +21,7 @@ export default function PaperTrading() {
       const d = await fetchPaperTrading();
       setData(d);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load paper trading");
+      setError(e instanceof ApiError ? e.message : t("page.loadError"));
     } finally {
       setLoading(false);
     }
@@ -30,7 +32,7 @@ export default function PaperTrading() {
   if (loading) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading paper trading...
+        {t("page.loading")}
       </div>
     );
   }
@@ -40,7 +42,7 @@ export default function PaperTrading() {
       <div className="space-y-4">
         <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 rounded">
           {error}
-          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Retry</button>
+          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">{t("common:retry")}</button>
         </div>
       </div>
     );
@@ -49,14 +51,14 @@ export default function PaperTrading() {
   if (!data) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        No paper trading data
+        {t("page.noData")}
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">Paper Trading Terminal</h2>
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">{t("page.heading")}</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PaperPnLCard
@@ -72,8 +74,8 @@ export default function PaperTrading() {
         />
       </div>
 
-      <PaperPositionTable trades={data.open} title="Open Trades" />
-      <PaperPositionTable trades={data.closed} title="Closed Trades" />
+      <PaperPositionTable trades={data.open} title={t("page.openTrades")} />
+      <PaperPositionTable trades={data.closed} title={t("page.closedTrades")} />
     </div>
   );
 }

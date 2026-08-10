@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
+import { useTranslation } from "react-i18next"
 import { useSubsystems } from "../hooks/useSubsystems"
 import { computeMissionStatus } from "../types/mission"
 import { NexusDashboard } from "../components/hq/NexusDashboard"
@@ -83,6 +84,7 @@ function ProgressLine({ value, label, color }: { value: number; label: string; c
 }
 
 export default function CommandDeck() {
+  const { t } = useTranslation("commandDeck")
   const [showLoading, setShowLoading] = useState(true)
   const [signals, setSignals] = useState<SignalData[]>([])
   const [marketData, setMarketData] = useState<MarketData | null>(null)
@@ -118,19 +120,19 @@ export default function CommandDeck() {
     symbol: s.symbol,
     direction: (s.side === "BUY" || s.side === "LONG" ? "BUY" : s.side === "SELL" || s.side === "SHORT" ? "SELL" : "NEUTRAL") as "BUY" | "SELL" | "NEUTRAL",
     strength: s.final_score,
-    strategy: s.decision || "AI Signal",
+    strategy: s.decision || t("signalFeed.aiSignal"),
     price: s.price || 0,
     timestamp: s.created_at || new Date().toISOString(),
-  })), [signals])
+  })), [signals, t])
 
   const analysisItems = useMemo(() => marketData
     ? [
-        { label: "Trend", value: marketData.regime, score: marketData.regime === "TREND" ? 82 : marketData.regime === "DOWNTREND" ? 25 : 50, status: (marketData.regime === "TREND" ? "bullish" : marketData.regime === "DOWNTREND" ? "bearish" : "neutral") as "bullish" | "bearish" | "neutral" },
-        { label: "Momentum", value: marketData.rsi >= 60 ? "Positive" : marketData.rsi <= 40 ? "Negative" : "Neutral", score: marketData.rsi, status: (marketData.rsi >= 60 ? "bullish" : marketData.rsi <= 40 ? "bearish" : "neutral") as "bullish" | "bearish" | "neutral" },
-        { label: "Volatility", value: marketData.volatility >= 0.5 ? "High" : marketData.volatility >= 0.2 ? "Moderate" : "Low", score: Math.round(marketData.volatility * 100), status: "neutral" as const },
-        { label: "Price", value: `$${marketData.price.toLocaleString()}`, score: 50, status: "neutral" as const },
+        { label: t("analysisLabel.trend"), value: marketData.regime, score: marketData.regime === "TREND" ? 82 : marketData.regime === "DOWNTREND" ? 25 : 50, status: (marketData.regime === "TREND" ? "bullish" : marketData.regime === "DOWNTREND" ? "bearish" : "neutral") as "bullish" | "bearish" | "neutral" },
+        { label: t("analysisLabel.momentum"), value: marketData.rsi >= 60 ? t("analysisValue.positive") : marketData.rsi <= 40 ? t("analysisValue.negative") : t("analysisValue.neutral"), score: marketData.rsi, status: (marketData.rsi >= 60 ? "bullish" : marketData.rsi <= 40 ? "bearish" : "neutral") as "bullish" | "bearish" | "neutral" },
+        { label: t("analysisLabel.volatility"), value: marketData.volatility >= 0.5 ? t("analysisValue.high") : marketData.volatility >= 0.2 ? t("analysisValue.moderate") : t("analysisValue.low"), score: Math.round(marketData.volatility * 100), status: "neutral" as const },
+        { label: t("analysisLabel.price"), value: `$${marketData.price.toLocaleString()}`, score: 50, status: "neutral" as const },
       ]
-    : [], [marketData])
+    : [], [marketData, t])
 
   const decisionQuality = evidence.data?.decision_quality ?? null
   const warnings = evidence.data?.warnings ?? []
@@ -227,13 +229,13 @@ export default function CommandDeck() {
               className="text-[8px] font-semibold uppercase tracking-[0.22em]"
               style={{ color: "var(--text-primary)" }}
             >
-              COMMAND HEADQUARTERS
+              {t("header.title")}
             </span>
             <span
               className="text-[7px] font-mono uppercase tracking-[0.15em]"
               style={{ color: "var(--text-muted)" }}
             >
-              · Founder Alpha
+              · {t("header.founderAlpha")}
             </span>
             {currentMission && (
               <>
@@ -258,7 +260,7 @@ export default function CommandDeck() {
                 className="text-[8px] font-semibold uppercase tracking-[0.12em]"
                 style={{ color: missionColor }}
               >
-                {missionStatus}
+                {t(`missionStatus.${missionStatus}`)}
               </span>
             </div>
 
@@ -277,13 +279,13 @@ export default function CommandDeck() {
                 style={{ backgroundColor: aiConnected !== false ? "#3EDC97" : "#FF5D73" }}
               />
               <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                AI {aiConnected !== false ? (aiLatency ? `${aiLatency.toFixed(0)}ms` : "OK") : "ERR"}
+                AI {aiConnected !== false ? (aiLatency ? `${aiLatency.toFixed(0)}ms` : t("aiStatus.ok")) : t("aiStatus.err")}
               </span>
             </div>
 
             {warnings.length > 0 && (
               <span className="text-[7px] font-mono" style={{ color: "#FFB547" }}>
-                {warnings.length} alert{warnings.length > 1 ? "s" : ""}
+                {t("alerts", { count: warnings.length })}
               </span>
             )}
           </div>
@@ -316,7 +318,7 @@ export default function CommandDeck() {
             {/* Recommendation (Grounded details) */}
             {recommendation && (
               <div className="w-full max-w-xl">
-                <div className="hq-section-label">Current Recommendation</div>
+                <div className="hq-section-label">{t("recommendation.title")}</div>
                 <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
                   <p
                     className="text-xs font-semibold leading-relaxed"
@@ -331,20 +333,20 @@ export default function CommandDeck() {
             {/* Evidence details */}
             {(confidence !== null || strength !== null || explainability !== null) && (
               <div className="w-full max-w-xl">
-                <div className="hq-section-label">Evidence Analysis</div>
+                <div className="hq-section-label">{t("evidence.title")}</div>
                 <div className="space-y-3 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
                   {confidence !== null && (
                     <ProgressLine
                       value={confidence}
-                      label="Decision Confidence"
+                      label={t("evidence.decisionConfidence")}
                       color={qualityColor(decisionQuality ?? "UNKNOWN")}
                     />
                   )}
                   {strength !== null && (
-                    <ProgressLine value={strength} label="Evidence Strength" color="#4F8CFF" />
+                    <ProgressLine value={strength} label={t("evidence.evidenceStrength")} color="#4F8CFF" />
                   )}
                   {explainability !== null && (
-                    <ProgressLine value={explainability} label="Explainability" color="#8B5CF6" />
+                    <ProgressLine value={explainability} label={t("evidence.explainability")} color="#8B5CF6" />
                   )}
 
                   {/* Counts */}
@@ -352,17 +354,17 @@ export default function CommandDeck() {
                     <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[var(--border-subtle)]">
                       {supportingCount !== null && (
                         <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                          <span style={{ color: "#3EDC97" }}>{supportingCount}</span> supporting
+                          <span style={{ color: "#3EDC97" }}>{supportingCount}</span> {t("evidence.supporting")}
                         </span>
                       )}
                       {conflictCount !== null && conflictCount > 0 && (
                         <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                          <span style={{ color: "#FF5D73" }}>{conflictCount}</span> conflicting
+                          <span style={{ color: "#FF5D73" }}>{conflictCount}</span> {t("evidence.conflicting")}
                         </span>
                       )}
                       {warningCount !== null && warningCount > 0 && (
                         <span className="text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
-                          <span style={{ color: "#FFB547" }}>{warningCount}</span> warnings
+                          <span style={{ color: "#FFB547" }}>{warningCount}</span> {t("evidence.warnings")}
                         </span>
                       )}
                     </div>

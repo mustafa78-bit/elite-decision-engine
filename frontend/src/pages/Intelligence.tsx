@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { IntelligenceData } from "../api/intelligence";
 import { fetchIntelligence } from "../api/intelligence";
@@ -9,6 +10,7 @@ import RiskMonitor from "../components/intelligence/RiskMonitor";
 import TradeMonitor from "../components/intelligence/TradeMonitor";
 
 export default function Intelligence() {
+  const { t } = useTranslation(["intelligence", "common"]);
   const [data, setData] = useState<IntelligenceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,18 +22,18 @@ export default function Intelligence() {
       const d = await fetchIntelligence();
       setData(d);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load intelligence");
+      setError(e instanceof ApiError ? e.message : t("intelligence:page.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading intelligence dashboard...
+        {t("intelligence:page.loading")}
       </div>
     );
   }
@@ -41,7 +43,7 @@ export default function Intelligence() {
       <div className="space-y-4">
         <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 rounded">
           {error}
-          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Retry</button>
+          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">{t("common:retry")}</button>
         </div>
       </div>
     );
@@ -51,7 +53,7 @@ export default function Intelligence() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">Live Intelligence Dashboard</h2>
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">{t("intelligence:page.title")}</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MarketOverview

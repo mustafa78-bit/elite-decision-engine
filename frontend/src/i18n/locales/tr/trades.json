@@ -1,0 +1,25 @@
+{
+  "page": {
+    "openTrades": "Açık İşlemler",
+    "closedTrades": "Kapanan İşlemler"
+  },
+  "openTrades": {
+    "empty": "Açık işlem yok",
+    "columns": {
+      "symbol": "Sembol",
+      "side": "Yön",
+      "entry": "Giriş",
+      "status": "Durum"
+    }
+  },
+  "closedTrades": {
+    "empty": "Kapanan işlem yok",
+    "columns": {
+      "symbol": "Sembol",
+      "status": "Durum",
+      "exit": "Çıkış",
+      "pnl": "Kâr/Zarar",
+      "reason": "Sebep"
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 
@@ -22,10 +23,16 @@ export function RiskWidget({
   riskMetrics = [],
   overallRisk,
 }: RiskWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
+  const statusLabels: Record<string, string> = {
+    LOW: t("riskWidget.status.low"),
+    MEDIUM: t("riskWidget.status.medium"),
+    HIGH: t("riskWidget.status.high"),
+  };
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Risk</CardTitle>
+        <CardTitle>{t("riskWidget.title")}</CardTitle>
         {overallRisk != null ? (
           <Badge
             variant={
@@ -36,7 +43,7 @@ export function RiskWidget({
                   : "danger"
             }
           >
-            {overallRisk}
+            {statusLabels[overallRisk] || overallRisk}
           </Badge>
         ) : (
           <span className="text-[10px] font-mono text-[var(--text-muted)]">--</span>
@@ -45,7 +52,7 @@ export function RiskWidget({
       <CardContent>
         {riskMetrics.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No risk data
+            {t("riskWidget.empty")}
           </div>
         ) : (
           <div className="space-y-2">

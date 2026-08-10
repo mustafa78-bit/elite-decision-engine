@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Separator } from "../ui/separator";
@@ -24,18 +25,19 @@ const directionBadge: Record<string, "success" | "danger" | "warning"> = {
 };
 
 export function SignalFeed({ signals = [] }: SignalFeedProps) {
+  const { t } = useTranslation("commandDeck");
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Signal Feed</CardTitle>
+        <CardTitle>{t("signalFeed.title")}</CardTitle>
         <span className="text-[10px] font-mono text-[var(--text-muted)]">
-          {signals.length} signals
+          {t("signalFeed.count", { count: signals.length })}
         </span>
       </CardHeader>
       <CardContent className="max-h-80 overflow-y-auto">
         {signals.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No signals available
+            {t("signalFeed.empty")}
           </div>
         ) : (
           <div className="space-y-1">

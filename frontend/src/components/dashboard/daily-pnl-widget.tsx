@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 import { formatUSD } from "../../lib/utils";
@@ -13,12 +14,13 @@ export function DailyPnLWidget({
   dailyPct = 0,
   totalPnl = 0,
 }: DailyPnLWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
   const isPositive = dailyPnl >= 0;
 
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Daily P&L</CardTitle>
+        <CardTitle>{t("dailyPnlWidget.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-3">
@@ -58,13 +60,13 @@ export function DailyPnLWidget({
               }`}
             >
               {isPositive ? "+" : ""}
-              {dailyPct.toFixed(2)}% today
+              {dailyPct.toFixed(2)}% {t("dailyPnlWidget.today")}
             </div>
           </div>
         </div>
         <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
           <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
-            Total P&L
+            {t("dailyPnlWidget.totalPnl")}
           </div>
           <div
             className={`text-sm font-mono tabular-nums ${

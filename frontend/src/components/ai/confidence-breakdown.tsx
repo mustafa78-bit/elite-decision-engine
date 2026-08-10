@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Progress } from "../ui/progress";
 
@@ -14,18 +15,20 @@ interface ConfidenceBreakdownProps {
 
 export function ConfidenceBreakdown({
   overall = 78,
-  metrics = [
-    { label: "Technical Analysis", value: 85, weight: 0.35 },
-    { label: "Market Regime", value: 72, weight: 0.20 },
-    { label: "Volume Profile", value: 80, weight: 0.15 },
-    { label: "Sentiment Analysis", value: 65, weight: 0.15 },
-    { label: "On-Chain Data", value: 70, weight: 0.15 },
-  ],
+  metrics: metricsProp,
 }: ConfidenceBreakdownProps) {
+  const { t } = useTranslation("assetDetail");
+  const metrics = metricsProp ?? [
+    { label: t("confidenceMetrics.technicalAnalysis"), value: 85, weight: 0.35 },
+    { label: t("confidenceMetrics.marketRegime"), value: 72, weight: 0.20 },
+    { label: t("confidenceMetrics.volumeProfile"), value: 80, weight: 0.15 },
+    { label: t("confidenceMetrics.mtfAnalysis"), value: 65, weight: 0.15 },
+    { label: t("confidenceMetrics.riskAssessment"), value: 70, weight: 0.15 },
+  ];
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Confidence Breakdown</CardTitle>
+        <CardTitle>{t("confidenceBreakdown.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-base)] border border-[var(--border-subtle)]">
@@ -45,10 +48,10 @@ export function ConfidenceBreakdown({
           </div>
           <div>
             <div className="text-xs font-medium text-[var(--text-primary)]">
-              Overall Confidence
+              {t("confidenceBreakdown.overallConfidence")}
             </div>
             <div className="text-[9px] text-[var(--text-muted)]">
-              Weighted across {metrics.length} factors
+              {t("confidenceBreakdown.weightedAcross", { count: metrics.length })}
             </div>
           </div>
         </div>

@@ -1,0 +1,10 @@
+{
+  "page": {
+    "title": "Open Interest",
+    "empty": "No open interest data available"
+  },
+  "card": {
+    "change24h": "24h Change",
+    "volume": "Volume"
+  }
+}

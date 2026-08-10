@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -35,13 +37,13 @@ interface AnalyticsData {
   totalDecisions: number;
 }
 
-const TABS: { id: DecisionTab; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "approved", label: "Approved" },
-  { id: "rejected", label: "Rejected" },
-  { id: "watch", label: "Watch" },
-  { id: "executed", label: "Executed" },
-  { id: "closed", label: "Closed" },
+const TABS: { id: DecisionTab }[] = [
+  { id: "all" },
+  { id: "approved" },
+  { id: "rejected" },
+  { id: "watch" },
+  { id: "executed" },
+  { id: "closed" },
 ];
 
 function getScoreColor(score: number): string {
@@ -64,13 +66,13 @@ function getRiskColor(risk: number): string {
   return "text-[var(--accent-red)]";
 }
 
-function getDecisionBadge(decision: string): { variant: "success" | "info" | "default" | "warning" | "danger"; label: string } {
+function getDecisionBadge(decision: string, t: TFunction): { variant: "success" | "info" | "default" | "warning" | "danger"; label: string } {
   switch (decision) {
-    case "STRONG_BUY": return { variant: "success", label: "STRONG BUY" };
-    case "BUY": return { variant: "info", label: "BUY" };
-    case "NEUTRAL": return { variant: "default", label: "NEUTRAL" };
-    case "SELL": return { variant: "warning", label: "SELL" };
-    case "STRONG_SELL": return { variant: "danger", label: "STRONG SELL" };
+    case "STRONG_BUY": return { variant: "success", label: t("decision.STRONG_BUY") };
+    case "BUY": return { variant: "info", label: t("decision.BUY") };
+    case "NEUTRAL": return { variant: "default", label: t("decision.NEUTRAL") };
+    case "SELL": return { variant: "warning", label: t("decision.SELL") };
+    case "STRONG_SELL": return { variant: "danger", label: t("decision.STRONG_SELL") };
     default: return { variant: "default", label: decision };
   }
 }
@@ -81,13 +83,13 @@ function getSideBadge(side: string): "success" | "danger" | "default" {
   return "default";
 }
 
-function getOutcomeBadge(outcome: string): { variant: "success" | "danger" | "warning" | "info" | "default"; label: string } {
+function getOutcomeBadge(outcome: string, t: TFunction): { variant: "success" | "danger" | "warning" | "info" | "default"; label: string } {
   switch (outcome) {
-    case "CORRECT": return { variant: "success", label: "Correct" };
-    case "INCORRECT": return { variant: "danger", label: "Incorrect" };
-    case "EXECUTED": return { variant: "info", label: "Executed" };
-    case "CLOSED": return { variant: "warning", label: "Closed" };
-    default: return { variant: "default", label: "Pending" };
+    case "CORRECT": return { variant: "success", label: t("outcome.CORRECT") };
+    case "INCORRECT": return { variant: "danger", label: t("outcome.INCORRECT") };
+    case "EXECUTED": return { variant: "info", label: t("outcome.EXECUTED") };
+    case "CLOSED": return { variant: "warning", label: t("outcome.CLOSED") };
+    default: return { variant: "default", label: t("outcome.PENDING") };
   }
 }
 
@@ -132,73 +134,109 @@ interface ExplainDrawerProps {
   onClose: () => void;
 }
 
-const EVIDENCE_SECTIONS: Record<string, { label: string; generate: (item: DecisionItem) => string }> = {
-  summary: {
-    label: "Summary",
-    generate: (item) =>
-      `${item.decision} signal for ${item.symbol} with ${item.confidence}% confidence. ${item.side === "LONG" ? "Bullish" : "Bearish"} bias based on multi-factor analysis.`,
-  },
-  evidence: {
-    label: "Evidence",
-    generate: (item) =>
-      `Score of ${item.eliteScore} indicates ${item.eliteScore >= 60 ? "strong" : item.eliteScore >= 40 ? "moderate" : "weak"} conviction. Multiple timeframe alignment ${item.eliteScore >= 50 ? "confirms" : "does not confirm"} directional bias.`,
-  },
-  trend: {
-    label: "Trend",
-    generate: (item) =>
-      item.intelligence
-        ? `Trend score: ${(item.intelligence.trend_score * 100).toFixed(0)}/100. Price action shows ${item.intelligence.trend_score >= 0.6 ? "strong trending behavior" : item.intelligence.trend_score >= 0.4 ? "mixed signals" : "weak directional bias"}.`
-        : "Trend analysis pending...",
-  },
-  volume: {
-    label: "Volume",
-    generate: (item) =>
-      item.intelligence
-        ? `Volume score: ${(item.intelligence.volume_score * 100).toFixed(0)}/100. Volume ${item.intelligence.volume_score >= 0.6 ? "confirms the move with above-average participation" : "is neutral, neither confirming nor denying"}.`
-        : "Volume analysis pending...",
-  },
-  funding: {
-    label: "Funding",
-    generate: () =>
-      "Funding rates are currently neutral for this asset. No extreme positioning detected that would contradict the current signal.",
-  },
-  liquidity: {
-    label: "Liquidity",
-    generate: () =>
-      "Market depth is adequate for the position size. Bid-ask spread within normal ranges. No liquidity concerns detected.",
-  },
-  btcRegime: {
-    label: "BTC Regime",
-    generate: (item) =>
-      item.intelligence
-        ? `BTC correlation score: ${(item.intelligence.btc_score * 100).toFixed(0)}/100. ${item.intelligence.btc_score >= 0.6 ? "Strong correlation with Bitcoin regime." : item.intelligence.btc_score >= 0.4 ? "Moderate correlation with Bitcoin." : "Low correlation with Bitcoin — asset may follow its own path."}`
-        : "BTC regime analysis pending...",
-  },
-  risk: {
-    label: "Risk",
-    generate: (item) =>
-      `Risk score: ${item.risk.toFixed(2)}. ${item.risk < 0.3 ? "Risk levels are manageable with standard position sizing." : item.risk < 0.5 ? "Moderate risk — consider reduced position size." : "Elevated risk — caution advised."}`,
-  },
-  alternative: {
-    label: "Alternative Scenario",
-    generate: (item) =>
-      item.side === "LONG"
-        ? `If the bullish thesis fails, key support at recent swing lows would be invalidated. A break below support would suggest considering ${item.symbol === "BTCUSDT" ? "a short position or stepping aside" : "reducing exposure and reassessing"}.`
-        : `If the bearish thesis fails, a breakout above resistance would invalidate the setup. In that scenario, consider covering shorts and waiting for a better entry.`,
-  },
-  historicalAccuracy: {
-    label: "Historical Accuracy",
-    generate: (item) =>
-      `Similar ${item.decision} signals on ${item.symbol} have been correct ${item.confidence >= 70 ? "approximately 72%" : "approximately 58%"} of the time in the current market regime.`,
-  },
-  finalRecommendation: {
-    label: "Final AI Recommendation",
-    generate: (item) =>
-      `${item.decision} ${item.symbol} with ${item.confidence}% confidence. ${item.eliteScore >= 60 ? "Setup is favorable with strong technical alignment." : item.eliteScore >= 40 ? "Setup has mixed signals — consider partial position." : "Setup is weak — waiting for clearer confirmation is advised."}`,
-  },
-};
+function buildEvidenceSections(t: TFunction): Record<string, { label: string; generate: (item: DecisionItem) => string }> {
+  const decisionLabel = (decision: string) => t(`decision.${decision}`, decision);
+  return {
+    summary: {
+      label: t("evidence.summary.label"),
+      generate: (item) =>
+        t("evidence.summary.text", {
+          decision: decisionLabel(item.decision),
+          symbol: item.symbol,
+          confidence: item.confidence,
+          bias: item.side === "LONG" ? t("evidence.bias.bullish") : t("evidence.bias.bearish"),
+        }),
+    },
+    evidence: {
+      label: t("evidence.evidenceSection.label"),
+      generate: (item) =>
+        t("evidence.evidenceSection.text", {
+          eliteScore: item.eliteScore,
+          conviction: item.eliteScore >= 60 ? t("evidence.conviction.strong") : item.eliteScore >= 40 ? t("evidence.conviction.moderate") : t("evidence.conviction.weak"),
+          confirmText: item.eliteScore >= 50 ? t("evidence.confirms") : t("evidence.doesNotConfirm"),
+        }),
+    },
+    trend: {
+      label: t("evidence.trend.label"),
+      generate: (item) =>
+        item.intelligence
+          ? t("evidence.trend.text", {
+              score: (item.intelligence.trend_score * 100).toFixed(0),
+              behavior: item.intelligence.trend_score >= 0.6 ? t("evidence.trendBehavior.strong") : item.intelligence.trend_score >= 0.4 ? t("evidence.trendBehavior.mixed") : t("evidence.trendBehavior.weak"),
+            })
+          : t("evidence.trend.pending"),
+    },
+    volume: {
+      label: t("evidence.volume.label"),
+      generate: (item) =>
+        item.intelligence
+          ? t("evidence.volume.text", {
+              score: (item.intelligence.volume_score * 100).toFixed(0),
+              behavior: item.intelligence.volume_score >= 0.6 ? t("evidence.volumeBehavior.confirms") : t("evidence.volumeBehavior.neutral"),
+            })
+          : t("evidence.volume.pending"),
+    },
+    funding: {
+      label: t("evidence.funding.label"),
+      generate: () => t("evidence.funding.text"),
+    },
+    liquidity: {
+      label: t("evidence.liquidity.label"),
+      generate: () => t("evidence.liquidity.text"),
+    },
+    btcRegime: {
+      label: t("evidence.btcRegime.label"),
+      generate: (item) =>
+        item.intelligence
+          ? t("evidence.btcRegime.text", {
+              score: (item.intelligence.btc_score * 100).toFixed(0),
+              behavior: item.intelligence.btc_score >= 0.6 ? t("evidence.btcBehavior.strong") : item.intelligence.btc_score >= 0.4 ? t("evidence.btcBehavior.moderate") : t("evidence.btcBehavior.low"),
+            })
+          : t("evidence.btcRegime.pending"),
+    },
+    risk: {
+      label: t("evidence.risk.label"),
+      generate: (item) =>
+        t("evidence.risk.text", {
+          risk: item.risk.toFixed(2),
+          note: item.risk < 0.3 ? t("evidence.riskNote.manageable") : item.risk < 0.5 ? t("evidence.riskNote.moderate") : t("evidence.riskNote.elevated"),
+        }),
+    },
+    alternative: {
+      label: t("evidence.alternative.label"),
+      generate: (item) =>
+        item.side === "LONG"
+          ? t("evidence.alternative.long", {
+              suggestion: item.symbol === "BTCUSDT" ? t("evidence.longSuggestion.btc") : t("evidence.longSuggestion.other"),
+            })
+          : t("evidence.alternative.short"),
+    },
+    historicalAccuracy: {
+      label: t("evidence.historicalAccuracy.label"),
+      generate: (item) =>
+        t("evidence.historicalAccuracy.text", {
+          decision: decisionLabel(item.decision),
+          symbol: item.symbol,
+          rate: item.confidence >= 70 ? t("evidence.historicalRate.high") : t("evidence.historicalRate.low"),
+        }),
+    },
+    finalRecommendation: {
+      label: t("evidence.finalRecommendation.label"),
+      generate: (item) =>
+        t("evidence.finalRecommendation.text", {
+          decision: decisionLabel(item.decision),
+          symbol: item.symbol,
+          confidence: item.confidence,
+          note: item.eliteScore >= 60 ? t("evidence.finalNote.favorable") : item.eliteScore >= 40 ? t("evidence.finalNote.mixed") : t("evidence.finalNote.weak"),
+        }),
+    },
+  };
+}
 
 function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
+  const { t } = useTranslation("decisionCenter");
+  const evidenceSections = useMemo(() => buildEvidenceSections(t), [t]);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -210,7 +248,8 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
 
   if (!item) return null;
 
-  const decision = getDecisionBadge(item.decision);
+  const decision = getDecisionBadge(item.decision, t);
+  const outcome = getOutcomeBadge(item.outcome, t);
 
   return (
     <>
@@ -237,11 +276,11 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
               </Badge>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
-              Esc
+              {t("drawer.esc")}
             </Button>
           </div>
 
-          {Object.entries(EVIDENCE_SECTIONS).map(([key, section]) => (
+          {Object.entries(evidenceSections).map(([key, section]) => (
             <div key={key} className="widget-card">
               <div className="widget-header">
                 <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
@@ -259,7 +298,7 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Elite Score
+                {t("drawer.eliteScore")}
               </span>
               <span className={cn("text-xs font-mono tabular-nums", getScoreColor(item.eliteScore))}>
                 {item.eliteScore.toFixed(0)}
@@ -279,26 +318,26 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
               </div>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Confidence</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.confidence")}</span>
                   <span className={cn("font-mono tabular-nums", getConfidenceColor(item.confidence))}>
                     {item.confidence}%
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Risk</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.risk")}</span>
                   <span className={cn("font-mono tabular-nums", getRiskColor(item.risk))}>
                     {item.risk.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Outcome</span>
-                  <Badge variant={getOutcomeBadge(item.outcome).variant} className="text-[8px]">
-                    {getOutcomeBadge(item.outcome).label}
+                  <span className="text-[var(--text-muted)]">{t("drawer.outcome")}</span>
+                  <Badge variant={outcome.variant} className="text-[8px]">
+                    {outcome.label}
                   </Badge>
                 </div>
                 {item.pnl !== null && (
                   <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">PnL</span>
+                    <span className="text-[var(--text-muted)]">{t("drawer.pnl")}</span>
                     <span className={cn("font-mono tabular-nums", item.pnl >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]")}>
                       {item.pnl >= 0 ? "+" : ""}{item.pnl.toFixed(2)}%
                     </span>
@@ -314,6 +353,7 @@ function ExplainDrawer({ item, open, onClose }: ExplainDrawerProps) {
 }
 
 export default function DecisionCenter() {
+  const { t } = useTranslation(["decisionCenter", "common"]);
   const { openTrades, closedTrades } = useOutletContext<LayoutContext>();
   const [signals, setSignals] = useState<SignalRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -330,11 +370,11 @@ export default function DecisionCenter() {
       setSignals(data);
     } catch {
       setSignals([]);
-      setError("Failed to load signals. Check your connection and try again.");
+      setError(t("loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadSignals();
@@ -478,14 +518,14 @@ export default function DecisionCenter() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
-            Decision Center
+            {t("heading")}
           </h2>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card>
             <CardHeader className="py-2">
-              <CardTitle>Win Rate</CardTitle>
+              <CardTitle>{t("stats.winRate")}</CardTitle>
             </CardHeader>
             <CardContent className="py-2">
               <span className={cn(
@@ -500,7 +540,7 @@ export default function DecisionCenter() {
           </Card>
           <Card>
             <CardHeader className="py-2">
-              <CardTitle>Avg Confidence</CardTitle>
+              <CardTitle>{t("stats.avgConfidence")}</CardTitle>
             </CardHeader>
             <CardContent className="py-2">
               <span className={cn(
@@ -513,7 +553,7 @@ export default function DecisionCenter() {
           </Card>
           <Card>
             <CardHeader className="py-2">
-              <CardTitle>Avg Risk</CardTitle>
+              <CardTitle>{t("stats.avgRisk")}</CardTitle>
             </CardHeader>
             <CardContent className="py-2">
               <span className={cn(
@@ -526,7 +566,7 @@ export default function DecisionCenter() {
           </Card>
           <Card>
             <CardHeader className="py-2">
-              <CardTitle>Best Strategy</CardTitle>
+              <CardTitle>{t("stats.bestStrategy")}</CardTitle>
             </CardHeader>
             <CardContent className="py-2">
               <span className={cn(
@@ -539,7 +579,7 @@ export default function DecisionCenter() {
           </Card>
           <Card>
             <CardHeader className="py-2">
-              <CardTitle>Weakest Strategy</CardTitle>
+              <CardTitle>{t("stats.weakestStrategy")}</CardTitle>
             </CardHeader>
             <CardContent className="py-2">
               <span className={cn(
@@ -560,7 +600,7 @@ export default function DecisionCenter() {
               size="sm"
               onClick={() => setActiveTab(tab.id)}
             >
-              {tab.label}
+              {t(`tabs.${tab.id}`)}
               <span className="ml-1.5 text-[10px] text-[var(--text-muted)]">
                 {tabCounts[tab.id]}
               </span>
@@ -573,7 +613,7 @@ export default function DecisionCenter() {
             <CardContent className="p-4">
               <div className="flex flex-col items-center gap-3 py-4">
                 <p className="text-xs text-[var(--accent-red)] font-mono text-center">{error}</p>
-                <Button variant="ghost" size="sm" onClick={loadSignals}>Retry</Button>
+                <Button variant="ghost" size="sm" onClick={loadSignals}>{t("common:retry")}</Button>
               </div>
             </CardContent>
           </Card>
@@ -591,7 +631,7 @@ export default function DecisionCenter() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-xs font-mono text-[var(--text-muted)]">
-                No decisions found for this filter
+                {t("noDecisions")}
               </p>
             </CardContent>
           </Card>
@@ -602,21 +642,21 @@ export default function DecisionCenter() {
                 <table className="w-full caption-bottom text-sm">
                   <thead className="border-b border-[var(--border-subtle)]">
                     <tr>
-                      <TableHead className="w-20">Symbol</TableHead>
-                      <TableHead className="w-16">Side</TableHead>
-                      <TableHead className="w-20">Elite Score</TableHead>
-                      <TableHead className="w-14">Conf</TableHead>
-                      <TableHead className="w-24">Decision</TableHead>
-                      <TableHead className="w-20">Risk</TableHead>
-                      <TableHead className="w-24">Time</TableHead>
-                      <TableHead className="w-18">Outcome</TableHead>
-                      <TableHead className="w-24">Explain</TableHead>
+                      <TableHead className="w-20">{t("table.symbol")}</TableHead>
+                      <TableHead className="w-16">{t("table.side")}</TableHead>
+                      <TableHead className="w-20">{t("table.eliteScore")}</TableHead>
+                      <TableHead className="w-14">{t("table.confidence")}</TableHead>
+                      <TableHead className="w-24">{t("table.decision")}</TableHead>
+                      <TableHead className="w-20">{t("table.risk")}</TableHead>
+                      <TableHead className="w-24">{t("table.time")}</TableHead>
+                      <TableHead className="w-18">{t("table.outcome")}</TableHead>
+                      <TableHead className="w-24">{t("table.explain")}</TableHead>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((item) => {
-                      const decision = getDecisionBadge(item.decision);
-                      const outcome = getOutcomeBadge(item.outcome);
+                      const decision = getDecisionBadge(item.decision, t);
+                      const outcome = getOutcomeBadge(item.outcome, t);
                       return (
                         <tr
                           key={item.id}
@@ -683,7 +723,7 @@ export default function DecisionCenter() {
                               size="sm"
                               onClick={() => handleExplain(item)}
                             >
-                              Explain →
+                              {t("explainAction")}
                             </Button>
                           </TableCell>
                         </tr>
@@ -694,7 +734,7 @@ export default function DecisionCenter() {
               </div>
               <div className="px-3 py-2 border-t border-[var(--border-subtle)]">
                 <p className="text-[10px] text-[var(--text-muted)] font-mono">
-                  {filtered.length} decision{filtered.length !== 1 ? "s" : ""}
+                  {t("decisionCount", { count: filtered.length })}
                 </p>
               </div>
             </CardContent>

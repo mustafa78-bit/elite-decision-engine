@@ -1,11 +1,14 @@
+import { useTranslation } from "react-i18next";
 import type { ConnectionStatus, WsRoomStatus } from "../../types/connection";
 import { ConnectionStatusBadge } from "./ConnectionStatus";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 interface Props {
   wsRooms: WsRoomStatus;
 }
 
 export default function Header({ wsRooms }: Props) {
+  const { t } = useTranslation();
   return (
     <header className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-2">
       <div>
@@ -13,7 +16,7 @@ export default function Header({ wsRooms }: Props) {
           Elite Terminal
         </h1>
         <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest">
-          Decision Engine v1
+          {t("header.subtitle")}
         </p>
       </div>
       <div className="flex items-center gap-3">
@@ -27,6 +30,7 @@ export default function Header({ wsRooms }: Props) {
           ))}
         </div>
         <ConnectionStatusBadge wsRooms={wsRooms as unknown as Record<string, ConnectionStatus>} />
+        <LanguageSwitcher />
       </div>
     </header>
   );

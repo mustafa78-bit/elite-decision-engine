@@ -1,0 +1,25 @@
+{
+  "page": {
+    "openTrades": "Open Trades",
+    "closedTrades": "Closed Trades"
+  },
+  "openTrades": {
+    "empty": "No open trades",
+    "columns": {
+      "symbol": "Symbol",
+      "side": "Side",
+      "entry": "Entry",
+      "status": "Status"
+    }
+  },
+  "closedTrades": {
+    "empty": "No closed trades",
+    "columns": {
+      "symbol": "Symbol",
+      "status": "Status",
+      "exit": "Exit",
+      "pnl": "PnL",
+      "reason": "Reason"
+    }
+  }
+}

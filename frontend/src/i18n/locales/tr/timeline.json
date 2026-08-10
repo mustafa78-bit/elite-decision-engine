@@ -1,0 +1,8 @@
+{
+  "page": {
+    "title": "Zaman Çizelgesi",
+    "eventsCount": "{{count}} olay",
+    "loadError": "Zaman çizelgesi yüklenemedi. Tekrar denemek için tıklayın.",
+    "empty": "Zaman çizelgesi olayı yok"
+  }
+}

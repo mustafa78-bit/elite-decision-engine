@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { RegimeData } from "../api/regime";
 import { fetchRegime } from "../api/regime";
@@ -6,6 +7,7 @@ import { ApiError } from "../api/client";
 import RegimePanel from "../components/regime/RegimePanel";
 
 export default function Regime() {
+  const { t } = useTranslation(["regime", "common"]);
   const [data, setData] = useState<RegimeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +23,7 @@ export default function Regime() {
       }
       setData(d);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load regime data");
+      setError(e instanceof ApiError ? e.message : t("page.loadError"));
     } finally {
       setLoading(false);
     }
@@ -32,7 +34,7 @@ export default function Regime() {
   if (loading) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading regime data...
+        {t("page.loading")}
       </div>
     );
   }
@@ -42,7 +44,7 @@ export default function Regime() {
       <div className="space-y-4">
         <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
           {error}
-          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Retry</button>
+          <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">{t("common:retry")}</button>
         </div>
       </div>
     );
@@ -52,7 +54,7 @@ export default function Regime() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">Market Regime</h2>
+      <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">{t("page.heading")}</h2>
       <div className="max-w-md">
         <RegimePanel data={data} />
       </div>

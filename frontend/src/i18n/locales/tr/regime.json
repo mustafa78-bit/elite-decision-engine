@@ -1,0 +1,32 @@
+{
+  "page": {
+    "loading": "Rejim verileri yükleniyor...",
+    "loadError": "Rejim verileri yüklenemedi",
+    "heading": "Piyasa Rejimi"
+  },
+  "regimePanel": {
+    "title": "Piyasa Rejimi",
+    "regime": "Rejim",
+    "trend": "Trend",
+    "volatility": "Volatilite",
+    "btcHealth": "BTC Sağlığı",
+    "rsi": "RSI",
+    "ema": "EMA"
+  },
+  "regimeValues": {
+    "TREND": "TREND",
+    "DOWNTREND": "DÜŞÜŞ TRENDİ",
+    "RANGE": "YATAY SEYİR",
+    "DEAD": "DURGUN"
+  },
+  "trendValues": {
+    "BULLISH": "YÜKSELİŞ",
+    "BEARISH": "DÜŞÜŞ",
+    "NEUTRAL": "NÖTR"
+  },
+  "volatilityValues": {
+    "LOW": "DÜŞÜK",
+    "NORMAL": "NORMAL",
+    "HIGH": "YÜKSEK"
+  }
+}

@@ -1,198 +1,238 @@
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/utils";
 
-const roomMap: Record<string, string> = {
-  '/command-deck': '#2563EB',
-  '/portfolio': '#3B82F6',
-  '/scanner': '#06B6D4',
-  '/trades': '#F59E0B',
-  '/timeline': '#F59E0B',
-  '/journal': '#F59E0B',
-  '/signals': '#8B5CF6',
-  '/decisions': '#8B5CF6',
-  '/intelligence': '#8B5CF6',
-  '/regime': '#8B5CF6',
-  '/funding': '#10B981',
-  '/open-interest': '#10B981',
-  '/risk': '#F43F5E',
-  '/analytics': '#6366F1',
-  '/backtest': '#6366F1',
-  '/hero-dashboard': '#6366F1',
-  '/execution': '#14B8A6',
-  '/paper-trading': '#14B8A6',
-  '/trading-workspace': '#14B8A6',
-  '/trading-control': '#14B8A6',
-  '/market': '#0EA5E9',
-  '/watchlists': '#0EA5E9',
-  '/profile': '#6366F1',
-  '/preferences': '#6366F1',
-};
-
-function getRoomColor(pathname: string): string {
-  for (const [prefix, color] of Object.entries(roomMap)) {
-    if (pathname.startsWith(prefix)) return color;
-  }
-  return '#2563EB';
-}
-
 interface NavItem {
-  label: string;
+  labelKey: string;
   path: string;
   icon: string;
 }
 
-const sections: { title: string; subtitle: string; items: NavItem[] }[] = [
+interface NavSection {
+  key: string;
+  titleKey: string;
+  subtitleKey: string;
+  icon: string;
+  accent: string;
+  items: NavItem[];
+}
+
+const sections: NavSection[] = [
   {
-    title: "Command Deck",
-    subtitle: "Headquarters",
+    key: "commandDeck",
+    titleKey: "nav.section.commandDeck.title",
+    subtitleKey: "nav.section.commandDeck.subtitle",
+    icon: "◈",
+    accent: "#e6a94f",
     items: [
-      { label: "Command Deck", path: "/command-deck", icon: "◈" },
-      { label: "Dashboard", path: "/dashboard", icon: "▣" },
-      { label: "Overview", path: "/overview", icon: "◉" },
+      { labelKey: "nav.item.commandDeck", path: "/command-deck", icon: "◈" },
+      { labelKey: "nav.item.dashboard", path: "/dashboard", icon: "▣" },
+      { labelKey: "nav.item.overview", path: "/overview", icon: "◉" },
     ],
   },
   {
-    title: "Scanner Room",
-    subtitle: "Asset Surveillance",
+    key: "scannerRoom",
+    titleKey: "nav.section.scannerRoom.title",
+    subtitleKey: "nav.section.scannerRoom.subtitle",
+    icon: "◎",
+    accent: "#5b9bf6",
     items: [
-      { label: "Scanner", path: "/scanner", icon: "◎" },
-      { label: "Market", path: "/market", icon: "◉" },
-      { label: "Watchlists", path: "/watchlists", icon: "☰" },
+      { labelKey: "nav.item.scanner", path: "/scanner", icon: "◎" },
+      { labelKey: "nav.item.market", path: "/market", icon: "◉" },
+      { labelKey: "nav.item.watchlists", path: "/watchlists", icon: "☰" },
     ],
   },
   {
-    title: "AI Council Chamber",
-    subtitle: "Decision Intelligence",
+    key: "aiCouncilChamber",
+    titleKey: "nav.section.aiCouncilChamber.title",
+    subtitleKey: "nav.section.aiCouncilChamber.subtitle",
+    icon: "✦",
+    accent: "#45d6c4",
     items: [
-      { label: "Decision Center", path: "/decisions", icon: "◈" },
-      { label: "Signals", path: "/signals", icon: "⚡" },
-      { label: "Intelligence", path: "/intelligence", icon: "✦" },
+      { labelKey: "nav.item.decisions", path: "/decisions", icon: "◈" },
+      { labelKey: "nav.item.signals", path: "/signals", icon: "⚡" },
+      { labelKey: "nav.item.intelligence", path: "/intelligence", icon: "✦" },
     ],
   },
   {
-    title: "Risk Operations",
-    subtitle: "Risk & Exposure",
+    key: "riskOperations",
+    titleKey: "nav.section.riskOperations.title",
+    subtitleKey: "nav.section.riskOperations.subtitle",
+    icon: "▲",
+    accent: "#f5697a",
     items: [
-      { label: "Risk Control", path: "/risk", icon: "▲" },
-      { label: "Regime", path: "/regime", icon: "◆" },
+      { labelKey: "nav.item.risk", path: "/risk", icon: "▲" },
+      { labelKey: "nav.item.regime", path: "/regime", icon: "◆" },
     ],
   },
   {
-    title: "Portfolio Vault",
-    subtitle: "Capital Management",
+    key: "portfolioVault",
+    titleKey: "nav.section.portfolioVault.title",
+    subtitleKey: "nav.section.portfolioVault.subtitle",
+    icon: "▣",
+    accent: "#a98af5",
     items: [
-      { label: "Portfolio", path: "/portfolio", icon: "▣" },
+      { labelKey: "nav.item.portfolio", path: "/portfolio", icon: "▣" },
     ],
   },
   {
-    title: "Capital Flow",
-    subtitle: "Market Intelligence",
+    key: "capitalFlow",
+    titleKey: "nav.section.capitalFlow.title",
+    subtitleKey: "nav.section.capitalFlow.subtitle",
+    icon: "◉",
+    accent: "#f5985a",
     items: [
-      { label: "Funding", path: "/funding", icon: "◎" },
-      { label: "Open Interest", path: "/open-interest", icon: "◐" },
+      { labelKey: "nav.item.funding", path: "/funding", icon: "◎" },
+      { labelKey: "nav.item.openInterest", path: "/open-interest", icon: "◐" },
     ],
   },
   {
-    title: "Mission Archive",
-    subtitle: "Records & Journal",
+    key: "missionArchive",
+    titleKey: "nav.section.missionArchive.title",
+    subtitleKey: "nav.section.missionArchive.subtitle",
+    icon: "≡",
+    accent: "#4ddb92",
     items: [
-      { label: "Trade Journal", path: "/trades", icon: "⇄" },
-      { label: "Timeline", path: "/timeline", icon: "≡" },
-      { label: "Journal", path: "/journal", icon: "≡" },
-      { label: "Notifications", path: "/notifications", icon: "⏏" },
+      { labelKey: "nav.item.trades", path: "/trades", icon: "⇄" },
+      { labelKey: "nav.item.timeline", path: "/timeline", icon: "≡" },
+      { labelKey: "nav.item.journal", path: "/journal", icon: "≡" },
+      { labelKey: "nav.item.notifications", path: "/notifications", icon: "⏏" },
     ],
   },
   {
-    title: "System Core",
-    subtitle: "Operations & Config",
+    key: "systemCore",
+    titleKey: "nav.section.systemCore.title",
+    subtitleKey: "nav.section.systemCore.subtitle",
+    icon: "⚙",
+    accent: "#6366F1",
     items: [
-      { label: "Analytics", path: "/analytics", icon: "▦" },
-      { label: "Backtest", path: "/backtest", icon: "◻" },
-      { label: "Execution", path: "/execution", icon: "≡" },
-      { label: "Paper Trading", path: "/paper-trading", icon: "◻" },
-      { label: "Preferences", path: "/preferences", icon: "⚙" },
-      { label: "Profile", path: "/profile", icon: "⏏" },
+      { labelKey: "nav.item.analytics", path: "/analytics", icon: "▦" },
+      { labelKey: "nav.item.backtest", path: "/backtest", icon: "◻" },
+      { labelKey: "nav.item.execution", path: "/execution", icon: "≡" },
+      { labelKey: "nav.item.paperTrading", path: "/paper-trading", icon: "◻" },
+      { labelKey: "nav.item.preferences", path: "/preferences", icon: "⚙" },
+      { labelKey: "nav.item.profile", path: "/profile", icon: "⏏" },
     ],
   },
 ];
 
+function findActiveSectionKey(pathname: string): string {
+  for (const section of sections) {
+    if (section.items.some((it) => pathname.startsWith(it.path))) return section.key;
+  }
+  return sections[0].key;
+}
+
 export default function Sidebar() {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
-  const activeRoomColor = getRoomColor(pathname);
+  const activeSectionKey = findActiveSectionKey(pathname);
+  const [openSection, setOpenSection] = useState<string>(activeSectionKey);
+  const activeAccent = sections.find((s) => s.key === activeSectionKey)?.accent ?? "#5b9bf6";
 
   return (
-    <aside className="w-56 h-full flex flex-col bg-[var(--bg-base)] border-r border-[var(--border-subtle)] shrink-0 overflow-y-auto">
+    <aside className="w-72 h-full flex flex-col bg-[var(--bg-base)] border-r border-[var(--border-subtle)] shrink-0 overflow-y-auto">
       <div className="px-4 py-4 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-2">
           <span
-            className="w-2 h-2 rounded-full transition-colors duration-500"
+            className="w-2.5 h-2.5 rounded-full transition-colors duration-500"
             style={{
-              backgroundColor: activeRoomColor,
-              boxShadow: `0 0 8px ${activeRoomColor}`,
+              backgroundColor: activeAccent,
+              boxShadow: `0 0 8px ${activeAccent}`,
             }}
           />
-          <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+          <span className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
             Elite HQ
           </span>
         </div>
-        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.1em]">
-          Decision Intelligence
+        <p className="text-[11px] text-[var(--text-muted)] mt-1 font-mono uppercase tracking-[0.1em]">
+          {t("nav.brandSubtitle")}
         </p>
       </div>
 
-      <nav className="flex-1 py-3 px-2 space-y-4">
+      <nav className="flex-1 py-3 px-2 space-y-1">
         {sections.map((section) => {
-          const isSectionActive = section.items.some((it) => pathname.startsWith(it.path));
+          const isSectionActive = section.key === activeSectionKey;
+          const isOpen = section.key === openSection;
+
           return (
-            <div key={section.title}>
-              <div className="px-2 mb-1 flex items-center gap-2">
+            <div key={section.key}>
+              <button
+                type="button"
+                onClick={() => setOpenSection(isOpen ? "" : section.key)}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors duration-150 hover:bg-[var(--bg-hover)]"
+              >
                 <span
-                  className="w-1 h-3 rounded-full transition-opacity duration-500"
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-[14px] shrink-0 transition-colors duration-300"
                   style={{
-                    backgroundColor: isSectionActive ? activeRoomColor : 'transparent',
-                    opacity: isSectionActive ? 1 : 0.3,
+                    backgroundColor: `${section.accent}1c`,
+                    color: section.accent,
                   }}
-                />
-                <div className="min-w-0">
-                  <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-[0.12em] leading-tight">
-                    {section.title}
+                >
+                  {section.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] font-semibold text-[var(--text-primary)] leading-tight truncate">
+                    {t(section.titleKey)}
                   </div>
-                  <div className="text-[7px] text-[var(--text-muted)] font-mono uppercase tracking-[0.08em] opacity-50">
-                    {section.subtitle}
+                  <div className="text-[10.5px] text-[var(--text-muted)] font-mono uppercase tracking-[0.06em] opacity-60 truncate">
+                    {t(section.subtitleKey)}
+                  </div>
+                </div>
+                {isSectionActive && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: section.accent, boxShadow: `0 0 6px ${section.accent}` }}
+                  />
+                )}
+                <span
+                  className="text-[11px] text-[var(--text-muted)] shrink-0 transition-transform duration-200"
+                  style={{ transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+                >
+                  ▸
+                </span>
+              </button>
+
+              <div
+                className="grid transition-[grid-template-rows] duration-200 ease-out"
+                style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
+              >
+                <div className="overflow-hidden">
+                  <div className="pt-1 pb-2 space-y-0.5">
+                    {section.items.map((item) => {
+                      const isActive = pathname.startsWith(item.path);
+
+                      return (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          className={cn(
+                            "flex items-center gap-2.5 pl-9 pr-3 py-1.5 rounded-lg text-[13.5px] font-medium transition-all duration-200",
+                            isActive
+                              ? "text-[var(--text-primary)]"
+                              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
+                          )}
+                          style={isActive ? {
+                            backgroundColor: `${section.accent}15`,
+                            borderLeft: `2px solid ${section.accent}`,
+                            boxShadow: `inset 0 0 20px ${section.accent}08`,
+                          } : {}}
+                          aria-current={isActive ? "page" : undefined}
+                        >
+                          <span
+                            className="w-4 text-center text-[13px] transition-colors duration-300"
+                            style={{ color: isActive ? section.accent : undefined }}
+                          >
+                            {item.icon}
+                          </span>
+                          <span>{t(item.labelKey)}</span>
+                        </NavLink>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
-              {section.items.map((item) => {
-                const itemColor = getRoomColor(item.path);
-                const isActive = pathname.startsWith(item.path);
-
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
-                      isActive
-                        ? "text-[var(--text-primary)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
-                    )}
-                    style={isActive ? {
-                      backgroundColor: `${activeRoomColor}15`,
-                      borderLeft: `2px solid ${activeRoomColor}`,
-                      boxShadow: `inset 0 0 20px ${activeRoomColor}08`,
-                    } : {}}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <span
-                      className="w-4 text-center text-[11px] transition-colors duration-300"
-                      style={{ color: isActive ? itemColor : undefined }}
-                    >
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </NavLink>
-                );
-              })}
             </div>
           );
         })}
@@ -203,13 +243,13 @@ export default function Sidebar() {
           <span
             className="w-1.5 h-1.5 rounded-full"
             style={{
-              backgroundColor: activeRoomColor,
-              boxShadow: `0 0 6px ${activeRoomColor}`,
+              backgroundColor: activeAccent,
+              boxShadow: `0 0 6px ${activeAccent}`,
               animation: 'sidebar-pulse 2s ease-in-out infinite',
             }}
           />
-          <span className="text-[10px] text-[var(--text-muted)] font-mono">
-            System Online
+          <span className="text-[11px] text-[var(--text-muted)] font-mono">
+            {t("nav.systemOnline")}
           </span>
         </div>
       </div>

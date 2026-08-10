@@ -1,0 +1,114 @@
+{
+  "back": "← Back",
+  "unknown": "Unknown",
+  "explain": "Explain",
+  "priceChart": "Price Chart",
+  "chartLoading": "Loading chart data...",
+  "chartLoadError": "Failed to load chart data",
+  "eliteScore": {
+    "title": "Elite Score",
+    "confidence": "Confidence",
+    "risk": "Risk",
+    "trend": "Trend",
+    "volume": "Volume",
+    "btcCorrelation": "BTC Correlation",
+    "mtf": "MTF"
+  },
+  "aiSummary": {
+    "title": "AI Summary",
+    "decisionLabel": "Decision:",
+    "confidenceLabel": "Confidence:",
+    "fullAnalysis": "Full Analysis →",
+    "noData": "No decision data available. Awaiting signal processing...",
+    "bullishNote": "Strong technical alignment across trend, volume, and momentum indicators. Favorable risk/reward setup with clear invalidation levels.",
+    "bearishNote": "Bearish signals aligned across multiple timeframes. Deteriorating market structure with increasing selling pressure.",
+    "mixedNote": "Mixed signals across indicators. Waiting for clearer confirmation before directional bias."
+  },
+  "decisionTimelineHeading": "Decision Timeline",
+  "timelineAction": {
+    "opened": "Opened",
+    "closed": "Closed"
+  },
+  "marketPulse": {
+    "title": "Market Pulse",
+    "price": "Price",
+    "change24h": "24h Change",
+    "volume": "Volume",
+    "signal": "Signal",
+    "riskLevel": "Risk Level"
+  },
+  "decision": {
+    "STRONG_BUY": "STRONG BUY",
+    "BUY": "BUY",
+    "NEUTRAL": "NEUTRAL",
+    "SELL": "SELL",
+    "STRONG_SELL": "STRONG SELL"
+  },
+  "confidenceMetrics": {
+    "technicalAnalysis": "Technical Analysis",
+    "marketRegime": "Market Regime",
+    "volumeProfile": "Volume Profile",
+    "mtfAnalysis": "MTF Analysis",
+    "riskAssessment": "Risk Assessment"
+  },
+  "drawer": {
+    "esc": "Esc",
+    "aiSummary": "AI Summary",
+    "awaitingAnalysis": "Awaiting AI analysis from the intelligence engine.",
+    "eliteScore": "Elite Score",
+    "confidence": "Confidence",
+    "risk": "Risk",
+    "decision": "Decision",
+    "side": "Side",
+    "trendAnalysis": "Trend Analysis",
+    "keyLevels": "Key Levels",
+    "signals": "Signals",
+    "riskAssessment": "Risk Assessment",
+    "volumeAnalysis": "Volume Analysis"
+  },
+  "confidenceBreakdown": {
+    "title": "Confidence Breakdown",
+    "overallConfidence": "Overall Confidence",
+    "weightedAcross": "Weighted across {{count}} factors"
+  },
+  "decisionTimelineWidget": {
+    "title": "Decision Timeline",
+    "noRecent": "No recent decisions",
+    "confidence": "Confidence: {{value}}%",
+    "outcome": {
+      "pending": "Pending",
+      "correct": "Correct",
+      "incorrect": "Incorrect"
+    }
+  },
+  "explainableAI": {
+    "title": "Explainable AI",
+    "factorContributions": "Factor Contributions"
+  },
+  "fundingWidget": {
+    "title": "Funding Rates",
+    "avg8h": "8h avg",
+    "noData": "No funding data available",
+    "apr": "APR: {{value}}%",
+    "settlement": "Settlement: {{value}}"
+  },
+  "liquidityWidget": {
+    "title": "Liquidity Analysis",
+    "score": "Score: {{value}}",
+    "ratio": "Ratio: {{value}}",
+    "bid": "Bid ${{value}}M",
+    "ask": "Ask ${{value}}M",
+    "overallScore": "Overall Liquidity Score"
+  },
+  "openInterestWidget": {
+    "title": "Open Interest",
+    "change24h": "24h change",
+    "noData": "No OI data available",
+    "longShort": "L/S: {{value}}"
+  },
+  "whaleWidget": {
+    "title": "Whale Activity",
+    "last24h": "Last 24h",
+    "noData": "No whale activity detected"
+  }
+}

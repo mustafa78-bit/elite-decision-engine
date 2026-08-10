@@ -396,6 +396,6 @@ describe("OLLOCommander", () => {
 
   it("shows awaiting connection state", () => {
     render(<OLLOCommander greeting={null} briefing={null} loading={false} error={null} />);
-    expect(screen.getByText("Awaiting OLLO connection...")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting NEXUS connection...")).toBeInTheDocument();
   });
 });

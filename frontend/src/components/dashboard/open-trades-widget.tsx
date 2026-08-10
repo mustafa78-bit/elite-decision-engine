@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Separator } from "../ui/separator";
@@ -17,18 +18,19 @@ interface OpenTradesWidgetProps {
 }
 
 export function OpenTradesWidget({ trades = [] }: OpenTradesWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Open Trades</CardTitle>
+        <CardTitle>{t("openTradesWidget.title")}</CardTitle>
         <span className="text-[10px] font-mono text-[var(--text-muted)]">
-          {trades.length} positions
+          {t("openTradesWidget.positions", { count: trades.length })}
         </span>
       </CardHeader>
       <CardContent>
         {trades.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No open trades
+            {t("openTradesWidget.empty")}
           </div>
         ) : (
           <div className="space-y-1">

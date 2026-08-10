@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { FormInput } from "../ui/form";
@@ -10,6 +11,16 @@ type OrderSide = "BUY" | "SELL";
 type OrderType = "MARKET" | "LIMIT" | "STOP";
 
 export function OrderPanel() {
+  const { t } = useTranslation("tradingWorkspace");
+  const sideLabels: Record<OrderSide, string> = {
+    BUY: t("orderPanel.side.buy"),
+    SELL: t("orderPanel.side.sell"),
+  };
+  const typeLabels: Record<OrderType, string> = {
+    MARKET: t("orderPanel.type.market"),
+    LIMIT: t("orderPanel.type.limit"),
+    STOP: t("orderPanel.type.stop"),
+  };
   const { symbol: rawSymbol } = useTerminalStore();
   const symbol = rawSymbol ?? "BTCUSDT";
   const [side, setSide] = useState<OrderSide>("BUY");
@@ -23,7 +34,7 @@ export function OrderPanel() {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Order</CardTitle>
+        <CardTitle>{t("orderPanel.title")}</CardTitle>
         <span className="text-[10px] font-mono text-[var(--text-muted)]">
           {symbol}
         </span>
@@ -43,31 +54,31 @@ export function OrderPanel() {
                   : "bg-[var(--bg-base)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
               )}
             >
-              {s}
+              {sideLabels[s]}
             </button>
           ))}
         </div>
 
         <div className="flex gap-1 rounded-lg overflow-hidden border border-[var(--border-default)] p-0.5 bg-[var(--bg-base)]">
-          {(["MARKET", "LIMIT", "STOP"] as OrderType[]).map((t) => (
+          {(["MARKET", "LIMIT", "STOP"] as OrderType[]).map((ot) => (
             <button
-              key={t}
-              onClick={() => setOrderType(t)}
+              key={ot}
+              onClick={() => setOrderType(ot)}
               className={cn(
                 "flex-1 py-1 text-[10px] font-mono rounded-md transition-all",
-                orderType === t
+                orderType === ot
                   ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
               )}
             >
-              {t}
+              {typeLabels[ot]}
             </button>
           ))}
         </div>
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
-            Price (USDT)
+            {t("orderPanel.price")}
           </label>
           <FormInput
             value={price}
@@ -78,7 +89,7 @@ export function OrderPanel() {
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
-            Amount ({symbol.split("/")[0]})
+            {t("orderPanel.amount", { symbol: symbol.split("/")[0] })}
           </label>
           <FormInput
             value={amount}
@@ -88,7 +99,7 @@ export function OrderPanel() {
         </div>
 
         <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)]">
-          <span>Total</span>
+          <span>{t("orderPanel.total")}</span>
           <span className="tabular-nums">
             {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
           </span>
@@ -101,7 +112,7 @@ export function OrderPanel() {
             onChange={(e) => setReduceOnly(e.target.checked)}
             className="rounded border-[var(--border-default)] bg-[var(--bg-base)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]/30"
           />
-          <span className="text-[10px] text-[var(--text-muted)]">Reduce Only</span>
+          <span className="text-[10px] text-[var(--text-muted)]">{t("orderPanel.reduceOnly")}</span>
         </label>
 
         <motion.div whileTap={{ scale: 0.98 }}>
@@ -109,7 +120,7 @@ export function OrderPanel() {
             variant={side === "BUY" ? "primary" : "danger"}
             className="w-full h-9 text-xs font-mono"
           >
-            {side} {symbol.split("/")[0]}
+            {sideLabels[side]} {symbol.split("/")[0]}
           </Button>
         </motion.div>
       </CardContent>

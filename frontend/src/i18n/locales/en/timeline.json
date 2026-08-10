@@ -1,0 +1,8 @@
+{
+  "page": {
+    "title": "Timeline",
+    "eventsCount": "{{count}} events",
+    "loadError": "Failed to load timeline. Click to retry.",
+    "empty": "No timeline events"
+  }
+}

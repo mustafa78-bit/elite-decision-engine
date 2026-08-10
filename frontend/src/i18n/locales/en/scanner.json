@@ -1,0 +1,68 @@
+{
+  "heading": "Market Scanner",
+  "market": {
+    "spot": "Spot",
+    "futures": "Futures"
+  },
+  "searchPlaceholder": "Search symbol or strategy...",
+  "savedFilters": "Saved Filters",
+  "saveCurrent": "+ Save Current",
+  "newFilterName": "Filter {{n}}",
+  "defaultFilters": {
+    "default": "Default",
+    "highConf": "High Confidence",
+    "lowRisk": "Low Risk",
+    "highVolume": "High Volume"
+  },
+  "categories": {
+    "top-movers": "Top Movers",
+    "top-breakouts": "Top Breakouts",
+    "top-trends": "Top Trends",
+    "top-reversals": "Top Reversals",
+    "top-mean-reversions": "Mean Reversion"
+  },
+  "decision": {
+    "STRONG_BUY": "STRONG BUY",
+    "BUY": "BUY",
+    "NEUTRAL": "NEUTRAL",
+    "SELL": "SELL",
+    "STRONG_SELL": "STRONG SELL"
+  },
+  "loadError": "Failed to load scanner data. Check your connection and try again.",
+  "noResultsSearch": "No results match your search",
+  "noResultsCategory": "No opportunities found for this category",
+  "table": {
+    "rank": "#",
+    "symbol": "Symbol",
+    "side": "Side",
+    "strategy": "Strategy",
+    "eliteScore": "Elite Score",
+    "aiDecision": "AI Decision",
+    "confidence": "Conf",
+    "risk": "Risk",
+    "score": "Score",
+    "probability": "Probability"
+  },
+  "resultCount_one": "{{count}} result — click to explain, double-click to navigate",
+  "resultCount_other": "{{count}} results — click to explain, double-click to navigate",
+  "drawer": {
+    "esc": "Esc",
+    "aiSummary": "AI Summary",
+    "noSummary": "No summary available",
+    "eliteScore": "Elite Score",
+    "confidence": "Confidence",
+    "risk": "Risk",
+    "strategy": "Strategy",
+    "rank": "Rank",
+    "trendAnalysis": "Trend Analysis",
+    "keyLevels": "Key Levels",
+    "signals": "Signals",
+    "riskAssessment": "Risk Assessment",
+    "volumeAnalysis": "Volume Analysis",
+    "marketData": "Market Data",
+    "price": "Price",
+    "compositeScore": "Composite Score",
+    "probability": "Probability",
+    "signalBadges": "Signal Badges"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "page": {
+    "loading": "Loading portfolio...",
+    "loadError": "Failed to load portfolio",
+    "noData": "No portfolio data",
+    "heading": "Portfolio Terminal",
+    "metrics": {
+      "winRate": "Win Rate",
+      "lossRate": "Loss Rate",
+      "totalTrades": "Total Trades",
+      "avgPnl": "Avg PnL",
+      "profitFactor": "Profit Factor",
+      "maxDrawdown": "Max Drawdown",
+      "openExposure": "Open Exposure",
+      "dailyPnl": "Daily PnL"
+    }
+  },
+  "balanceCard": {
+    "title": "Balance",
+    "realizedPnl": "Realized PnL",
+    "unrealizedPnl": "Unrealized"
+  },
+  "allocationCard": {
+    "title": "Allocation",
+    "noData": "No data"
+  },
+  "exposureChart": {
+    "title": "Exposure by Symbol",
+    "noPositions": "No open positions"
+  },
+  "positionTable": {
+    "title": "Open Positions",
+    "noPositions": "No open positions",
+    "columns": {
+      "symbol": "Symbol",
+      "side": "Side",
+      "entry": "Entry",
+      "status": "Status",
+      "pnl": "PnL"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "page": {
+    "loading": "Loading journal...",
+    "loadError": "Failed to load journal",
+    "title": "Trade Journal",
+    "addEntry": "+ Entry",
+    "noEntries": "No journal entries yet"
+  },
+  "form": {
+    "symbolPlaceholder": "Symbol",
+    "entryPricePlaceholder": "Entry price",
+    "entryReasonPlaceholder": "Entry reason"
+  },
+  "table": {
+    "date": "Date",
+    "symbol": "Symbol",
+    "side": "Side",
+    "entry": "Entry",
+    "score": "Score",
+    "result": "Result",
+    "pnl": "PnL",
+    "reason": "Reason"
+  },
+  "result": {
+    "win": "WIN",
+    "loss": "LOSS",
+    "pending": "PENDING",
+    "breakEven": "BREAK EVEN"
+  }
+}

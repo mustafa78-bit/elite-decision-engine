@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import type { LineWidth } from "lightweight-charts";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useTerminalStore } from "../../stores/terminal-store";
@@ -18,6 +19,7 @@ interface ChartPanelProps {
 }
 
 export function ChartPanel({ data = [], timeframe = "1h" }: ChartPanelProps) {
+  const { t } = useTranslation("tradingWorkspace");
   const containerRef = useRef<HTMLDivElement>(null);
   const { symbol } = useTerminalStore();
 
@@ -193,7 +195,7 @@ export function ChartPanel({ data = [], timeframe = "1h" }: ChartPanelProps) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-64 text-sm text-[var(--text-muted)]">
-            No chart data available
+            {t("chartPanel.empty")}
           </div>
         </CardContent>
       </Card>

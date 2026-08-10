@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
@@ -15,15 +16,16 @@ interface FundingWidgetProps {
 }
 
 export function FundingWidget({ rates = [] }: FundingWidgetProps) {
+  const { t } = useTranslation("assetDetail");
   if (rates.length === 0) {
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle>Funding Rates</CardTitle>
+          <CardTitle>{t("fundingWidget.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-xs text-[var(--text-muted)] text-center py-4">
-            No funding data available
+            {t("fundingWidget.noData")}
           </div>
         </CardContent>
       </Card>
@@ -34,9 +36,9 @@ export function FundingWidget({ rates = [] }: FundingWidgetProps) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>
-          Funding Rates
+          {t("fundingWidget.title")}
           <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">
-            8h avg
+            {t("fundingWidget.avg8h")}
           </span>
         </CardTitle>
       </CardHeader>
@@ -58,8 +60,8 @@ export function FundingWidget({ rates = [] }: FundingWidgetProps) {
                 </div>
               </div>
               <div className="flex items-center justify-between text-[9px] font-mono text-[var(--text-muted)]">
-                <span>APR: {r.apr.toFixed(1)}%</span>
-                <span>Settlement: {r.timeToSettlement}</span>
+                <span>{t("fundingWidget.apr", { value: r.apr.toFixed(1) })}</span>
+                <span>{t("fundingWidget.settlement", { value: r.timeToSettlement })}</span>
               </div>
               <Progress
                 value={50 + r.rate * 1000}

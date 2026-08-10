@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 interface Props {
   symbol: string;
   side: string;
@@ -25,11 +27,13 @@ function Bar({ value, label, color }: { value: number; label: string; color: str
 }
 
 export default function SignalScoreCard({ symbol, side, confidence, decision, finalScore, trendScore, volumeScore, btcScore, riskScore }: Props) {
+  const { t } = useTranslation("signals");
   const decisionColor = decision === "STRONG_APPROVE" || decision === "APPROVE"
     ? "text-green-400"
     : decision === "WATCH"
       ? "text-yellow-400"
       : "text-red-400";
+  const decisionLabel = t(`decisionValues.${decision}`, { defaultValue: decision.replace("_", " ") });
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
@@ -39,17 +43,17 @@ export default function SignalScoreCard({ symbol, side, confidence, decision, fi
           <span className={side === "LONG" ? "text-green-400 text-xs" : "text-red-400 text-xs"}>{side}</span>
         </div>
         <div className="text-right">
-          <div className={`text-sm font-bold ${decisionColor}`}>{decision.replace("_", " ")}</div>
-          <div className="text-[10px] text-gray-500">{confidence.toFixed(0)}% confidence</div>
+          <div className={`text-sm font-bold ${decisionColor}`}>{decisionLabel}</div>
+          <div className="text-[10px] text-gray-500">{t("signalScoreCard.confidence", { value: confidence.toFixed(0) })}</div>
         </div>
       </div>
 
       <div className="border-t border-gray-800 pt-3">
-        <Bar value={finalScore} label="Final" color="bg-blue-600" />
-        <Bar value={trendScore} label="Trend" color="bg-green-600" />
-        <Bar value={volumeScore} label="Volume" color="bg-purple-600" />
-        <Bar value={btcScore} label="BTC" color="bg-orange-600" />
-        <Bar value={riskScore} label="Risk" color={riskScore >= 0.5 ? "bg-red-600" : "bg-green-600"} />
+        <Bar value={finalScore} label={t("signalScoreCard.bars.final")} color="bg-blue-600" />
+        <Bar value={trendScore} label={t("signalScoreCard.bars.trend")} color="bg-green-600" />
+        <Bar value={volumeScore} label={t("signalScoreCard.bars.volume")} color="bg-purple-600" />
+        <Bar value={btcScore} label={t("signalScoreCard.bars.btc")} color="bg-orange-600" />
+        <Bar value={riskScore} label={t("signalScoreCard.bars.risk")} color={riskScore >= 0.5 ? "bg-red-600" : "bg-green-600"} />
       </div>
     </div>
   );

@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
+import { useTranslation } from "react-i18next"
 
 interface SyncStep {
-  label: string
+  id: "aiFoundation" | "evidenceEngine" | "riskEngine" | "council" | "mission"
   status: "pending" | "syncing" | "done"
+  ready?: boolean
 }
 
 const INITIAL_STEPS: SyncStep[] = [
-  { label: "AI Foundation", status: "pending" },
-  { label: "Evidence Engine", status: "pending" },
-  { label: "Risk Engine", status: "pending" },
-  { label: "Council", status: "pending" },
-  { label: "Mission", status: "pending" },
+  { id: "aiFoundation", status: "pending" },
+  { id: "evidenceEngine", status: "pending" },
+  { id: "riskEngine", status: "pending" },
+  { id: "council", status: "pending" },
+  { id: "mission", status: "pending" },
 ]
 
 const TOTAL_DURATION = 1000
 
 export default function HQLoadingScreen() {
+  const { t } = useTranslation("commandDeck")
   const [steps, setSteps] = useState<SyncStep[]>(INITIAL_STEPS)
   const [visible, setVisible] = useState(true)
   const [done, setDone] = useState(false)
@@ -41,7 +44,7 @@ export default function HQLoadingScreen() {
         setTimeout(() => {
           setSteps((prev) =>
             prev.map((s, j) => {
-              if (j === i) return { ...s, status: "done" as const, label: i === INITIAL_STEPS.length - 1 ? "READY" : s.label }
+              if (j === i) return { ...s, status: "done" as const, ready: i === INITIAL_STEPS.length - 1 }
               return s
             }),
           )
@@ -79,13 +82,13 @@ export default function HQLoadingScreen() {
           className="text-[11px] font-semibold uppercase tracking-[0.25em]"
           style={{ color: "var(--text-muted)" }}
         >
-          ELITE
+          {t("loadingScreen.elite")}
         </div>
         <div
           className="text-[13px] font-semibold uppercase tracking-[0.3em] mt-2"
           style={{ color: "var(--text-primary)" }}
         >
-          COMMAND HEADQUARTERS
+          {t("loadingScreen.commandHq")}
         </div>
       </div>
 
@@ -93,7 +96,7 @@ export default function HQLoadingScreen() {
       <div className="space-y-2" style={{ minWidth: 240 }}>
         {steps.map((step) => (
           <div
-            key={step.label}
+            key={step.id}
             className="flex items-center justify-between"
             style={{
               opacity: step.status === "pending" ? 0.25 : 1,
@@ -126,7 +129,7 @@ export default function HQLoadingScreen() {
                   transition: "color 0.3s ease",
                 }}
               >
-                {step.label}
+                {step.ready ? t("loadingScreen.status.ready") : t(`loadingScreen.step.${step.id}`)}
               </span>
             </div>
             <span
@@ -143,7 +146,7 @@ export default function HQLoadingScreen() {
                 transition: "all 0.3s ease",
               }}
             >
-              {step.status === "done" ? (step.label === "READY" ? "READY" : "ONLINE") :
+              {step.status === "done" ? (step.ready ? t("loadingScreen.status.ready") : t("loadingScreen.status.online")) :
                step.status === "syncing" ? "..." :
                "....."}
             </span>

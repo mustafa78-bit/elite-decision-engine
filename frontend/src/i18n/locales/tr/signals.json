@@ -1,0 +1,39 @@
+{
+  "page": {
+    "loading": "Sinyaller yükleniyor...",
+    "loadError": "Sinyaller yüklenemedi",
+    "heading": "Canlı Sinyaller ({{count}})"
+  },
+  "liveSignalTable": {
+    "noSignals": "Henüz sinyal yok",
+    "columns": {
+      "symbol": "Sembol",
+      "side": "Yön",
+      "price": "Fiyat",
+      "decision": "Karar",
+      "score": "Skor",
+      "status": "Durum",
+      "time": "Zaman"
+    }
+  },
+  "signalScoreCard": {
+    "confidence": "%{{value}} güven",
+    "bars": {
+      "final": "Nihai",
+      "trend": "Trend",
+      "volume": "Hacim",
+      "btc": "BTC",
+      "risk": "Risk"
+    }
+  },
+  "signalTimeline": {
+    "title": "Sinyal Zaman Çizelgesi",
+    "noHistory": "Henüz sinyal geçmişi yok"
+  },
+  "decisionValues": {
+    "STRONG_APPROVE": "GÜÇLÜ ONAY",
+    "APPROVE": "ONAY",
+    "WATCH": "İZLE",
+    "REJECT": "REDDET"
+  }
+}

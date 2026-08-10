@@ -1,0 +1,20 @@
+{
+  "page": {
+    "loading": "Loading market data...",
+    "loadFailedFallback": "Failed to load market data",
+    "retry": "Retry",
+    "title": "Market Intelligence"
+  },
+  "marketCard": {
+    "rsi": "RSI",
+    "atr": "ATR"
+  },
+  "btcHealthCard": {
+    "title": "BTC Health",
+    "healthScore": "Health Score",
+    "ema2050": "EMA 20/50",
+    "ema200": "EMA 200",
+    "volatility": "Volatility",
+    "regimeScore": "Regime Score"
+  }
+}

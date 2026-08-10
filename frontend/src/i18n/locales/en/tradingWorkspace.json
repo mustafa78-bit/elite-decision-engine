@@ -1,0 +1,28 @@
+{
+  "page": {
+    "title": "Trading Workspace"
+  },
+  "symbolSearch": {
+    "placeholder": "Search symbols...",
+    "recent": "Recent"
+  },
+  "chartPanel": {
+    "empty": "No chart data available"
+  },
+  "orderPanel": {
+    "title": "Order",
+    "price": "Price (USDT)",
+    "amount": "Amount ({{symbol}})",
+    "total": "Total",
+    "reduceOnly": "Reduce Only",
+    "side": {
+      "buy": "BUY",
+      "sell": "SELL"
+    },
+    "type": {
+      "market": "MARKET",
+      "limit": "LIMIT",
+      "stop": "STOP"
+    }
+  }
+}

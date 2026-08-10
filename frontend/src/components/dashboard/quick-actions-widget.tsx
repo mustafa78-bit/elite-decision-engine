@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 interface Action {
@@ -12,6 +13,7 @@ interface QuickActionsWidgetProps {
 }
 
 export function QuickActionsWidget({ actions = [] }: QuickActionsWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
   if (actions.length === 0) {
     return null;
   }
@@ -19,7 +21,7 @@ export function QuickActionsWidget({ actions = [] }: QuickActionsWidgetProps) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Quick Actions</CardTitle>
+        <CardTitle>{t("quickActionsWidget.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-2">

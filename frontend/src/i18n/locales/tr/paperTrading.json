@@ -1,0 +1,32 @@
+{
+  "page": {
+    "loading": "Kağıt işlem yükleniyor...",
+    "loadError": "Kağıt işlem yüklenemedi",
+    "noData": "Kağıt işlem verisi yok",
+    "heading": "Kağıt İşlem Terminali",
+    "openTrades": "Açık İşlemler",
+    "closedTrades": "Kapalı İşlemler"
+  },
+  "paperPnLCard": {
+    "title": "Kağıt K/Z",
+    "summary": "{{open}} açık / {{closed}} kapalı"
+  },
+  "paperPerformanceCard": {
+    "title": "Kağıt Performans",
+    "total": "Toplam",
+    "winRate": "Kazanma Oranı",
+    "wins": "Kazanç",
+    "losses": "Kayıp"
+  },
+  "paperPositionTable": {
+    "noTrades": "{{title}} yok",
+    "columns": {
+      "symbol": "Sembol",
+      "side": "Yön",
+      "entry": "Giriş",
+      "exit": "Çıkış",
+      "pnl": "K/Z",
+      "status": "Durum"
+    }
+  }
+}

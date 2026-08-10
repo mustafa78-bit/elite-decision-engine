@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { apiFetch } from "../api/client";
@@ -11,6 +12,7 @@ interface OIData {
 }
 
 export default function OpenInterestPage() {
+  const { t } = useTranslation("openInterest");
   const [data, setData] = useState<OIData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +35,7 @@ export default function OpenInterestPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-        Open Interest
+        {t("page.title")}
       </h2>
 
       {loading ? (
@@ -45,7 +47,7 @@ export default function OpenInterestPage() {
       ) : data.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
-            <p className="text-xs font-mono text-[var(--text-muted)]">No open interest data available</p>
+            <p className="text-xs font-mono text-[var(--text-muted)]">{t("page.empty")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -61,13 +63,13 @@ export default function OpenInterestPage() {
                     {formatUSD(item.open_interest)}
                   </div>
                   <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-[var(--text-secondary)]">24h Change</span>
+                    <span className="text-[var(--text-secondary)]">{t("card.change24h")}</span>
                     <span className={item.change_24h >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}>
                       {item.change_24h >= 0 ? "+" : ""}{item.change_24h}%
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-[var(--text-secondary)]">Volume</span>
+                    <span className="text-[var(--text-secondary)]">{t("card.volume")}</span>
                     <span className="text-[var(--text-secondary)]">{formatUSD(item.volume)}</span>
                   </div>
                 </div>

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { addGlobalToast } from "../components/layout/toast-provider";
 import { useAuth } from "../components/auth/AuthProvider";
 
 export default function LoginPage() {
+  const { t } = useTranslation("loginPage");
   const navigate = useNavigate();
   const { login } = useAuth();
   const [username, setUsername] = useState("");
@@ -17,10 +19,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(username, password);
-      addGlobalToast("Logged in successfully", "success");
+      addGlobalToast(t("toastSuccess"), "success");
       navigate("/dashboard");
     } catch {
-      addGlobalToast("Invalid credentials", "error");
+      addGlobalToast(t("toastError"), "error");
     } finally {
       setLoading(false);
     }
@@ -37,13 +39,13 @@ export default function LoginPage() {
             Elite Terminal
           </h1>
           <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest mt-1">
-            Sign in to continue
+            {t("subtitle")}
           </p>
         </div>
 
         <Input
           id="username"
-          label="Username"
+          label={t("usernameLabel")}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder="admin"
@@ -52,7 +54,7 @@ export default function LoginPage() {
 
         <Input
           id="password"
-          label="Password"
+          label={t("passwordLabel")}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -61,7 +63,7 @@ export default function LoginPage() {
         />
 
         <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Signing in..." : "Sign In"}
+          {loading ? t("signingIn") : t("signIn")}
         </Button>
       </form>
     </div>

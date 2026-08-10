@@ -1,0 +1,25 @@
+{
+  "identity": {
+    "name": "Commander",
+    "unavailable": "Unavailable"
+  },
+  "account": {
+    "title": "Account",
+    "plan": "Plan",
+    "apiCalls24h": "API Calls (24h)",
+    "memberSince": "Member Since"
+  },
+  "apiKeys": {
+    "title": "API Keys",
+    "generateNewKey": "Generate New Key"
+  },
+  "notificationPreferences": {
+    "title": "Notification Preferences",
+    "tradeAlerts": "Trade Alerts",
+    "riskWarnings": "Risk Warnings",
+    "dailyDigest": "Daily Digest"
+  },
+  "recentActivity": {
+    "title": "Recent Activity"
+  }
+}

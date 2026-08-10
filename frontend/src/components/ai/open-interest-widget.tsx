@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 
@@ -14,15 +15,16 @@ interface OpenInterestWidgetProps {
 }
 
 export function OpenInterestWidget({ data = [] }: OpenInterestWidgetProps) {
+  const { t } = useTranslation("assetDetail");
   if (data.length === 0) {
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle>Open Interest</CardTitle>
+          <CardTitle>{t("openInterestWidget.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-xs text-[var(--text-muted)] text-center py-4">
-            No OI data available
+            {t("openInterestWidget.noData")}
           </div>
         </CardContent>
       </Card>
@@ -33,9 +35,9 @@ export function OpenInterestWidget({ data = [] }: OpenInterestWidgetProps) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>
-          Open Interest
+          {t("openInterestWidget.title")}
           <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">
-            24h change
+            {t("openInterestWidget.change24h")}
           </span>
         </CardTitle>
       </CardHeader>
@@ -59,7 +61,7 @@ export function OpenInterestWidget({ data = [] }: OpenInterestWidgetProps) {
                   {d.change24h >= 0 ? "+" : ""}{d.change24h.toFixed(1)}%
                 </span>
                 <Badge variant={d.longShortRatio > 1 ? "success" : "danger"}>
-                  L/S: {d.longShortRatio.toFixed(2)}
+                  {t("openInterestWidget.longShort", { value: d.longShortRatio.toFixed(2) })}
                 </Badge>
               </div>
             </div>

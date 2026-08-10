@@ -1,8 +1,11 @@
+import { useTranslation } from "react-i18next";
+
 interface Props {
   allocation: Record<string, number>;
 }
 
 export default function ExposureChart({ allocation }: Props) {
+  const { t } = useTranslation("portfolio");
   const entries = Object.entries(allocation);
   const total = entries.reduce((sum, [, v]) => sum + v, 0);
 
@@ -10,9 +13,9 @@ export default function ExposureChart({ allocation }: Props) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded p-4">
         <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
-          Exposure
+          {t("exposureChart.title")}
         </h3>
-        <p className="text-gray-600 text-xs text-center py-4">No open positions</p>
+        <p className="text-gray-600 text-xs text-center py-4">{t("exposureChart.noPositions")}</p>
       </div>
     );
   }
@@ -20,7 +23,7 @@ export default function ExposureChart({ allocation }: Props) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
       <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
-        Exposure by Symbol
+        {t("exposureChart.title")}
       </h3>
       <div className="space-y-2">
         {entries.map(([symbol, exposure]) => {

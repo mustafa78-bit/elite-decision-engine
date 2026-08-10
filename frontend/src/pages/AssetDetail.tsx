@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -47,13 +49,13 @@ function getRiskColor(risk: number): string {
   return "text-[var(--accent-red)]";
 }
 
-function getDecisionBadge(decision: string): { variant: "success" | "info" | "default" | "warning" | "danger"; label: string } {
+function getDecisionBadge(decision: string, t: TFunction): { variant: "success" | "info" | "default" | "warning" | "danger"; label: string } {
   switch (decision) {
-    case "STRONG_BUY": return { variant: "success", label: "STRONG BUY" };
-    case "BUY": return { variant: "info", label: "BUY" };
-    case "NEUTRAL": return { variant: "default", label: "NEUTRAL" };
-    case "SELL": return { variant: "warning", label: "SELL" };
-    case "STRONG_SELL": return { variant: "danger", label: "STRONG SELL" };
+    case "STRONG_BUY": return { variant: "success", label: t("decision.STRONG_BUY") };
+    case "BUY": return { variant: "info", label: t("decision.BUY") };
+    case "NEUTRAL": return { variant: "default", label: t("decision.NEUTRAL") };
+    case "SELL": return { variant: "warning", label: t("decision.SELL") };
+    case "STRONG_SELL": return { variant: "danger", label: t("decision.STRONG_SELL") };
     default: return { variant: "default", label: decision };
   }
 }
@@ -76,6 +78,8 @@ interface ExplainDrawerProps {
 }
 
 function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, onClose }: ExplainDrawerProps) {
+  const { t } = useTranslation(["assetDetail", "common"]);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -105,24 +109,24 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
               <Badge variant={getSideBadge(side)} className="text-[9px]">
                 {side}
               </Badge>
-              <Badge variant={getDecisionBadge(decision).variant} className="text-[9px]">
-                {getDecisionBadge(decision).label}
+              <Badge variant={getDecisionBadge(decision, t).variant} className="text-[9px]">
+                {getDecisionBadge(decision, t).label}
               </Badge>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
-              Esc
+              {t("drawer.esc")}
             </Button>
           </div>
 
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                AI Summary
+                {t("drawer.aiSummary")}
               </span>
             </div>
             <div className="widget-body">
               <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                Awaiting AI analysis from the intelligence engine.
+                {t("drawer.awaitingAnalysis")}
               </p>
             </div>
           </div>
@@ -130,7 +134,7 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Elite Score
+                {t("drawer.eliteScore")}
               </span>
               <span className={cn("text-xs font-mono tabular-nums", getScoreColor(score))}>
                 {score.toFixed(1)}
@@ -150,25 +154,25 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
               </div>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Confidence</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.confidence")}</span>
                   <span className={cn("font-mono tabular-nums", getConfidenceColor(confidence))}>
                     {confidence.toFixed(0)}%
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Risk</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.risk")}</span>
                   <span className={cn("font-mono tabular-nums", getRiskColor(risk))}>
                     {risk.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Decision</span>
-                  <Badge variant={getDecisionBadge(decision).variant} className="text-[8px]">
-                    {getDecisionBadge(decision).label}
+                  <span className="text-[var(--text-muted)]">{t("drawer.decision")}</span>
+                  <Badge variant={getDecisionBadge(decision, t).variant} className="text-[8px]">
+                    {getDecisionBadge(decision, t).label}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Side</span>
+                  <span className="text-[var(--text-muted)]">{t("drawer.side")}</span>
                   <Badge variant={getSideBadge(side)} className="text-[8px]">
                     {side}
                   </Badge>
@@ -180,12 +184,12 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Trend Analysis
+                {t("drawer.trendAnalysis")}
               </span>
             </div>
             <div className="widget-body">
               <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                Awaiting AI analysis from the intelligence engine.
+                {t("drawer.awaitingAnalysis")}
               </p>
             </div>
           </div>
@@ -193,12 +197,12 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Key Levels
+                {t("drawer.keyLevels")}
               </span>
             </div>
             <div className="widget-body">
               <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                Awaiting AI analysis from the intelligence engine.
+                {t("drawer.awaitingAnalysis")}
               </p>
             </div>
           </div>
@@ -206,12 +210,12 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Signals
+                {t("drawer.signals")}
               </span>
             </div>
             <div className="widget-body">
               <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                Awaiting AI analysis from the intelligence engine.
+                {t("drawer.awaitingAnalysis")}
               </p>
             </div>
           </div>
@@ -219,12 +223,12 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Risk Assessment
+                {t("drawer.riskAssessment")}
               </span>
             </div>
             <div className="widget-body">
               <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                Awaiting AI analysis from the intelligence engine.
+                {t("drawer.awaitingAnalysis")}
               </p>
             </div>
           </div>
@@ -232,12 +236,12 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
           <div className="widget-card">
             <div className="widget-header">
               <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                Volume Analysis
+                {t("drawer.volumeAnalysis")}
               </span>
             </div>
             <div className="widget-body">
               <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                Awaiting AI analysis from the intelligence engine.
+                {t("drawer.awaitingAnalysis")}
               </p>
             </div>
           </div>
@@ -248,6 +252,7 @@ function ExplainDrawer({ symbol, score, confidence, risk, decision, side, open, 
 }
 
 export default function AssetDetail() {
+  const { t } = useTranslation(["assetDetail", "common"]);
   const { symbol } = useParams<{ symbol: string }>();
   const { latestPrice, latestIntelligence, notifications } = useOutletContext<LayoutContext>();
   const { setSymbol, addRecentSymbol } = useTerminalStore();
@@ -329,10 +334,10 @@ export default function AssetDetail() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate("/scanner")} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] -ml-1">
-              ← Back
+              {t("back")}
             </Button>
             <h1 className="text-sm font-semibold text-[var(--text-primary)]">
-              {symbol ?? "Unknown"}
+              {symbol ?? t("unknown")}
             </h1>
             {latestPrice && (
               <Badge variant={change24h >= 0 ? "success" : "danger"} className="text-[10px]">
@@ -345,14 +350,14 @@ export default function AssetDetail() {
                 <Badge variant={getSideBadge(currentSide)} className="text-[9px]">
                   {currentSide}
                 </Badge>
-                <Badge variant={getDecisionBadge(aiDecision).variant} className="text-[9px]">
-                  {getDecisionBadge(aiDecision).label}
+                <Badge variant={getDecisionBadge(aiDecision, t).variant} className="text-[9px]">
+                  {getDecisionBadge(aiDecision, t).label}
                 </Badge>
               </>
             )}
           </div>
           <Button variant="primary" size="sm" onClick={() => setDrawerOpen(true)}>
-            Explain
+            {t("explain")}
           </Button>
         </div>
 
@@ -361,7 +366,7 @@ export default function AssetDetail() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-                  Price Chart
+                  {t("priceChart")}
                 </h2>
                 <TVTimeframeSelector selected={timeframe as any} onChange={(tf) => setTimeframe(tf)} />
               </div>
@@ -369,13 +374,13 @@ export default function AssetDetail() {
                 <div className="flex items-center justify-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-6 h-6 border-2 border-[var(--border-default)] border-t-[var(--accent-blue)] rounded-full animate-spin" />
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono">Loading chart data...</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-mono">{t("chartLoading")}</span>
                   </div>
                 </div>
               ) : candleError ? (
                 <div className="flex flex-col items-center gap-2 py-6">
-                  <p className="text-xs text-[var(--accent-red)] font-mono">Failed to load chart data</p>
-                  <Button variant="ghost" size="sm" onClick={loadCandles}>Retry</Button>
+                  <p className="text-xs text-[var(--accent-red)] font-mono">{t("chartLoadError")}</p>
+                  <Button variant="ghost" size="sm" onClick={loadCandles}>{t("common:common.retry")}</Button>
                 </div>
               ) : (
                 <ChartPanel data={candles} timeframe={timeframe} />
@@ -385,7 +390,7 @@ export default function AssetDetail() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Elite Score</CardTitle>
+                  <CardTitle>{t("eliteScore.title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -406,37 +411,37 @@ export default function AssetDetail() {
                   </div>
                   <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-[11px]">
                     <div className="flex justify-between">
-                      <span className="text-[var(--text-muted)]">Confidence</span>
+                      <span className="text-[var(--text-muted)]">{t("eliteScore.confidence")}</span>
                       <span className={cn("font-mono tabular-nums", getConfidenceColor(confidence))}>
                         {confidence}%
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[var(--text-muted)]">Risk</span>
+                      <span className="text-[var(--text-muted)]">{t("eliteScore.risk")}</span>
                       <span className={cn("font-mono tabular-nums", getRiskColor(risk))}>
                         {risk.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[var(--text-muted)]">Trend</span>
+                      <span className="text-[var(--text-muted)]">{t("eliteScore.trend")}</span>
                       <span className="font-mono tabular-nums text-[var(--text-secondary)]">
                         {latestIntelligence ? (latestIntelligence.trend_score * 100).toFixed(0) : "--"}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[var(--text-muted)]">Volume</span>
+                      <span className="text-[var(--text-muted)]">{t("eliteScore.volume")}</span>
                       <span className="font-mono tabular-nums text-[var(--text-secondary)]">
                         {latestIntelligence ? (latestIntelligence.volume_score * 100).toFixed(0) : "--"}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[var(--text-muted)]">BTC Correlation</span>
+                      <span className="text-[var(--text-muted)]">{t("eliteScore.btcCorrelation")}</span>
                       <span className="font-mono tabular-nums text-[var(--text-secondary)]">
                         {latestIntelligence ? (latestIntelligence.btc_score * 100).toFixed(0) : "--"}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[var(--text-muted)]">MTF</span>
+                      <span className="text-[var(--text-muted)]">{t("eliteScore.mtf")}</span>
                       <span className="font-mono tabular-nums text-[var(--text-secondary)]">
                         {latestIntelligence ? (latestIntelligence.mtf_score * 100).toFixed(0) : "--"}
                       </span>
@@ -448,35 +453,35 @@ export default function AssetDetail() {
               <div className="widget-card">
                 <div className="widget-header">
                   <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                    AI Summary
+                    {t("aiSummary.title")}
                   </span>
-                  <Badge variant={getDecisionBadge(aiDecision).variant} className="text-[8px]">
-                    {getDecisionBadge(aiDecision).label}
+                  <Badge variant={getDecisionBadge(aiDecision, t).variant} className="text-[8px]">
+                    {getDecisionBadge(aiDecision, t).label}
                   </Badge>
                 </div>
                 <div className="widget-body">
                   {latestIntelligence ? (
                     <div className="space-y-2">
                       <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                        Decision: <span className="text-[var(--text-primary)] font-medium">{aiDecision}</span>
-                        {" | "}Confidence: <span className={cn("font-medium", getConfidenceColor(confidence))}>{confidence}%</span>
+                        {t("aiSummary.decisionLabel")} <span className="text-[var(--text-primary)] font-medium">{aiDecision}</span>
+                        {" | "}{t("aiSummary.confidenceLabel")} <span className={cn("font-medium", getConfidenceColor(confidence))}>{confidence}%</span>
                       </p>
                       <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
                         {aiDecision === "STRONG_BUY" || aiDecision === "BUY"
-                          ? "Strong technical alignment across trend, volume, and momentum indicators. Favorable risk/reward setup with clear invalidation levels."
+                          ? t("aiSummary.bullishNote")
                           : aiDecision === "STRONG_SELL" || aiDecision === "SELL"
-                            ? "Bearish signals aligned across multiple timeframes. Deteriorating market structure with increasing selling pressure."
-                            : "Mixed signals across indicators. Waiting for clearer confirmation before directional bias."}
+                            ? t("aiSummary.bearishNote")
+                            : t("aiSummary.mixedNote")}
                       </p>
                       <div className="flex gap-2 pt-1">
                         <Button variant="ghost" size="sm" onClick={() => setDrawerOpen(true)}>
-                          Full Analysis →
+                          {t("aiSummary.fullAnalysis")}
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <p className="text-[11px] text-[var(--text-muted)]">
-                      No decision data available. Awaiting signal processing...
+                      {t("aiSummary.noData")}
                     </p>
                   )}
                 </div>
@@ -486,14 +491,14 @@ export default function AssetDetail() {
             {recentTrades.length > 0 && (
               <div>
                 <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-2">
-                  Decision Timeline
+                  {t("decisionTimelineHeading")}
                 </h2>
                 <DecisionTimeline events={recentTrades.map((n, i) => ({
                   id: `event-${i}`,
                   time: new Date(n.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
                   type: n.event === "TRADE_OPENED" ? "execution" as const : "signal" as const,
                   symbol: n.payload.symbol,
-                  action: n.event === "TRADE_OPENED" ? "Opened" : "Closed",
+                  action: n.event === "TRADE_OPENED" ? t("timelineAction.opened") : t("timelineAction.closed"),
                   confidence: n.payload.intelligence?.confidence ? Math.round(n.payload.intelligence.confidence * 100) : 85,
                   outcome: n.event === "TRADE_CLOSED"
                     ? (n.payload.pnl != null && n.payload.pnl >= 0 ? "correct" as const : "incorrect" as const)
@@ -507,7 +512,7 @@ export default function AssetDetail() {
             <div className="widget-card">
               <div className="widget-header">
                 <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em]">
-                  Market Pulse
+                  {t("marketPulse.title")}
                 </span>
                 {latestPrice && (
                   <span className={cn(
@@ -520,31 +525,31 @@ export default function AssetDetail() {
               </div>
               <div className="widget-body space-y-2">
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">Price</span>
+                  <span className="text-[var(--text-muted)]">{t("marketPulse.price")}</span>
                   <span className="font-mono tabular-nums text-[var(--text-primary)]">
                     {price > 0 ? `$${price.toLocaleString()}` : "--"}
                   </span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">24h Change</span>
+                  <span className="text-[var(--text-muted)]">{t("marketPulse.change24h")}</span>
                   <span className={cn("font-mono tabular-nums", change24h >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]")}>
                     {price > 0 ? `${change24h >= 0 ? "+" : ""}${change24h.toFixed(2)}%` : "--"}
                   </span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">Volume</span>
+                  <span className="text-[var(--text-muted)]">{t("marketPulse.volume")}</span>
                   <span className="font-mono tabular-nums text-[var(--text-secondary)]">
                     {volume > 0 ? formatCompact(volume) : "--"}
                   </span>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">Signal</span>
-                  <Badge variant={getDecisionBadge(aiDecision).variant} className="text-[8px]">
-                    {getDecisionBadge(aiDecision).label}
+                  <span className="text-[var(--text-muted)]">{t("marketPulse.signal")}</span>
+                  <Badge variant={getDecisionBadge(aiDecision, t).variant} className="text-[8px]">
+                    {getDecisionBadge(aiDecision, t).label}
                   </Badge>
                 </div>
                 <div className="flex justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">Risk Level</span>
+                  <span className="text-[var(--text-muted)]">{t("marketPulse.riskLevel")}</span>
                   <span className={cn("font-mono tabular-nums", getRiskColor(risk))}>
                     {risk.toFixed(2)}
                   </span>
@@ -555,11 +560,11 @@ export default function AssetDetail() {
             <ConfidenceBreakdown
               overall={confidence}
               metrics={latestIntelligence ? [
-                { label: "Technical Analysis", value: Math.round(latestIntelligence.trend_score * 100), weight: 0.3 },
-                { label: "Market Regime", value: Math.round(latestIntelligence.btc_score * 100), weight: 0.2 },
-                { label: "Volume Profile", value: Math.round(latestIntelligence.volume_score * 100), weight: 0.2 },
-                { label: "MTF Analysis", value: Math.round(latestIntelligence.mtf_score * 100), weight: 0.2 },
-                { label: "Risk Assessment", value: Math.round((1 - latestIntelligence.risk_score) * 100), weight: 0.1 },
+                { label: t("confidenceMetrics.technicalAnalysis"), value: Math.round(latestIntelligence.trend_score * 100), weight: 0.3 },
+                { label: t("confidenceMetrics.marketRegime"), value: Math.round(latestIntelligence.btc_score * 100), weight: 0.2 },
+                { label: t("confidenceMetrics.volumeProfile"), value: Math.round(latestIntelligence.volume_score * 100), weight: 0.2 },
+                { label: t("confidenceMetrics.mtfAnalysis"), value: Math.round(latestIntelligence.mtf_score * 100), weight: 0.2 },
+                { label: t("confidenceMetrics.riskAssessment"), value: Math.round((1 - latestIntelligence.risk_score) * 100), weight: 0.1 },
               ] : undefined}
             />
 
