@@ -8,7 +8,6 @@ import requests
 
 from config import COIN_UNIVERSE_SIZE
 from market_data.universe import BinanceUniverseProvider, get_top_volume_symbols
-from scanner.core import OpportunityScanner
 
 
 @pytest.fixture
@@ -134,16 +133,20 @@ def test_provider_fallback_to_stale_cache_on_failure(mock_binance_data):
         assert res2 == ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"]
 
 
-def test_global_get_top_volume_symbols_and_scanner_integration(mock_binance_data, monkeypatch):
-    """Test global helper get_top_volume_symbols and OpportunityScanner default initialization.
+def test_global_get_top_volume_symbols(mock_binance_data, monkeypatch):
+    """Test the global get_top_volume_symbols() helper in isolation.
 
     Uses a fresh BinanceUniverseProvider swapped into the module-level singleton for
     the duration of this test, then restores the original. Without this, this test
     (uniquely among this file's tests) mutates the shared process-wide singleton's
-    cache, leaking mocked state into any other test in the suite that constructs an
-    OpportunityScanner() without explicit symbols - or, worse, causing an unrelated
-    test to be the first to touch the real (unmocked) singleton and make a live
-    network call to Binance.
+    cache, leaking mocked state into any other test in the suite - or, worse, causing
+    an unrelated test to be the first to touch the real (unmocked) singleton and make
+    a live network call to Binance.
+
+    Note: OpportunityScanner() no longer uses this helper for its default symbol
+    list (replaced by config.FIXED_COIN_UNIVERSE + TemporaryWatchService, see
+    tests/test_scanner.py's TestOpportunityScanner) -- this function itself is
+    unaffected and still used elsewhere (market_data/universe.py's own callers).
     """
     import market_data.universe as universe_module
 
@@ -155,17 +158,5 @@ def test_global_get_top_volume_symbols_and_scanner_integration(mock_binance_data
     mock_response.raise_for_status = MagicMock()
 
     with patch("requests.get", return_value=mock_response):
-        # Test helper function
         symbols = get_top_volume_symbols(n=2)
         assert symbols == ["BTCUSDT", "ETHUSDT"]
-
-        # Test OpportunityScanner without passing symbols gets dynamic universe
-        # Let's mock get_top_volume_symbols to make sure scanner uses it
-        with patch("scanner.core.get_top_volume_symbols", return_value=["BTCUSDT", "ETHUSDT"]) as mock_dyn:
-            scanner = OpportunityScanner()
-            assert scanner.symbols == ["BTCUSDT", "ETHUSDT"]
-            mock_dyn.assert_called_once()
-
-            # If explicit symbols are passed, keep them
-            scanner_override = OpportunityScanner(symbols=["SOLUSDT"])
-            assert scanner_override.symbols == ["SOLUSDT"]

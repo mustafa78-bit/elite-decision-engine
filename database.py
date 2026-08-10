@@ -180,6 +180,24 @@ class Watchlist(Base):
 
 
 # ------------------------------------------------------------------
+# TEMPORARY WATCH TABLE
+# ------------------------------------------------------------------
+# Manually-fed, auto-expiring symbols the founder adds from their own
+# external analysis -- distinct from Watchlist above (no expiry concept)
+# and from scanner/watchlist.py's in-memory WatchlistEngine (no persistence).
+# Feeds scanner/core.py's OpportunityScanner alongside FIXED_COIN_UNIVERSE.
+
+class TemporaryWatch(Base):
+    __tablename__ = "temporary_watches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String(20), nullable=False, index=True)
+    note = Column(String(255), nullable=True)
+    added_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+
+
+# ------------------------------------------------------------------
 # JOURNAL ENTRY TABLE
 # ------------------------------------------------------------------
 

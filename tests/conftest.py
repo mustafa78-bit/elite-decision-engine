@@ -54,6 +54,19 @@ def mock_global_coin_universe(request, monkeypatch):
         if mod and hasattr(mod, "get_top_volume_symbols") and mod_name != "market_data.universe":
             monkeypatch.setattr(mod, "get_top_volume_symbols", lambda n=None: mock_symbols[:n] if n is not None else mock_symbols)
 
+    # 3. OpportunityScanner()'s default constructor (no explicit symbols=)
+    # now queries TemporaryWatchService instead of calling
+    # get_top_volume_symbols() -- same "no unmocked I/O by default" concern
+    # as above, just a DB read instead of an HTTP call. Tests that construct
+    # a scanner/TerminalService/DecisionAggregator without going through the
+    # db_session/session_factory fixtures would otherwise hit a real
+    # database connection with no test schema. tests/test_temporary_watch_*
+    # inject their own real or mock TemporaryWatchService explicitly, which
+    # takes precedence over this class-level default regardless.
+    if "test_temporary_watch" not in request.node.nodeid:
+        from services.temporary_watch_service import TemporaryWatchService
+        monkeypatch.setattr(TemporaryWatchService, "active_symbols", lambda self: [])
+
 
 def _default_engine():
     """Return a shared in-memory SQLite engine used by all tests.

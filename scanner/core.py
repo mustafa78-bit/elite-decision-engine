@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timezone
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
+from config import FIXED_COIN_UNIVERSE
 from market.services import MarketDataService
-from market_data.universe import get_top_volume_symbols
 from scanner.confidence import ConfidenceScorer
 from scanner.dto import ScannerDashboardDTO, opportunity_to_dto
 from scanner.filters import FalseSignalFilter, MarketFilter
@@ -23,6 +23,9 @@ from scanner.strategies import (
     TrendStrategy,
 )
 from scanner.watchlist import WatchlistEngine
+
+if TYPE_CHECKING:
+    from services.temporary_watch_service import TemporaryWatchService
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +46,23 @@ class OpportunityScanner:
         market_filter: MarketFilter | None = None,
         false_signal_filter: FalseSignalFilter | None = None,
         watchlist_engine: WatchlistEngine | None = None,
+        temporary_watch_service: TemporaryWatchService | None = None,
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.ranker = ranker or OpportunityRanker()
-        self.symbols = symbols if symbols is not None else get_top_volume_symbols()
+        if symbols is not None:
+            self.symbols = symbols
+        else:
+            from services.temporary_watch_service import TemporaryWatchService
+            temp_watch = temporary_watch_service or TemporaryWatchService()
+            # Fixed permanent universe (founder's chosen 25) plus whatever
+            # temporary watches are currently active, deduplicated. Replaces
+            # the old dynamic top-100-by-volume universe -- that was ~100
+            # symbols x several external calls each (OHLCV, funding, OI,
+            # whale, news) per scan cycle, the real cause of observed
+            # Hyperliquid/NVIDIA 429s.
+            active = temp_watch.active_symbols()
+            self.symbols = list(dict.fromkeys([*FIXED_COIN_UNIVERSE, *active]))
 
         self.trend = TrendStrategy()
         self.momentum = MomentumStrategy()
