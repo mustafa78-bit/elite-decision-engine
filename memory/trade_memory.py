@@ -199,7 +199,11 @@ class TradeMemory:
         total = len(entries)
         wins = sum(1 for e in entries if e.result == "WIN")
         losses = sum(1 for e in entries if e.result == "LOSS")
-        total_pnl = sum(e.pnl for e in entries)
+        # pnl can be None for a closed trade whose PaperTrade row was never
+        # matched (see execution/paper_executor.py's _dollar_pnl -- returns
+        # unknown rather than a guessed value). Exclude from the sum instead
+        # of crashing.
+        total_pnl = sum(e.pnl for e in entries if e.pnl is not None)
         resolved = wins + losses
         win_rate = (wins / resolved * 100) if resolved > 0 else 0
 

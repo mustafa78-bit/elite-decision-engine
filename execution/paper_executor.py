@@ -337,8 +337,14 @@ class PaperExecutor:
 
     def _dollar_pnl(self, session: Any, trade_id: int, raw_pnl: float | None) -> float | None:
         """Convert a raw per-unit pnl delta into a real dollar amount using the
-        matching PaperTrade's quantity, falling back to the raw value when no
-        PaperTrade row exists."""
+        matching PaperTrade's quantity. Returns None (unknown, not a guess)
+        when no PaperTrade row exists -- raw_pnl is a per-unit price delta,
+        not a dollar amount, so returning it directly would silently
+        misstate the real dollar PnL (e.g. by ~1/quantity x) in the
+        TRADE_CLOSED Telegram alert and trade memory. Mirrors
+        risk_manager.py's identical "exclude, don't guess" handling of the
+        same missing-PaperTrade condition. Callers already treat None as
+        "N/A" (see notifications/dispatcher.py's pnl_val is None check)."""
 
         if raw_pnl is None:
             return None
@@ -349,7 +355,11 @@ class PaperExecutor:
         )
         if paper_trade is not None and paper_trade.quantity is not None:
             return paper_trade.quantity * raw_pnl
-        return raw_pnl
+        self.logger.warning(
+            "No matching PaperTrade for trade %s -- dollar PnL unknown, not guessing from raw per-unit delta",
+            trade_id,
+        )
+        return None
 
     def get_current_price(self, symbol: str) -> float:
         """Fetch the latest close price for a symbol from the configured collector."""
