@@ -65,12 +65,24 @@ class OLLOService:
         elapsed = (time.perf_counter() - start) * 1000
 
         logger.info(
-            "OLLO greet result | room=%s | duration_ms=%s | tokens_in=%s | tokens_out=%s | retries=%s",
+            "OLLO greet result | room=%s | duration_ms=%s | tokens_in=%s | tokens_out=%s | retries=%s | error=%s",
             room_id, round(elapsed, 2), result.tokens_in, result.tokens_out, result.retries,
+            result.error if result.error else "none",
         )
 
+        # Same silent-empty-response gap as query()/briefing(): a fully
+        # retried-out AI call returns content="" with the error detail only
+        # in .error -- without this, the founder sees a blank welcome
+        # message with no indication the AI service actually failed.
+        content = result.content
+        if result.error and not content:
+            content = (
+                "Founder, I couldn't reach the AI service right now "
+                f"({result.error}). Please try again in a moment."
+            )
+
         response = parse_response(
-            raw_text=result.content,
+            raw_text=content,
             room=room_id,
             provider=result.provider,
             model=result.model,

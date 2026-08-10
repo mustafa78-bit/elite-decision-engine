@@ -312,11 +312,44 @@ class TestContextBuilder:
         # Real notional (0.1 * 150,000 = 15,000), not raw entry price (150,000).
         assert ctx.risk_metrics["portfolio_exposure"] == 15000.0
 
+    def test_load_risk_exposure_fallback_excludes_trade_with_no_matching_paper_trade(
+        self, db_session, session_factory
+    ):
+        """A trade with no matching PaperTrade must be excluded from
+        portfolio_exposure (fail closed, don't guess), not counted using its
+        raw per-unit entry price -- mirrors risk_manager.py's own check."""
+        from database import Trade
+        from risk.models import RiskCheckDetail, RiskDecision
+
+        trade = Trade(symbol="BTCUSDT", side="LONG", entry=150000.0, status="OPEN")
+        db_session.add(trade)
+        db_session.flush()
+        # Deliberately no matching PaperTrade row.
+
+        mock_decision = RiskDecision(
+            allowed=False,
+            reason="Maximum open trades reached",
+            rejection_code="MAX_OPEN_TRADES",
+            checks=(RiskCheckDetail(name="MAX_OPEN_TRADES", passed=False, value=3.0, limit=3.0),),
+        )
+        mock_risk_manager = MagicMock()
+        mock_risk_manager.evaluate_trade.return_value = mock_decision
+        mock_risk_manager.session_factory = session_factory
+
+        with patch("risk_manager.RiskManager", return_value=mock_risk_manager):
+            ctx = self.builder.build(["risk_metrics"])
+
+        assert ctx.risk_metrics is not None
+        assert ctx.risk_metrics["portfolio_exposure"] == 0.0
+
     def test_load_risk_daily_loss_fallback_uses_real_dollar_pnl(self, db_session, session_factory):
         """When DAILY_LOSS_LIMIT is absent from decision.checks (e.g. MAX_OPEN_TRADES
         already failed), the daily-loss fallback must use real dollar pnl (quantity *
         pnl via PaperTrade), not raw per-unit Trade.pnl -- same bug already fixed in
-        risk_manager.py's own DAILY_LOSS_LIMIT check."""
+        risk_manager.py's own DAILY_LOSS_LIMIT check. A trade with no matching
+        PaperTrade must be excluded entirely (fail closed, don't guess), not
+        counted using its raw per-unit pnl -- this was itself a bug, fixed
+        alongside the identical issue in execution/paper_executor.py."""
         from datetime import UTC, datetime
 
         from database import PaperTrade, Trade
@@ -336,7 +369,7 @@ class TestContextBuilder:
             entry=50000.0, quantity=2.0, pnl=-2000.0, status="CLOSED",
         ))
 
-        # Trade B: no matching PaperTrade -> falls back to raw pnl -500.0
+        # Trade B: no matching PaperTrade -> must be excluded, not counted via raw pnl.
         trade_b = Trade(
             symbol="ETHUSDT", side="LONG", entry=3000.0, status="SL_HIT",
             pnl=-500.0, closed_at=today,
@@ -360,8 +393,9 @@ class TestContextBuilder:
             ctx = self.builder.build(["risk_metrics"])
 
         assert ctx.risk_metrics is not None
-        # Real dollar loss: -4000.0 (Trade A) + -500.0 (Trade B) = -4500.0 -> abs 4500.0
-        assert ctx.risk_metrics["daily_loss"] == 4500.0
+        # Only Trade A counted (real dollar loss -4000.0); Trade B excluded
+        # since it has no matching PaperTrade.
+        assert ctx.risk_metrics["daily_loss"] == 4000.0
 
     def test_load_trade_history_success_and_failure(self):
         # 1. Success case using mock
@@ -559,6 +593,25 @@ class TestOLLOService:
 
     def test_ai_service_property(self):
         assert self.svc.ai_service is self.mock_ai
+
+    def test_greet_surfaces_honest_message_when_ai_provider_fails(self):
+        # Same bug class as query()/briefing() below, found by a fresh audit
+        # after those two were fixed -- greet() had the identical gap.
+        failing_ai = MockAIService()
+        failing_ai.chat = MagicMock(return_value=GenerationResult(
+            content="",
+            model="test-model",
+            provider="test",
+            duration_ms=10.0,
+            retries=3,
+            error="HTTP 429",
+        ))
+        svc = OLLOService(ai_service=failing_ai)
+
+        r = svc.greet("command_deck")
+
+        assert r.text != ""
+        assert "429" in r.text
 
     def test_query_surfaces_honest_message_when_ai_provider_fails(self):
         # Regression: GenerationResult.content is "" when the AI provider
