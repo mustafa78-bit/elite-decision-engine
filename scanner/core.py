@@ -61,7 +61,23 @@ class OpportunityScanner:
             # symbols x several external calls each (OHLCV, funding, OI,
             # whale, news) per scan cycle, the real cause of observed
             # Hyperliquid/NVIDIA 429s.
-            active = temp_watch.active_symbols()
+            try:
+                active = temp_watch.active_symbols()
+            except Exception as e:
+                # A DB hiccup (or, on a genuinely fresh deployment, the
+                # temporary_watches table not existing yet -- the real
+                # uvicorn entrypoint never calls database.create_tables())
+                # must not crash scanner construction: OpportunityScanner()
+                # is default-constructed synchronously by several unguarded
+                # call sites (api/routes/scanner.py, services/terminal_
+                # service.py, decision/aggregator.py), so an unhandled
+                # exception here would take down the whole Scanner/Terminal
+                # API surface, not just the temporary-watch feature.
+                logger.warning(
+                    "Failed to load active temporary watches, falling back to "
+                    "FIXED_COIN_UNIVERSE only: %s", e,
+                )
+                active = []
             self.symbols = list(dict.fromkeys([*FIXED_COIN_UNIVERSE, *active]))
 
         self.trend = TrendStrategy()
