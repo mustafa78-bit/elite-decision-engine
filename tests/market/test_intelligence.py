@@ -617,3 +617,27 @@ class TestIntelligenceService:
         )
         change = IntelligenceService._estimate_24h_change(asset)
         assert change == 50.0
+
+    def test_get_funding_strips_usdt_before_calling_collector(self):
+        # Regression: this service builds its own FundingCollector directly
+        # (not via HyperliquidProvider, which already strips "USDT") and was
+        # passing the raw ticker straight through -- FundingResult.rate_for()
+        # matches Hyperliquid's bare coin id exactly, so funding data never
+        # matched for any "XXXUSDT"-formatted symbol (every symbol in
+        # config.FIXED_COIN_UNIVERSE).
+        mock_funding = MagicMock()
+        mock_funding.fetch_for_symbol.return_value = None
+        service = IntelligenceService(funding_collector=mock_funding)
+
+        service._get_funding("ETHUSDT")
+
+        mock_funding.fetch_for_symbol.assert_called_once_with("ETH")
+
+    def test_get_open_interest_strips_usdt_before_calling_collector(self):
+        mock_oi = MagicMock()
+        mock_oi.fetch_with_trend.return_value = {"value": 0}
+        service = IntelligenceService(oi_collector=mock_oi)
+
+        service._get_open_interest("SOLUSDT")
+
+        mock_oi.fetch_with_trend.assert_called_once_with("SOL")

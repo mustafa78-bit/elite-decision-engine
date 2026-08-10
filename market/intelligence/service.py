@@ -126,8 +126,15 @@ class IntelligenceService:
         return asset
 
     def _get_funding(self, symbol: str) -> dict[str, Any] | None:
+        # FundingResult.rate_for() matches Hyperliquid's bare coin id
+        # ("BTC") exactly -- unlike HyperliquidProvider (market/provider/
+        # hyperliquid.py), this service builds its own FundingCollector
+        # directly and was missing the same "USDT" strip, so funding data
+        # silently never matched for any "XXXUSDT"-formatted symbol (i.e.
+        # every symbol in config.FIXED_COIN_UNIVERSE).
+        coin = symbol.replace("USDT", "")
         try:
-            rate = self.funding_collector.fetch_for_symbol(symbol)
+            rate = self.funding_collector.fetch_for_symbol(coin)
             if rate is not None:
                 risk = interpret_funding_risk(rate)
                 return {
@@ -141,8 +148,10 @@ class IntelligenceService:
         return None
 
     def _get_open_interest(self, symbol: str) -> dict[str, Any] | None:
+        # Same missing-strip bug as _get_funding() above.
+        coin = symbol.replace("USDT", "")
         try:
-            oi_data = self.oi_collector.fetch_with_trend(symbol)
+            oi_data = self.oi_collector.fetch_with_trend(coin)
             if oi_data.get("value", 0) > 0:
                 return oi_data
         except Exception as e:
