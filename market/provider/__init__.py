@@ -1,4 +1,5 @@
 from market.provider.base import DataProvider, OHLCVResult
+from market.provider.binance import BinanceProvider
 from market.provider.hyperliquid import HyperliquidProvider
 
-__all__ = ["DataProvider", "OHLCVResult", "HyperliquidProvider"]
+__all__ = ["DataProvider", "OHLCVResult", "HyperliquidProvider", "BinanceProvider"]
