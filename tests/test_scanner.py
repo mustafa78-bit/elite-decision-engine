@@ -266,6 +266,21 @@ class TestOpportunityScanner:
         scanner = OpportunityScanner(temporary_watch_service=temp_watch)
         assert scanner.symbols == FIXED_COIN_UNIVERSE
 
+    def test_default_symbols_falls_back_to_fixed_universe_when_temp_watch_lookup_fails(self):
+        # Regression: a DB error (e.g. temporary_watches table missing on a
+        # fresh deployment, since the real uvicorn entrypoint never calls
+        # database.create_tables()) previously crashed scanner construction
+        # entirely -- several call sites default-construct OpportunityScanner()
+        # unguarded (api/routes/scanner.py, TerminalService, DecisionAggregator).
+        from config import FIXED_COIN_UNIVERSE
+
+        mock_temp_watch = MagicMock()
+        mock_temp_watch.active_symbols.side_effect = Exception("no such table: temporary_watches")
+
+        scanner = OpportunityScanner(temporary_watch_service=mock_temp_watch)
+
+        assert scanner.symbols == FIXED_COIN_UNIVERSE
+
     def test_explicit_symbols_bypasses_fixed_universe(self):
         mock_temp_watch = MagicMock()
         scanner = OpportunityScanner(symbols=["DOGEUSDT"], temporary_watch_service=mock_temp_watch)
