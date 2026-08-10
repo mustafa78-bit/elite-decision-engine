@@ -96,6 +96,23 @@ logger = logging.getLogger(__name__)
 
 origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
 
+if API_ENV == "production" and ("*" in origins or not origins):
+    # CORSMiddleware below is registered with allow_credentials=True
+    # (hardcoded, not conditional). Starlette's CORS handling for
+    # allow_origins=["*"] combined with allow_credentials=True reflects
+    # back whatever Origin header the browser actually sent (rather than
+    # a literal "*"), so any website can make credentialed (cookie/Bearer-
+    # token-bearing) cross-origin requests and read the responses. The
+    # equivalent check already exists in startup.py's StartupValidator,
+    # but the real uvicorn entrypoint (this file) never calls it -- fail
+    # here instead of relying on a check that silently never runs.
+    raise RuntimeError(
+        "FATAL: CORS_ORIGINS must be an explicit, non-wildcard origin list "
+        "when API_ENV=production -- combined with allow_credentials=True, "
+        "a wildcard origin lets any website make authenticated cross-origin "
+        "requests against this API."
+    )
+
 _background_tasks: set[asyncio.Task] = set()
 _ollo_service: Any | None = None
 
