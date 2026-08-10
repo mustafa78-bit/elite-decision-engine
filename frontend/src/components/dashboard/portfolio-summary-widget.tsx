@@ -13,7 +13,7 @@ export function PortfolioSummaryWidget() {
 
   if (isLoading) return <Skeleton className="h-28 rounded-xl" />;
 
-  const p = data?.portfolio;
+  const p = data;
   if (!p) return null;
 
   return (
@@ -48,9 +48,9 @@ export function PortfolioSummaryWidget() {
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-[var(--text-muted)]">Profit Factor</div>
+            <div className="text-[10px] text-[var(--text-muted)]">Max Drawdown</div>
             <div className="text-sm font-mono tabular-nums text-[var(--text-primary)]">
-              {p.profit_factor.toFixed(2)}
+              {formatUSD(p.max_drawdown)}
             </div>
           </div>
         </div>

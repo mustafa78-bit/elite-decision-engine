@@ -183,6 +183,16 @@ export default function CommandDeck() {
     }
   }, [loading, showLoading])
 
+  // Safety net: apiFetch has no request timeout, so if any one of
+  // useSubsystems' parallel calls hangs, `loading` never flips false and
+  // the real content above would stay at opacity 0 forever, even after
+  // HQLoadingScreen self-dismisses on its own independent ~1.5s timer.
+  // Force the content visible after a generous ceiling regardless.
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLoading(false), 8000)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <>
       {showLoading && <HQLoadingScreen />}

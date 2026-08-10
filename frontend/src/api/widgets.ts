@@ -17,19 +17,23 @@ export function fetchKpiDetail(): Promise<{ kpis: KPIDTO[] }> {
   return apiFetch("/widgets/kpi/detail");
 }
 
-export function fetchPortfolioSummary(): Promise<{ widget: WidgetDTO; portfolio: PortfolioSummaryDTO }> {
+// These 4 endpoints all return the flat DTO directly (services/widget_service.py's
+// _portfolio_widget()/_monitoring_widget() -- no {widget, portfolio/monitoring}
+// wrapper exists on any of them, regardless of route). Both /widgets/portfolio and
+// /widgets/portfolio/summary (same for monitoring) hit the identical handler.
+export function fetchPortfolioSummary(): Promise<PortfolioSummaryDTO> {
   return apiFetch("/widgets/portfolio");
 }
 
-export function fetchPortfolioWidgetSummary(): Promise<{ widget: WidgetDTO; portfolio: PortfolioSummaryDTO }> {
+export function fetchPortfolioWidgetSummary(): Promise<PortfolioSummaryDTO> {
   return apiFetch("/widgets/portfolio/summary");
 }
 
-export function fetchMonitoringStatus(): Promise<{ widget: WidgetDTO; monitoring: MonitoringStatusDTO }> {
+export function fetchMonitoringStatus(): Promise<MonitoringStatusDTO> {
   return apiFetch("/widgets/monitoring");
 }
 
-export function fetchMonitoringWidgetStatus(): Promise<{ widget: WidgetDTO; monitoring: MonitoringStatusDTO }> {
+export function fetchMonitoringWidgetStatus(): Promise<MonitoringStatusDTO> {
   return apiFetch("/widgets/monitoring/status");
 }
 

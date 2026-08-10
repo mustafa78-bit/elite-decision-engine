@@ -17,17 +17,20 @@ export interface KPIDTO {
 
 export interface PortfolioSummaryDTO {
   total_pnl: number;
-  open_pnl: number;
   total_trades: number;
   open_trades: number;
   win_rate: number;
-  avg_pnl: number;
-  profit_factor: number;
+  equity: number;
+  max_drawdown: number;
 }
 
 export interface MonitoringStatusDTO {
   status: string;
-  services: Record<string, string>;
+  uptime_seconds: number;
+  database_status: string;
+  collector_status: string;
+  websocket_clients: number;
+  last_error: string | null;
 }
 
 export interface NotificationWidgetDTO {
