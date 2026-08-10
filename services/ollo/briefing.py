@@ -45,13 +45,25 @@ class BriefingGenerator:
         elapsed = (time.perf_counter() - start) * 1000
 
         logger.info(
-            "BriefingGenerator result | kind=%s | duration_ms=%s | tokens_in=%s | tokens_out=%s | retries=%s",
+            "BriefingGenerator result | kind=%s | duration_ms=%s | tokens_in=%s | tokens_out=%s | retries=%s | error=%s",
             kind, round(elapsed, 2), result.tokens_in, result.tokens_out, result.retries,
+            result.error if result.error else "none",
         )
+
+        # Same silent-empty-response gap as OLLOService.query(): a fully
+        # retried-out AI call returns content="" with the error detail only
+        # in .error -- without this, the founder sees a blank briefing with
+        # no indication the AI service actually failed.
+        content = result.content
+        if result.error and not content:
+            content = (
+                "Founder, I couldn't generate this briefing right now "
+                f"({result.error}). Please try again in a moment."
+            )
 
         briefing = parse_briefing(
             kind=kind,
-            raw_text=result.content,
+            raw_text=content,
             provider=result.provider,
             model=result.model,
             duration_ms=elapsed,

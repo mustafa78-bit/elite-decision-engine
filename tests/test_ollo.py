@@ -560,6 +560,44 @@ class TestOLLOService:
     def test_ai_service_property(self):
         assert self.svc.ai_service is self.mock_ai
 
+    def test_query_surfaces_honest_message_when_ai_provider_fails(self):
+        # Regression: GenerationResult.content is "" when the AI provider
+        # exhausts its retries (e.g. rate-limited) -- the request still
+        # succeeds at the HTTP layer, so without this check the founder saw
+        # a silent, blank response with no indication anything went wrong.
+        failing_ai = MockAIService()
+        failing_ai.chat = MagicMock(return_value=GenerationResult(
+            content="",
+            model="test-model",
+            provider="test",
+            duration_ms=10.0,
+            retries=3,
+            error="HTTP 429",
+        ))
+        svc = OLLOService(ai_service=failing_ai)
+
+        r = svc.query("How is the portfolio?", "command_deck")
+
+        assert r.text != ""
+        assert "429" in r.text
+
+    def test_briefing_surfaces_honest_message_when_ai_provider_fails(self):
+        failing_ai = MockAIService()
+        failing_ai.chat = MagicMock(return_value=GenerationResult(
+            content="",
+            model="test-model",
+            provider="test",
+            duration_ms=10.0,
+            retries=3,
+            error="HTTP 429",
+        ))
+        svc = OLLOService(ai_service=failing_ai)
+
+        b = svc.briefing("morning", "command_deck")
+
+        assert b.text != ""
+        assert "429" in b.text
+
 
 class TestCommanderMemory:
     """Commander memory stores and retrieves records."""

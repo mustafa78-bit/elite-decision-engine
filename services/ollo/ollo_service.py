@@ -106,11 +106,23 @@ class OLLOService:
         elapsed = (time.perf_counter() - start) * 1000
 
         logger.info(
-            "OLLO query result | room=%s | duration_ms=%s | tokens_in=%s | tokens_out=%s | retries=%s",
+            "OLLO query result | room=%s | duration_ms=%s | tokens_in=%s | tokens_out=%s | retries=%s | error=%s",
             room_id, round(elapsed, 2), result.tokens_in, result.tokens_out, result.retries,
+            result.error if result.error else "none",
         )
 
-        self._memory.record_recommendation(query, room_id, result.content)
+        # When the AI provider exhausts its retries (e.g. rate-limited),
+        # GenerationResult.content is "" but the request still succeeds at
+        # the HTTP layer -- without this check the founder sees a silent
+        # empty response with no indication anything went wrong.
+        content = result.content
+        if result.error and not content:
+            content = (
+                "Founder, I couldn't reach the AI service right now "
+                f"({result.error}). Please try again in a moment."
+            )
+
+        self._memory.record_recommendation(query, room_id, content)
 
         # Detect route intents based on simple keyword extraction (English + Turkish)
         intent_route = None
@@ -133,7 +145,7 @@ class OLLOService:
             intent_route = "/market"
 
         response = parse_response(
-            raw_text=result.content,
+            raw_text=content,
             room=room_id,
             provider=result.provider,
             model=result.model,
