@@ -130,6 +130,26 @@ assert MIN_POSITION_QUANTITY > 0, f"MIN_POSITION_QUANTITY must be positive, got 
 
 COIN_UNIVERSE_SIZE = int(os.getenv("COIN_UNIVERSE_SIZE", "100"))
 
+# Fixed, permanent scan universe -- replaces the dynamic top-N-by-volume
+# universe. Founder's actual chosen 25 symbols, decided 2026-08-07 to cut
+# real external-call volume (funding/OI/whale/news fetched per symbol per
+# scan cycle). "XUSDT" format is normalized to Hyperliquid's bare-ticker
+# convention by market/provider/hyperliquid.py's get_ohlcv() already.
+FIXED_COIN_UNIVERSE: list[str] = [
+    # Majors
+    "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT",
+    # Large L1s
+    "ADAUSDT", "AVAXUSDT", "DOTUSDT", "TONUSDT", "TRXUSDT", "SUIUSDT",
+    # L2 / infrastructure
+    "ARBUSDT", "OPUSDT", "LINKUSDT", "POLUSDT",
+    # DeFi
+    "UNIUSDT", "AAVEUSDT", "MKRUSDT", "LDOUSDT",
+    # Established alts
+    "LTCUSDT", "BCHUSDT", "ATOMUSDT", "NEARUSDT",
+    # AI / diversification picks
+    "TAOUSDT", "APTUSDT",
+]
+
 AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "false").lower() == "true"
 SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "300"))
 assert SCAN_INTERVAL_SECONDS > 0, f"SCAN_INTERVAL_SECONDS must be positive, got {SCAN_INTERVAL_SECONDS}"

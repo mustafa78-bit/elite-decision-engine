@@ -237,6 +237,41 @@ class TestOpportunityRanker:
 
 class TestOpportunityScanner:
 
+    def test_default_symbols_is_fixed_universe_plus_active_temporary_watches(self):
+        # Regression: the default universe used to be a live top-100-by-volume
+        # fetch (market_data.universe.get_top_volume_symbols) -- that's now
+        # replaced with FIXED_COIN_UNIVERSE (config.py) plus whatever
+        # temporary watches are currently active, deduplicated.
+        from config import FIXED_COIN_UNIVERSE
+
+        mock_temp_watch = MagicMock()
+        mock_temp_watch.active_symbols.return_value = ["PEPEUSDT", "BTCUSDT"]  # BTCUSDT dupes a fixed entry
+        scanner = OpportunityScanner(temporary_watch_service=mock_temp_watch)
+        assert scanner.symbols == [*FIXED_COIN_UNIVERSE, "PEPEUSDT"]
+
+    def test_default_symbols_excludes_expired_temporary_watches(self):
+        # active_symbols() is the real TemporaryWatchService's job to filter
+        # by expiry -- the scanner just trusts whatever it returns. A real
+        # (non-mocked) TemporaryWatchService with no active rows should
+        # yield exactly the fixed universe, nothing extra.
+        from config import FIXED_COIN_UNIVERSE
+        from services.temporary_watch_service import TemporaryWatchService
+
+        mock_session_factory = MagicMock()
+        mock_session = MagicMock()
+        mock_session.query.return_value.filter.return_value.distinct.return_value.all.return_value = []
+        mock_session_factory.return_value = mock_session
+        temp_watch = TemporaryWatchService(session_factory=mock_session_factory)
+
+        scanner = OpportunityScanner(temporary_watch_service=temp_watch)
+        assert scanner.symbols == FIXED_COIN_UNIVERSE
+
+    def test_explicit_symbols_bypasses_fixed_universe(self):
+        mock_temp_watch = MagicMock()
+        scanner = OpportunityScanner(symbols=["DOGEUSDT"], temporary_watch_service=mock_temp_watch)
+        assert scanner.symbols == ["DOGEUSDT"]
+        mock_temp_watch.active_symbols.assert_not_called()
+
     def test_scan_with_mock_service(self):
         mock_service = MagicMock()
         asset = _make_asset(indicators={"ema20": 110, "ema50": 105, "ema200": 100, "rsi": 60},

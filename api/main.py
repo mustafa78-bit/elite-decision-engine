@@ -57,6 +57,7 @@ from api.routes.scanner import router as scanner_router
 from api.routes.signals import router as signals_router
 from api.routes.signals_ranking import router as signals_ranking_router
 from api.routes.simulator import router as simulator_router
+from api.routes.temporary_watch import router as temporary_watch_router
 from api.routes.terminal import router as terminal_router
 from api.routes.timeline import router as timeline_router
 from api.routes.trading_control import router as trading_control_router
@@ -275,6 +276,7 @@ app.include_router(dashboard_router)
 app.include_router(widgets_router)
 app.include_router(preferences_router)
 app.include_router(watchlists_router)
+app.include_router(temporary_watch_router)
 app.include_router(timeline_router)
 app.include_router(scanner_router)
 app.include_router(terminal_router)
