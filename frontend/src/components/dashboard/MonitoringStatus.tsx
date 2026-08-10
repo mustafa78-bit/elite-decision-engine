@@ -16,7 +16,7 @@ export function MonitoringStatus() {
     setError(null);
     try {
       const res = await fetchMonitoringWidgetStatus();
-      setData(res.monitoring);
+      setData(res);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load monitoring status");
     } finally {
@@ -56,7 +56,10 @@ export function MonitoringStatus() {
                 {data.status}
               </Badge>
             </div>
-            {data.services && Object.entries(data.services).map(([name, s]) => (
+            {([
+              ["database", data.database_status],
+              ["collector", data.collector_status],
+            ] as const).map(([name, s]) => (
               <div key={name} className="flex items-center justify-between py-0.5">
                 <span className="text-[10px] font-mono text-gray-400 uppercase">{name}</span>
                 <Badge variant={serviceBadge(s)}>{s}</Badge>

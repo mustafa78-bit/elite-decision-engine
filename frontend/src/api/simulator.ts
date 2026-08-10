@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiFetchText } from "./client";
 
 export type SimStatus = "IDLE" | "RUNNING" | "PAUSED" | "COMPLETED" | "STOPPED";
 export type SimSpeed = "1x" | "2x" | "5x" | "10x" | "100x" | "unlimited";
@@ -196,9 +196,16 @@ export function getSimulatorState(): Promise<{ status: string; state: SimulatorS
 }
 
 export function startSimulation(config: SimulatorConfig, name = ""): Promise<{ session_id: string; state: SimulatorState }> {
-  return apiFetch("/simulator/start", {
+  // api/routes/simulator.py's start_simulation(config: SimulatorConfig, name: str = "")
+  // takes config as the request body directly (SimulatorConfig is a
+  // dataclass, not nested under a "config" key) and name as a query param --
+  // the previous {config, name} JSON body was silently ignored (every field
+  // in SimulatorConfig has a default, so FastAPI never raised a validation
+  // error) and every simulation always started with default settings.
+  const params = name ? `?name=${encodeURIComponent(name)}` : "";
+  return apiFetch(`/simulator/start${params}`, {
     method: "POST",
-    body: JSON.stringify({ config, name }),
+    body: JSON.stringify(config),
   });
 }
 
@@ -256,7 +263,12 @@ export function getReport(): Promise<MissionReport> {
 }
 
 export function exportReportJson(): Promise<string> {
-  return apiFetch("/simulator/report/json");
+  // The backend already sends a pre-serialized JSON string as the response
+  // body -- apiFetch's res.json() would parse it back into an object, and
+  // MarketSimulator.tsx's handleExportJson() then does new Blob([data]),
+  // which coerces a non-string object via String() into the literal text
+  // "[object Object]", corrupting the downloaded file.
+  return apiFetchText("/simulator/report/json");
 }
 
 export function getReportPdfUrl(): string {

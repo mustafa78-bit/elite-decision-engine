@@ -7,10 +7,13 @@ import { fetchMonitoringWidgetStatus } from "../../api/widgets";
 
 const statusVariant: Record<string, "success" | "danger" | "warning"> = {
   running: "success",
+  connected: "success",
   healthy: "success",
   error: "danger",
   down: "danger",
+  disconnected: "danger",
   degraded: "warning",
+  unknown: "warning",
 };
 
 export function MonitoringWidget() {
@@ -25,21 +28,20 @@ export function MonitoringWidget() {
       <CardHeader>
         <CardTitle>System Health</CardTitle>
         {data && (
-          <Badge
-            variant={
-              data.monitoring.status === "healthy" ? "success" : "warning"
-            }
-          >
-            {data.monitoring.status}
+          <Badge variant={data.status === "healthy" ? "success" : "warning"}>
+            {data.status}
           </Badge>
         )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-24 w-full" />
-        ) : data?.monitoring.services ? (
+        ) : data ? (
           <div className="space-y-1.5">
-            {Object.entries(data.monitoring.services).map(([name, status]) => (
+            {([
+              ["database", data.database_status],
+              ["collector", data.collector_status],
+            ] as const).map(([name, status]) => (
               <motion.div
                 key={name}
                 className="flex items-center justify-between py-1"
@@ -51,7 +53,7 @@ export function MonitoringWidget() {
                 </span>
                 <Badge variant={statusVariant[status] || "default"}>
                   <span className="flex items-center gap-1">
-                    {status === "running" && (
+                    {status === "connected" && (
                       <span className="w-1 h-1 rounded-full bg-[var(--accent-green)] animate-pulse" />
                     )}
                     {status}
@@ -59,6 +61,19 @@ export function MonitoringWidget() {
                 </Badge>
               </motion.div>
             ))}
+            <div className="flex items-center justify-between py-1">
+              <span className="text-xs font-mono text-[var(--text-secondary)] uppercase tracking-wider">
+                websocket clients
+              </span>
+              <span className="text-xs font-mono text-[var(--text-primary)]">
+                {data.websocket_clients}
+              </span>
+            </div>
+            {data.last_error && (
+              <div className="text-[11px] text-[var(--accent-red)] font-mono pt-1">
+                {data.last_error}
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
