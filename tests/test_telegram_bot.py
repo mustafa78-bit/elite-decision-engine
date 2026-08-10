@@ -214,11 +214,10 @@ async def test_ask_command_success_with_intent(mock_update, mock_context):
 
 
 def test_telegram_bot_manager_no_token():
-    with patch("services.telegram.bot.TELEGRAM_TOKEN", ""):
-        manager = TelegramBotManager()
-        setup_ok = manager.setup()
-        assert setup_ok is False
-        assert manager.application is None
+    manager = TelegramBotManager(token="")
+    setup_ok = manager.setup()
+    assert setup_ok is False
+    assert manager.application is None
 
 
 class TestSendAlertRetriesOnFloodControl:
@@ -232,7 +231,7 @@ class TestSendAlertRetriesOnFloodControl:
     """
 
     def _manager_with_mock_bot(self):
-        manager = TelegramBotManager()
+        manager = TelegramBotManager(token="fake-token", chat_id="12345")
         manager.application = MagicMock()
         manager.application.bot.send_message = AsyncMock()
         return manager
@@ -247,9 +246,7 @@ class TestSendAlertRetriesOnFloodControl:
             None,
         ]
 
-        with patch("services.telegram.bot.TELEGRAM_TOKEN", "fake-token"), \
-             patch("services.telegram.bot.TELEGRAM_CHAT_ID", "12345"), \
-             patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
+        with patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
             await manager.send_alert("Burst alert")
 
         assert manager.application.bot.send_message.call_count == 2
@@ -262,9 +259,7 @@ class TestSendAlertRetriesOnFloodControl:
         manager = self._manager_with_mock_bot()
         manager.application.bot.send_message.side_effect = RetryAfter(retry_after=1)
 
-        with patch("services.telegram.bot.TELEGRAM_TOKEN", "fake-token"), \
-             patch("services.telegram.bot.TELEGRAM_CHAT_ID", "12345"), \
-             patch("asyncio.sleep", new=AsyncMock()):
+        with patch("asyncio.sleep", new=AsyncMock()):
             # send_alert()'s own outer try/except keeps this from propagating,
             # matching the existing "never crash the caller" contract.
             await manager.send_alert("Burst alert")
@@ -275,9 +270,7 @@ class TestSendAlertRetriesOnFloodControl:
     async def test_no_retry_needed_when_send_succeeds_immediately(self):
         manager = self._manager_with_mock_bot()
 
-        with patch("services.telegram.bot.TELEGRAM_TOKEN", "fake-token"), \
-             patch("services.telegram.bot.TELEGRAM_CHAT_ID", "12345"), \
-             patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
+        with patch("asyncio.sleep", new=AsyncMock()) as mock_sleep:
             await manager.send_alert("Normal alert")
 
         assert manager.application.bot.send_message.call_count == 1

@@ -2,16 +2,78 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
 import xml.etree.ElementTree as ET
-from datetime import UTC, datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import requests
 
 logger = logging.getLogger(__name__)
+
+RSS_URLS = [
+    "https://cointelegraph.com/rss",
+    "https://www.coindesk.com/arc/outboundfeeds/rss/",
+]
+
+# Keyword sets per symbol -- covers config.py's FIXED_COIN_UNIVERSE (25
+# coins) plus DOGE (kept for backward compatibility, not part of the fixed
+# universe but harmless to still recognize). Short/generic tickers that are
+# also common English words ("uni", "op", "pol", "near", "mkr" as bare
+# words) are deliberately left out in favor of the project/company name
+# alone, to avoid false-positive matches on unrelated headlines -- matches
+# this file's existing convention for the original 10 symbols.
+SYMBOL_KEYWORDS: dict[str, list[str]] = {
+    "BTC": ["btc", "bitcoin"],
+    "ETH": ["eth", "ethereum"],
+    "SOL": ["sol", "solana"],
+    "BNB": ["bnb", "binance"],
+    "XRP": ["xrp", "ripple"],
+    "ADA": ["ada", "cardano"],
+    "DOGE": ["doge", "dogecoin"],
+    "AVAX": ["avax", "avalanche"],
+    "DOT": ["dot", "polkadot"],
+    "LINK": ["link", "chainlink"],
+    "TON": ["ton", "toncoin"],
+    "TRX": ["trx", "tron"],
+    "SUI": ["sui"],
+    "ARB": ["arb", "arbitrum"],
+    "OP": ["optimism"],
+    "POL": ["polygon", "matic"],
+    "UNI": ["uniswap"],
+    "AAVE": ["aave"],
+    "MKR": ["mkr", "makerdao"],
+    "LDO": ["ldo", "lido"],
+    "LTC": ["ltc", "litecoin"],
+    "BCH": ["bch", "bitcoin cash"],
+    "ATOM": ["atom", "cosmos"],
+    "NEAR": ["near protocol"],
+    "TAO": ["tao", "bittensor"],
+    "APT": ["apt", "aptos"],
+}
+
+# Prominent crypto-focused VC/institutional investors -- used to detect
+# project-funding headlines ("Project X raises $Y from Binance Labs").
+# Pure keyword matching, no LLM call.
+VC_INSTITUTIONS = [
+    "binance labs",
+    "a16z",
+    "andreessen horowitz",
+    "coinbase ventures",
+    "paradigm",
+    "pantera capital",
+    "multicoin capital",
+    "polychain capital",
+    "jump crypto",
+]
+
+_FUNDING_KEYWORDS = [
+    "raises", "raised", "funding", "investment", "invests", "backs", "backed",
+    "leads round", "led a round", "seed round", "series a", "series b",
+]
 
 
 class NewsService:
@@ -64,6 +126,107 @@ class NewsService:
             logger.warning("Failed to fetch or parse RSS feed from %s: %s", url, e)
         return items_list
 
+    def fetch_rss_feeds(self) -> list[dict[str, str]]:
+        """Fetch all configured RSS feeds once and return the combined raw entries.
+
+        Public so a batch caller (e.g. the periodic news job) can fetch once
+        per cycle and reuse the same entries across every symbol's
+        filtering/sentiment pass, instead of each symbol re-fetching the
+        same 2 feeds from scratch.
+        """
+        all_entries: list[dict[str, str]] = []
+        for url in RSS_URLS:
+            all_entries.extend(self._fetch_rss_items(url))
+        return all_entries
+
+    def match_headline_to_symbols(self, headline: str, symbols: list[str] | None = None) -> list[str]:
+        """Return which of `symbols` (default: all of SYMBOL_KEYWORDS) this headline mentions.
+
+        Word-boundary match, same false-positive-avoidance rationale as the
+        original single-symbol filtering in `analyze()`.
+        """
+        universe = symbols if symbols is not None else list(SYMBOL_KEYWORDS.keys())
+        title_lower = headline.lower()
+        matched = []
+        for sym in universe:
+            kw_list = SYMBOL_KEYWORDS.get(sym.upper())
+            if not kw_list:
+                continue
+            if any(re.search(rf"\b{re.escape(kw)}\b", title_lower) for kw in kw_list):
+                matched.append(sym.upper())
+        return matched
+
+    def detect_vc_funding(self, headline: str) -> list[str]:
+        """Return matched VC/institution names if this headline looks like a
+        project-funding announcement, else an empty list.
+
+        Pure keyword matching (institution name + a funding-related word) --
+        no LLM call, so this is effectively free to run on every headline.
+        """
+        title_lower = headline.lower()
+        if not any(re.search(rf"\b{re.escape(kw)}", title_lower) for kw in _FUNDING_KEYWORDS):
+            return []
+        return [inst for inst in VC_INSTITUTIONS if inst in title_lower]
+
+    def classify_sentiment(self, headlines: list[str]) -> dict[str, str]:
+        """Classify sentiment for a batch of headlines in as few LLM calls as
+        possible (one batched prompt for all of them), falling back to the
+        rule-based classifier per-headline on any failure.
+
+        Returns a dict keyed by the headline's lowercased, stripped text --
+        callers should look up with `headline.strip().lower()`.
+        """
+        result: dict[str, str] = {}
+        if not headlines:
+            return result
+
+        sentiment_mapped: dict[str, str] = {}
+        try:
+            from services.ai.provider_factory import create_provider
+            provider = create_provider()
+            if provider and getattr(provider, "_api_key", None):
+                headlines_bullet_str = "\n".join(f"- {h}" for h in headlines)
+                prompt = f"""Analyze the sentiment of the following crypto news headlines.
+For each headline, provide a sentiment label: "positive", "neutral", or "negative".
+
+Headlines:
+{headlines_bullet_str}
+
+Respond with a JSON list of objects, each containing exactly "headline" and "sentiment" keys.
+Example:
+[
+  {{"headline": "Bitcoin surges past $60k", "sentiment": "positive"}}, {{"headline": "Market is sideways", "sentiment": "neutral"}}
+]
+Do not include any other text, explainers, or Markdown block markers like ```json. Output ONLY the raw JSON list of objects.
+"""
+                res = provider.generate(prompt)
+                if res and res.content:
+                    content_clean = res.content.strip()
+                    if content_clean.startswith("```"):
+                        lines = content_clean.split("\n")
+                        if lines[0].startswith("```"):
+                            lines = lines[1:]
+                        if lines[-1].startswith("```"):
+                            lines = lines[:-1]
+                        content_clean = "\n".join(lines).strip()
+
+                    parsed_list = json.loads(content_clean)
+                    if isinstance(parsed_list, list):
+                        for item in parsed_list:
+                            h_title = item.get("headline")
+                            sent = str(item.get("sentiment", "neutral")).lower()
+                            if sent not in ("positive", "neutral", "negative"):
+                                sent = "neutral"
+                            if h_title:
+                                sentiment_mapped[h_title.strip().lower()] = sent
+        except Exception as e:
+            logger.info("NVIDIA sentiment provider failed or unavailable, using rule-based fallback: %s", e)
+
+        for h in headlines:
+            key = h.strip().lower()
+            result[key] = sentiment_mapped.get(key) or self._rule_based_sentiment(h)
+        return result
+
     def analyze(
         self,
         symbol: str,
@@ -75,30 +238,10 @@ class NewsService:
         articles: list[dict[str, Any]] = []
 
         # 1. Fetch from real public RSS feeds (CoinTelegraph, CoinDesk)
-        rss_urls = [
-            "https://cointelegraph.com/rss",
-            "https://www.coindesk.com/arc/outboundfeeds/rss/"
-        ]
-
-        all_entries = []
-        for url in rss_urls:
-            all_entries.extend(self._fetch_rss_items(url))
+        all_entries = self.fetch_rss_feeds()
 
         # 2. Case-insensitive filtering of relevant news
-        symbol_keywords = {
-            "BTC": ["btc", "bitcoin"],
-            "ETH": ["eth", "ethereum"],
-            "SOL": ["sol", "solana"],
-            "BNB": ["bnb", "binance"],
-            "XRP": ["xrp", "ripple"],
-            "ADA": ["ada", "cardano"],
-            "DOGE": ["doge", "dogecoin"],
-            "AVAX": ["avax", "avalanche"],
-            "DOT": ["dot", "polkadot"],
-            "LINK": ["link", "chainlink"],
-        }
-
-        kw_list = symbol_keywords.get(symbol.upper(), [symbol.lower()])
+        kw_list = SYMBOL_KEYWORDS.get(symbol.upper(), [symbol.lower()])
         filtered_headlines = []
         seen_titles = set()
 
@@ -155,54 +298,11 @@ class NewsService:
         filtered_headlines = filtered_headlines[:5]
 
         # 3. Classify sentiment using existing NVIDIA NIM LLM or fallback rules
-        sentiment_mapped = {}
         if filtered_headlines:
-            try:
-                from services.ai.provider_factory import create_provider
-                provider = create_provider()
-                if provider and getattr(provider, "_api_key", None):
-                    headlines_bullet_str = "\n".join(f"- {h['headline']}" for h in filtered_headlines)
-                    prompt = f"""Analyze the sentiment of the following news headlines related to the cryptocurrency {symbol}.
-For each headline, provide a sentiment label: "positive", "neutral", or "negative".
-
-Headlines:
-{headlines_bullet_str}
-
-Respond with a JSON list of objects, each containing exactly "headline" and "sentiment" keys.
-Example:
-[
-  {{"headline": "Bitcoin surges past $60k", "sentiment": "positive"}}, {{"headline": "Market is sideways", "sentiment": "neutral"}}
-]
-Do not include any other text, explainers, or Markdown block markers like ```json. Output ONLY the raw JSON list of objects.
-"""
-                    res = provider.generate(prompt)
-                    if res and res.content:
-                        content_clean = res.content.strip()
-                        if content_clean.startswith("```"):
-                            lines = content_clean.split("\n")
-                            if lines[0].startswith("```"):
-                                lines = lines[1:]
-                            if lines[-1].startswith("```"):
-                                lines = lines[:-1]
-                            content_clean = "\n".join(lines).strip()
-
-                        parsed_list = json.loads(content_clean)
-                        if isinstance(parsed_list, list):
-                            for item in parsed_list:
-                                h_title = item.get("headline")
-                                sent = str(item.get("sentiment", "neutral")).lower()
-                                if sent not in ("positive", "neutral", "negative"):
-                                    sent = "neutral"
-                                if h_title:
-                                    sentiment_mapped[h_title.strip().lower()] = sent
-            except Exception as e:
-                logger.info("NVIDIA sentiment provider failed or unavailable, using rule-based fallback: %s", e)
-
+            sentiment_by_headline = self.classify_sentiment([h["headline"] for h in filtered_headlines])
             for h in filtered_headlines:
                 headline_title = h["headline"]
-                sentiment = sentiment_mapped.get(headline_title.strip().lower())
-                if not sentiment:
-                    sentiment = self._rule_based_sentiment(headline_title)
+                sentiment = sentiment_by_headline.get(headline_title.strip().lower(), "neutral")
 
                 relevance = 0.8 if h["source"] == "RSS" else 0.4
                 articles.append({
@@ -246,3 +346,8 @@ Do not include any other text, explainers, or Markdown block markers like ```jso
         if max_possible == 0:
             return 0.0
         return round(total / max_possible, 4)
+
+
+def headline_hash(headline: str) -> str:
+    """Stable dedup key for a headline, used with database.SentAlert."""
+    return hashlib.sha256(headline.strip().lower().encode("utf-8")).hexdigest()

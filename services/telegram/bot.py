@@ -8,7 +8,15 @@ from telegram import Update
 from telegram.error import RetryAfter
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-from config import TELEGRAM_ALLOWED_CHAT_IDS, TELEGRAM_CHAT_ID, TELEGRAM_TOKEN
+from config import (
+    TELEGRAM_ALLOWED_CHAT_IDS,
+    TELEGRAM_CHAT_ID,
+    TELEGRAM_NEWS_CHAT_ID,
+    TELEGRAM_NEWS_TOKEN,
+    TELEGRAM_TOKEN,
+    TELEGRAM_VC_CHAT_ID,
+    TELEGRAM_VC_TOKEN,
+)
 from monitoring.health import HealthService
 
 logger = logging.getLogger(__name__)
@@ -199,41 +207,57 @@ async def ask_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"❌ Error consulting OLLO: {str(e)}")
 
 
-class TelegramBotManager:
-    _instance: TelegramBotManager | None = None
+# Credentials per named bot instance. "trades" is the original bot (status/
+# brief/ask commands, trade + system-health alerts) -- its env vars are
+# unchanged from before multi-bot support existed. "news" and "vc_funding"
+# are separate, push-only bots (own token/chat, no commands) added for
+# proactive market-news / institutional-funding alerts.
+_INSTANCE_CREDENTIALS: dict[str, tuple[str, str]] = {
+    "trades": (TELEGRAM_TOKEN, TELEGRAM_CHAT_ID),
+    "news": (TELEGRAM_NEWS_TOKEN, TELEGRAM_NEWS_CHAT_ID),
+    "vc_funding": (TELEGRAM_VC_TOKEN, TELEGRAM_VC_CHAT_ID),
+}
 
-    def __init__(self):
+
+class TelegramBotManager:
+    _instances: dict[str, TelegramBotManager] = {}
+
+    def __init__(self, name: str = "trades", token: str = "", chat_id: str = ""):
+        self.name = name
+        self.token = token
+        self.chat_id = chat_id
         self.application: Application | None = None
         self.loop: asyncio.AbstractEventLoop | None = None
 
     @classmethod
-    def get_instance(cls) -> TelegramBotManager:
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
+    def get_instance(cls, name: str = "trades") -> TelegramBotManager:
+        if name not in cls._instances:
+            token, chat_id = _INSTANCE_CREDENTIALS.get(name, ("", ""))
+            cls._instances[name] = cls(name=name, token=token, chat_id=chat_id)
+        return cls._instances[name]
 
     def set_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         """Sets the reference to the main thread's event loop."""
         self.loop = loop
-        logger.info("TelegramBotManager main event loop set successfully.")
+        logger.info("TelegramBotManager('%s') main event loop set successfully.", self.name)
 
     async def send_alert(self, text: str) -> None:
-        """Coroutine to send a proactive message directly to TELEGRAM_CHAT_ID."""
+        """Coroutine to send a proactive message directly to this instance's chat."""
         if not self.application:
-            logger.debug("Telegram alert skipped: bot not setup")
+            logger.debug("Telegram alert skipped: bot '%s' not setup", self.name)
             return
 
-        if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-            logger.debug("Telegram alert skipped: token or chat ID not configured")
+        if not self.token or not self.chat_id:
+            logger.debug("Telegram alert skipped: '%s' token or chat ID not configured", self.name)
             return
 
         try:
             chunks = chunk_text(text)
             for chunk in chunks:
                 await self._send_message_with_retry(chunk)
-            logger.info("Telegram proactive alert sent successfully.")
+            logger.info("Telegram proactive alert sent successfully via '%s'.", self.name)
         except Exception as e:
-            logger.warning("Failed to send Telegram alert: %s", e)
+            logger.warning("Failed to send Telegram alert via '%s': %s", self.name, e)
 
     async def _send_message_with_retry(self, chunk: str, max_retries: int = 3) -> None:
         """Send one chunk, retrying on Telegram's own flood-control signal.
@@ -250,7 +274,7 @@ class TelegramBotManager:
         for attempt in range(max_retries + 1):
             try:
                 await self.application.bot.send_message(
-                    chat_id=TELEGRAM_CHAT_ID,
+                    chat_id=self.chat_id,
                     text=chunk,
                     parse_mode="HTML"
                 )
@@ -260,19 +284,19 @@ class TelegramBotManager:
                     raise
                 wait_seconds = e.retry_after.total_seconds() if hasattr(e.retry_after, "total_seconds") else float(e.retry_after)
                 logger.warning(
-                    "Telegram flood control hit, retrying in %.1fs (attempt %d/%d)",
-                    wait_seconds, attempt + 1, max_retries,
+                    "Telegram flood control hit on '%s', retrying in %.1fs (attempt %d/%d)",
+                    self.name, wait_seconds, attempt + 1, max_retries,
                 )
                 await asyncio.sleep(wait_seconds)
 
     def send_alert_threadsafe(self, text: str) -> None:
         """Thread-safe method to trigger the send_alert coroutine on the captured main loop."""
-        if not self.application or not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-            logger.debug("Telegram alert skipped: bot or credentials not configured")
+        if not self.application or not self.token or not self.chat_id:
+            logger.debug("Telegram alert skipped: '%s' bot or credentials not configured", self.name)
             return
 
         if not self.loop:
-            logger.warning("Telegram alert skipped: main event loop reference is missing")
+            logger.warning("Telegram alert skipped: '%s' main event loop reference is missing", self.name)
             return
 
         # Schedule the send_alert coroutine on the captured main loop thread-safely
@@ -280,22 +304,25 @@ class TelegramBotManager:
         asyncio.run_coroutine_threadsafe(coro, self.loop)
 
     def setup(self) -> bool:
-        if not TELEGRAM_TOKEN:
-            logger.warning("TELEGRAM_TOKEN not set. Telegram bot will not be initialized.")
+        if not self.token:
+            logger.warning("Telegram bot '%s': token not set, will not be initialized.", self.name)
             return False
 
         try:
-            self.application = Application.builder().token(TELEGRAM_TOKEN).build()
+            self.application = Application.builder().token(self.token).build()
 
-            # Register handlers
-            self.application.add_handler(CommandHandler("status", status_command))
-            self.application.add_handler(CommandHandler("brief", brief_command))
-            self.application.add_handler(CommandHandler("ask", ask_command))
+            # /status, /brief, /ask are specific to the original trades/health
+            # bot -- the news/vc_funding bots are push-only broadcast
+            # destinations with no interactive commands.
+            if self.name == "trades":
+                self.application.add_handler(CommandHandler("status", status_command))
+                self.application.add_handler(CommandHandler("brief", brief_command))
+                self.application.add_handler(CommandHandler("ask", ask_command))
 
-            logger.info("Telegram bot setup completed successfully.")
+            logger.info("Telegram bot '%s' setup completed successfully.", self.name)
             return True
         except Exception as e:
-            logger.error("Failed to setup Telegram bot: %s", e)
+            logger.error("Failed to setup Telegram bot '%s': %s", self.name, e)
             return False
 
     async def start(self) -> None:
@@ -303,19 +330,23 @@ class TelegramBotManager:
             return
         try:
             await self.application.initialize()
-            await self.application.start()
-            await self.application.updater.start_polling()
-            logger.info("Telegram bot started polling successfully.")
+            if self.name == "trades":
+                await self.application.start()
+                await self.application.updater.start_polling()
+                logger.info("Telegram bot '%s' started polling successfully.", self.name)
+            else:
+                logger.info("Telegram bot '%s' initialized (push-only, no polling).", self.name)
         except Exception as e:
-            logger.error("Failed to start Telegram bot polling: %s", e)
+            logger.error("Failed to start Telegram bot '%s': %s", self.name, e)
 
     async def stop(self) -> None:
         if not self.application:
             return
         try:
-            await self.application.updater.stop()
-            await self.application.stop()
+            if self.name == "trades":
+                await self.application.updater.stop()
+                await self.application.stop()
             await self.application.shutdown()
-            logger.info("Telegram bot stopped successfully.")
+            logger.info("Telegram bot '%s' stopped successfully.", self.name)
         except Exception as e:
-            logger.error("Failed to stop Telegram bot: %s", e)
+            logger.error("Failed to stop Telegram bot '%s': %s", self.name, e)

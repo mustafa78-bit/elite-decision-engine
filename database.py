@@ -198,6 +198,23 @@ class TemporaryWatch(Base):
 
 
 # ------------------------------------------------------------------
+# SENT ALERT TABLE (Telegram news/VC-funding dedup)
+# ------------------------------------------------------------------
+# Tracks which RSS headlines have already triggered a proactive Telegram
+# alert, keyed by category + a normalized hash of the headline text, so the
+# periodic news job (services/news_job_service.py) never resends the same
+# item across poll cycles even after a backend restart.
+
+class SentAlert(Base):
+    __tablename__ = "sent_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String(30), nullable=False, index=True)  # "market_news" | "vc_funding_news"
+    headline_hash = Column(String(64), nullable=False, index=True)
+    sent_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ------------------------------------------------------------------
 # JOURNAL ENTRY TABLE
 # ------------------------------------------------------------------
 
@@ -386,6 +403,26 @@ def session_scope():
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
+
+
+def is_alert_sent(category: str, headline_hash: str) -> bool:
+    """True if this (category, headline) pair has already been alerted."""
+    session = get_session()
+    try:
+        return (
+            session.query(SentAlert)
+            .filter(SentAlert.category == category, SentAlert.headline_hash == headline_hash)
+            .first()
+            is not None
+        )
+    finally:
+        session.close()
+
+
+def record_sent_alert(category: str, headline_hash: str) -> None:
+    """Record that this (category, headline) pair was just alerted."""
+    with session_scope() as session:
+        session.add(SentAlert(category=category, headline_hash=headline_hash))
 
 
 # ------------------------------------------------------------------

@@ -93,5 +93,7 @@ def get_default_preferences():
             "trade_opened": True,
             "trade_closed": True,
             "system_alert": True,
+            "market_news": True,
+            "vc_funding_news": True,
         },
     }
