@@ -6,7 +6,9 @@ export function greetOLLO(room = "command_deck"): Promise<OLLOResponse> {
 }
 
 export function queryOLLO(query: string, room = "command_deck"): Promise<OLLOResponse> {
-  return apiFetch<OLLOResponse>(`/ollo/query?query=${encodeURIComponent(query)}&room=${room}`)
+  return apiFetch<OLLOResponse>(`/ollo/query?query=${encodeURIComponent(query)}&room=${room}`, {
+    method: "POST",
+  })
 }
 
 export function fetchBriefing(kind = "morning", room = "command_deck"): Promise<OLLOBriefing> {
