@@ -134,15 +134,18 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("OLLO Service initialization failed: %s", e)
 
-    # Start Telegram Bot if configured
+    # Start Telegram bots if configured -- "trades" (status/brief/ask
+    # commands + trade/health alerts) plus the 2 push-only news bots.
     from services.telegram.bot import TelegramBotManager
-    bot_manager = TelegramBotManager.get_instance()
-    bot_manager.set_event_loop(asyncio.get_running_loop())
-    bot_started = bot_manager.setup()
-    if bot_started:
-        # Run bot startup as a background task
-        bot_task = asyncio.create_task(bot_manager.start())
-        _background_tasks.add(bot_task)
+    running_loop = asyncio.get_running_loop()
+    started_bot_managers = []
+    for bot_name in ("trades", "news", "vc_funding"):
+        bot_manager = TelegramBotManager.get_instance(bot_name)
+        bot_manager.set_event_loop(running_loop)
+        if bot_manager.setup():
+            bot_task = asyncio.create_task(bot_manager.start())
+            _background_tasks.add(bot_task)
+            started_bot_managers.append(bot_manager)
 
     # Single dispatcher shared by every real trade/health event source so
     # TRADE_OPENED/TRADE_CLOSED actually reach the real WebSocketManager --
@@ -177,14 +180,17 @@ async def lifespan(app: FastAPI):
     health_task = asyncio.create_task(_health_monitor_loop(shared_dispatcher))
     _background_tasks.add(health_task)
 
+    news_task = asyncio.create_task(_news_alert_loop())
+    _background_tasks.add(news_task)
+
     yield
 
     logger.info("Application shutting down")
-    if bot_started:
+    for bot_manager in started_bot_managers:
         try:
             await bot_manager.stop()
         except Exception as e:
-            logger.warning("Telegram Bot shutdown error: %s", e)
+            logger.warning("Telegram Bot '%s' shutdown error: %s", bot_manager.name, e)
 
     task.cancel()
     for t in _background_tasks:
@@ -564,6 +570,24 @@ async def _health_monitor_loop(dispatcher: NotificationDispatcher) -> None:
             raise
         except Exception:
             logger.exception("Health monitor loop iteration failed")
+
+
+async def _news_alert_loop() -> None:
+    """Periodically push proactive Telegram alerts for market-moving crypto
+    news and institutional/VC project-funding news. See
+    SPRINT_JULES_TELEGRAM_NEWS_ALERTS.md for the full design rationale.
+    """
+    from services.news_job_service import NEWS_JOB_INTERVAL_SECONDS, run_news_alert_cycle
+
+    while True:
+        try:
+            await asyncio.sleep(NEWS_JOB_INTERVAL_SECONDS)
+            await asyncio.to_thread(run_news_alert_cycle)
+        except asyncio.CancelledError:
+            logger.info("News alert loop cancelled")
+            raise
+        except Exception:
+            logger.exception("News alert loop iteration failed")
 
 
 

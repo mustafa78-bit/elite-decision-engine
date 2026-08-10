@@ -64,6 +64,16 @@ TELEGRAM_TOKEN: str = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_ALLOWED_CHAT_IDS: str = os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "")
 
+# Market-moving crypto news bot -- separate bot/chat from the trades/health
+# bot above, so news pushes don't mix with trade alerts.
+TELEGRAM_NEWS_TOKEN: str = os.getenv("TELEGRAM_NEWS_TOKEN", "")
+TELEGRAM_NEWS_CHAT_ID: str = os.getenv("TELEGRAM_NEWS_CHAT_ID", "")
+
+# Institutional/VC project-funding news bot -- also separate from both bots
+# above.
+TELEGRAM_VC_TOKEN: str = os.getenv("TELEGRAM_VC_TOKEN", "")
+TELEGRAM_VC_CHAT_ID: str = os.getenv("TELEGRAM_VC_CHAT_ID", "")
+
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_USER = os.getenv("POSTGRES_USER")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
