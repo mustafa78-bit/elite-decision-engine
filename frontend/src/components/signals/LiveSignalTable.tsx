@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 import ConfidenceBadge from "./ConfidenceBadge";
 
 interface SignalRow {
@@ -18,10 +20,12 @@ interface Props {
 }
 
 export default function LiveSignalTable({ signals }: Props) {
+  const { t } = useTranslation("signals");
+
   if (signals.length === 0) {
     return (
       <div className="text-gray-600 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
-        No signals yet
+        {t("liveSignalTable.noSignals")}
       </div>
     );
   }
@@ -32,13 +36,13 @@ export default function LiveSignalTable({ signals }: Props) {
         <thead>
           <tr className="text-[10px] uppercase text-gray-500 border-b border-gray-800">
             <th className="text-left px-2 py-1.5 font-medium">#</th>
-            <th className="text-left px-2 py-1.5 font-medium">Symbol</th>
-            <th className="text-left px-2 py-1.5 font-medium">Side</th>
-            <th className="text-right px-2 py-1.5 font-medium">Price</th>
-            <th className="text-left px-2 py-1.5 font-medium">Decision</th>
-            <th className="text-right px-2 py-1.5 font-medium">Score</th>
-            <th className="text-left px-2 py-1.5 font-medium">Status</th>
-            <th className="text-right px-2 py-1.5 font-medium">Time</th>
+            <th className="text-left px-2 py-1.5 font-medium">{t("liveSignalTable.columns.symbol")}</th>
+            <th className="text-left px-2 py-1.5 font-medium">{t("liveSignalTable.columns.side")}</th>
+            <th className="text-right px-2 py-1.5 font-medium">{t("liveSignalTable.columns.price")}</th>
+            <th className="text-left px-2 py-1.5 font-medium">{t("liveSignalTable.columns.decision")}</th>
+            <th className="text-right px-2 py-1.5 font-medium">{t("liveSignalTable.columns.score")}</th>
+            <th className="text-left px-2 py-1.5 font-medium">{t("liveSignalTable.columns.status")}</th>
+            <th className="text-right px-2 py-1.5 font-medium">{t("liveSignalTable.columns.time")}</th>
           </tr>
         </thead>
         <tbody>
@@ -55,7 +59,7 @@ export default function LiveSignalTable({ signals }: Props) {
                 </span>
               </td>
               <td className="px-2 py-1.5 text-right tabular-nums">
-                {s.price != null ? s.price.toFixed(2) : "\u2014"}
+                {s.price != null ? s.price.toFixed(2) : "—"}
               </td>
               <td className="px-2 py-1.5">
                 <ConfidenceBadge confidence={s.confidence} decision={s.decision} />
@@ -69,7 +73,7 @@ export default function LiveSignalTable({ signals }: Props) {
                 <span className="text-gray-500">{s.status}</span>
               </td>
               <td className="px-2 py-1.5 text-right tabular-nums text-gray-500">
-                {s.created_at ? new Date(s.created_at).toLocaleTimeString() : "\u2014"}
+                {s.created_at ? new Date(s.created_at).toLocaleTimeString() : "—"}
               </td>
             </tr>
           ))}

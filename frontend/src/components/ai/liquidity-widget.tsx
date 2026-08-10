@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
@@ -24,13 +25,14 @@ export function LiquidityWidget({
   ],
   overallScore = 72,
 }: LiquidityWidgetProps) {
+  const { t } = useTranslation("assetDetail");
   return (
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Liquidity Analysis</CardTitle>
+          <CardTitle>{t("liquidityWidget.title")}</CardTitle>
           <Badge variant={overallScore > 70 ? "success" : overallScore > 40 ? "warning" : "danger"}>
-            Score: {overallScore}
+            {t("liquidityWidget.score", { value: overallScore })}
           </Badge>
         </div>
         <span className="text-[10px] font-mono text-[var(--text-muted)]">
@@ -46,7 +48,7 @@ export function LiquidityWidget({
                   @ ${l.price.toLocaleString()}
                 </span>
                 <span className="text-[10px] font-mono tabular-nums text-[var(--text-muted)]">
-                  Ratio: {l.ratio.toFixed(2)}
+                  {t("liquidityWidget.ratio", { value: l.ratio.toFixed(2) })}
                 </span>
               </div>
               <div className="flex gap-1 h-2">
@@ -64,15 +66,15 @@ export function LiquidityWidget({
                 </div>
               </div>
               <div className="flex justify-between text-[8px] font-mono text-[var(--text-muted)] mt-0.5">
-                <span>Bid ${l.bidLiquidity}M</span>
-                <span>Ask ${l.askLiquidity}M</span>
+                <span>{t("liquidityWidget.bid", { value: l.bidLiquidity })}</span>
+                <span>{t("liquidityWidget.ask", { value: l.askLiquidity })}</span>
               </div>
             </div>
           ))}
         </div>
         <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
           <div className="flex items-center justify-between text-[9px] font-mono text-[var(--text-muted)]">
-            <span>Overall Liquidity Score</span>
+            <span>{t("liquidityWidget.overallScore")}</span>
             <span className="text-[var(--accent-blue)]">{overallScore}/100</span>
           </div>
           <Progress

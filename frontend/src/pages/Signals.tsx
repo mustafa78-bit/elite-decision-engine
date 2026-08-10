@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import LiveSignalTable from "../components/signals/LiveSignalTable";
 import SignalScoreCard from "../components/signals/SignalScoreCard";
@@ -8,6 +9,7 @@ import { ApiError } from "../api/client";
 import { fetchSignals } from "../api/signals";
 
 export default function Signals() {
+  const { t } = useTranslation(["signals", "common"]);
   const [signals, setSignals] = useState<SignalRow[]>([]);
   const [selected, setSelected] = useState<SignalRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ export default function Signals() {
         setSelected(data[0]);
       }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load signals");
+      setError(e instanceof ApiError ? e.message : t("page.loadError"));
     } finally {
       setLoading(false);
     }
@@ -34,7 +36,7 @@ export default function Signals() {
   if (loading) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading signals...
+        {t("page.loading")}
       </div>
     );
   }
@@ -45,7 +47,7 @@ export default function Signals() {
         <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
           {error}
           <button onClick={loadSignals} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
+            {t("common:retry")}
           </button>
         </div>
       </div>
@@ -56,7 +58,7 @@ export default function Signals() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-          Live Signals ({signals.length})
+          {t("page.heading", { count: signals.length })}
         </h2>
       </div>
 

@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 interface Props {
   entry: number;
   atr: number;
@@ -12,14 +14,15 @@ export default function PositionSizeCard({
   entry, atr, onEntryChange, onAtrChange,
   quantity, notional, riskAmount,
 }: Props) {
+  const { t } = useTranslation("risk");
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-3">
       <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
-        Position Size Calculator
+        {t("positionSizeCard.title")}
       </h3>
       <div className="space-y-2 mb-3">
         <div>
-          <label className="text-[10px] text-gray-500 block mb-0.5">Entry Price</label>
+          <label className="text-[10px] text-gray-500 block mb-0.5">{t("positionSizeCard.entryPrice")}</label>
           <input
             type="number"
             value={entry}
@@ -28,7 +31,7 @@ export default function PositionSizeCard({
           />
         </div>
         <div>
-          <label className="text-[10px] text-gray-500 block mb-0.5">ATR</label>
+          <label className="text-[10px] text-gray-500 block mb-0.5">{t("positionSizeCard.atr")}</label>
           <input
             type="number"
             value={atr}
@@ -38,9 +41,9 @@ export default function PositionSizeCard({
         </div>
       </div>
       <div className="border-t border-gray-800 pt-2 space-y-1">
-        <Row label="Quantity" value={quantity} />
-        <Row label="Notional" value={`$${notional}`} />
-        <Row label="Risk Amount" value={`$${riskAmount}`} negative />
+        <Row label={t("positionSizeCard.quantity")} value={quantity} />
+        <Row label={t("positionSizeCard.notional")} value={`$${notional}`} />
+        <Row label={t("positionSizeCard.riskAmount")} value={`$${riskAmount}`} negative />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
@@ -12,6 +13,7 @@ interface FundingData {
 }
 
 export default function FundingPage() {
+  const { t } = useTranslation("funding");
   const [data, setData] = useState<FundingData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +37,7 @@ export default function FundingPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-          Funding Rates
+          {t("page.title")}
         </h2>
       </div>
 
@@ -48,7 +50,7 @@ export default function FundingPage() {
       ) : data.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
-            <p className="text-xs font-mono text-[var(--text-muted)]">No funding data available</p>
+            <p className="text-xs font-mono text-[var(--text-muted)]">{t("page.empty")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -66,13 +68,13 @@ export default function FundingPage() {
               <CardContent>
                 <div className="space-y-1 text-[10px] font-mono">
                   <div className="flex justify-between text-[var(--text-secondary)]">
-                    <span>Predicted</span>
+                    <span>{t("card.predicted")}</span>
                     <span className={item.predicted_rate > 0 ? "text-[var(--accent-red)]" : "text-[var(--accent-green)]"}>
                       {(item.predicted_rate * 100).toFixed(3)}%
                     </span>
                   </div>
                   <div className="flex justify-between text-[var(--text-secondary)]">
-                    <span>Next Funding</span>
+                    <span>{t("card.nextFunding")}</span>
                     <span className="text-[var(--text-secondary)]">
                       {new Date(item.next_funding_time).toLocaleTimeString()}
                     </span>

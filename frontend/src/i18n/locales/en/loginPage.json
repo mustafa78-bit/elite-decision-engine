@@ -1,0 +1,9 @@
+{
+  "subtitle": "Sign in to continue",
+  "usernameLabel": "Username",
+  "passwordLabel": "Password",
+  "signIn": "Sign In",
+  "signingIn": "Signing in...",
+  "toastSuccess": "Logged in successfully",
+  "toastError": "Invalid credentials"
+}

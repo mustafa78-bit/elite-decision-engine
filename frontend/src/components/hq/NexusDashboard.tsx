@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import OLLOCommander from './OLLOCommander';
 import type { OLLOResponse, OLLOBriefing } from '../../types/ollo';
 
@@ -17,6 +18,7 @@ export const NexusDashboard: React.FC<NexusDashboardProps> = ({
   olloError,
   onEnterCommandDeck,
 }) => {
+  const { t } = useTranslation('commandDeck');
   const [time, setTime] = useState('');
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export const NexusDashboard: React.FC<NexusDashboardProps> = ({
       <header className="relative z-20 flex items-center justify-between px-8 pt-7">
         <span className="flex items-center gap-2 text-[11px] font-mono tracking-widest text-cyan-400/80 uppercase">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-          system optimal
+          {t('nexusDashboard.systemOptimal')}
         </span>
         <span className="text-[13px] font-mono tracking-[0.4em] text-slate-100">NEXUS</span>
         <span className="text-[11px] font-mono tracking-wider text-cyan-400/60 tabular-nums">{time || '10:10:30 UTC'}</span>
@@ -55,7 +57,7 @@ export const NexusDashboard: React.FC<NexusDashboardProps> = ({
             onClick={onEnterCommandDeck}
             className="mt-10 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 px-4 py-2 text-[10.5px] font-mono uppercase tracking-wider text-slate-400 hover:text-cyan-300 hover:border-cyan-400/50 transition-colors"
           >
-            Command deck (full dashboard)
+            {t('nexusDashboard.enterCommandDeck')}
             <span className="text-cyan-400 font-semibold">&darr;</span>
           </button>
         )}

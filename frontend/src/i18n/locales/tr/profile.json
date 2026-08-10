@@ -1,0 +1,25 @@
+{
+  "identity": {
+    "name": "Komutan",
+    "unavailable": "Mevcut Değil"
+  },
+  "account": {
+    "title": "Hesap",
+    "plan": "Plan",
+    "apiCalls24h": "API Çağrıları (24s)",
+    "memberSince": "Üyelik Tarihi"
+  },
+  "apiKeys": {
+    "title": "API Anahtarları",
+    "generateNewKey": "Yeni Anahtar Oluştur"
+  },
+  "notificationPreferences": {
+    "title": "Bildirim Tercihleri",
+    "tradeAlerts": "İşlem Uyarıları",
+    "riskWarnings": "Risk Uyarıları",
+    "dailyDigest": "Günlük Özet"
+  },
+  "recentActivity": {
+    "title": "Son Etkinlik"
+  }
+}

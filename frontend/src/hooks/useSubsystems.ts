@@ -58,6 +58,13 @@ export function useSubsystems(): SubsystemsResult {
     mountedRef.current = true
     setLoading(true)
 
+    // NEXUS/OLLO's greeting + briefing are AI-generated (can take 40-115s+ per
+    // NVIDIA call) and are cosmetic, not critical data — they must NOT gate the
+    // page's loading state, or the whole dashboard sits on a loading screen for
+    // up to two minutes even though every other subsystem already loaded fast.
+    safeFetch(() => greetOLLO()).then((s) => { if (mountedRef.current && s.data) setGreeting(s.data) })
+    safeFetch(() => fetchBriefing()).then((s) => { if (mountedRef.current && s.data) setBriefing(s.data) })
+
     Promise.all([
       safeFetch(() => fetchLatestEvidence()).then((s) => { if (mountedRef.current) setEvidence(s) }),
       safeFetch(() => fetchOLLOStatus()).then((s) => { if (mountedRef.current) setOlloStatus(s) }),
@@ -68,8 +75,6 @@ export function useSubsystems(): SubsystemsResult {
       safeFetch(() => fetchPortfolioSummary()).then((s) => { if (mountedRef.current) setPortfolio(s) }),
       safeFetch(() => fetchWhaleActivity()).then((s) => { if (mountedRef.current) setWhale(s) }),
       safeFetch(() => fetchMarket()).then((s) => { if (mountedRef.current) setMarket(s) }),
-      safeFetch(() => greetOLLO()).then((s) => { if (mountedRef.current && s.data) setGreeting(s.data) }),
-      safeFetch(() => fetchBriefing()).then((s) => { if (mountedRef.current && s.data) setBriefing(s.data) }),
     ]).finally(() => {
       if (mountedRef.current) setLoading(false)
     })

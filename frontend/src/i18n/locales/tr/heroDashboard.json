@@ -1,0 +1,163 @@
+{
+  "page": {
+    "quickActions": {
+      "newTrade": "Yeni İşlem",
+      "scanner": "Tarayıcı",
+      "commandPalette": "Komut Paleti",
+      "runBacktest": "Geriye Dönük Test Çalıştır"
+    },
+    "loadError": {
+      "title": "Pano verileri yüklenemedi",
+      "detail": "Backend'in çalıştığından ve yapılandırılan API URL'sinden erişilebilir olduğundan emin olun."
+    },
+    "riskMetricLabels": {
+      "openTrades": "Açık İşlemler",
+      "winRate": "Kazanma Oranı"
+    },
+    "intelligence": {
+      "marketOverview": {
+        "title": "Piyasa Genel Görünümü",
+        "loading": "Piyasa verisi yükleniyor...",
+        "summary": "Piyasa rejimi: {{regime}}. RSI: {{rsi}}. Volatilite: %{{volatility}}.",
+        "source": "AI Motoru"
+      },
+      "signalActivity": {
+        "title": "Sinyal Etkinliği",
+        "summary": "Toplam {{total}} sinyal, {{approved}} onaylandı, {{rejected}} reddedildi.",
+        "source": "Sinyal Motoru"
+      },
+      "tradeStatus": {
+        "title": "İşlem Durumu",
+        "summary": "{{open}} açık işlem, {{closed}} kapalı. Toplam Kâr/Zarar: ${{pnl}}.",
+        "source": "İşlem Yürütme Motoru"
+      }
+    }
+  },
+  "marketRegimeWidget": {
+    "title": "Piyasa Rejimi",
+    "vol": "Vol",
+    "rsi": "RSI"
+  },
+  "portfolioSummaryWidget": {
+    "title": "Portföy",
+    "totalPnl": "Toplam Kâr/Zarar",
+    "winRate": "Kazanma Oranı",
+    "openTrades": "Açık İşlemler",
+    "maxDrawdown": "Maks. Düşüş"
+  },
+  "aiConfidenceWidget": {
+    "title": "AI Güveni",
+    "score": "Skor: {{score}}",
+    "decision": {
+      "buy": "AL",
+      "strongBuy": "GÜÇLÜ AL",
+      "sell": "SAT",
+      "strongSell": "GÜÇLÜ SAT",
+      "wait": "BEKLE"
+    }
+  },
+  "dailyPnlWidget": {
+    "title": "Günlük Kâr/Zarar",
+    "today": "bugün",
+    "totalPnl": "Toplam Kâr/Zarar"
+  },
+  "exposureWidget": {
+    "title": "Maruziyet",
+    "long": "Long",
+    "short": "Short",
+    "usage": "Kullanım",
+    "buyingPower": "Alım Gücü"
+  },
+  "openTradesWidget": {
+    "title": "Açık İşlemler",
+    "positions": "{{count}} pozisyon",
+    "empty": "Açık işlem yok"
+  },
+  "notificationWidget": {
+    "title": "Bildirimler",
+    "new": "{{count}} yeni",
+    "empty": "Bildirim yok"
+  },
+  "performanceWidget": {
+    "title": "Performans",
+    "metrics": {
+      "sharpe": "Sharpe",
+      "sortino": "Sortino",
+      "winRate": "Kazanma Oranı",
+      "profitFactor": "Kâr Faktörü",
+      "maxDd": "Maks. Düşüş",
+      "trades": "İşlemler"
+    }
+  },
+  "riskWidget": {
+    "title": "Risk",
+    "empty": "Risk verisi yok",
+    "status": {
+      "low": "DÜŞÜK",
+      "medium": "ORTA",
+      "high": "YÜKSEK"
+    }
+  },
+  "monitoringWidget": {
+    "title": "Sistem Sağlığı",
+    "websocketClients": "websocket istemcileri",
+    "empty": "İzleme verisi yok",
+    "status": {
+      "running": "çalışıyor",
+      "connected": "bağlı",
+      "healthy": "sağlıklı",
+      "error": "hata",
+      "down": "kapalı",
+      "disconnected": "bağlantı kesildi",
+      "degraded": "kısıtlı",
+      "unknown": "bilinmiyor"
+    },
+    "names": {
+      "database": "veritabanı",
+      "collector": "toplayıcı"
+    }
+  },
+  "founderHealthWidget": {
+    "title": "Sistem Sağlığı",
+    "checking": "KONTROL EDİLİYOR",
+    "allOnline": "TÜMÜ ÇEVRİMİÇİ",
+    "someOffline": "BAZILARI ÇEVRİMDIŞI",
+    "degraded": "KISITLI",
+    "status": {
+      "online": "ÇEVRİMİÇİ",
+      "offline": "ÇEVRİMDIŞI",
+      "degraded": "KISITLI"
+    },
+    "services": {
+      "backend": "Backend",
+      "database": "Veritabanı",
+      "websocket": "WebSocket",
+      "marketFeed": "Piyasa Akışı",
+      "intelligenceEngine": "İstihbarat Motoru",
+      "notifications": "Bildirimler"
+    }
+  },
+  "intelligenceWidget": {
+    "title": "İstihbarat",
+    "empty": "İstihbarat verisi yok"
+  },
+  "heatmapWidget": {
+    "title": "Isı Haritası",
+    "empty": "Isı haritası verisi yok"
+  },
+  "watchlistWidget": {
+    "title": "İzleme Listesi",
+    "empty": "İzleme listesinde sembol yok"
+  },
+  "recentActivityWidget": {
+    "title": "Son Etkinlikler",
+    "empty": "Son etkinlik yok"
+  },
+  "timelineWidget": {
+    "title": "Zaman Çizelgesi",
+    "empty": "Zaman çizelgesi olayı yok"
+  },
+  "quickActionsWidget": {
+    "title": "Hızlı İşlemler"
+  }
+}

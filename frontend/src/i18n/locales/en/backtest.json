@@ -1,0 +1,29 @@
+{
+  "page": {
+    "running": "Running backtest...",
+    "loadError": "Failed to load backtest",
+    "title": "Backtest Report"
+  },
+  "metrics": {
+    "totalPnl": "Total PnL",
+    "roi": "ROI",
+    "winRate": "Win Rate",
+    "profitFactor": "Profit Factor",
+    "avgWin": "Avg Win",
+    "avgLoss": "Avg Loss",
+    "maxDrawdown": "Max Drawdown",
+    "sharpe": "Sharpe"
+  },
+  "summary": {
+    "totalSignals": "Total Signals",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "approvalRate": "Approval Rate"
+  },
+  "trades": {
+    "total": "Total Trades",
+    "wins": "Wins",
+    "losses": "Losses",
+    "openClosed": "Open / Closed"
+  }
+}

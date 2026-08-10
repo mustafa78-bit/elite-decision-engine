@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { SymbolSearch } from "../components/trading/symbol-search";
 import { ChartPanel } from "../components/trading/chart-panel";
@@ -25,6 +26,7 @@ interface Candle {
 }
 
 export default function TradingWorkspace() {
+  const { t } = useTranslation("tradingWorkspace");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +59,7 @@ export default function TradingWorkspace() {
         className="flex items-center gap-4 mb-4"
       >
         <h1 className="text-sm font-medium text-[var(--text-primary)]">
-          Trading Workspace
+          {t("page.title")}
         </h1>
         <SymbolSearch />
       </motion.div>

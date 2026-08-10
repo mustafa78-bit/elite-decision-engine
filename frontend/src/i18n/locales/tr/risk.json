@@ -1,0 +1,37 @@
+{
+  "page": {
+    "loading": "Risk verileri yükleniyor...",
+    "loadError": "Risk verileri yüklenemedi",
+    "noData": "Risk verisi yok",
+    "sections": {
+      "riskOverview": "Risk Genel Bakış",
+      "exposure": "Maruziyet",
+      "positionSizing": "Pozisyon Boyutlandırma"
+    },
+    "cards": {
+      "riskScore": "Risk Skoru",
+      "riskScoreSub": "/ 100",
+      "openTrades": "Açık İşlemler",
+      "openTradesSub": "%{{pct}} kullanıldı",
+      "dailyLoss": "Günlük Kayıp",
+      "dailyLossSub": "Limitin %{{pct}}'i",
+      "accountEquity": "Hesap Özkaynağı",
+      "riskPerTrade": "Risk / İşlem",
+      "riskPerTradeSub": "${{amount}} maks."
+    }
+  },
+  "exposureCard": {
+    "title": "Maruziyet",
+    "portfolio": "Portföy",
+    "bySymbol": "Sembole Göre",
+    "noExposure": "Açık maruziyet yok"
+  },
+  "positionSizeCard": {
+    "title": "Pozisyon Boyutu Hesaplayıcı",
+    "entryPrice": "Giriş Fiyatı",
+    "atr": "ATR",
+    "quantity": "Miktar",
+    "notional": "Nominal Değer",
+    "riskAmount": "Risk Tutarı"
+  }
+}

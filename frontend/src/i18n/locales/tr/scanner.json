@@ -1,0 +1,68 @@
+{
+  "heading": "Piyasa Tarayıcısı",
+  "market": {
+    "spot": "Spot",
+    "futures": "Vadeli"
+  },
+  "searchPlaceholder": "Sembol veya strateji ara...",
+  "savedFilters": "Kayıtlı Filtreler",
+  "saveCurrent": "+ Mevcut Filtreyi Kaydet",
+  "newFilterName": "Filtre {{n}}",
+  "defaultFilters": {
+    "default": "Varsayılan",
+    "highConf": "Yüksek Güven",
+    "lowRisk": "Düşük Risk",
+    "highVolume": "Yüksek Hacim"
+  },
+  "categories": {
+    "top-movers": "En Çok Hareketlenenler",
+    "top-breakouts": "En İyi Kırılımlar",
+    "top-trends": "En Güçlü Trendler",
+    "top-reversals": "En İyi Dönüşler",
+    "top-mean-reversions": "Ortalamaya Dönüş"
+  },
+  "decision": {
+    "STRONG_BUY": "GÜÇLÜ AL",
+    "BUY": "AL",
+    "NEUTRAL": "NÖTR",
+    "SELL": "SAT",
+    "STRONG_SELL": "GÜÇLÜ SAT"
+  },
+  "loadError": "Tarayıcı verileri yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+  "noResultsSearch": "Aramanızla eşleşen sonuç yok",
+  "noResultsCategory": "Bu kategori için fırsat bulunamadı",
+  "table": {
+    "rank": "#",
+    "symbol": "Sembol",
+    "side": "Yön",
+    "strategy": "Strateji",
+    "eliteScore": "Elite Skoru",
+    "aiDecision": "AI Kararı",
+    "confidence": "Güven",
+    "risk": "Risk",
+    "score": "Skor",
+    "probability": "Olasılık"
+  },
+  "resultCount_one": "{{count}} sonuç — açıklamak için tıklayın, gitmek için çift tıklayın",
+  "resultCount_other": "{{count}} sonuç — açıklamak için tıklayın, gitmek için çift tıklayın",
+  "drawer": {
+    "esc": "Esc",
+    "aiSummary": "AI Özeti",
+    "noSummary": "Özet mevcut değil",
+    "eliteScore": "Elite Skoru",
+    "confidence": "Güven",
+    "risk": "Risk",
+    "strategy": "Strateji",
+    "rank": "Sıra",
+    "trendAnalysis": "Trend Analizi",
+    "keyLevels": "Kritik Seviyeler",
+    "signals": "Sinyaller",
+    "riskAssessment": "Risk Değerlendirmesi",
+    "volumeAnalysis": "Hacim Analizi",
+    "marketData": "Piyasa Verisi",
+    "price": "Fiyat",
+    "compositeScore": "Bileşik Skor",
+    "probability": "Olasılık",
+    "signalBadges": "Sinyal Etiketleri"
+  }
+}

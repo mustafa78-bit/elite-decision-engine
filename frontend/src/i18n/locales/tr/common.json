@@ -1,0 +1,66 @@
+{
+  "common": {
+    "loading": "Yükleniyor...",
+    "retry": "Tekrar Dene",
+    "error": "Hata",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "close": "Kapat",
+    "confirm": "Onayla",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "create": "Oluştur",
+    "add": "Ekle",
+    "remove": "Kaldır",
+    "yes": "Evet",
+    "no": "Hayır",
+    "search": "Ara",
+    "filter": "Filtrele",
+    "refresh": "Yenile",
+    "export": "Dışa Aktar",
+    "noData": "Veri yok"
+  },
+  "header": {
+    "subtitle": "Karar Motoru v1"
+  },
+  "nav": {
+    "brandSubtitle": "Karar İstihbaratı",
+    "systemOnline": "Sistem Çevrimiçi",
+    "section": {
+      "commandDeck": { "title": "Komuta Merkezi", "subtitle": "Merkez" },
+      "scannerRoom": { "title": "Tarama Odası", "subtitle": "Varlık Gözetimi" },
+      "aiCouncilChamber": { "title": "AI Konsey Odası", "subtitle": "Karar İstihbaratı" },
+      "riskOperations": { "title": "Risk Operasyonları", "subtitle": "Risk & Maruziyet" },
+      "portfolioVault": { "title": "Portföy Kasası", "subtitle": "Sermaye Yönetimi" },
+      "capitalFlow": { "title": "Sermaye Akışı", "subtitle": "Piyasa İstihbaratı" },
+      "missionArchive": { "title": "Görev Arşivi", "subtitle": "Kayıtlar & Günlük" },
+      "systemCore": { "title": "Sistem Çekirdeği", "subtitle": "İşlemler & Yapılandırma" }
+    },
+    "item": {
+      "commandDeck": "Komuta Merkezi",
+      "dashboard": "Pano",
+      "overview": "Genel Bakış",
+      "scanner": "Tarayıcı",
+      "market": "Piyasa",
+      "watchlists": "İzleme Listeleri",
+      "decisions": "Karar Merkezi",
+      "signals": "Sinyaller",
+      "intelligence": "İstihbarat",
+      "risk": "Risk Kontrolü",
+      "regime": "Rejim",
+      "portfolio": "Portföy",
+      "funding": "Fonlama",
+      "openInterest": "Açık Pozisyon",
+      "trades": "İşlem Günlüğü",
+      "timeline": "Zaman Çizelgesi",
+      "journal": "Günlük",
+      "notifications": "Bildirimler",
+      "analytics": "Analitik",
+      "backtest": "Geriye Dönük Test",
+      "execution": "İşlem Yürütme",
+      "paperTrading": "Kağıt İşlem",
+      "preferences": "Tercihler",
+      "profile": "Profil"
+    }
+  }
+}

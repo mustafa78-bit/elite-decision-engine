@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import RegimeBadge from "./RegimeBadge";
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export default function MarketCard({ symbol, price, regime, rsi, atr }: Props) {
+  const { t } = useTranslation("market");
+
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
       <div className="flex items-center justify-between mb-3">
@@ -20,11 +23,11 @@ export default function MarketCard({ symbol, price, regime, rsi, atr }: Props) {
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div>
-          <span className="text-gray-500">RSI</span>
+          <span className="text-gray-500">{t("marketCard.rsi")}</span>
           <span className="float-right tabular-nums text-gray-200">{rsi.toFixed(0)}</span>
         </div>
         <div>
-          <span className="text-gray-500">ATR</span>
+          <span className="text-gray-500">{t("marketCard.atr")}</span>
           <span className="float-right tabular-nums text-gray-200">${atr.toFixed(0)}</span>
         </div>
       </div>

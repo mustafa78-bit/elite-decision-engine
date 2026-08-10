@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
@@ -6,6 +7,7 @@ import { fetchNotificationsWidget } from "../../api/widgets";
 import { formatTime } from "../../lib/utils";
 
 export function NotificationWidget() {
+  const { t } = useTranslation("heroDashboard");
   const { data, isLoading } = useQuery({
     queryKey: ["notifications-widget"],
     queryFn: () => fetchNotificationsWidget(8),
@@ -15,9 +17,9 @@ export function NotificationWidget() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Notifications</CardTitle>
+        <CardTitle>{t("notificationWidget.title")}</CardTitle>
         {data && data.unread > 0 && (
-          <Badge variant="warning">{data.unread} new</Badge>
+          <Badge variant="warning">{t("notificationWidget.new", { count: data.unread })}</Badge>
         )}
       </CardHeader>
       <CardContent className="max-h-64 overflow-y-auto">
@@ -28,7 +30,7 @@ export function NotificationWidget() {
           </div>
         ) : !data || data.notifications.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No notifications
+            {t("notificationWidget.empty")}
           </div>
         ) : (
           <div className="space-y-1">

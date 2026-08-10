@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
@@ -22,11 +23,12 @@ export function ExplainableAIPanel({
   confidence = 0,
   factors = [],
 }: ExplainableAIPanelProps) {
+  const { t } = useTranslation("assetDetail");
   return (
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Explainable AI</CardTitle>
+          <CardTitle>{t("explainableAI.title")}</CardTitle>
           <Badge variant={prediction === "BULLISH" ? "success" : prediction === "BEARISH" ? "danger" : "default"}>
             {prediction} {confidence}%
           </Badge>
@@ -37,7 +39,7 @@ export function ExplainableAIPanel({
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider">
-          Factor Contributions
+          {t("explainableAI.factorContributions")}
         </div>
         {factors.map((f) => (
           <div key={f.factor}>

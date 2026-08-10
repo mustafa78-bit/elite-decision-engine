@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import BTCHealthCard from "../components/market/BTCHealthCard";
 import MarketCard from "../components/market/MarketCard";
@@ -21,6 +22,7 @@ interface MarketData {
 }
 
 export default function Market() {
+  const { t } = useTranslation("market");
   const [data, setData] = useState<MarketData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,18 +38,18 @@ export default function Market() {
       }
       setData(d);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load market data");
+      setError(e instanceof ApiError ? e.message : t("page.loadFailedFallback"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { fetchMarket(); }, [fetchMarket]);
 
   if (loading) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading market data...
+        {t("page.loading")}
       </div>
     );
   }
@@ -58,7 +60,7 @@ export default function Market() {
         <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 rounded">
           {error}
           <button onClick={fetchMarket} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
+            {t("page.retry")}
           </button>
         </div>
       </div>
@@ -70,7 +72,7 @@ export default function Market() {
   return (
     <div className="space-y-6">
       <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
-        Market Intelligence
+        {t("page.title")}
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

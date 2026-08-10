@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 interface Props {
   btcHealthScore: number;
   ema20: number;
@@ -9,15 +11,17 @@ interface Props {
 }
 
 export default function BTCHealthCard({ btcHealthScore, ema20, ema50, ema200, volatility, regimeScore }: Props) {
+  const { t } = useTranslation("market");
+
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
       <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
-        BTC Health
+        {t("btcHealthCard.title")}
       </h3>
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-gray-500">Health Score</span>
+            <span className="text-xs text-gray-500">{t("btcHealthCard.healthScore")}</span>
             <span className={`text-sm font-semibold tabular-nums ${btcHealthScore >= 0.5 ? "text-green-400" : "text-red-400"}`}>
               {(btcHealthScore * 100).toFixed(0)}%
             </span>
@@ -30,21 +34,21 @@ export default function BTCHealthCard({ btcHealthScore, ema20, ema50, ema200, vo
           </div>
         </div>
         <div className="text-xs">
-          <span className="text-gray-500 block">EMA 20/50</span>
+          <span className="text-gray-500 block">{t("btcHealthCard.ema2050")}</span>
           <span className={`tabular-nums ${ema20 > ema50 ? "text-green-400" : "text-red-400"}`}>
             ${ema20.toLocaleString()} / ${ema50.toLocaleString()}
           </span>
         </div>
         <div className="text-xs">
-          <span className="text-gray-500 block">EMA 200</span>
+          <span className="text-gray-500 block">{t("btcHealthCard.ema200")}</span>
           <span className="tabular-nums text-gray-200">${ema200.toLocaleString()}</span>
         </div>
         <div className="text-xs">
-          <span className="text-gray-500 block">Volatility</span>
+          <span className="text-gray-500 block">{t("btcHealthCard.volatility")}</span>
           <span className="tabular-nums text-gray-200">{(volatility * 100).toFixed(3)}%</span>
         </div>
         <div className="text-xs">
-          <span className="text-gray-500 block">Regime Score</span>
+          <span className="text-gray-500 block">{t("btcHealthCard.regimeScore")}</span>
           <span className={`tabular-nums ${regimeScore >= 0.5 ? "text-green-400" : "text-red-400"}`}>
             {(regimeScore * 100).toFixed(0)}%
           </span>

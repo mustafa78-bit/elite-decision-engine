@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 interface SignalEvent {
   id: number;
   symbol: string;
@@ -19,10 +21,12 @@ const decisionColors: Record<string, string> = {
 };
 
 export default function SignalTimeline({ signals }: Props) {
+  const { t } = useTranslation("signals");
+
   if (signals.length === 0) {
     return (
       <div className="text-gray-600 text-xs p-4 border border-dashed border-gray-800 rounded text-center">
-        No signal history
+        {t("signalTimeline.noHistory")}
       </div>
     );
   }
@@ -32,7 +36,7 @@ export default function SignalTimeline({ signals }: Props) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
       <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
-        Signal Timeline
+        {t("signalTimeline.title")}
       </h3>
       <div className="space-y-1">
         {recent.map((s) => {

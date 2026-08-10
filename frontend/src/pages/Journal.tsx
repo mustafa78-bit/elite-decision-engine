@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { JournalCreatePayload, JournalEntryRow } from "../api/journal";
 import { createJournalEntry, deleteJournalEntry, fetchJournal } from "../api/journal";
@@ -11,7 +12,15 @@ const RESULT_COLORS: Record<string, string> = {
   BREAK_EVEN: "text-[var(--text-secondary)]",
 };
 
+const RESULT_LABEL_KEYS: Record<string, string> = {
+  WIN: "result.win",
+  LOSS: "result.loss",
+  PENDING: "result.pending",
+  BREAK_EVEN: "result.breakEven",
+};
+
 export default function Journal() {
+  const { t } = useTranslation(["journal", "common"]);
   const [entries, setEntries] = useState<JournalEntryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +39,11 @@ export default function Journal() {
       const data = await fetchJournal();
       setEntries(data);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load journal");
+      setError(e instanceof ApiError ? e.message : t("journal:page.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -62,7 +71,7 @@ export default function Journal() {
   if (loading) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading journal...
+        {t("journal:page.loading")}
       </div>
     );
   }
@@ -71,7 +80,7 @@ export default function Journal() {
     return (
       <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)]/20 bg-[var(--accent-red)]/10 rounded mb-4">
         {error}
-        <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Retry</button>
+        <button onClick={load} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">{t("common:retry")}</button>
       </div>
     );
   }
@@ -79,19 +88,19 @@ export default function Journal() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">Trade Journal</h2>
+        <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">{t("journal:page.title")}</h2>
         <button
           onClick={() => setShowForm(!showForm)}
           className="text-[10px] uppercase tracking-wider bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] px-3 py-1 rounded"
         >
-          {showForm ? "Cancel" : "+ Entry"}
+          {showForm ? t("common:cancel") : t("journal:page.addEntry")}
         </button>
       </div>
 
       {showForm && (
         <div className="bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded p-4 space-y-2 max-w-lg">
           <input
-            placeholder="Symbol"
+            placeholder={t("journal:form.symbolPlaceholder")}
             value={form.symbol}
             onChange={(e) => setForm({ ...form, symbol: e.target.value })}
             className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]"
@@ -108,14 +117,14 @@ export default function Journal() {
             <input
               type="number"
               step="0.01"
-              placeholder="Entry price"
+              placeholder={t("journal:form.entryPricePlaceholder")}
               value={form.entry_price || ""}
               onChange={(e) => setForm({ ...form, entry_price: parseFloat(e.target.value) || 0 })}
               className="flex-1 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]"
             />
           </div>
           <textarea
-            placeholder="Entry reason"
+            placeholder={t("journal:form.entryReasonPlaceholder")}
             value={form.entry_reason}
             onChange={(e) => setForm({ ...form, entry_reason: e.target.value })}
             className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded px-2 py-1 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] min-h-[48px]"
@@ -125,14 +134,14 @@ export default function Journal() {
             disabled={!form.symbol.trim() || form.entry_price <= 0}
             className="text-[10px] uppercase tracking-wider bg-[var(--accent-green)] hover:bg-[var(--accent-green)]/80 text-[var(--accent-green)] px-3 py-1 rounded disabled:opacity-40"
           >
-            Save
+            {t("common:save")}
           </button>
         </div>
       )}
 
       {entries.length === 0 && !showForm && (
         <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-          No journal entries yet
+          {t("journal:page.noEntries")}
         </div>
       )}
 
@@ -141,14 +150,14 @@ export default function Journal() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">
-                <th className="text-left px-3 py-1.5 font-medium">Date</th>
-                <th className="text-left px-3 py-1.5 font-medium">Symbol</th>
-                <th className="text-left px-3 py-1.5 font-medium">Side</th>
-                <th className="text-right px-3 py-1.5 font-medium">Entry</th>
-                <th className="text-right px-3 py-1.5 font-medium">Score</th>
-                <th className="text-right px-3 py-1.5 font-medium">Result</th>
-                <th className="text-right px-3 py-1.5 font-medium">PnL</th>
-                <th className="text-left px-3 py-1.5 font-medium">Reason</th>
+                <th className="text-left px-3 py-1.5 font-medium">{t("journal:table.date")}</th>
+                <th className="text-left px-3 py-1.5 font-medium">{t("journal:table.symbol")}</th>
+                <th className="text-left px-3 py-1.5 font-medium">{t("journal:table.side")}</th>
+                <th className="text-right px-3 py-1.5 font-medium">{t("journal:table.entry")}</th>
+                <th className="text-right px-3 py-1.5 font-medium">{t("journal:table.score")}</th>
+                <th className="text-right px-3 py-1.5 font-medium">{t("journal:table.result")}</th>
+                <th className="text-right px-3 py-1.5 font-medium">{t("journal:table.pnl")}</th>
+                <th className="text-left px-3 py-1.5 font-medium">{t("journal:table.reason")}</th>
                 <th className="w-8" />
               </tr>
             </thead>
@@ -169,7 +178,7 @@ export default function Journal() {
                     {e.score.toFixed(3)}
                   </td>
                   <td className={`px-3 py-1.5 text-right font-medium ${RESULT_COLORS[e.result] || "text-[var(--text-primary)]"}`}>
-                    {e.result.replace("_", " ")}
+                    {RESULT_LABEL_KEYS[e.result] ? t(`journal:${RESULT_LABEL_KEYS[e.result]}`) : e.result.replace("_", " ")}
                   </td>
                   <td className={`px-3 py-1.5 text-right tabular-nums ${e.pnl >= 0 ? "text-[var(--accent-green)]" : "text-[var(--accent-red)]"}`}>
                     {e.pnl >= 0 ? "+" : ""}{e.pnl.toFixed(2)}

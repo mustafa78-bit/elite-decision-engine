@@ -1,0 +1,29 @@
+{
+  "page": {
+    "running": "Geriye dönük test çalıştırılıyor...",
+    "loadError": "Geriye dönük test yüklenemedi",
+    "title": "Geriye Dönük Test Raporu"
+  },
+  "metrics": {
+    "totalPnl": "Toplam Kâr/Zarar",
+    "roi": "Yatırım Getirisi",
+    "winRate": "Kazanma Oranı",
+    "profitFactor": "Kâr Faktörü",
+    "avgWin": "Ort. Kazanç",
+    "avgLoss": "Ort. Kayıp",
+    "maxDrawdown": "Maks. Düşüş",
+    "sharpe": "Sharpe"
+  },
+  "summary": {
+    "totalSignals": "Toplam Sinyal",
+    "approved": "Onaylanan",
+    "rejected": "Reddedilen",
+    "approvalRate": "Onay Oranı"
+  },
+  "trades": {
+    "total": "Toplam İşlem",
+    "wins": "Kazanan",
+    "losses": "Kaybeden",
+    "openClosed": "Açık / Kapalı"
+  }
+}

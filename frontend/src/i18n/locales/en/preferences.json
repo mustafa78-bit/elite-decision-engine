@@ -1,0 +1,33 @@
+{
+  "page": {
+    "noData": "No preferences data",
+    "title": "Founder Settings"
+  },
+  "actions": {
+    "toggle": "Toggle"
+  },
+  "theme": {
+    "title": "Theme",
+    "current": "Current:"
+  },
+  "layout": {
+    "title": "Layout",
+    "sidebar": "Sidebar:",
+    "collapsed": "Collapsed",
+    "expanded": "Expanded"
+  },
+  "display": {
+    "title": "Display",
+    "timeFormat": "Time Format",
+    "numberFormat": "Number Format",
+    "refreshInterval": "Refresh Interval",
+    "defaultSymbol": "Default Symbol"
+  },
+  "toast": {
+    "loadError": "Failed to load preferences",
+    "themeChanged": "Theme changed to {{theme}}",
+    "themeUpdateError": "Failed to update theme",
+    "sidebarCollapsed": "Sidebar collapsed",
+    "sidebarExpanded": "Sidebar expanded"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "page": {
+    "noData": "Tercih verisi yok",
+    "title": "Kurucu Ayarları"
+  },
+  "actions": {
+    "toggle": "Değiştir"
+  },
+  "theme": {
+    "title": "Tema",
+    "current": "Mevcut:"
+  },
+  "layout": {
+    "title": "Yerleşim",
+    "sidebar": "Kenar Çubuğu:",
+    "collapsed": "Daraltılmış",
+    "expanded": "Genişletilmiş"
+  },
+  "display": {
+    "title": "Görüntü",
+    "timeFormat": "Saat Biçimi",
+    "numberFormat": "Sayı Biçimi",
+    "refreshInterval": "Yenileme Aralığı",
+    "defaultSymbol": "Varsayılan Sembol"
+  },
+  "toast": {
+    "loadError": "Tercihler yüklenemedi",
+    "themeChanged": "Tema {{theme}} olarak değiştirildi",
+    "themeUpdateError": "Tema güncellenemedi",
+    "sidebarCollapsed": "Kenar çubuğu daraltıldı",
+    "sidebarExpanded": "Kenar çubuğu genişletildi"
+  }
+}

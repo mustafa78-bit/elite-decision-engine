@@ -1,0 +1,149 @@
+{
+  "heading": "Decision Center",
+  "tabs": {
+    "all": "All",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "watch": "Watch",
+    "executed": "Executed",
+    "closed": "Closed"
+  },
+  "decision": {
+    "STRONG_BUY": "STRONG BUY",
+    "BUY": "BUY",
+    "NEUTRAL": "NEUTRAL",
+    "SELL": "SELL",
+    "STRONG_SELL": "STRONG SELL"
+  },
+  "outcome": {
+    "CORRECT": "Correct",
+    "INCORRECT": "Incorrect",
+    "EXECUTED": "Executed",
+    "CLOSED": "Closed",
+    "PENDING": "Pending"
+  },
+  "loadError": "Failed to load signals. Check your connection and try again.",
+  "stats": {
+    "winRate": "Win Rate",
+    "avgConfidence": "Avg Confidence",
+    "avgRisk": "Avg Risk",
+    "bestStrategy": "Best Strategy",
+    "weakestStrategy": "Weakest Strategy"
+  },
+  "noDecisions": "No decisions found for this filter",
+  "table": {
+    "symbol": "Symbol",
+    "side": "Side",
+    "eliteScore": "Elite Score",
+    "confidence": "Conf",
+    "decision": "Decision",
+    "risk": "Risk",
+    "time": "Time",
+    "outcome": "Outcome",
+    "explain": "Explain"
+  },
+  "explainAction": "Explain →",
+  "decisionCount_one": "{{count}} decision",
+  "decisionCount_other": "{{count}} decisions",
+  "drawer": {
+    "esc": "Esc",
+    "eliteScore": "Elite Score",
+    "confidence": "Confidence",
+    "risk": "Risk",
+    "outcome": "Outcome",
+    "pnl": "PnL"
+  },
+  "evidence": {
+    "summary": {
+      "label": "Summary",
+      "text": "{{decision}} signal for {{symbol}} with {{confidence}}% confidence. {{bias}} bias based on multi-factor analysis."
+    },
+    "bias": {
+      "bullish": "Bullish",
+      "bearish": "Bearish"
+    },
+    "evidenceSection": {
+      "label": "Evidence",
+      "text": "Score of {{eliteScore}} indicates {{conviction}} conviction. Multiple timeframe alignment {{confirmText}} directional bias."
+    },
+    "conviction": {
+      "strong": "strong",
+      "moderate": "moderate",
+      "weak": "weak"
+    },
+    "confirms": "confirms",
+    "doesNotConfirm": "does not confirm",
+    "trend": {
+      "label": "Trend",
+      "text": "Trend score: {{score}}/100. Price action shows {{behavior}}.",
+      "pending": "Trend analysis pending..."
+    },
+    "trendBehavior": {
+      "strong": "strong trending behavior",
+      "mixed": "mixed signals",
+      "weak": "weak directional bias"
+    },
+    "volume": {
+      "label": "Volume",
+      "text": "Volume score: {{score}}/100. Volume {{behavior}}.",
+      "pending": "Volume analysis pending..."
+    },
+    "volumeBehavior": {
+      "confirms": "confirms the move with above-average participation",
+      "neutral": "is neutral, neither confirming nor denying"
+    },
+    "funding": {
+      "label": "Funding",
+      "text": "Funding rates are currently neutral for this asset. No extreme positioning detected that would contradict the current signal."
+    },
+    "liquidity": {
+      "label": "Liquidity",
+      "text": "Market depth is adequate for the position size. Bid-ask spread within normal ranges. No liquidity concerns detected."
+    },
+    "btcRegime": {
+      "label": "BTC Regime",
+      "text": "BTC correlation score: {{score}}/100. {{behavior}}",
+      "pending": "BTC regime analysis pending..."
+    },
+    "btcBehavior": {
+      "strong": "Strong correlation with Bitcoin regime.",
+      "moderate": "Moderate correlation with Bitcoin.",
+      "low": "Low correlation with Bitcoin — asset may follow its own path."
+    },
+    "risk": {
+      "label": "Risk",
+      "text": "Risk score: {{risk}}. {{note}}"
+    },
+    "riskNote": {
+      "manageable": "Risk levels are manageable with standard position sizing.",
+      "moderate": "Moderate risk — consider reduced position size.",
+      "elevated": "Elevated risk — caution advised."
+    },
+    "alternative": {
+      "label": "Alternative Scenario",
+      "long": "If the bullish thesis fails, key support at recent swing lows would be invalidated. A break below support would suggest considering {{suggestion}}.",
+      "short": "If the bearish thesis fails, a breakout above resistance would invalidate the setup. In that scenario, consider covering shorts and waiting for a better entry."
+    },
+    "longSuggestion": {
+      "btc": "a short position or stepping aside",
+      "other": "reducing exposure and reassessing"
+    },
+    "historicalAccuracy": {
+      "label": "Historical Accuracy",
+      "text": "Similar {{decision}} signals on {{symbol}} have been correct {{rate}} of the time in the current market regime."
+    },
+    "historicalRate": {
+      "high": "approximately 72%",
+      "low": "approximately 58%"
+    },
+    "finalRecommendation": {
+      "label": "Final AI Recommendation",
+      "text": "{{decision}} {{symbol}} with {{confidence}}% confidence. {{note}}"
+    },
+    "finalNote": {
+      "favorable": "Setup is favorable with strong technical alignment.",
+      "mixed": "Setup has mixed signals — consider partial position.",
+      "weak": "Setup is weak — waiting for clearer confirmation is advised."
+    }
+  }
+}

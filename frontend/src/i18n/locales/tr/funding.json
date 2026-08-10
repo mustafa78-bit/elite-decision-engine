@@ -1,0 +1,10 @@
+{
+  "page": {
+    "title": "Fonlama Oranları",
+    "empty": "Fonlama verisi bulunamadı"
+  },
+  "card": {
+    "predicted": "Tahmini",
+    "nextFunding": "Sonraki Fonlama"
+  }
+}

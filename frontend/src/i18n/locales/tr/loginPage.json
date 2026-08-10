@@ -1,0 +1,9 @@
+{
+  "subtitle": "Devam etmek için giriş yapın",
+  "usernameLabel": "Kullanıcı Adı",
+  "passwordLabel": "Şifre",
+  "signIn": "Giriş Yap",
+  "signingIn": "Giriş yapılıyor...",
+  "toastSuccess": "Başarıyla giriş yapıldı",
+  "toastError": "Geçersiz kimlik bilgileri"
+}

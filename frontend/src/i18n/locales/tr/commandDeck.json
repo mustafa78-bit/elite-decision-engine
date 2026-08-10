@@ -1,0 +1,131 @@
+{
+  "header": {
+    "title": "KOMUTA MERKEZİ",
+    "founderAlpha": "Kurucu Alpha"
+  },
+  "aiStatus": {
+    "ok": "TAMAM",
+    "err": "HATA"
+  },
+  "alerts_one": "{{count}} uyarı",
+  "alerts_other": "{{count}} uyarı",
+  "missionStatus": {
+    "ACTIVE": "AKTİF",
+    "MONITORING": "İZLENİYOR",
+    "CAUTION": "DİKKAT",
+    "CRITICAL": "KRİTİK"
+  },
+  "recommendation": {
+    "title": "Güncel Öneri"
+  },
+  "evidence": {
+    "title": "Kanıt Analizi",
+    "decisionConfidence": "Karar Güveni",
+    "evidenceStrength": "Kanıt Gücü",
+    "explainability": "Açıklanabilirlik",
+    "supporting": "destekleyici",
+    "conflicting": "çelişen",
+    "warnings": "uyarı"
+  },
+  "analysisLabel": {
+    "trend": "Trend",
+    "momentum": "Momentum",
+    "volatility": "Volatilite",
+    "price": "Fiyat"
+  },
+  "analysisValue": {
+    "positive": "Pozitif",
+    "negative": "Negatif",
+    "neutral": "Nötr",
+    "high": "Yüksek",
+    "moderate": "Orta",
+    "low": "Düşük"
+  },
+  "nexusDashboard": {
+    "systemOptimal": "sistem optimal",
+    "enterCommandDeck": "Komuta merkezi (tam panel)"
+  },
+  "missionFlow": {
+    "title": "Görev Akışı",
+    "online": "çevrimiçi",
+    "node": {
+      "Scanner": "Tarayıcı",
+      "Whale": "Balina",
+      "Council": "Konsey",
+      "Evidence": "Kanıt",
+      "Decision": "Karar",
+      "Founder": "Kurucu",
+      "Action": "Eylem"
+    }
+  },
+  "subsystem": {
+    "Scanner": "Tarayıcı",
+    "Risk": "Risk",
+    "Council": "Konsey",
+    "Portfolio": "Portföy",
+    "Whale": "Balina",
+    "Market": "Piyasa",
+    "Evidence": "Kanıt",
+    "NEXUS": "NEXUS",
+    "AI": "AI"
+  },
+  "loadingScreen": {
+    "elite": "ELITE",
+    "commandHq": "KOMUTA MERKEZİ",
+    "step": {
+      "aiFoundation": "AI Temeli",
+      "evidenceEngine": "Kanıt Motoru",
+      "riskEngine": "Risk Motoru",
+      "council": "Konsey",
+      "mission": "Görev"
+    },
+    "status": {
+      "ready": "HAZIR",
+      "online": "ÇEVRİMİÇİ"
+    }
+  },
+  "olloCommander": {
+    "tts": "TTS",
+    "on": "AÇIK",
+    "off": "KAPALI",
+    "placeholderListening": "Dinliyor...",
+    "placeholderInstruct": "NEXUS Komutanı'na talimat verin...",
+    "micStop": "Dinlemeyi durdur",
+    "micStart": "Konuşmaya başla",
+    "send": "Gönder",
+    "awaitingConnection": "NEXUS bağlantısı bekleniyor...",
+    "navigatingTo": "{{route}} sayfasına yönlendiriliyor...",
+    "welcomeFallback": "Hoş geldiniz, Komutan.",
+    "briefingSuffix": "Brifingi",
+    "errors": {
+      "speechNotSupported": "Bu tarayıcıda ses tanıma desteklenmiyor.",
+      "voiceError": "Ses Hatası: {{error}}",
+      "fetchFailed": "NEXUS'tan yanıt alınamadı."
+    }
+  },
+  "signalFeed": {
+    "title": "Sinyal Akışı",
+    "aiSignal": "AI Sinyali",
+    "count_one": "{{count}} sinyal",
+    "count_other": "{{count}} sinyal",
+    "empty": "Sinyal bulunmuyor"
+  },
+  "analysisDashboard": {
+    "title": "Analiz",
+    "empty": "Analiz verisi yok",
+    "sentimentBreakdown": "Duygu Dağılımı",
+    "sentiment": {
+      "bullish": "Yükseliş",
+      "neutral": "Nötr",
+      "bearish": "Düşüş"
+    }
+  },
+  "scannerOpportunities": {
+    "title": "Sıralı Fırsatlar",
+    "found_one": "{{count}} bulundu",
+    "found_other": "{{count}} bulundu",
+    "failedToLoad": "Yüklenemedi",
+    "empty": "Fırsat bulunamadı",
+    "score": "Skor {{value}}"
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { formatTime } from "../../lib/utils";
@@ -16,15 +17,16 @@ interface IntelligenceWidgetProps {
 }
 
 export function IntelligenceWidget({ items = [] }: IntelligenceWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Intelligence</CardTitle>
+        <CardTitle>{t("intelligenceWidget.title")}</CardTitle>
       </CardHeader>
       <CardContent className="max-h-64 overflow-y-auto">
         {items.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No intelligence data
+            {t("intelligenceWidget.empty")}
           </div>
         ) : (
           <div className="space-y-2">

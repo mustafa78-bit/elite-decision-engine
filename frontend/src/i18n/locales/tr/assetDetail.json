@@ -1,0 +1,114 @@
+{
+  "back": "← Geri",
+  "unknown": "Bilinmiyor",
+  "explain": "Açıkla",
+  "priceChart": "Fiyat Grafiği",
+  "chartLoading": "Grafik verileri yükleniyor...",
+  "chartLoadError": "Grafik verileri yüklenemedi",
+  "eliteScore": {
+    "title": "Elite Skoru",
+    "confidence": "Güven",
+    "risk": "Risk",
+    "trend": "Trend",
+    "volume": "Hacim",
+    "btcCorrelation": "BTC Korelasyonu",
+    "mtf": "MTF"
+  },
+  "aiSummary": {
+    "title": "AI Özeti",
+    "decisionLabel": "Karar:",
+    "confidenceLabel": "Güven:",
+    "fullAnalysis": "Tam Analiz →",
+    "noData": "Karar verisi mevcut değil. Sinyal işleniyor...",
+    "bullishNote": "Trend, hacim ve momentum göstergelerinde güçlü teknik hizalanma. Net geçersizlik seviyeleriyle olumlu risk/getiri kurulumu.",
+    "bearishNote": "Birden fazla zaman diliminde hizalanmış düşüş sinyalleri. Artan satış baskısıyla bozulan piyasa yapısı.",
+    "mixedNote": "Göstergeler arasında karışık sinyaller. Yönsel eğilim öncesi daha net teyit bekleniyor."
+  },
+  "decisionTimelineHeading": "Karar Zaman Çizelgesi",
+  "timelineAction": {
+    "opened": "Açıldı",
+    "closed": "Kapandı"
+  },
+  "marketPulse": {
+    "title": "Piyasa Nabzı",
+    "price": "Fiyat",
+    "change24h": "24s Değişim",
+    "volume": "Hacim",
+    "signal": "Sinyal",
+    "riskLevel": "Risk Seviyesi"
+  },
+  "decision": {
+    "STRONG_BUY": "GÜÇLÜ AL",
+    "BUY": "AL",
+    "NEUTRAL": "NÖTR",
+    "SELL": "SAT",
+    "STRONG_SELL": "GÜÇLÜ SAT"
+  },
+  "confidenceMetrics": {
+    "technicalAnalysis": "Teknik Analiz",
+    "marketRegime": "Piyasa Rejimi",
+    "volumeProfile": "Hacim Profili",
+    "mtfAnalysis": "MTF Analizi",
+    "riskAssessment": "Risk Değerlendirmesi"
+  },
+  "drawer": {
+    "esc": "Esc",
+    "aiSummary": "AI Özeti",
+    "awaitingAnalysis": "İstihbarat motorundan AI analizi bekleniyor.",
+    "eliteScore": "Elite Skoru",
+    "confidence": "Güven",
+    "risk": "Risk",
+    "decision": "Karar",
+    "side": "Yön",
+    "trendAnalysis": "Trend Analizi",
+    "keyLevels": "Kritik Seviyeler",
+    "signals": "Sinyaller",
+    "riskAssessment": "Risk Değerlendirmesi",
+    "volumeAnalysis": "Hacim Analizi"
+  },
+  "confidenceBreakdown": {
+    "title": "Güven Dağılımı",
+    "overallConfidence": "Genel Güven",
+    "weightedAcross": "{{count}} faktöre göre ağırlıklandırıldı"
+  },
+  "decisionTimelineWidget": {
+    "title": "Karar Zaman Çizelgesi",
+    "noRecent": "Son zamanlarda karar yok",
+    "confidence": "Güven: %{{value}}",
+    "outcome": {
+      "pending": "Beklemede",
+      "correct": "Doğru",
+      "incorrect": "Yanlış"
+    }
+  },
+  "explainableAI": {
+    "title": "Açıklanabilir AI",
+    "factorContributions": "Faktör Katkıları"
+  },
+  "fundingWidget": {
+    "title": "Fonlama Oranları",
+    "avg8h": "8s ortalama",
+    "noData": "Fonlama verisi mevcut değil",
+    "apr": "APR: %{{value}}",
+    "settlement": "Uzlaşma: {{value}}"
+  },
+  "liquidityWidget": {
+    "title": "Likidite Analizi",
+    "score": "Skor: {{value}}",
+    "ratio": "Oran: {{value}}",
+    "bid": "Alış {{value}}M$",
+    "ask": "Satış {{value}}M$",
+    "overallScore": "Genel Likidite Skoru"
+  },
+  "openInterestWidget": {
+    "title": "Açık Pozisyon",
+    "change24h": "24s değişim",
+    "noData": "Açık pozisyon verisi mevcut değil",
+    "longShort": "L/S: {{value}}"
+  },
+  "whaleWidget": {
+    "title": "Balina Hareketi",
+    "last24h": "Son 24 saat",
+    "noData": "Balina hareketi tespit edilmedi"
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { formatTime } from "../../lib/utils";
@@ -25,15 +26,16 @@ const activityBadge: Record<string, "success" | "danger" | "warning" | "info"> =
 export function RecentActivityWidget({
   activities = [],
 }: RecentActivityWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
+        <CardTitle>{t("recentActivityWidget.title")}</CardTitle>
       </CardHeader>
       <CardContent className="max-h-64 overflow-y-auto">
         {activities.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No recent activity
+            {t("recentActivityWidget.empty")}
           </div>
         ) : (
           <div className="space-y-1">

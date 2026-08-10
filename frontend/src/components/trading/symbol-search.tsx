@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { useTerminalStore } from "../../stores/terminal-store";
@@ -17,6 +18,7 @@ const popularSymbols = [
 ];
 
 export function SymbolSearch() {
+  const { t } = useTranslation("tradingWorkspace");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [focusedIdx, setFocusedIdx] = useState(0);
@@ -105,7 +107,7 @@ export function SymbolSearch() {
                   setFocusedIdx(0);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Search symbols..."
+                placeholder={t("symbolSearch.placeholder")}
                 className="w-full bg-[var(--bg-base)] rounded-lg px-3 py-1.5 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] border border-[var(--border-subtle)] focus:outline-none focus:border-[var(--accent-blue)]"
               />
             </div>
@@ -114,7 +116,7 @@ export function SymbolSearch() {
                 if (item.name === "recent-divider") {
                   return (
                     <div key="divider" className="px-2 py-1 text-[9px] text-[var(--text-muted)] uppercase tracking-wider">
-                      Recent
+                      {t("symbolSearch.recent")}
                     </div>
                   );
                 }

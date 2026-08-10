@@ -1,0 +1,21 @@
+{
+  "loading": "Loading overview...",
+  "loadError": "Failed to load overview",
+  "title": "Terminal Overview",
+  "cards": {
+    "btcStatus": "BTC Status",
+    "trades": "Trades",
+    "risk": "Risk",
+    "performance": "Performance"
+  },
+  "labels": {
+    "rsi": "RSI",
+    "health": "Health",
+    "open": "open",
+    "closed": "closed",
+    "openSlashClosed": "Open",
+    "loss": "Loss",
+    "winRate": "Win Rate",
+    "sharpe": "Sharpe"
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 
@@ -15,15 +16,16 @@ interface WhaleWidgetProps {
 }
 
 export function WhaleWidget({ activities = [] }: WhaleWidgetProps) {
+  const { t } = useTranslation("assetDetail");
   if (activities.length === 0) {
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle>Whale Activity</CardTitle>
+          <CardTitle>{t("whaleWidget.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-xs text-[var(--text-muted)] text-center py-4">
-            No whale activity detected
+            {t("whaleWidget.noData")}
           </div>
         </CardContent>
       </Card>
@@ -34,9 +36,9 @@ export function WhaleWidget({ activities = [] }: WhaleWidgetProps) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>
-          Whale Activity
+          {t("whaleWidget.title")}
           <span className="text-[9px] font-mono text-[var(--text-muted)] ml-2">
-            Last 24h
+            {t("whaleWidget.last24h")}
           </span>
         </CardTitle>
       </CardHeader>

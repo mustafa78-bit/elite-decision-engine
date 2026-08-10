@@ -1,0 +1,30 @@
+{
+  "page": {
+    "loading": "Günlük yükleniyor...",
+    "loadError": "Günlük yüklenemedi",
+    "title": "İşlem Günlüğü",
+    "addEntry": "+ Kayıt",
+    "noEntries": "Henüz günlük kaydı yok"
+  },
+  "form": {
+    "symbolPlaceholder": "Sembol",
+    "entryPricePlaceholder": "Giriş fiyatı",
+    "entryReasonPlaceholder": "Giriş nedeni"
+  },
+  "table": {
+    "date": "Tarih",
+    "symbol": "Sembol",
+    "side": "Yön",
+    "entry": "Giriş",
+    "score": "Skor",
+    "result": "Sonuç",
+    "pnl": "Kâr/Zarar",
+    "reason": "Neden"
+  },
+  "result": {
+    "win": "KAZANÇ",
+    "loss": "KAYIP",
+    "pending": "BEKLEMEDE",
+    "breakEven": "BAŞA BAŞ"
+  }
+}

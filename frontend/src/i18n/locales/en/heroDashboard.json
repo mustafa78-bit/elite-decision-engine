@@ -1,0 +1,163 @@
+{
+  "page": {
+    "quickActions": {
+      "newTrade": "New Trade",
+      "scanner": "Scanner",
+      "commandPalette": "Command Palette",
+      "runBacktest": "Run Backtest"
+    },
+    "loadError": {
+      "title": "Unable to load dashboard data",
+      "detail": "Check that the backend is running and accessible at the configured API URL."
+    },
+    "riskMetricLabels": {
+      "openTrades": "Open Trades",
+      "winRate": "Win Rate"
+    },
+    "intelligence": {
+      "marketOverview": {
+        "title": "Market Overview",
+        "loading": "Market data loading...",
+        "summary": "Market regime: {{regime}}. RSI: {{rsi}}. Volatility: {{volatility}}%.",
+        "source": "AI Engine"
+      },
+      "signalActivity": {
+        "title": "Signal Activity",
+        "summary": "{{total}} total signals, {{approved}} approved, {{rejected}} rejected.",
+        "source": "Signal Engine"
+      },
+      "tradeStatus": {
+        "title": "Trade Status",
+        "summary": "{{open}} open trades, {{closed}} closed. Total PnL: ${{pnl}}.",
+        "source": "Execution Engine"
+      }
+    }
+  },
+  "marketRegimeWidget": {
+    "title": "Market Regime",
+    "vol": "Vol",
+    "rsi": "RSI"
+  },
+  "portfolioSummaryWidget": {
+    "title": "Portfolio",
+    "totalPnl": "Total PnL",
+    "winRate": "Win Rate",
+    "openTrades": "Open Trades",
+    "maxDrawdown": "Max Drawdown"
+  },
+  "aiConfidenceWidget": {
+    "title": "AI Confidence",
+    "score": "Score: {{score}}",
+    "decision": {
+      "buy": "BUY",
+      "strongBuy": "STRONG BUY",
+      "sell": "SELL",
+      "strongSell": "STRONG SELL",
+      "wait": "WAIT"
+    }
+  },
+  "dailyPnlWidget": {
+    "title": "Daily P&L",
+    "today": "today",
+    "totalPnl": "Total P&L"
+  },
+  "exposureWidget": {
+    "title": "Exposure",
+    "long": "Long",
+    "short": "Short",
+    "usage": "Usage",
+    "buyingPower": "Buying Power"
+  },
+  "openTradesWidget": {
+    "title": "Open Trades",
+    "positions": "{{count}} positions",
+    "empty": "No open trades"
+  },
+  "notificationWidget": {
+    "title": "Notifications",
+    "new": "{{count}} new",
+    "empty": "No notifications"
+  },
+  "performanceWidget": {
+    "title": "Performance",
+    "metrics": {
+      "sharpe": "Sharpe",
+      "sortino": "Sortino",
+      "winRate": "Win Rate",
+      "profitFactor": "Profit Factor",
+      "maxDd": "Max DD",
+      "trades": "Trades"
+    }
+  },
+  "riskWidget": {
+    "title": "Risk",
+    "empty": "No risk data",
+    "status": {
+      "low": "LOW",
+      "medium": "MEDIUM",
+      "high": "HIGH"
+    }
+  },
+  "monitoringWidget": {
+    "title": "System Health",
+    "websocketClients": "websocket clients",
+    "empty": "No monitoring data",
+    "status": {
+      "running": "running",
+      "connected": "connected",
+      "healthy": "healthy",
+      "error": "error",
+      "down": "down",
+      "disconnected": "disconnected",
+      "degraded": "degraded",
+      "unknown": "unknown"
+    },
+    "names": {
+      "database": "database",
+      "collector": "collector"
+    }
+  },
+  "founderHealthWidget": {
+    "title": "System Health",
+    "checking": "CHECKING",
+    "allOnline": "ALL ONLINE",
+    "someOffline": "SOME OFFLINE",
+    "degraded": "DEGRADED",
+    "status": {
+      "online": "ONLINE",
+      "offline": "OFFLINE",
+      "degraded": "DEGRADED"
+    },
+    "services": {
+      "backend": "Backend",
+      "database": "Database",
+      "websocket": "WebSocket",
+      "marketFeed": "Market Feed",
+      "intelligenceEngine": "Intelligence Engine",
+      "notifications": "Notifications"
+    }
+  },
+  "intelligenceWidget": {
+    "title": "Intelligence",
+    "empty": "No intelligence data"
+  },
+  "heatmapWidget": {
+    "title": "Heatmap",
+    "empty": "No heatmap data"
+  },
+  "watchlistWidget": {
+    "title": "Watchlist",
+    "empty": "No watchlist symbols"
+  },
+  "recentActivityWidget": {
+    "title": "Recent Activity",
+    "empty": "No recent activity"
+  },
+  "timelineWidget": {
+    "title": "Timeline",
+    "empty": "No timeline events"
+  },
+  "quickActionsWidget": {
+    "title": "Quick Actions"
+  }
+}

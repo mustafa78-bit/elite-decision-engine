@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
@@ -18,10 +19,11 @@ export function AnalysisDashboard({
   symbol = "BTC/USDT",
   items = [],
 }: AnalysisDashboardProps) {
+  const { t } = useTranslation("commandDeck");
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Analysis</CardTitle>
+        <CardTitle>{t("analysisDashboard.title")}</CardTitle>
         <span className="text-[10px] font-mono text-[var(--text-muted)]">
           {symbol}
         </span>
@@ -29,7 +31,7 @@ export function AnalysisDashboard({
       <CardContent className="space-y-3">
         {items.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No analysis data
+            {t("analysisDashboard.empty")}
           </div>
         ) : (
           items.map((item) => (
@@ -66,7 +68,7 @@ export function AnalysisDashboard({
 
         <div className="pt-2 border-t border-[var(--border-subtle)]">
           <div className="text-[10px] font-mono text-[var(--text-muted)] mb-2">
-            Sentiment Breakdown
+            {t("analysisDashboard.sentimentBreakdown")}
           </div>
           <div className="flex h-2 rounded-full overflow-hidden">
             <div
@@ -83,9 +85,9 @@ export function AnalysisDashboard({
             />
           </div>
           <div className="flex justify-between text-[9px] font-mono text-[var(--text-muted)] mt-1">
-            <span>Bullish 58%</span>
-            <span>Neutral 22%</span>
-            <span>Bearish 20%</span>
+            <span>{t("analysisDashboard.sentiment.bullish")} 58%</span>
+            <span>{t("analysisDashboard.sentiment.neutral")} 22%</span>
+            <span>{t("analysisDashboard.sentiment.bearish")} 20%</span>
           </div>
         </div>
       </CardContent>

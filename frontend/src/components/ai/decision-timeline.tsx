@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 
@@ -22,22 +23,23 @@ const typeConfig = {
   execution: { badge: "success" as const, icon: "▶" },
 };
 
-const outcomeConfig = {
-  pending: { label: "Pending", badge: "default" as const },
-  correct: { label: "Correct", badge: "success" as const },
-  incorrect: { label: "Incorrect", badge: "danger" as const },
-};
-
 export function DecisionTimeline({ events = [] }: DecisionTimelineProps) {
+  const { t } = useTranslation("assetDetail");
+  const outcomeConfig = {
+    pending: { label: t("decisionTimelineWidget.outcome.pending"), badge: "default" as const },
+    correct: { label: t("decisionTimelineWidget.outcome.correct"), badge: "success" as const },
+    incorrect: { label: t("decisionTimelineWidget.outcome.incorrect"), badge: "danger" as const },
+  };
+
   if (events.length === 0) {
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle>Decision Timeline</CardTitle>
+          <CardTitle>{t("decisionTimelineWidget.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-xs text-[var(--text-muted)] text-center py-4">
-            No recent decisions
+            {t("decisionTimelineWidget.noRecent")}
           </div>
         </CardContent>
       </Card>
@@ -47,7 +49,7 @@ export function DecisionTimeline({ events = [] }: DecisionTimelineProps) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Decision Timeline</CardTitle>
+        <CardTitle>{t("decisionTimelineWidget.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
@@ -75,7 +77,7 @@ export function DecisionTimeline({ events = [] }: DecisionTimelineProps) {
                   </div>
                 </div>
                 <div className="flex gap-2 text-[9px] font-mono text-[var(--text-muted)]">
-                  <span>Confidence: {e.confidence}%</span>
+                  <span>{t("decisionTimelineWidget.confidence", { value: e.confidence })}</span>
                 </div>
               </div>
             );

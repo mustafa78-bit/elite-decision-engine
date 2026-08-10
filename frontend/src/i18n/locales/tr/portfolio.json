@@ -1,0 +1,42 @@
+{
+  "page": {
+    "loading": "Portföy yükleniyor...",
+    "loadError": "Portföy yüklenemedi",
+    "noData": "Portföy verisi yok",
+    "heading": "Portföy Terminali",
+    "metrics": {
+      "winRate": "Kazanma Oranı",
+      "lossRate": "Kayıp Oranı",
+      "totalTrades": "Toplam İşlem",
+      "avgPnl": "Ort. K/Z",
+      "profitFactor": "Kâr Faktörü",
+      "maxDrawdown": "Maks. Düşüş",
+      "openExposure": "Açık Maruziyet",
+      "dailyPnl": "Günlük K/Z"
+    }
+  },
+  "balanceCard": {
+    "title": "Bakiye",
+    "realizedPnl": "Gerçekleşen K/Z",
+    "unrealizedPnl": "Gerçekleşmeyen K/Z"
+  },
+  "allocationCard": {
+    "title": "Dağılım",
+    "noData": "Veri yok"
+  },
+  "exposureChart": {
+    "title": "Sembole Göre Maruziyet",
+    "noPositions": "Açık pozisyon yok"
+  },
+  "positionTable": {
+    "title": "Açık Pozisyonlar",
+    "noPositions": "Açık pozisyon yok",
+    "columns": {
+      "symbol": "Sembol",
+      "side": "Yön",
+      "entry": "Giriş",
+      "status": "Durum",
+      "pnl": "K/Z"
+    }
+  }
+}

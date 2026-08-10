@@ -1,0 +1,21 @@
+{
+  "page": {
+    "title": "Watchlists",
+    "newWatchlistPlaceholder": "New watchlist name",
+    "create": "Create",
+    "delete": "Delete",
+    "addSymbolPlaceholder": "Add symbol...",
+    "add": "Add",
+    "empty": "No watchlists yet"
+  },
+  "toast": {
+    "loadFailed": "Failed to load watchlists",
+    "created": "Watchlist created",
+    "createFailed": "Failed to create watchlist",
+    "deleted": "Watchlist deleted",
+    "deleteFailed": "Failed to delete watchlist",
+    "symbolAdded": "Added {{symbol}}",
+    "addSymbolFailed": "Failed to add symbol",
+    "removeSymbolFailed": "Failed to remove symbol"
+  }
+}

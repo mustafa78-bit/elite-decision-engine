@@ -1,0 +1,131 @@
+{
+  "header": {
+    "title": "COMMAND HEADQUARTERS",
+    "founderAlpha": "Founder Alpha"
+  },
+  "aiStatus": {
+    "ok": "OK",
+    "err": "ERR"
+  },
+  "alerts_one": "{{count}} alert",
+  "alerts_other": "{{count}} alerts",
+  "missionStatus": {
+    "ACTIVE": "ACTIVE",
+    "MONITORING": "MONITORING",
+    "CAUTION": "CAUTION",
+    "CRITICAL": "CRITICAL"
+  },
+  "recommendation": {
+    "title": "Current Recommendation"
+  },
+  "evidence": {
+    "title": "Evidence Analysis",
+    "decisionConfidence": "Decision Confidence",
+    "evidenceStrength": "Evidence Strength",
+    "explainability": "Explainability",
+    "supporting": "supporting",
+    "conflicting": "conflicting",
+    "warnings": "warnings"
+  },
+  "analysisLabel": {
+    "trend": "Trend",
+    "momentum": "Momentum",
+    "volatility": "Volatility",
+    "price": "Price"
+  },
+  "analysisValue": {
+    "positive": "Positive",
+    "negative": "Negative",
+    "neutral": "Neutral",
+    "high": "High",
+    "moderate": "Moderate",
+    "low": "Low"
+  },
+  "nexusDashboard": {
+    "systemOptimal": "system optimal",
+    "enterCommandDeck": "Command deck (full dashboard)"
+  },
+  "missionFlow": {
+    "title": "Mission Flow",
+    "online": "online",
+    "node": {
+      "Scanner": "Scanner",
+      "Whale": "Whale",
+      "Council": "Council",
+      "Evidence": "Evidence",
+      "Decision": "Decision",
+      "Founder": "Founder",
+      "Action": "Action"
+    }
+  },
+  "subsystem": {
+    "Scanner": "Scanner",
+    "Risk": "Risk",
+    "Council": "Council",
+    "Portfolio": "Portfolio",
+    "Whale": "Whale",
+    "Market": "Market",
+    "Evidence": "Evidence",
+    "NEXUS": "NEXUS",
+    "AI": "AI"
+  },
+  "loadingScreen": {
+    "elite": "ELITE",
+    "commandHq": "COMMAND HEADQUARTERS",
+    "step": {
+      "aiFoundation": "AI Foundation",
+      "evidenceEngine": "Evidence Engine",
+      "riskEngine": "Risk Engine",
+      "council": "Council",
+      "mission": "Mission"
+    },
+    "status": {
+      "ready": "READY",
+      "online": "ONLINE"
+    }
+  },
+  "olloCommander": {
+    "tts": "TTS",
+    "on": "ON",
+    "off": "OFF",
+    "placeholderListening": "Listening...",
+    "placeholderInstruct": "Instruct NEXUS Commander...",
+    "micStop": "Stop listening",
+    "micStart": "Start speaking",
+    "send": "Send",
+    "awaitingConnection": "Awaiting NEXUS connection...",
+    "navigatingTo": "Navigating to {{route}}...",
+    "welcomeFallback": "Welcome, Commander.",
+    "briefingSuffix": "Briefing",
+    "errors": {
+      "speechNotSupported": "Speech recognition is not supported in this browser.",
+      "voiceError": "Voice Error: {{error}}",
+      "fetchFailed": "Failed to fetch response from NEXUS."
+    }
+  },
+  "signalFeed": {
+    "title": "Signal Feed",
+    "aiSignal": "AI Signal",
+    "count_one": "{{count}} signal",
+    "count_other": "{{count}} signals",
+    "empty": "No signals available"
+  },
+  "analysisDashboard": {
+    "title": "Analysis",
+    "empty": "No analysis data",
+    "sentimentBreakdown": "Sentiment Breakdown",
+    "sentiment": {
+      "bullish": "Bullish",
+      "neutral": "Neutral",
+      "bearish": "Bearish"
+    }
+  },
+  "scannerOpportunities": {
+    "title": "Ranked Opportunities",
+    "found_one": "{{count}} found",
+    "found_other": "{{count}} found",
+    "failedToLoad": "Failed to load",
+    "empty": "No opportunities found",
+    "score": "Score {{value}}"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "page": {
+    "loading": "Loading execution status...",
+    "loadError": "Failed to load execution status",
+    "noData": "No execution data",
+    "title": "Execution Dashboard"
+  },
+  "stats": {
+    "title": "Execution Statistics",
+    "signalsTotal": "Signals Total",
+    "executionRate": "Execution Rate",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "tradesTotal": "Trades Total",
+    "open": "Open",
+    "tpHit": "TP Hit",
+    "slHit": "SL Hit"
+  },
+  "timeline": {
+    "title": "Signal Flow",
+    "noData": "No signal data",
+    "approvedTitle": "Approved: {{count}}",
+    "rejectedTitle": "Rejected: {{count}}",
+    "pendingTitle": "Pending: {{count}}",
+    "approvedLabel": "{{count}} approved",
+    "rejectedLabel": "{{count}} rejected",
+    "pendingLabel": "{{count}} pending"
+  },
+  "errorPanel": {
+    "title": "Errors",
+    "titleWithCount": "Errors ({{count}})",
+    "noErrors": "No errors"
+  }
+}

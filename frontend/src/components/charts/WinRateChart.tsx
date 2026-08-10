@@ -1,15 +1,18 @@
+import { useTranslation } from "react-i18next";
+
 interface Props {
   winRate: number;
   totalTrades: number;
 }
 
 export default function WinRateChart({ winRate, totalTrades }: Props) {
+  const { t } = useTranslation("analytics");
   const lossRate = 100 - winRate;
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-4">
       <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
-        Win / Loss Rate
+        {t("winRateChart.title")}
       </h3>
       <div className="flex items-center gap-4">
         <div className="flex-1">
@@ -35,7 +38,7 @@ export default function WinRateChart({ winRate, totalTrades }: Props) {
           </div>
         </div>
       </div>
-      <p className="text-[10px] text-gray-600 mt-2">Based on {totalTrades} closed trades</p>
+      <p className="text-[10px] text-gray-600 mt-2">{t("winRateChart.basedOn", { count: totalTrades })}</p>
     </div>
   );
 }

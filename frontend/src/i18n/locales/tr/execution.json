@@ -1,0 +1,34 @@
+{
+  "page": {
+    "loading": "İşlem yürütme durumu yükleniyor...",
+    "loadError": "İşlem yürütme durumu yüklenemedi",
+    "noData": "İşlem yürütme verisi yok",
+    "title": "İşlem Yürütme Paneli"
+  },
+  "stats": {
+    "title": "İşlem Yürütme İstatistikleri",
+    "signalsTotal": "Toplam Sinyal",
+    "executionRate": "Yürütme Oranı",
+    "approved": "Onaylanan",
+    "rejected": "Reddedilen",
+    "tradesTotal": "Toplam İşlem",
+    "open": "Açık",
+    "tpHit": "TP Gerçekleşti",
+    "slHit": "SL Gerçekleşti"
+  },
+  "timeline": {
+    "title": "Sinyal Akışı",
+    "noData": "Sinyal verisi yok",
+    "approvedTitle": "Onaylanan: {{count}}",
+    "rejectedTitle": "Reddedilen: {{count}}",
+    "pendingTitle": "Bekleyen: {{count}}",
+    "approvedLabel": "{{count}} onaylandı",
+    "rejectedLabel": "{{count}} reddedildi",
+    "pendingLabel": "{{count}} bekliyor"
+  },
+  "errorPanel": {
+    "title": "Hatalar",
+    "titleWithCount": "Hatalar ({{count}})",
+    "noErrors": "Hata yok"
+  }
+}

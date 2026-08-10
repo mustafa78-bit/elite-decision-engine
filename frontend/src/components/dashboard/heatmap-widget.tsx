@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 interface HeatmapCell {
@@ -11,15 +12,16 @@ interface HeatmapWidgetProps {
 }
 
 export function HeatmapWidget({ cells = [] }: HeatmapWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
   if (cells.length === 0) {
     return (
       <Card className="h-full">
         <CardHeader>
-          <CardTitle>Heatmap</CardTitle>
+          <CardTitle>{t("heatmapWidget.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No heatmap data
+            {t("heatmapWidget.empty")}
           </div>
         </CardContent>
       </Card>
@@ -34,7 +36,7 @@ export function HeatmapWidget({ cells = [] }: HeatmapWidgetProps) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Heatmap</CardTitle>
+        <CardTitle>{t("heatmapWidget.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-4 gap-1">

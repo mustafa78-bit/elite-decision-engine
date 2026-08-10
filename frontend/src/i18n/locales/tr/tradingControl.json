@@ -1,0 +1,34 @@
+{
+  "page": {
+    "loading": "İşlem kontrolü yükleniyor...",
+    "loadError": "İşlem kontrolü verisi yüklenemedi",
+    "title": "İşlem Kontrol Merkezi"
+  },
+  "exchanges": {
+    "title": "Borsalar",
+    "active": "aktif",
+    "paper": "kağıt"
+  },
+  "signals": {
+    "title": "Sinyaller",
+    "total": "Toplam",
+    "open": "Açık",
+    "approved": "Onaylanan"
+  },
+  "trades": {
+    "title": "İşlemler",
+    "total": "Toplam",
+    "open": "Açık",
+    "closed": "Kapalı"
+  },
+  "shadow": {
+    "title": "Gölge İşlem",
+    "mode": "Mod",
+    "engine": "Motor"
+  },
+  "riskLimits": {
+    "title": "Risk Limitleri",
+    "maxOpenTrades": "Maks. Açık İşlem",
+    "maxDailyLoss": "Maks. Günlük Zarar"
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "header": {
+    "status": {
+      "running": "RUNNING",
+      "paused": "PAUSED",
+      "idle": "IDLE",
+      "completed": "COMPLETED",
+      "stopped": "STOPPED"
+    },
+    "scenarios": "Scenarios",
+    "sessions": "Sessions",
+    "founder": "Founder"
+  },
+  "panels": {
+    "simulationControl": "Simulation Control",
+    "liveChart": "Live Chart — {{symbol}} {{timeframe}}",
+    "manualTrading": "Manual Trading",
+    "aiDecisions": "AI Decisions",
+    "aiExplain": "AI Explain",
+    "missionTimeline": "Mission Timeline",
+    "marketInfo": "Market Info",
+    "quickActions": "Quick Actions"
+  },
+  "controls": {
+    "start": "Start",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "reset": "Reset",
+    "stepCandle": "Step Candle",
+    "speed": "Speed:",
+    "statusLine": "{{current}}/{{total}} candles | {{open}} open | PnL: ${{pnl}}"
+  },
+  "tabs": {
+    "config": "Config",
+    "log": "Log",
+    "trades": "Trades",
+    "equity": "Equity"
+  },
+  "chart": {
+    "waitingForData": "Waiting for data..."
+  },
+  "configPanel": {
+    "symbol": "Symbol",
+    "timeframe": "Timeframe",
+    "aiMode": "AI Mode",
+    "capital": "Capital",
+    "riskPerTrade": "Risk / Trade",
+    "leverage": "Leverage",
+    "slippage": "Slippage (bps)",
+    "feeRate": "Fee Rate",
+    "aiModeOptions": {
+      "manual": "Manual",
+      "aiAssisted": "AI Assisted",
+      "fullAi": "Full AI"
+    },
+    "whaleSimulation": "Whale Simulation",
+    "newsReplay": "News Replay",
+    "founderMode": "Founder Mode"
+  },
+  "tradesPanel": {
+    "empty": "No trades yet",
+    "columns": {
+      "side": "Side",
+      "entry": "Entry",
+      "status": "Status",
+      "pnl": "PnL",
+      "pct": "%",
+      "reason": "Reason"
+    },
+    "close": "Close"
+  },
+  "equityCurve": {
+    "empty": "No equity data yet"
+  },
+  "manualTrading": {
+    "buyLong": "BUY / LONG",
+    "sellShort": "SELL / SHORT",
+    "entry": "Entry",
+    "quantity": "Quantity",
+    "stopLoss": "Stop Loss",
+    "takeProfit": "Take Profit",
+    "leverage": "Leverage",
+    "trailingStop": "Trailing Stop (opt)",
+    "execute": "Execute {{side}}"
+  },
+  "aiDecisions": {
+    "waiting": "Waiting for AI decisions...",
+    "confidence": "Confidence",
+    "evidence": "Evidence",
+    "risk": "Risk"
+  },
+  "aiExplain": {
+    "empty": "No explanation available",
+    "whyNow": "Why Now?",
+    "confidenceHigh": "Confidence high",
+    "lowConviction": "Low conviction",
+    "evidence": "Evidence",
+    "conflicts": "Conflicts"
+  },
+  "missionTimeline": {
+    "empty": "No events yet"
+  },
+  "marketInfo": {
+    "regime": "Regime",
+    "portfolio": "Portfolio",
+    "drawdown": "Drawdown",
+    "active": "Active",
+    "none": "None",
+    "trades": "Trades",
+    "winRate": "Win Rate",
+    "open": "Open"
+  },
+  "quickActionButtons": {
+    "trade": "Trade",
+    "ai": "AI",
+    "explain": "Explain",
+    "timeline": "Timeline",
+    "whales": "Whales",
+    "news": "News",
+    "report": "Report",
+    "export": "Export"
+  },
+  "reportModal": {
+    "title": "Mission Report",
+    "totalPnl": "Total PnL",
+    "return": "Return",
+    "winRate": "Win Rate",
+    "sharpe": "Sharpe",
+    "profitFactor": "Profit Factor",
+    "maxDd": "Max DD",
+    "trades": "Trades",
+    "avgHold": "Avg Hold",
+    "trainingScores": "Training Scores",
+    "patience": "Patience",
+    "risk": "Risk",
+    "timing": "Timing",
+    "entry": "Entry",
+    "exit": "Exit",
+    "psychology": "Psychology",
+    "discipline": "Discipline",
+    "mistakes": "Mistakes",
+    "lessons": "Lessons",
+    "aiRecommendations": "AI Recommendations"
+  },
+  "scenariosModal": {
+    "title": "Market Scenarios"
+  },
+  "sessionsModal": {
+    "title": "Simulation Sessions",
+    "saveCurrent": "Save Current",
+    "empty": "No saved sessions",
+    "trades": "trades",
+    "load": "Load",
+    "delete": "Del"
+  },
+  "founderMode": {
+    "title": "Founder Diagnostics",
+    "aiLatency": "AI Latency:",
+    "decisionLatency": "Decision Latency:",
+    "evidenceLatency": "Evidence Latency:",
+    "candlesPerSec": "Candles/sec:",
+    "memory": "Memory:",
+    "trades": "trades",
+    "decisions": "decisions"
+  },
+  "whaleOverlay": {
+    "title": "Whale Activity",
+    "text": "Monitoring large flows..."
+  },
+  "newsOverlay": {
+    "title": "News Feed",
+    "text": "News replay active..."
+  },
+  "log": {
+    "wsConnected": "WebSocket connected",
+    "wsDisconnected": "WebSocket disconnected",
+    "wsError": "WebSocket error",
+    "wsFailed": "WebSocket failed: {{error}}",
+    "startFailed": "Failed to start",
+    "simulationStarted": "Simulation started: {{sessionId}}",
+    "paused": "Paused",
+    "pauseFailed": "Pause failed",
+    "resumed": "Resumed",
+    "resumeFailed": "Resume failed",
+    "stopped": "Stopped",
+    "stopFailed": "Stop failed",
+    "reset": "Reset",
+    "resetFailed": "Reset failed",
+    "stepFailed": "Step failed",
+    "speed": "Speed: {{speed}}",
+    "closedTrade": "Closed trade {{id}}",
+    "closeFailed": "Close failed",
+    "reportGenerated": "Report generated",
+    "reportFailed": "Report failed",
+    "jsonExported": "JSON exported",
+    "exportFailed": "Export failed"
+  }
+}

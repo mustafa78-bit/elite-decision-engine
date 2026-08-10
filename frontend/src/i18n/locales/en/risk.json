@@ -1,0 +1,37 @@
+{
+  "page": {
+    "loading": "Loading risk data...",
+    "loadError": "Failed to load risk data",
+    "noData": "No risk data available",
+    "sections": {
+      "riskOverview": "Risk Overview",
+      "exposure": "Exposure",
+      "positionSizing": "Position Sizing"
+    },
+    "cards": {
+      "riskScore": "Risk Score",
+      "riskScoreSub": "/ 100",
+      "openTrades": "Open Trades",
+      "openTradesSub": "{{pct}}% used",
+      "dailyLoss": "Daily Loss",
+      "dailyLossSub": "{{pct}}% of limit",
+      "accountEquity": "Account Equity",
+      "riskPerTrade": "Risk / Trade",
+      "riskPerTradeSub": "${{amount}} max"
+    }
+  },
+  "exposureCard": {
+    "title": "Exposure",
+    "portfolio": "Portfolio",
+    "bySymbol": "By Symbol",
+    "noExposure": "No open exposure"
+  },
+  "positionSizeCard": {
+    "title": "Position Size Calculator",
+    "entryPrice": "Entry Price",
+    "atr": "ATR",
+    "quantity": "Quantity",
+    "notional": "Notional",
+    "riskAmount": "Risk Amount"
+  }
+}

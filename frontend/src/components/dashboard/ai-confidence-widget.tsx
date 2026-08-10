@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 
@@ -13,6 +14,14 @@ export function AIConfidenceWidget({
   decision = "WAIT",
   score = 0,
 }: AIConfidenceWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
+  const decisionLabels: Record<string, string> = {
+    BUY: t("aiConfidenceWidget.decision.buy"),
+    STRONG_BUY: t("aiConfidenceWidget.decision.strongBuy"),
+    SELL: t("aiConfidenceWidget.decision.sell"),
+    STRONG_SELL: t("aiConfidenceWidget.decision.strongSell"),
+    WAIT: t("aiConfidenceWidget.decision.wait"),
+  };
   const pct = Math.min(Math.max((confidence || score) * 10, 0), 100);
   const color =
     pct >= 70
@@ -25,7 +34,7 @@ export function AIConfidenceWidget({
     <Card className="h-full">
       <CardContent className="p-4">
         <div className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
-          AI Confidence
+          {t("aiConfidenceWidget.title")}
         </div>
         <div className="flex items-center gap-4">
           <div className="relative w-16 h-16">
@@ -68,10 +77,10 @@ export function AIConfidenceWidget({
                     : "warning"
               }
             >
-              {decision}
+              {decisionLabels[decision] || decision}
             </Badge>
             <div className="text-[11px] font-mono text-[var(--text-muted)]">
-              Score: {score.toFixed(1)}
+              {t("aiConfidenceWidget.score", { score: score.toFixed(1) })}
             </div>
           </div>
         </div>

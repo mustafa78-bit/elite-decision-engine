@@ -1,0 +1,34 @@
+{
+  "page": {
+    "loading": "Loading trading control...",
+    "loadError": "Failed to load trading control data",
+    "title": "Trading Control Center"
+  },
+  "exchanges": {
+    "title": "Exchanges",
+    "active": "active",
+    "paper": "paper"
+  },
+  "signals": {
+    "title": "Signals",
+    "total": "Total",
+    "open": "Open",
+    "approved": "Approved"
+  },
+  "trades": {
+    "title": "Trades",
+    "total": "Total",
+    "open": "Open",
+    "closed": "Closed"
+  },
+  "shadow": {
+    "title": "Shadow Trading",
+    "mode": "Mode",
+    "engine": "Engine"
+  },
+  "riskLimits": {
+    "title": "Risk Limits",
+    "maxOpenTrades": "Max Open Trades",
+    "maxDailyLoss": "Max Daily Loss"
+  }
+}

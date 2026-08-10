@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 interface Props {
   symbolExposure: Record<string, number>;
   maxSymbolExposure: number;
@@ -16,6 +18,7 @@ export default function ExposureCard({
   portfolioExposure,
   maxPortfolioExposure,
 }: Props) {
+  const { t } = useTranslation("risk");
   const portPct = maxPortfolioExposure > 0
     ? Math.min((portfolioExposure / maxPortfolioExposure) * 100, 100)
     : 0;
@@ -23,12 +26,12 @@ export default function ExposureCard({
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-3">
       <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
-        Exposure
+        {t("exposureCard.title")}
       </h3>
 
       <div className="mb-3">
         <div className="flex justify-between text-xs mb-1">
-          <span className="text-gray-500">Portfolio</span>
+          <span className="text-gray-500">{t("exposureCard.portfolio")}</span>
           <span className={`tabular-nums ${portPct > 80 ? "text-red-400" : "text-gray-200"}`}>
             ${portfolioExposure.toFixed(2)} / ${maxPortfolioExposure.toFixed(2)}
           </span>
@@ -43,7 +46,7 @@ export default function ExposureCard({
 
       {Object.entries(symbolExposure).length > 0 && (
         <div className="space-y-2">
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider">By Symbol</div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider">{t("exposureCard.bySymbol")}</div>
           {Object.entries(symbolExposure).map(([sym, val]) => {
             const pct = maxSymbolExposure > 0
               ? Math.min((val / maxSymbolExposure) * 100, 100)
@@ -69,7 +72,7 @@ export default function ExposureCard({
       )}
 
       {Object.entries(symbolExposure).length === 0 && (
-        <div className="text-gray-600 text-xs text-center py-2">No open exposure</div>
+        <div className="text-gray-600 text-xs text-center py-2">{t("exposureCard.noExposure")}</div>
       )}
     </div>
   );

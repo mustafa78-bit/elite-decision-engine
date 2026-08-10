@@ -1,0 +1,33 @@
+{
+  "page": {
+    "loading": "Loading intelligence dashboard...",
+    "loadError": "Failed to load intelligence",
+    "title": "Live Intelligence Dashboard"
+  },
+  "marketOverview": {
+    "title": "Market Status",
+    "price": "Price",
+    "regime": "Regime",
+    "btcHealth": "BTC Health",
+    "volatility": "Volatility",
+    "rsi": "RSI"
+  },
+  "signalFeed": {
+    "title": "Signal Feed",
+    "total": "Total",
+    "open": "Open",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "riskMonitor": {
+    "title": "Risk Monitor",
+    "openPositions": "Open Positions",
+    "capacityUsed": "{{pct}}% capacity used"
+  },
+  "tradeMonitor": {
+    "title": "Trade Monitor",
+    "open": "Open",
+    "closed": "Closed",
+    "totalPnl": "Total PnL"
+  }
+}

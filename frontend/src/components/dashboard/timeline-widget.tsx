@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { formatTime } from "../../lib/utils";
 
@@ -22,15 +23,16 @@ const typeDot: Record<string, string> = {
 };
 
 export function TimelineWidget({ events = [] }: TimelineWidgetProps) {
+  const { t } = useTranslation("heroDashboard");
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Timeline</CardTitle>
+        <CardTitle>{t("timelineWidget.title")}</CardTitle>
       </CardHeader>
       <CardContent className="max-h-64 overflow-y-auto">
         {events.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No timeline events
+            {t("timelineWidget.empty")}
           </div>
         ) : (
           <div className="relative pl-4 border-l border-[var(--border-subtle)] space-y-3">

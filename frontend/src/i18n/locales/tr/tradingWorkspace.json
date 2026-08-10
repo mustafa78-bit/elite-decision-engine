@@ -1,0 +1,28 @@
+{
+  "page": {
+    "title": "İşlem Çalışma Alanı"
+  },
+  "symbolSearch": {
+    "placeholder": "Sembol ara...",
+    "recent": "Son Kullanılanlar"
+  },
+  "chartPanel": {
+    "empty": "Grafik verisi bulunamadı"
+  },
+  "orderPanel": {
+    "title": "Emir",
+    "price": "Fiyat (USDT)",
+    "amount": "Miktar ({{symbol}})",
+    "total": "Toplam",
+    "reduceOnly": "Sadece Azalt",
+    "side": {
+      "buy": "AL",
+      "sell": "SAT"
+    },
+    "type": {
+      "market": "PİYASA",
+      "limit": "LİMİT",
+      "stop": "STOP"
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { SubsystemState } from "../../types/system"
 import type { ScannerDashboard } from "../../api/scanner"
 import type { RiskData } from "../../api/risk"
@@ -71,16 +72,17 @@ function StatusDot({ status, label }: { status: string; label: string }) {
 export default function SubsystemHealthBar({
   scanner, risk, council, portfolio, whale, market, evidence, olloStatus, aiHealth,
 }: Props) {
+  const { t } = useTranslation("commandDeck")
   const allSystems = [
-    { label: "Scanner", status: scanner.status },
-    { label: "Risk", status: risk.status },
-    { label: "Council", status: council.status },
-    { label: "Portfolio", status: portfolio.status },
-    { label: "Whale", status: whale.status },
-    { label: "Market", status: market.status },
-    { label: "Evidence", status: evidence.status },
-    { label: "OLLO", status: olloStatus.status },
-    { label: "AI", status: aiHealth.status },
+    { label: t("subsystem.Scanner"), status: scanner.status },
+    { label: t("subsystem.Risk"), status: risk.status },
+    { label: t("subsystem.Council"), status: council.status },
+    { label: t("subsystem.Portfolio"), status: portfolio.status },
+    { label: t("subsystem.Whale"), status: whale.status },
+    { label: t("subsystem.Market"), status: market.status },
+    { label: t("subsystem.Evidence"), status: evidence.status },
+    { label: t("subsystem.NEXUS"), status: olloStatus.status },
+    { label: t("subsystem.AI"), status: aiHealth.status },
   ]
 
   const onlineCount = allSystems.filter((s) => s.status === "ONLINE").length

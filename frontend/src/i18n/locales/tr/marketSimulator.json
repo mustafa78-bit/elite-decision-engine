@@ -1,0 +1,199 @@
+{
+  "header": {
+    "status": {
+      "running": "ÇALIŞIYOR",
+      "paused": "DURAKLATILDI",
+      "idle": "BOŞTA",
+      "completed": "TAMAMLANDI",
+      "stopped": "DURDURULDU"
+    },
+    "scenarios": "Senaryolar",
+    "sessions": "Oturumlar",
+    "founder": "Kurucu"
+  },
+  "panels": {
+    "simulationControl": "Simülasyon Kontrolü",
+    "liveChart": "Canlı Grafik — {{symbol}} {{timeframe}}",
+    "manualTrading": "Manuel İşlem",
+    "aiDecisions": "AI Kararları",
+    "aiExplain": "AI Açıklama",
+    "missionTimeline": "Görev Zaman Çizelgesi",
+    "marketInfo": "Piyasa Bilgisi",
+    "quickActions": "Hızlı İşlemler"
+  },
+  "controls": {
+    "start": "Başlat",
+    "pause": "Duraklat",
+    "resume": "Devam Et",
+    "stop": "Durdur",
+    "reset": "Sıfırla",
+    "stepCandle": "Mum Adımı",
+    "speed": "Hız:",
+    "statusLine": "{{current}}/{{total}} mum | {{open}} açık | Kâr/Zarar: ${{pnl}}"
+  },
+  "tabs": {
+    "config": "Yapılandırma",
+    "log": "Günlük",
+    "trades": "İşlemler",
+    "equity": "Özkaynak"
+  },
+  "chart": {
+    "waitingForData": "Veri bekleniyor..."
+  },
+  "configPanel": {
+    "symbol": "Sembol",
+    "timeframe": "Zaman Dilimi",
+    "aiMode": "AI Modu",
+    "capital": "Sermaye",
+    "riskPerTrade": "İşlem Başına Risk",
+    "leverage": "Kaldıraç",
+    "slippage": "Kayma (bps)",
+    "feeRate": "Komisyon Oranı",
+    "aiModeOptions": {
+      "manual": "Manuel",
+      "aiAssisted": "AI Destekli",
+      "fullAi": "Tam AI"
+    },
+    "whaleSimulation": "Balina Simülasyonu",
+    "newsReplay": "Haber Tekrarı",
+    "founderMode": "Kurucu Modu"
+  },
+  "tradesPanel": {
+    "empty": "Henüz işlem yok",
+    "columns": {
+      "side": "Yön",
+      "entry": "Giriş",
+      "status": "Durum",
+      "pnl": "Kâr/Zarar",
+      "pct": "%",
+      "reason": "Neden"
+    },
+    "close": "Kapat"
+  },
+  "equityCurve": {
+    "empty": "Henüz özkaynak verisi yok"
+  },
+  "manualTrading": {
+    "buyLong": "AL / LONG",
+    "sellShort": "SAT / SHORT",
+    "entry": "Giriş",
+    "quantity": "Miktar",
+    "stopLoss": "Zarar Durdur",
+    "takeProfit": "Kâr Al",
+    "leverage": "Kaldıraç",
+    "trailingStop": "İz Süren Stop (opsiyonel)",
+    "execute": "{{side}} Uygula"
+  },
+  "aiDecisions": {
+    "waiting": "AI kararları bekleniyor...",
+    "confidence": "Güven",
+    "evidence": "Kanıt",
+    "risk": "Risk"
+  },
+  "aiExplain": {
+    "empty": "Açıklama mevcut değil",
+    "whyNow": "Neden Şimdi?",
+    "confidenceHigh": "Güven yüksek",
+    "lowConviction": "Düşük kanaat",
+    "evidence": "Kanıt",
+    "conflicts": "Çelişkiler"
+  },
+  "missionTimeline": {
+    "empty": "Henüz olay yok"
+  },
+  "marketInfo": {
+    "regime": "Rejim",
+    "portfolio": "Portföy",
+    "drawdown": "Düşüş",
+    "active": "Aktif",
+    "none": "Yok",
+    "trades": "İşlemler",
+    "winRate": "Kazanma Oranı",
+    "open": "Açık"
+  },
+  "quickActionButtons": {
+    "trade": "İşlem",
+    "ai": "AI",
+    "explain": "Açıkla",
+    "timeline": "Zaman Çizelgesi",
+    "whales": "Balinalar",
+    "news": "Haberler",
+    "report": "Rapor",
+    "export": "Dışa Aktar"
+  },
+  "reportModal": {
+    "title": "Görev Raporu",
+    "totalPnl": "Toplam Kâr/Zarar",
+    "return": "Getiri",
+    "winRate": "Kazanma Oranı",
+    "sharpe": "Sharpe",
+    "profitFactor": "Kâr Faktörü",
+    "maxDd": "Maks. Düşüş",
+    "trades": "İşlemler",
+    "avgHold": "Ort. Tutma Süresi",
+    "trainingScores": "Antrenman Skorları",
+    "patience": "Sabır",
+    "risk": "Risk",
+    "timing": "Zamanlama",
+    "entry": "Giriş",
+    "exit": "Çıkış",
+    "psychology": "Psikoloji",
+    "discipline": "Disiplin",
+    "mistakes": "Hatalar",
+    "lessons": "Dersler",
+    "aiRecommendations": "AI Önerileri"
+  },
+  "scenariosModal": {
+    "title": "Piyasa Senaryoları"
+  },
+  "sessionsModal": {
+    "title": "Simülasyon Oturumları",
+    "saveCurrent": "Mevcut Oturumu Kaydet",
+    "empty": "Kayıtlı oturum yok",
+    "trades": "işlem",
+    "load": "Yükle",
+    "delete": "Sil"
+  },
+  "founderMode": {
+    "title": "Kurucu Tanılama",
+    "aiLatency": "AI Gecikmesi:",
+    "decisionLatency": "Karar Gecikmesi:",
+    "evidenceLatency": "Kanıt Gecikmesi:",
+    "candlesPerSec": "Mum/sn:",
+    "memory": "Bellek:",
+    "trades": "işlem",
+    "decisions": "karar"
+  },
+  "whaleOverlay": {
+    "title": "Balina Etkinliği",
+    "text": "Büyük hareketler izleniyor..."
+  },
+  "newsOverlay": {
+    "title": "Haber Akışı",
+    "text": "Haber tekrarı aktif..."
+  },
+  "log": {
+    "wsConnected": "WebSocket bağlandı",
+    "wsDisconnected": "WebSocket bağlantısı kesildi",
+    "wsError": "WebSocket hatası",
+    "wsFailed": "WebSocket başarısız: {{error}}",
+    "startFailed": "Başlatma başarısız",
+    "simulationStarted": "Simülasyon başladı: {{sessionId}}",
+    "paused": "Duraklatıldı",
+    "pauseFailed": "Duraklatma başarısız",
+    "resumed": "Devam edildi",
+    "resumeFailed": "Devam ettirme başarısız",
+    "stopped": "Durduruldu",
+    "stopFailed": "Durdurma başarısız",
+    "reset": "Sıfırlandı",
+    "resetFailed": "Sıfırlama başarısız",
+    "stepFailed": "Adım başarısız",
+    "speed": "Hız: {{speed}}",
+    "closedTrade": "İşlem kapatıldı {{id}}",
+    "closeFailed": "Kapatma başarısız",
+    "reportGenerated": "Rapor oluşturuldu",
+    "reportFailed": "Rapor oluşturma başarısız",
+    "jsonExported": "JSON dışa aktarıldı",
+    "exportFailed": "Dışa aktarma başarısız"
+  }
+}

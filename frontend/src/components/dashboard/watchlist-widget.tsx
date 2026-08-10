@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
 import { fetchWatchlists } from "../../api/watchlists";
 import { useTerminalStore } from "../../stores/terminal-store";
 
 export function WatchlistWidget() {
+  const { t } = useTranslation("heroDashboard");
   const { data, isLoading } = useQuery({
     queryKey: ["watchlists"],
     queryFn: fetchWatchlists,
@@ -17,7 +19,7 @@ export function WatchlistWidget() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Watchlist</CardTitle>
+        <CardTitle>{t("watchlistWidget.title")}</CardTitle>
         {first && (
           <span className="text-[10px] text-[var(--text-muted)] font-mono">
             {first.name}
@@ -29,7 +31,7 @@ export function WatchlistWidget() {
           <Skeleton className="h-12 w-full" />
         ) : !first || first.symbols.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] text-center py-4">
-            No watchlist symbols
+            {t("watchlistWidget.empty")}
           </div>
         ) : (
           <div className="flex flex-wrap gap-1.5">

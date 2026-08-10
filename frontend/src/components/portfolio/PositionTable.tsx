@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 interface Position {
   symbol: string;
   side: string;
@@ -11,13 +13,15 @@ interface Props {
 }
 
 export default function PositionTable({ positions }: Props) {
+  const { t } = useTranslation("portfolio");
+
   if (positions.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded p-4">
         <h3 className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
-          Open Positions
+          {t("positionTable.title")}
         </h3>
-        <p className="text-gray-600 text-xs text-center py-4">No open positions</p>
+        <p className="text-gray-600 text-xs text-center py-4">{t("positionTable.noPositions")}</p>
       </div>
     );
   }
@@ -25,16 +29,16 @@ export default function PositionTable({ positions }: Props) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
       <h3 className="text-[10px] uppercase tracking-widest text-gray-500 px-4 pt-3 pb-2">
-        Open Positions
+        {t("positionTable.title")}
       </h3>
       <table className="w-full text-xs">
         <thead>
           <tr className="border-t border-b border-gray-800 text-gray-500 text-[10px] uppercase tracking-wider">
-            <th className="text-left px-3 py-1.5 font-medium">Symbol</th>
-            <th className="text-left px-3 py-1.5 font-medium">Side</th>
-            <th className="text-right px-3 py-1.5 font-medium">Entry</th>
-            <th className="text-right px-3 py-1.5 font-medium">Status</th>
-            <th className="text-right px-3 py-1.5 font-medium">PnL</th>
+            <th className="text-left px-3 py-1.5 font-medium">{t("positionTable.columns.symbol")}</th>
+            <th className="text-left px-3 py-1.5 font-medium">{t("positionTable.columns.side")}</th>
+            <th className="text-right px-3 py-1.5 font-medium">{t("positionTable.columns.entry")}</th>
+            <th className="text-right px-3 py-1.5 font-medium">{t("positionTable.columns.status")}</th>
+            <th className="text-right px-3 py-1.5 font-medium">{t("positionTable.columns.pnl")}</th>
           </tr>
         </thead>
         <tbody>
@@ -49,7 +53,7 @@ export default function PositionTable({ positions }: Props) {
               </td>
               <td className="px-3 py-1.5 text-right text-gray-300">{p.status}</td>
               <td className={`px-3 py-1.5 text-right tabular-nums ${p.pnl != null && p.pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {p.pnl != null ? `$${p.pnl.toFixed(2)}` : "\u2014"}
+                {p.pnl != null ? `$${p.pnl.toFixed(2)}` : "—"}
               </td>
             </tr>
           ))}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import ExposureCard from "../components/risk/ExposureCard";
 import PositionSizeCard from "../components/risk/PositionSizeCard";
@@ -8,6 +9,7 @@ import { ApiError } from "../api/client";
 import { fetchRisk, fetchPositionSizing } from "../api/risk";
 
 export default function Risk() {
+  const { t } = useTranslation(["risk", "common"]);
   const [risk, setRisk] = useState<RiskData | null>(null);
   const [sizing, setSizing] = useState<PositionSizing | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,7 @@ export default function Risk() {
       const data = await fetchRisk();
       setRisk(data);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Failed to load risk data");
+      setError(e instanceof ApiError ? e.message : t("page.loadError"));
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,7 @@ export default function Risk() {
   if (loading) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        Loading risk data...
+        {t("page.loading")}
       </div>
     );
   }
@@ -60,7 +62,7 @@ export default function Risk() {
         <div className="text-[var(--accent-red)] text-xs p-4 border border-[var(--accent-red)] bg-[var(--accent-red)]/10 rounded">
           {error}
           <button onClick={fetchRiskData} className="ml-2 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            Retry
+            {t("common:retry")}
           </button>
         </div>
       </div>
@@ -70,7 +72,7 @@ export default function Risk() {
   if (!risk) {
     return (
       <div className="text-[var(--text-secondary)] text-xs p-6 border border-dashed border-[var(--border-subtle)] rounded text-center">
-        No risk data available
+        {t("page.noData")}
       </div>
     );
   }
@@ -86,35 +88,35 @@ export default function Risk() {
     <div className="space-y-6">
       <section>
         <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
-          Risk Overview
+          {t("page.sections.riskOverview")}
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <RiskCard
-            label="Risk Score"
+            label={t("page.cards.riskScore")}
             value={(risk.risk_score * 100).toFixed(0)}
-            sub="/ 100"
+            sub={t("page.cards.riskScoreSub")}
             negative={risk.risk_score < 0.5}
           />
           <RiskCard
-            label="Open Trades"
+            label={t("page.cards.openTrades")}
             value={`${risk.open_trades} / ${risk.max_open_trades}`}
-            sub={`${openPct}% used`}
+            sub={t("page.cards.openTradesSub", { pct: openPct })}
             negative={risk.open_trades >= risk.max_open_trades}
           />
           <RiskCard
-            label="Daily Loss"
+            label={t("page.cards.dailyLoss")}
             value={`$${Math.abs(risk.daily_loss).toFixed(0)}`}
-            sub={`${lossPct}% of limit`}
+            sub={t("page.cards.dailyLossSub", { pct: lossPct })}
             negative={risk.daily_loss < 0}
           />
           <RiskCard
-            label="Account Equity"
+            label={t("page.cards.accountEquity")}
             value={`$${risk.account_equity.toLocaleString()}`}
           />
           <RiskCard
-            label="Risk / Trade"
+            label={t("page.cards.riskPerTrade")}
             value={`${risk.risk_per_trade_percent}%`}
-            sub={`$${(risk.account_equity * risk.risk_per_trade_percent / 100).toFixed(0)} max`}
+            sub={t("page.cards.riskPerTradeSub", { amount: (risk.account_equity * risk.risk_per_trade_percent / 100).toFixed(0) })}
           />
         </div>
       </section>
@@ -122,7 +124,7 @@ export default function Risk() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section>
           <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
-            Exposure
+            {t("page.sections.exposure")}
           </h2>
           <ExposureCard
             symbolExposure={risk.symbol_exposure}
@@ -134,7 +136,7 @@ export default function Risk() {
 
         <section>
           <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)] mb-3">
-            Position Sizing
+            {t("page.sections.positionSizing")}
           </h2>
           <PositionSizeCard
             entry={entry}

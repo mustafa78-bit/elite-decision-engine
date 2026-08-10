@@ -1,0 +1,39 @@
+{
+  "page": {
+    "loading": "Loading signals...",
+    "loadError": "Failed to load signals",
+    "heading": "Live Signals ({{count}})"
+  },
+  "liveSignalTable": {
+    "noSignals": "No signals yet",
+    "columns": {
+      "symbol": "Symbol",
+      "side": "Side",
+      "price": "Price",
+      "decision": "Decision",
+      "score": "Score",
+      "status": "Status",
+      "time": "Time"
+    }
+  },
+  "signalScoreCard": {
+    "confidence": "{{value}}% confidence",
+    "bars": {
+      "final": "Final",
+      "trend": "Trend",
+      "volume": "Volume",
+      "btc": "BTC",
+      "risk": "Risk"
+    }
+  },
+  "signalTimeline": {
+    "title": "Signal Timeline",
+    "noHistory": "No signal history"
+  },
+  "decisionValues": {
+    "STRONG_APPROVE": "STRONG APPROVE",
+    "APPROVE": "APPROVE",
+    "WATCH": "WATCH",
+    "REJECT": "REJECT"
+  }
+}
