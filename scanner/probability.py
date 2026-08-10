@@ -20,7 +20,6 @@ class ProbabilityEngine:
         reversal_score: float = 0.0,
         liquidity_score: float = 0.0,
         btc_trend: str | None = None,
-        funding_level: str | None = None,
         fear_greed_value: float | None = None,
         side: str = "LONG",
     ) -> tuple[float, list[str]]:
@@ -65,13 +64,6 @@ class ProbabilityEngine:
                 prob -= 5
                 signals.append("BTC_BEARISH_PENALTY")
 
-            if funding_level == "HIGH_LONG":
-                prob -= 5
-                signals.append("HIGH_FUNDING_LONG_PENALTY")
-            elif funding_level == "HIGH_SHORT":
-                prob += 3
-                signals.append("HIGH_FUNDING_SHORT_EDGE")
-
             if fear_greed_value is not None:
                 if 25 <= fear_greed_value <= 40:
                     prob += 5
@@ -89,13 +81,6 @@ class ProbabilityEngine:
             elif btc_trend == "BULLISH":
                 prob -= 5
                 signals.append("BTC_BULLISH_PENALTY")
-
-            if funding_level == "HIGH_SHORT":
-                prob -= 5
-                signals.append("HIGH_FUNDING_SHORT_PENALTY")
-            elif funding_level == "HIGH_LONG":
-                prob += 3
-                signals.append("HIGH_FUNDING_LONG_EDGE")
 
             if fear_greed_value is not None:
                 if 60 <= fear_greed_value <= 75:

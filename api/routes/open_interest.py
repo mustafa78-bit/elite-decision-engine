@@ -2,10 +2,17 @@ import logging
 
 from fastapi import APIRouter, Query
 
+from config import FIXED_COIN_UNIVERSE
 from market_data.open_interest.collector import OpenInterestCollector
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# OpenInterestCollector.fetch_all() returns Hyperliquid's entire listed
+# universe (100+ perpetuals) -- FIXED_COIN_UNIVERSE ("BTCUSDT" style) is
+# this app's actual scoped 25-coin universe, so bare-ticker-match against
+# that instead of returning everything Hyperliquid happens to list.
+_FIXED_UNIVERSE_BARE = {s.replace("USDT", "") for s in FIXED_COIN_UNIVERSE}
 
 
 @router.get("/open-interest")
@@ -16,6 +23,8 @@ def get_open_interest(symbol: str = Query("BTC")):
         result = collector.fetch_all()
         items = []
         for record in result.records:
+            if record.symbol not in _FIXED_UNIVERSE_BARE:
+                continue
             trend = collector.fetch_with_trend(record.symbol)
             items.append({
                 "symbol": record.symbol,

@@ -50,4 +50,3 @@ class ScanResult:
     market_session: str = ""
     btc_trend: str = ""
     fear_greed_label: str = ""
-    funding_level: str = ""

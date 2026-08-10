@@ -2,10 +2,17 @@ import logging
 
 from fastapi import APIRouter
 
+from config import FIXED_COIN_UNIVERSE
 from market_data.funding.collector import FundingCollector
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# FundingCollector.fetch_all() returns Hyperliquid's entire listed universe
+# (100+ perpetuals) -- FIXED_COIN_UNIVERSE ("BTCUSDT" style) is this app's
+# actual scoped 25-coin universe, so bare-ticker-match against that instead
+# of returning everything Hyperliquid happens to list.
+_FIXED_UNIVERSE_BARE = {s.replace("USDT", "") for s in FIXED_COIN_UNIVERSE}
 
 
 @router.get("/funding")
@@ -16,6 +23,8 @@ def get_funding():
         result = collector.fetch_all()
         items = []
         for rate in result.rates:
+            if rate.symbol not in _FIXED_UNIVERSE_BARE:
+                continue
             items.append({
                 "symbol": rate.symbol,
                 "current_rate": rate.rate,
