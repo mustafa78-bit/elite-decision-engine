@@ -171,13 +171,17 @@ class DecisionPipeline:
                     and e.side == signal.side.upper()
                 ]
                 if same_symbol:
+                    # pnl can be None for a closed trade whose PaperTrade row
+                    # was never matched (see execution/paper_executor.py's
+                    # _dollar_pnl -- "unknown" is returned rather than a
+                    # guessed value). Exclude those from the average instead
+                    # of crashing or silently treating unknown as zero.
+                    known_pnl = [e.pnl for e in same_symbol if e.pnl is not None]
                     memory_context = {
                         "past_trades": len(same_symbol),
                         "wins": sum(1 for e in same_symbol if e.result == "WIN"),
                         "losses": sum(1 for e in same_symbol if e.result == "LOSS"),
-                        "avg_pnl": round(
-                            sum(e.pnl for e in same_symbol) / len(same_symbol), 2
-                        ),
+                        "avg_pnl": round(sum(known_pnl) / len(known_pnl), 2) if known_pnl else None,
                     }
                     self.logger.info(
                         "Memory context for %s %s: %s past trades",

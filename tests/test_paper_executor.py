@@ -466,7 +466,7 @@ class TestPaperExecutorTradeMemoryIntegration:
         assert entry.result == "PENDING"
 
     def test_close_trade_updates_journal_entry(self, db_session, session_factory, monkeypatch):
-        from database import JournalEntry, Signal
+        from database import JournalEntry, PaperTrade, Signal
         monkeypatch.setattr(
             "execution.paper_executor.NotificationDispatcher.emit",
             lambda *a, **kw: None,
@@ -487,6 +487,20 @@ class TestPaperExecutorTradeMemoryIntegration:
         )
 
         assert trade is not None
+
+        # A matching PaperTrade (quantity=1.0) so _dollar_pnl() has real
+        # notional to convert against -- without one it now correctly
+        # returns None (see test_close_trade_with_no_matching_paper_trade_
+        # records_unknown_pnl_not_raw_delta) rather than guessing.
+        session = session_factory()
+        try:
+            session.add(PaperTrade(
+                position_id=trade.id, symbol="BTCUSDT", side="LONG",
+                entry=50000.0, quantity=1.0, status="OPEN",
+            ))
+            session.commit()
+        finally:
+            session.close()
 
         # Close trade
         executor.close_trade(trade_id=trade.id, exit_price=52000.0, status="CLOSED", close_reason="Manual stop")
@@ -550,6 +564,45 @@ class TestPaperExecutorTradeMemoryIntegration:
             assert entry is not None
             assert entry.pnl == 40.0
             assert entry.result == "WIN"
+        finally:
+            session.close()
+
+    def test_close_trade_with_no_matching_paper_trade_records_unknown_pnl_not_raw_delta(
+        self, db_session, session_factory, monkeypatch
+    ):
+        # Regression: _dollar_pnl() used to fall back to the raw per-unit
+        # price delta (not a dollar amount) when no PaperTrade row existed,
+        # silently misstating the real dollar PnL. It must now return None
+        # ("unknown") instead of guessing.
+        from database import JournalEntry
+
+        monkeypatch.setattr(
+            "execution.paper_executor.NotificationDispatcher.emit",
+            lambda *a, **kw: None,
+        )
+
+        executor = PaperExecutor(
+            collector=_MockCollector(),
+            session_factory=session_factory,
+        )
+
+        trade = executor.open_trade(
+            symbol="BTCUSDT",
+            side="LONG",
+            entry=50000.0,
+            stop_loss=49000.0,
+            take_profit=51000.0,
+        )
+        assert trade is not None
+        # Deliberately no matching PaperTrade row created.
+
+        executor.close_trade(trade_id=trade.id, exit_price=52000.0, status="CLOSED", close_reason="Manual stop")
+
+        session = session_factory()
+        try:
+            entry = session.query(JournalEntry).filter(JournalEntry.trade_id == trade.id).first()
+            assert entry is not None
+            assert entry.pnl is None
         finally:
             session.close()
 
