@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import OLLOCommander from './OLLOCommander';
 import type { OLLOResponse, OLLOBriefing } from '../../types/ollo';
-import brainVideo from '../../assets/crystal_brain.mp4';
 
 export interface NexusDashboardProps {
   olloGreeting: OLLOResponse | null;
@@ -29,16 +28,6 @@ export const NexusDashboard: React.FC<NexusDashboardProps> = ({
 
   return (
     <div className="relative w-full min-h-[92vh] bg-[#04070d] text-slate-200 font-sans overflow-hidden select-none flex flex-col">
-      <style>{`
-        @keyframes nexus-ripple {
-          0% { transform: scale(0.7); opacity: 0.5; }
-          100% { transform: scale(1.9); opacity: 0; }
-        }
-        .nexus-ripple-1 { animation: nexus-ripple 4.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite; }
-        .nexus-ripple-2 { animation: nexus-ripple 4.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite 1.5s; }
-        .nexus-ripple-3 { animation: nexus-ripple 4.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite 3s; }
-      `}</style>
-
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_10%,rgba(6,182,212,0.10),transparent_60%)] pointer-events-none" />
 
       {/* Minimal top status bar */}
@@ -51,27 +40,8 @@ export const NexusDashboard: React.FC<NexusDashboardProps> = ({
         <span className="text-[11px] font-mono tracking-wider text-cyan-400/60 tabular-nums">{time || '10:10:30 UTC'}</span>
       </header>
 
-      {/* Brain hero — no side cards, just the brain */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
-        <div className="relative w-[min(440px,72vw)] aspect-square">
-          <span className="nexus-ripple-1 absolute inset-0 rounded-full border border-cyan-400/25" />
-          <span className="nexus-ripple-2 absolute inset-0 rounded-full border border-cyan-400/20" />
-          <span className="nexus-ripple-3 absolute inset-0 rounded-full border border-cyan-400/15" />
-          <div className="absolute inset-0 rounded-full overflow-hidden shadow-[0_0_90px_10px_rgba(34,211,238,0.12)]">
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover"
-              src={brainVideo}
-            />
-            <div className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: 'inset 0 0 60px 20px #04070d' }} />
-          </div>
-        </div>
-
-        {/* OLLO conversation lives right under the brain */}
-        <div className="mt-2 w-full flex justify-center">
+        <div className="w-full flex justify-center">
           <OLLOCommander
             greeting={olloGreeting}
             briefing={olloBriefing}
