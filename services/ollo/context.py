@@ -201,7 +201,17 @@ class ContextBuilder:
                             if paper_trade is not None:
                                 current_total += (paper_trade.quantity or 0.0) * (paper_trade.entry or 0.0)
                             else:
-                                current_total += trade.entry or 0.0
+                                # No matching PaperTrade -- trade.entry is a
+                                # raw per-unit price, not notional dollars.
+                                # Mirrors risk_manager.py's identical check:
+                                # exclude rather than guess, so OLLO doesn't
+                                # tell the founder a confidently wrong
+                                # exposure number.
+                                logger.warning(
+                                    "OLLO context: OPEN trade %s (%s) has no matching PaperTrade -- "
+                                    "excluded from portfolio_exposure, not counted as notional",
+                                    trade.id, trade.symbol,
+                                )
                         metrics["portfolio_exposure"] = round(current_total, 2)
 
                     if need_daily_loss:
@@ -224,7 +234,14 @@ class ContextBuilder:
                             if paper_trade is not None:
                                 dollar_pnl = (paper_trade.quantity or 0.0) * trade.pnl
                             else:
-                                dollar_pnl = trade.pnl
+                                # Same "exclude, don't guess" reasoning as
+                                # portfolio_exposure above.
+                                logger.warning(
+                                    "OLLO context: closed trade %s (%s) has no matching PaperTrade -- "
+                                    "excluded from daily_loss, not counted as dollar PnL",
+                                    trade.id, trade.symbol,
+                                )
+                                continue
                             if dollar_pnl < 0:
                                 total_loss += dollar_pnl
                         metrics["daily_loss"] = round(abs(total_loss), 2)
