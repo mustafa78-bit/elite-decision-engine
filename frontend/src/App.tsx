@@ -20,7 +20,7 @@ import type {
 import {
   connectTradesSocket,
 } from "./websocket/client";
-import type { WsRoomStatus } from "./types/connection";
+import type { ConnectionStatus, WsRoomStatus } from "./types/connection";
 
 const Analytics = lazy(() => import("./pages/Analytics"));
 const AssetDetail = lazy(() => import("./pages/AssetDetail"));
@@ -77,57 +77,80 @@ function AppRoutes() {
 
   useEffect(() => {
     if (!token) return;
-    wsRef.current = connectTradesSocket(
-      (data: WsEvent) => {
-        if (data.event === "TRADE_OPENED" || data.event === "TRADE_CLOSED") {
-          const p = data.payload as unknown as TradePayload;
-          const ts = data.timestamp;
-          setNotifications((prev) => {
-            const next = [...prev, { event: data.event, timestamp: ts, payload: p } as TradeNotification];
-            return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
-          });
 
-          if (data.event === "TRADE_OPENED") {
-            setOpenTrades((prev) => [...prev, p]);
-          }
+    let cancelled = false;
+    let retryCount = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const MAX_RETRIES = 10;
+    const RETRY_INTERVAL_MS = 3000;
 
-          if (data.event === "TRADE_CLOSED") {
-            setOpenTrades((prev) =>
-              prev.filter((t) => t.trade_id !== p.trade_id),
-            );
-            setClosedTrades((prev) => [...prev, p]);
-          }
+    const handleMessage = (data: WsEvent) => {
+      if (data.event === "TRADE_OPENED" || data.event === "TRADE_CLOSED") {
+        const p = data.payload as unknown as TradePayload;
+        const ts = data.timestamp;
+        setNotifications((prev) => {
+          const next = [...prev, { event: data.event, timestamp: ts, payload: p } as TradeNotification];
+          return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
+        });
+
+        if (data.event === "TRADE_OPENED") {
+          setOpenTrades((prev) => [...prev, p]);
         }
 
-        if (data.event === "MARKET_UPDATE") {
-          setLatestMarket(data.payload as MarketPayload);
+        if (data.event === "TRADE_CLOSED") {
+          setOpenTrades((prev) =>
+            prev.filter((t) => t.trade_id !== p.trade_id),
+          );
+          setClosedTrades((prev) => [...prev, p]);
         }
+      }
 
-        if (data.event === "SIGNAL_UPDATE") {
-          setLatestSignal(data.payload as SignalPayload);
-        }
+      if (data.event === "MARKET_UPDATE") {
+        setLatestMarket(data.payload as MarketPayload);
+      }
 
-        if (data.event === "RISK_UPDATE") {
-          setLatestRiskWs(data.payload as RiskWsPayload);
-        }
+      if (data.event === "SIGNAL_UPDATE") {
+        setLatestSignal(data.payload as SignalPayload);
+      }
 
-        if (data.event === "PRICE_UPDATE") {
-          setLatestPrice(data.payload as PriceWsPayload);
-        }
+      if (data.event === "RISK_UPDATE") {
+        setLatestRiskWs(data.payload as RiskWsPayload);
+      }
 
-        if (data.event === "CANDLE_UPDATE") {
-          setLatestCandle(data.payload as CandleWsPayload);
-        }
+      if (data.event === "PRICE_UPDATE") {
+        setLatestPrice(data.payload as PriceWsPayload);
+      }
 
-        if (data.event === "VOLUME_UPDATE") {
-          setLatestVolume(data.payload as VolumeWsPayload);
-        }
-      },
-      (s) => {
-        setWsRooms((prev) => ({ ...prev, trades: s }));
-      },
-    );
-    return () => wsRef.current?.close();
+      if (data.event === "CANDLE_UPDATE") {
+        setLatestCandle(data.payload as CandleWsPayload);
+      }
+
+      if (data.event === "VOLUME_UPDATE") {
+        setLatestVolume(data.payload as VolumeWsPayload);
+      }
+    };
+
+    const handleStatus = (s: ConnectionStatus) => {
+      setWsRooms((prev) => ({ ...prev, trades: s }));
+      if (s === "CONNECTED") {
+        retryCount = 0;
+      } else if (s === "DISCONNECTED" && !cancelled && retryCount < MAX_RETRIES) {
+        retryCount += 1;
+        retryTimer = setTimeout(connect, RETRY_INTERVAL_MS);
+      }
+    };
+
+    function connect() {
+      if (cancelled) return;
+      wsRef.current = connectTradesSocket(handleMessage, handleStatus);
+    }
+
+    connect();
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+      wsRef.current?.close();
+    };
   }, [token]);
 
   const latestIntelligence = [...notifications]
