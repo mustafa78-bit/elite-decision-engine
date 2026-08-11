@@ -399,9 +399,9 @@ class TestProviderFactory:
 
     def test_create_nvidia_provider_multi_key(self, monkeypatch):
         from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
-        monkeypatch.setattr("config.AI_PROVIDER", "nvidia")
-        monkeypatch.setattr("config.NVIDIA_API_KEY", "first-key")
-        monkeypatch.setattr("config.NVIDIA_API_KEY_2", "second-key")
+        monkeypatch.setattr("services.ai.provider_factory.AI_PROVIDER", "nvidia")
+        monkeypatch.setattr("services.ai.provider_factory.NVIDIA_API_KEY", "first-key")
+        monkeypatch.setattr("services.ai.provider_factory.NVIDIA_API_KEY_2", "second-key")
 
         provider = create_provider()
         assert isinstance(provider, MultiNVIDIAProvider)
@@ -410,9 +410,9 @@ class TestProviderFactory:
         assert provider._providers[1]._api_key == "second-key"
 
     def test_create_nvidia_provider_multi_key_fallback_empty(self, monkeypatch):
-        monkeypatch.setattr("config.AI_PROVIDER", "nvidia")
-        monkeypatch.setattr("config.NVIDIA_API_KEY", "first-key")
-        monkeypatch.setattr("config.NVIDIA_API_KEY_2", "")
+        monkeypatch.setattr("services.ai.provider_factory.AI_PROVIDER", "nvidia")
+        monkeypatch.setattr("services.ai.provider_factory.NVIDIA_API_KEY", "first-key")
+        monkeypatch.setattr("services.ai.provider_factory.NVIDIA_API_KEY_2", "")
 
         provider = create_provider()
         assert isinstance(provider, NVIDIAProvider)
