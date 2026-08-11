@@ -15,6 +15,7 @@ PUBLIC_PATHS = frozenset({
     "/health",
     "/auth/register",
     "/auth/login",
+    "/auth/refresh",
 })
 
 
