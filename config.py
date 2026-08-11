@@ -161,6 +161,19 @@ FIXED_COIN_UNIVERSE: list[str] = [
     "TAOUSDT", "APTUSDT",
 ]
 
+# Splits FIXED_COIN_UNIVERSE's 25 symbols roughly evenly across Hyperliquid and
+# Binance (13/12) so a single provider doesn't carry the full symbol load alone.
+# Alternates through the list in its existing declared order (majors/L1s/L2s/
+# DeFi/alts groupings preserved) rather than clustering by category, so no
+# single provider ends up disproportionately loaded with one asset class.
+# BTC (index 0, the most-tested path) stays on Hyperliquid; symbols not in this
+# table (temp-watch additions, free-text AssetDetail lookups) always resolve to
+# Hyperliquid -- see market/provider/multi.py::MultiProvider.
+SYMBOL_PROVIDER_ASSIGNMENT: dict[str, str] = {
+    symbol: ("hyperliquid" if i % 2 == 0 else "binance")
+    for i, symbol in enumerate(FIXED_COIN_UNIVERSE)
+}
+
 AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "false").lower() == "true"
 SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "300"))
 assert SCAN_INTERVAL_SECONDS > 0, f"SCAN_INTERVAL_SECONDS must be positive, got {SCAN_INTERVAL_SECONDS}"
