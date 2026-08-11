@@ -65,7 +65,7 @@ const CATEGORIES = [
   { id: "top-mean-reversions" },
 ];
 
-const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"];
+const TIMEFRAMES = ["1h", "4h", "1d"];
 
 function getScoreColor(score: number): string {
   if (score >= 80) return "text-[var(--accent-green)]";
@@ -391,7 +391,7 @@ export default function Scanner() {
     { id: "default", name: t("defaultFilters.default"), category: "top-movers", timeframe: "1h", market: "futures" },
     { id: "high-conf", name: t("defaultFilters.highConf"), category: "top-trends", timeframe: "4h", market: "futures" },
     { id: "low-risk", name: t("defaultFilters.lowRisk"), category: "top-breakouts", timeframe: "1h", market: "spot" },
-    { id: "high-volume", name: t("defaultFilters.highVolume"), category: "top-movers", timeframe: "15m", market: "futures" },
+    { id: "high-volume", name: t("defaultFilters.highVolume"), category: "top-movers", timeframe: "1h", market: "futures" },
   ];
   const [activeCategory, setActiveCategory] = useState("top-movers");
   const [timeframe, setTimeframe] = useState("1h");
