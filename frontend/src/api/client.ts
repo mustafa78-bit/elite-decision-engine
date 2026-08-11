@@ -19,6 +19,23 @@ function getAuthHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// A 401 means the current token is invalid/expired -- distinct from a 404/500,
+// which must NOT log anyone out. apiFetch/apiFetchText are plain functions
+// (not hooks), so they can't call useAuth().logout() or useNavigate()
+// directly; AuthProvider registers a handler here on mount instead.
+type UnauthorizedHandler = () => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler;
+}
+
+function handleMaybeUnauthorized(status: number): void {
+  if (status === 401) {
+    unauthorizedHandler?.();
+  }
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = { "Content-Type": "application/json", ...getAuthHeaders(), ...init?.headers } as Record<string, string>;
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -26,6 +43,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     headers,
   });
   if (!res.ok) {
+    handleMaybeUnauthorized(res.status);
     throw new ApiError(res.status, `API error ${res.status}: ${res.statusText}`);
   }
   return res.json() as Promise<T>;
@@ -42,6 +60,7 @@ export async function apiFetchText(path: string, init?: RequestInit): Promise<st
     headers,
   });
   if (!res.ok) {
+    handleMaybeUnauthorized(res.status);
     throw new ApiError(res.status, `API error ${res.status}: ${res.statusText}`);
   }
   return res.text();

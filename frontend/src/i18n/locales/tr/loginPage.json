@@ -5,5 +5,6 @@
   "signIn": "Giriş Yap",
   "signingIn": "Giriş yapılıyor...",
   "toastSuccess": "Başarıyla giriş yapıldı",
-  "toastError": "Geçersiz kimlik bilgileri"
+  "toastError": "Geçersiz kimlik bilgileri",
+  "sessionExpired": "Oturumunuz sona erdi, lütfen tekrar giriş yapın"
 }
