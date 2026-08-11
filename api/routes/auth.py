@@ -40,9 +40,10 @@ def login(request: Request, body: AuthRequest):
 @router.post("/auth/refresh")
 @limiter.limit("5/minute")
 def refresh(request: Request):
-    from auth.jwt import decode_access_token, create_access_token
-    from database import User, get_session
     from fastapi import HTTPException
+
+    from auth.jwt import create_access_token, decode_access_token
+    from database import User, get_session
 
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):

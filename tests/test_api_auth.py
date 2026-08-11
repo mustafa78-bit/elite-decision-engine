@@ -1,4 +1,5 @@
-from auth.jwt import create_access_token
+from datetime import UTC
+
 from database import User
 
 
@@ -57,7 +58,9 @@ def test_login_success(api_client, db_session):
 
 def test_login_invalid_password(api_client, db_session):
     from auth.service import hash_password
-    db_session.add(User(username="logintest2", email="login2@example.com", hashed_password=hash_password("correctpassword")))
+    db_session.add(
+        User(username="logintest2", email="login2@example.com", hashed_password=hash_password("correctpassword"))
+    )
     db_session.flush()
     resp = api_client.post("/auth/login", json={
         "username": "logintest2",
@@ -95,10 +98,12 @@ def test_register_short_password_returns_422_not_500(api_client):
 
 
 def test_refresh_success(api_client, db_session):
+    from datetime import datetime, timedelta
+
     import jwt
-    from auth.service import hash_password
+
     from auth.jwt import _get_secret
-    from datetime import datetime, timezone, timedelta
+    from auth.service import hash_password
 
     # Create user
     user = User(username="refreshtest", email="refresh@example.com", hashed_password=hash_password("pass123"))
@@ -107,7 +112,7 @@ def test_refresh_success(api_client, db_session):
 
     # Generate an active token that is valid but with an early expiry
     # e.g., expires in 5 minutes
-    early_exp = datetime.now(timezone.utc) + timedelta(minutes=5)
+    early_exp = datetime.now(UTC) + timedelta(minutes=5)
     token_payload = {"sub": str(user.id), "username": user.username, "exp": early_exp}
     original_token = jwt.encode(token_payload, _get_secret(), algorithm="HS256")
 
@@ -133,10 +138,12 @@ def test_refresh_success(api_client, db_session):
 
 
 def test_refresh_expired_token(api_client, db_session):
+    from datetime import datetime, timedelta
+
     import jwt
-    from auth.service import hash_password
+
     from auth.jwt import _get_secret
-    from datetime import datetime, timezone, timedelta
+    from auth.service import hash_password
 
     # Create user
     user = User(username="refreshtest2", email="refresh2@example.com", hashed_password=hash_password("pass123"))
@@ -144,7 +151,7 @@ def test_refresh_expired_token(api_client, db_session):
     db_session.flush()
 
     # Generate an expired token
-    expired_time = datetime.now(timezone.utc) - timedelta(minutes=10)
+    expired_time = datetime.now(UTC) - timedelta(minutes=10)
     token_payload = {"sub": str(user.id), "username": user.username, "exp": expired_time}
     expired_token = jwt.encode(token_payload, _get_secret(), algorithm="HS256")
 
@@ -175,12 +182,14 @@ def test_refresh_malformed_token(api_client):
 
 
 def test_refresh_user_not_found(api_client):
+    from datetime import datetime, timedelta
+
     import jwt
+
     from auth.jwt import _get_secret
-    from datetime import datetime, timezone, timedelta
 
     # Generate a valid token but for a non-existent user ID
-    exp_time = datetime.now(timezone.utc) + timedelta(minutes=10)
+    exp_time = datetime.now(UTC) + timedelta(minutes=10)
     token_payload = {"sub": "999999", "username": "nonexistent", "exp": exp_time}
     token = jwt.encode(token_payload, _get_secret(), algorithm="HS256")
 
