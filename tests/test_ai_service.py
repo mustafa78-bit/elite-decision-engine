@@ -319,6 +319,27 @@ class TestProviderFactory:
         provider = create_provider()
         assert isinstance(provider, NVIDIAProvider)
 
+    def test_create_nvidia_provider_multi_key(self, monkeypatch):
+        from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
+        monkeypatch.setattr("config.AI_PROVIDER", "nvidia")
+        monkeypatch.setattr("config.NVIDIA_API_KEY", "first-key")
+        monkeypatch.setattr("config.NVIDIA_API_KEY_2", "second-key")
+
+        provider = create_provider()
+        assert isinstance(provider, MultiNVIDIAProvider)
+        assert len(provider._providers) == 2
+        assert provider._providers[0]._api_key == "first-key"
+        assert provider._providers[1]._api_key == "second-key"
+
+    def test_create_nvidia_provider_multi_key_fallback_empty(self, monkeypatch):
+        monkeypatch.setattr("config.AI_PROVIDER", "nvidia")
+        monkeypatch.setattr("config.NVIDIA_API_KEY", "first-key")
+        monkeypatch.setattr("config.NVIDIA_API_KEY_2", "")
+
+        provider = create_provider()
+        assert isinstance(provider, NVIDIAProvider)
+        assert provider._api_key == "first-key"
+
     def test_create_nvidia_provider_explicit(self):
         provider = create_provider(provider="nvidia", api_key="test-key")
         assert isinstance(provider, NVIDIAProvider)
@@ -450,3 +471,181 @@ class TestConversationMemory:
     def test_session_memory_missing(self):
         sm = InMemorySessionMemory()
         assert sm.get_session("nonexistent") is None
+
+
+class TestMultiNVIDIAProvider:
+    """Unit tests for MultiNVIDIAProvider."""
+
+    def test_round_robin_alternation(self):
+        from unittest.mock import MagicMock
+        from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
+        from services.ai.provider import GenerationResult
+
+        p1 = MagicMock()
+        p2 = MagicMock()
+
+        p1.model = "test-model"
+        p2.model = "test-model"
+
+        p1.generate.return_value = GenerationResult(
+            content="p1 response",
+            model="test-model",
+            provider="nvidia",
+            duration_ms=10.0,
+        )
+        p2.generate.return_value = GenerationResult(
+            content="p2 response",
+            model="test-model",
+            provider="nvidia",
+            duration_ms=12.0,
+        )
+
+        multi = MultiNVIDIAProvider(p1, p2)
+
+        # Call 1: should go to p1
+        res1 = multi.generate("test")
+        assert res1.content == "p1 response"
+        p1.generate.assert_called_once_with("test")
+        p2.generate.assert_not_called()
+
+        p1.reset_mock()
+        p2.reset_mock()
+
+        # Call 2: should go to p2
+        res2 = multi.generate("test")
+        assert res2.content == "p2 response"
+        p2.generate.assert_called_once_with("test")
+        p1.generate.assert_not_called()
+
+        p1.reset_mock()
+        p2.reset_mock()
+
+        # Call 3: should go back to p1
+        res3 = multi.generate("test")
+        assert res3.content == "p1 response"
+        p1.generate.assert_called_once_with("test")
+        p2.generate.assert_not_called()
+
+    def test_round_robin_chat_alternation(self):
+        from unittest.mock import MagicMock
+        from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
+        from services.ai.provider import GenerationResult
+
+        p1 = MagicMock()
+        p2 = MagicMock()
+        p1.model = "test-model"
+
+        p1.chat.return_value = GenerationResult(
+            content="p1 chat response",
+            model="test-model",
+            provider="nvidia",
+            duration_ms=10.0,
+        )
+        p2.chat.return_value = GenerationResult(
+            content="p2 chat response",
+            model="test-model",
+            provider="nvidia",
+            duration_ms=12.0,
+        )
+
+        multi = MultiNVIDIAProvider(p1, p2)
+        messages = [{"role": "user", "content": "hello"}]
+
+        # Call 1: p1
+        res1 = multi.chat(messages)
+        assert res1.content == "p1 chat response"
+        p1.chat.assert_called_once_with(messages)
+        p2.chat.assert_not_called()
+
+        p1.reset_mock()
+        p2.reset_mock()
+
+        # Call 2: p2
+        res2 = multi.chat(messages)
+        assert res2.content == "p2 chat response"
+        p2.chat.assert_called_once_with(messages)
+        p1.chat.assert_not_called()
+
+    def test_failover_on_error(self):
+        from unittest.mock import MagicMock
+        from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
+        from services.ai.provider import GenerationResult
+
+        p1 = MagicMock()
+        p2 = MagicMock()
+        p1.model = "test-model"
+
+        # First call goes to p1, which fails. It should fall back to p2, which succeeds.
+        p1.generate.return_value = GenerationResult(
+            content="",
+            model="test-model",
+            provider="nvidia",
+            duration_ms=100.0,
+            error="Rate limit exceeded (429)",
+        )
+        p2.generate.return_value = GenerationResult(
+            content="p2 recovery response",
+            model="test-model",
+            provider="nvidia",
+            duration_ms=10.0,
+        )
+
+        multi = MultiNVIDIAProvider(p1, p2)
+        res = multi.generate("test prompt")
+
+        # Verify both were called (p1 first, then p2)
+        p1.generate.assert_called_once_with("test prompt")
+        p2.generate.assert_called_once_with("test prompt")
+        assert res.content == "p2 recovery response"
+        assert res.error is None
+
+    def test_health_scenarios(self):
+        from unittest.mock import MagicMock
+        from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
+        from services.ai.provider import HealthStatus
+
+        p1 = MagicMock()
+        p2 = MagicMock()
+        p1.model = "test-model"
+
+        multi = MultiNVIDIAProvider(p1, p2)
+
+        # Scenario 1: Both healthy
+        p1.health.return_value = HealthStatus(connected=True, model="test-model", latency_ms=15.0, provider="nvidia")
+        p2.health.return_value = HealthStatus(connected=True, model="test-model", latency_ms=25.0, provider="nvidia")
+
+        h_ok = multi.health()
+        assert h_ok.connected is True
+        assert h_ok.latency_ms == 25.0  # max of 15 and 25
+        assert h_ok.error is None
+
+        # Scenario 2: One healthy, one failed
+        p1.health.return_value = HealthStatus(connected=True, model="test-model", latency_ms=15.0, provider="nvidia")
+        p2.health.return_value = HealthStatus(connected=False, model="test-model", latency_ms=25.0, provider="nvidia", error="HTTP 401 Unauthorized")
+
+        h_deg = multi.health()
+        assert h_deg.connected is False
+        assert h_deg.latency_ms == 25.0
+        assert "Key 2: HTTP 401 Unauthorized" in h_deg.error
+
+        # Scenario 3: Both failed
+        p1.health.return_value = HealthStatus(connected=False, model="test-model", latency_ms=5.0, provider="nvidia", error="HTTP 429")
+        p2.health.return_value = HealthStatus(connected=False, model="test-model", latency_ms=10.0, provider="nvidia", error="HTTP 500")
+
+        h_fail = multi.health()
+        assert h_fail.connected is False
+        assert "Key 1: HTTP 429" in h_fail.error
+        assert "Key 2: HTTP 500" in h_fail.error
+
+    def test_close(self):
+        from unittest.mock import MagicMock
+        from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
+
+        p1 = MagicMock()
+        p2 = MagicMock()
+
+        multi = MultiNVIDIAProvider(p1, p2)
+        multi.close()
+
+        p1.close.assert_called_once()
+        p2.close.assert_called_once()

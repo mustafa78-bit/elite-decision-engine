@@ -1,6 +1,7 @@
 from services.ai.ai_service import AIService
 from services.ai.provider import AIProvider, GenerationResult, HealthStatus
 from services.ai.nvidia_provider import NVIDIAProvider
+from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
 from services.ai.provider_factory import create_provider, create_ai_service
 from services.ai.prompts import (
     briefing_prompt,
@@ -23,6 +24,7 @@ __all__ = [
     "GenerationResult",
     "HealthStatus",
     "NVIDIAProvider",
+    "MultiNVIDIAProvider",
     "create_provider",
     "create_ai_service",
     "briefing_prompt",

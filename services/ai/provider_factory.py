@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from config import AI_MODEL, AI_PROVIDER, NVIDIA_API_KEY, NVIDIA_BASE_URL
+import config
 from services.ai.provider import AIProvider
 from services.ai.nvidia_provider import NVIDIAProvider
+from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
 
 logger = logging.getLogger(__name__)
 
@@ -16,18 +17,35 @@ def create_provider(
     base_url: Optional[str] = None,
     model: Optional[str] = None,
 ) -> AIProvider:
-    provider_name = (provider or AI_PROVIDER).strip().lower()
+    provider_name = (provider or config.AI_PROVIDER).strip().lower()
 
     if provider_name == "nvidia":
-        logger.info(
-            "Creating NVIDIA provider | model=%s",
-            model or AI_MODEL or "default",
-        )
-        return NVIDIAProvider(
-            api_key=api_key or NVIDIA_API_KEY,
-            base_url=base_url or NVIDIA_BASE_URL or None,
-            model=model or AI_MODEL or None,
-        )
+        if not api_key and config.NVIDIA_API_KEY_2:
+            logger.info(
+                "Creating multi-key NVIDIA provider (load-splitting) | model=%s",
+                model or config.AI_MODEL or "default",
+            )
+            p1 = NVIDIAProvider(
+                api_key=config.NVIDIA_API_KEY,
+                base_url=base_url or config.NVIDIA_BASE_URL or None,
+                model=model or config.AI_MODEL or None,
+            )
+            p2 = NVIDIAProvider(
+                api_key=config.NVIDIA_API_KEY_2,
+                base_url=base_url or config.NVIDIA_BASE_URL or None,
+                model=model or config.AI_MODEL or None,
+            )
+            return MultiNVIDIAProvider(p1, p2)
+        else:
+            logger.info(
+                "Creating single NVIDIA provider | model=%s",
+                model or config.AI_MODEL or "default",
+            )
+            return NVIDIAProvider(
+                api_key=api_key or config.NVIDIA_API_KEY,
+                base_url=base_url or config.NVIDIA_BASE_URL or None,
+                model=model or config.AI_MODEL or None,
+            )
 
     if provider_name == "openai":
         raise NotImplementedError(

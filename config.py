@@ -25,6 +25,7 @@ RECOMMENDED_VARS = {
 }
 
 NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "")
+NVIDIA_API_KEY_2: str = os.getenv("NVIDIA_API_KEY_2", "")
 AI_PROVIDER: str = os.getenv("AI_PROVIDER", "nvidia")
 AI_MODEL: str = os.getenv("AI_MODEL", "")
 NVIDIA_BASE_URL: str = os.getenv("NVIDIA_BASE_URL", "")
