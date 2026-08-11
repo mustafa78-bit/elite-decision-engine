@@ -28,10 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const res = await apiFetch<{ token: string }>("/auth/login", {
+      const res = await apiFetch<{ success: boolean; token?: string; error?: string }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ username, password }),
       });
+      if (!res.success || !res.token) {
+        throw new Error(res.error || "Login failed");
+      }
       setToken(res.token);
       setUser(username);
       localStorage.setItem("auth_user", username);
