@@ -6,6 +6,7 @@ from services.ai.memory import (
     Message,
     SessionMemory,
 )
+from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
 from services.ai.nvidia_provider import NVIDIAProvider
 from services.ai.prompts import (
     briefing_prompt,
@@ -23,6 +24,7 @@ __all__ = [
     "GenerationResult",
     "HealthStatus",
     "NVIDIAProvider",
+    "MultiNVIDIAProvider",
     "create_provider",
     "create_ai_service",
     "briefing_prompt",

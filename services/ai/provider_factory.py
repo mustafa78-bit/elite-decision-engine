@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from config import AI_MODEL, AI_PROVIDER, NVIDIA_API_KEY, NVIDIA_BASE_URL
+from config import AI_MODEL, AI_PROVIDER, NVIDIA_API_KEY, NVIDIA_API_KEY_2, NVIDIA_BASE_URL
+from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
 from services.ai.nvidia_provider import NVIDIAProvider
 from services.ai.provider import AIProvider
 
@@ -22,6 +23,23 @@ def create_provider(
     provider_name = (provider or AI_PROVIDER).strip().lower()
 
     if provider_name == "nvidia":
+        if not api_key and NVIDIA_API_KEY_2:
+            logger.info(
+                "Creating multi-key NVIDIA provider (load-splitting) | model=%s",
+                model or AI_MODEL or "default",
+            )
+            p1 = NVIDIAProvider(
+                api_key=NVIDIA_API_KEY,
+                base_url=base_url or NVIDIA_BASE_URL or None,
+                model=model or AI_MODEL or None,
+            )
+            p2 = NVIDIAProvider(
+                api_key=NVIDIA_API_KEY_2,
+                base_url=base_url or NVIDIA_BASE_URL or None,
+                model=model or AI_MODEL or None,
+            )
+            return MultiNVIDIAProvider(p1, p2)
+
         logger.info(
             "Creating NVIDIA provider | model=%s",
             model or AI_MODEL or "default",
