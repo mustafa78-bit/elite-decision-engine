@@ -28,3 +28,56 @@ describe("apiFetch", () => {
     expect(result.data).toBe("ok");
   });
 });
+
+describe("setUnauthorizedHandler", () => {
+  it("calls the registered handler on a 401 response", async () => {
+    const { apiFetch, setUnauthorizedHandler } = await import("../../api/client");
+    const handler = vi.fn();
+    setUnauthorizedHandler(handler);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+    }));
+
+    await expect(apiFetch("/test")).rejects.toThrow("API error 401");
+    expect(handler).toHaveBeenCalledOnce();
+
+    setUnauthorizedHandler(null);
+  });
+
+  it("does NOT call the handler on a 404 or 500 response", async () => {
+    const { apiFetch, apiFetchText, setUnauthorizedHandler } = await import("../../api/client");
+    const handler = vi.fn();
+    setUnauthorizedHandler(handler);
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+    }));
+    await expect(apiFetch("/test")).rejects.toThrow("API error 404");
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: "Internal Server Error",
+    }));
+    await expect(apiFetchText("/test")).rejects.toThrow("API error 500");
+
+    expect(handler).not.toHaveBeenCalled();
+    setUnauthorizedHandler(null);
+  });
+
+  it("does nothing on a 401 when no handler is registered", async () => {
+    const { apiFetch, setUnauthorizedHandler } = await import("../../api/client");
+    setUnauthorizedHandler(null);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+    }));
+
+    await expect(apiFetch("/test")).rejects.toThrow("API error 401");
+  });
+});
