@@ -33,6 +33,31 @@ from market.provider import HyperliquidProvider
 
 logger = logging.getLogger(__name__)
 
+# How long a fetched candle set stays valid in cache before re-hitting the
+# provider, per timeframe. Previously both get_ohlcv()/get_asset() used a
+# flat 30s/15s TTL regardless of timeframe -- meaning even 1h/4h/1d candles
+# (which only actually change once per hour/4h/day) were being re-fetched
+# from Hyperliquid roughly every 15-30s by _periodic_broadcast()'s 30s loop
+# alone, a real contributor to the observed Hyperliquid 429 rate-limiting.
+# Short timeframes still refresh reasonably often (a 1m/5m chart genuinely
+# needs to feel live); longer ones cap out once refetching more often
+# couldn't possibly show anything new until the next candle closes.
+_TIMEFRAME_TTL_SECONDS: dict[str, int] = {
+    "1m": 20,
+    "5m": 60,
+    "15m": 180,
+    "30m": 300,
+    "1h": 300,
+    "4h": 300,
+    "1d": 300,
+    "1w": 300,
+}
+_DEFAULT_TIMEFRAME_TTL_SECONDS = 60
+
+
+def _ttl_for_timeframe(timeframe: str) -> int:
+    return _TIMEFRAME_TTL_SECONDS.get(timeframe, _DEFAULT_TIMEFRAME_TTL_SECONDS)
+
 
 class MarketDataService:
     """Single entry point for all market data in the Elite Platform."""
@@ -67,7 +92,7 @@ class MarketDataService:
             return cached
         df = self.provider.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
         if not df.empty:
-            self.cache.set(cache_key, df, ttl=30)
+            self.cache.set(cache_key, df, ttl=_ttl_for_timeframe(timeframe))
         return df
 
     def get_ticker(self, symbol: str) -> dict[str, Any]:
@@ -118,7 +143,7 @@ class MarketDataService:
 
         asset = self.intelligence.enrich(asset)
 
-        self.cache.set(cache_key, asset, ttl=15)
+        self.cache.set(cache_key, asset, ttl=_ttl_for_timeframe(timeframe))
         return asset
 
     def get_intelligence(self, symbol: str, timeframe: str = "1h") -> dict[str, Any]:
