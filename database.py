@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
+    event,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -29,6 +30,18 @@ engine = create_engine(
     max_overflow=0 if _is_sqlite else 20,
     connect_args={"check_same_thread": False} if _is_sqlite else {},
 )
+
+if _is_sqlite:
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragmas(dbapi_connection, connection_record):
+        # WAL lets readers proceed while a writer holds the write lock
+        # (default rollback-journal mode blocks readers during a write);
+        # busy_timeout makes a writer wait instead of raising
+        # "database is locked" immediately when the DB is briefly busy.
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.close()
 
 SessionLocal = sessionmaker(
     autocommit=False,

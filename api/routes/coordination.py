@@ -102,4 +102,6 @@ def consensus_for_signal(signal_id: int, request: Request):
     except Exception as e:
         logger.error("Consensus failed for signal %s: %s", signal_id, e)
         return JSONResponse(status_code=500, content={"error": str(e), "signal_id": signal_id})
+    finally:
+        session.close()
 

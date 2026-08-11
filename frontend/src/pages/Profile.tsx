@@ -1,19 +1,22 @@
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { useAuth } from "../components/auth/AuthProvider";
 
 export default function Profile() {
   const { t } = useTranslation("profile");
+  const { user } = useAuth();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-center">
-          <span className="text-lg font-mono text-[var(--text-muted)]">U</span>
+          <span className="text-lg font-mono text-[var(--text-muted)]">
+            {user ? user.charAt(0).toUpperCase() : "U"}
+          </span>
         </div>
         <div>
-          <h1 className="text-sm font-semibold text-[var(--text-primary)]">{t("identity.name")}</h1>
-          <p className="text-[10px] font-mono text-[var(--text-muted)]">{t("identity.unavailable")}</p>
+          <h1 className="text-sm font-semibold text-[var(--text-primary)]">{user || t("identity.name")}</h1>
         </div>
       </div>
 
