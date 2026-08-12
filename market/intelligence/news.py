@@ -19,6 +19,24 @@ RSS_URLS = [
     "https://www.coindesk.com/arc/outboundfeeds/rss/",
 ]
 
+# US Fed/macro-economic news relevant to risk assets broadly (crypto included)
+# -- separate from RSS_URLS above, which is purely crypto-focused and would
+# never surface a pure "Fed holds rates steady" headline (no coin ticker to
+# match against SYMBOL_KEYWORDS). Both URLs verified live 2026-08-11: the
+# Fed's own press-release feed (authoritative, low volume) and MarketWatch's
+# general top-stories feed (higher volume, broader finance coverage --
+# MACRO_KEYWORDS below filters it down to what's actually macro-relevant).
+MACRO_RSS_URLS = [
+    "https://www.federalreserve.gov/feeds/press_all.xml",
+    "https://feeds.marketwatch.com/marketwatch/topstories/",
+]
+
+MACRO_KEYWORDS = [
+    "federal reserve", "fed ", "fomc", "powell", "interest rate", "rate decision",
+    "rate cut", "rate hike", "cpi", "inflation", "jobs report", "nonfarm payrolls",
+    "unemployment rate", "gdp",
+]
+
 # Keyword sets per symbol -- covers config.py's FIXED_COIN_UNIVERSE (25
 # coins) plus DOGE (kept for backward compatibility, not part of the fixed
 # universe but harmless to still recognize). Short/generic tickers that are
@@ -139,6 +157,24 @@ class NewsService:
             all_entries.extend(self._fetch_rss_items(url))
         return all_entries
 
+    def fetch_macro_rss_feeds(self) -> list[dict[str, str]]:
+        """Fetch all configured US Fed/macro RSS feeds once, same fetch-once-
+        per-cycle rationale as fetch_rss_feeds() above -- a separate method
+        (not merged into RSS_URLS) since macro headlines route through
+        is_macro_headline() rather than SYMBOL_KEYWORDS matching.
+        """
+        all_entries: list[dict[str, str]] = []
+        for url in MACRO_RSS_URLS:
+            all_entries.extend(self._fetch_rss_items(url))
+        return all_entries
+
+    def is_macro_headline(self, headline: str) -> bool:
+        """True if this headline looks like US Fed/macro-economic news
+        relevant to risk assets broadly, based on MACRO_KEYWORDS.
+        """
+        title_lower = headline.lower()
+        return any(kw in title_lower for kw in MACRO_KEYWORDS)
+
     def match_headline_to_symbols(self, headline: str, symbols: list[str] | None = None) -> list[str]:
         """Return which of `symbols` (default: all of SYMBOL_KEYWORDS) this headline mentions.
 
@@ -226,6 +262,112 @@ Do not include any other text, explainers, or Markdown block markers like ```jso
             key = h.strip().lower()
             result[key] = sentiment_mapped.get(key) or self._rule_based_sentiment(h)
         return result
+
+    def classify_and_score(self, headlines: list[str]) -> dict[str, dict[str, Any]]:
+        """Classify sentiment AND an impact score for a batch of headlines in
+        one batched NVIDIA call (same batching discipline as
+        classify_sentiment() above -- one prompt for all headlines, not one
+        call per headline).
+
+        Deliberately does NOT ask for translation here -- see
+        translate_to_turkish(), a separate non-NVIDIA step, so translation
+        keeps working even when NVIDIA is rate-limited/down and vice versa.
+
+        Returns a dict keyed by the headline's lowercased, stripped text
+        (same convention as classify_sentiment()), each value
+        {"sentiment": "positive"|"neutral"|"negative", "score": int 0-100}.
+        """
+        result: dict[str, dict[str, Any]] = {}
+        if not headlines:
+            return result
+
+        mapped: dict[str, dict[str, Any]] = {}
+        try:
+            from services.ai.provider_factory import create_provider
+            provider = create_provider()
+            if provider and getattr(provider, "_api_key", None):
+                headlines_bullet_str = "\n".join(f"- {h}" for h in headlines)
+                prompt = f"""Analyze the sentiment and market impact of the following crypto news headlines.
+For each headline, provide:
+- "sentiment": "positive", "neutral", or "negative"
+- "score": an integer from 0 to 100 for how market-moving/impactful the
+  headline is. 0 means routine news with no real price impact; 100 means a
+  major market-moving event (e.g. a central bank rate decision, a major
+  exchange hack, a landmark regulatory ruling). Most ordinary headlines
+  should score well below 50.
+
+Headlines:
+{headlines_bullet_str}
+
+Respond with a JSON list of objects, each containing exactly "headline", "sentiment", and "score" keys.
+Example:
+[
+  {{"headline": "Bitcoin surges past $60k", "sentiment": "positive", "score": 55}},
+  {{"headline": "Market is sideways", "sentiment": "neutral", "score": 5}}
+]
+Do not include any other text, explainers, or Markdown block markers like
+```json. Output ONLY the raw JSON list of objects.
+"""
+                res = provider.generate(prompt)
+                if res and res.content:
+                    content_clean = res.content.strip()
+                    if content_clean.startswith("```"):
+                        lines = content_clean.split("\n")
+                        if lines[0].startswith("```"):
+                            lines = lines[1:]
+                        if lines[-1].startswith("```"):
+                            lines = lines[:-1]
+                        content_clean = "\n".join(lines).strip()
+
+                    parsed_list = json.loads(content_clean)
+                    if isinstance(parsed_list, list):
+                        for item in parsed_list:
+                            h_title = item.get("headline")
+                            sent = str(item.get("sentiment", "neutral")).lower()
+                            if sent not in ("positive", "neutral", "negative"):
+                                sent = "neutral"
+                            try:
+                                score = int(item.get("score", 50))
+                            except (TypeError, ValueError):
+                                score = 50
+                            score = max(0, min(100, score))
+                            if h_title:
+                                mapped[h_title.strip().lower()] = {"sentiment": sent, "score": score}
+        except Exception as e:
+            logger.info("NVIDIA scoring provider failed or unavailable, using rule-based fallback: %s", e)
+
+        for h in headlines:
+            key = h.strip().lower()
+            if key in mapped:
+                result[key] = mapped[key]
+            else:
+                # Honest fallback: a real sentiment label from the existing
+                # rule-based classifier, but an "unknown impact" default
+                # score rather than a fabricated confidence number.
+                result[key] = {"sentiment": self._rule_based_sentiment(h), "score": 50}
+        return result
+
+    def translate_to_turkish(self, text: str) -> str:
+        """Translate a headline to Turkish via a free, dedicated translation
+        library -- deliberately NOT NVIDIA or any other LLM chat-completion
+        call (see classify_and_score() above for why: translation is a
+        well-solved, judgment-free problem, unlike sentiment/impact scoring,
+        and keeping it off NVIDIA means it keeps working even when NVIDIA is
+        rate-limited/down).
+
+        Falls back to the original English text on any failure -- never
+        fabricates a translation.
+        """
+        if not text.strip():
+            return text
+        try:
+            from deep_translator import GoogleTranslator
+            translated = GoogleTranslator(source="en", target="tr").translate(text)
+            if translated and translated.strip():
+                return translated
+        except Exception as e:
+            logger.info("Translation failed, falling back to original English text: %s", e)
+        return text
 
     def analyze(
         self,
