@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from api.dependencies import require_user_id
 from database import User, UserSettings, get_session
 
 logger = logging.getLogger(__name__)
@@ -11,9 +12,7 @@ router = APIRouter()
 
 @router.get("/users/me")
 def get_me(request: Request):
-    user_id = getattr(request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    user_id = require_user_id(request)
     session = get_session()
     try:
         user = session.query(User).filter(User.id == user_id).first()
@@ -32,9 +31,7 @@ class SettingsBody(BaseModel):
 
 @router.put("/users/settings")
 def update_settings(body: SettingsBody, request: Request):
-    user_id = getattr(request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    user_id = require_user_id(request)
     session = get_session()
     try:
         settings = session.query(UserSettings).filter(UserSettings.user_id == user_id).first()
@@ -65,9 +62,7 @@ def update_settings(body: SettingsBody, request: Request):
 
 @router.get("/users/settings")
 def get_settings(request: Request):
-    user_id = getattr(request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    user_id = require_user_id(request)
     session = get_session()
     try:
         settings = session.query(UserSettings).filter(UserSettings.user_id == user_id).first()
