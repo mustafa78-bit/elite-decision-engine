@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from api.dependencies import require_user_id as _require_user_id
 from services.watchlist_service import WatchlistService
 
 router = APIRouter()
@@ -11,13 +12,6 @@ router = APIRouter()
 
 def _get_watchlist_service() -> WatchlistService:
     return WatchlistService()
-
-
-def _require_user_id(request: Request) -> int:
-    user_id = getattr(request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return user_id
 
 
 @router.get("/watchlists")
