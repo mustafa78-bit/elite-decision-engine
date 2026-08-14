@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timezone
 
 import pytest
 
+from auth.jwt import create_access_token
 from database import Notification, PaperTrade, Signal, Trade
 
 
@@ -49,6 +50,26 @@ class TestDashboardAPI:
         assert body["total_trades"] == 3
         assert body["open_trades"] == 1
         assert body["total_pnl"] == 2500.0
+
+    def test_dashboard_portfolio_scoped_to_owning_user(self, api_client, db_session):
+        now = datetime.now(UTC)
+        db_session.add(Trade(
+            symbol="BTCUSDT", side="LONG", entry=50000, stop=49000, tp1=52000, rr=2.0,
+            status="TP_HIT", pnl=1000, created_at=now, user_id=1,
+        ))
+        db_session.add(Trade(
+            symbol="ETHUSDT", side="LONG", entry=3000, stop=2900, tp1=3200, rr=2.0,
+            status="TP_HIT", pnl=500, created_at=now, user_id=2,
+        ))
+        db_session.flush()
+
+        resp = api_client.get("/dashboard/portfolio")
+        assert resp.json()["total_trades"] == 1
+
+        other_user_token = create_access_token({"sub": "2", "username": "other"})
+        resp2 = api_client.get("/dashboard/portfolio", headers={"Authorization": f"Bearer {other_user_token}"})
+        assert resp2.json()["total_trades"] == 1
+        assert resp2.json()["total_pnl"] == 500.0
 
     def test_dashboard_portfolio_with_mixed_quantities(self, api_client, db_session):
         from datetime import timedelta

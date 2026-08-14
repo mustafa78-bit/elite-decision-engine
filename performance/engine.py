@@ -7,6 +7,8 @@ from datetime import UTC, datetime, timedelta, timezone
 from statistics import mean, stdev
 from typing import Any, Optional
 
+from sqlalchemy import or_
+
 from database import (
     CANCEL,
     CLOSED,
@@ -45,10 +47,11 @@ class PerformanceEngine:
     def report(
         self,
         snapshot: PortfolioSnapshot,
+        user_id: int | None = None,
     ) -> PerformanceReport:
         session = self.session_factory()
         try:
-            return self._compute(session, snapshot)
+            return self._compute(session, snapshot, user_id)
         finally:
             session.close()
 
@@ -56,6 +59,7 @@ class PerformanceEngine:
         self,
         session: Any,
         snapshot: PortfolioSnapshot,
+        user_id: int | None = None,
     ) -> PerformanceReport:
         # Trade.status is the real source of truth for open/closed -- the
         # matching PaperTrade row's own .status is never actually updated by
@@ -63,11 +67,12 @@ class PerformanceEngine:
         # _compute() for the full explanation), so filtering on
         # PaperTrade.status here would silently always see zero closed
         # trades. PaperTrade is only used below for its real quantity.
-        results = (
-            session.query(Trade, PaperTradeModel)
-            .outerjoin(PaperTradeModel, PaperTradeModel.position_id == Trade.id)
-            .all()
+        query = session.query(Trade, PaperTradeModel).outerjoin(
+            PaperTradeModel, PaperTradeModel.position_id == Trade.id
         )
+        if user_id is not None:
+            query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+        results = query.all()
         closed_pairs = [
             (t, pt) for t, pt in results
             if t.status in _TRADE_TERMINAL and t.pnl is not None

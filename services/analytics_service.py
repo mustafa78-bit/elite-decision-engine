@@ -39,10 +39,14 @@ class AnalyticsService:
         self._portfolio = portfolio_engine
         self._performance = performance_engine
 
-    def full_analytics(self, limit: int = 1000) -> AnalyticsDTO:
+    def full_analytics(self, limit: int = 1000, user_id: int | None = None) -> AnalyticsDTO:
         session = self.session_factory()
         try:
-            trades_with_pnl = get_trades_with_dollar_pnl(session)
+            filters = ()
+            if user_id is not None:
+                from sqlalchemy import or_
+                filters = (or_(Trade.user_id == user_id, Trade.user_id.is_(None)),)
+            trades_with_pnl = get_trades_with_dollar_pnl(session, *filters)
 
             def get_created_at(t_pnl):
                 t = t_pnl[0]
@@ -63,7 +67,7 @@ class AnalyticsService:
                 win_loss=self._win_loss_analytics(trades_with_pnl),
                 by_symbol=self._symbol_analytics(trades_with_pnl),
                 by_strategy=self._strategy_analytics(trades_with_pnl),
-                risk=self._risk_analytics(trades_with_pnl, session),
+                risk=self._risk_analytics(trades_with_pnl, session, user_id),
                 drawdown=self._drawdown_analytics(trades_with_pnl),
                 heatmap=self._heatmap_data(trades_with_pnl),
                 trends=self._performance_trends(trades_with_pnl),
@@ -232,15 +236,24 @@ class AnalyticsService:
             ))
         return sorted(result, key=lambda x: x.overall_score, reverse=True)
 
-    def _risk_analytics(self, trades: list[tuple[Trade, float]], session: Any) -> RiskAnalyticsDTO:
+    def _risk_analytics(
+        self, trades: list[tuple[Trade, float]], session: Any, user_id: int | None = None,
+    ) -> RiskAnalyticsDTO:
         open_trades = [t_pnl for t_pnl in trades if t_pnl[0].status == "OPEN"]
         rejected_signals = 0
         rejection_reasons: dict[str, int] = {}
         total_signals = 0
 
+        from sqlalchemy import or_
+
         from database import Signal
         try:
-            signals = session.query(Signal).all()
+            signal_query = session.query(Signal)
+            if user_id is not None:
+                signal_query = signal_query.filter(
+                    or_(Signal.user_id == user_id, Signal.user_id.is_(None))
+                )
+            signals = signal_query.all()
             total_signals = len(signals)
             for s in signals:
                 if s.status == "REJECTED":
@@ -250,7 +263,12 @@ class AnalyticsService:
         except Exception:
             pass
 
-        open_trades_with_exposure = get_trades_with_exposure(session, Trade.status == "OPEN")
+        exposure_filters = (Trade.status == "OPEN",)
+        if user_id is not None:
+            exposure_filters = exposure_filters + (
+                or_(Trade.user_id == user_id, Trade.user_id.is_(None)),
+            )
+        open_trades_with_exposure = get_trades_with_exposure(session, *exposure_filters)
         symbol_exposure: dict[str, float] = {}
         for t, exposure in open_trades_with_exposure:
             sym = t.symbol or "UNKNOWN"

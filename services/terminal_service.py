@@ -7,6 +7,8 @@ from dataclasses import asdict
 from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
+from sqlalchemy import or_
+
 from database import FINAL_STATUSES, PaperTrade, Signal, Trade, get_session
 from decision.aggregator import DecisionAggregator
 from market.services import MarketDataService
@@ -34,13 +36,13 @@ class TerminalService:
             scanner=self.scanner, market_service=self.market_service
         )
 
-    def get_overview(self) -> dict[str, Any]:
+    def get_overview(self, user_id: int | None = None) -> dict[str, Any]:
         return {
             "market": self._get_market_health(),
-            "portfolio": self._get_portfolio_summary(),
-            "performance": self._get_performance_summary(),
-            "open_trades": self._get_open_trades(),
-            "recent_signals": self._get_recent_signals(),
+            "portfolio": self._get_portfolio_summary(user_id),
+            "performance": self._get_performance_summary(user_id),
+            "open_trades": self._get_open_trades(user_id),
+            "recent_signals": self._get_recent_signals(user_id=user_id),
             "top_opportunities": self._get_top_opportunities(),
             "risk_status": self._get_risk_status(),
             "timestamp": datetime.now(UTC).isoformat(),
@@ -49,23 +51,23 @@ class TerminalService:
     def get_market(self) -> dict[str, Any]:
         return self._get_market_health()
 
-    def get_open_trades(self) -> list[dict[str, Any]]:
-        return self._get_open_trades()
+    def get_open_trades(self, user_id: int | None = None) -> list[dict[str, Any]]:
+        return self._get_open_trades(user_id)
 
     def get_scanner_opportunities(self, n: int = 5) -> list[dict[str, Any]]:
         return self._get_top_opportunities(n)
 
-    def get_recent_signals(self, limit: int = 10) -> list[dict[str, Any]]:
-        return self._get_recent_signals(limit)
+    def get_recent_signals(self, limit: int = 10, user_id: int | None = None) -> list[dict[str, Any]]:
+        return self._get_recent_signals(limit, user_id)
 
     def get_risk(self) -> dict[str, Any]:
         return self._get_risk_status()
 
-    def get_portfolio(self) -> dict[str, Any]:
-        return self._get_portfolio_summary()
+    def get_portfolio(self, user_id: int | None = None) -> dict[str, Any]:
+        return self._get_portfolio_summary(user_id)
 
-    def get_performance(self) -> dict[str, Any]:
-        return self._get_performance_summary()
+    def get_performance(self, user_id: int | None = None) -> dict[str, Any]:
+        return self._get_performance_summary(user_id)
 
     def get_decision(self, symbol: str, timeframe: str = "1h") -> dict[str, Any] | None:
         result = self.aggregator.analyze(symbol, timeframe)
@@ -98,9 +100,9 @@ class TerminalService:
             "volume_score": indicators.get("volume_score", 0),
         }
 
-    def _get_portfolio_summary(self) -> dict[str, Any]:
+    def _get_portfolio_summary(self, user_id: int | None = None) -> dict[str, Any]:
         try:
-            stats = PortfolioEngine().stats()
+            stats = PortfolioEngine().stats(user_id=user_id)
             return {
                 "total_pnl": round(stats.total_pnl, 2),
                 "total_trades": stats.total_trades,
@@ -112,9 +114,9 @@ class TerminalService:
             logger.warning("Portfolio summary error: %s", e)
             return {}
 
-    def _get_performance_summary(self) -> dict[str, Any]:
+    def _get_performance_summary(self, user_id: int | None = None) -> dict[str, Any]:
         try:
-            stats = PerformanceEngine().stats()
+            stats = PerformanceEngine().stats(user_id=user_id)
             return {
                 "sharpe_ratio": round(stats.sharpe_ratio, 4),
                 "profit_factor": round(stats.profit_factor, 4),
@@ -128,16 +130,18 @@ class TerminalService:
             logger.warning("Performance summary error: %s", e)
             return {}
 
-    def _get_open_trades(self) -> list[dict[str, Any]]:
+    def _get_open_trades(self, user_id: int | None = None) -> list[dict[str, Any]]:
         try:
             session = get_session()
             try:
-                results = (
+                query = (
                     session.query(Trade, PaperTrade)
                     .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
                     .filter(Trade.status == "OPEN")
-                    .all()
                 )
+                if user_id is not None:
+                    query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+                results = query.all()
             finally:
                 session.close()
 
@@ -188,16 +192,14 @@ class TerminalService:
             logger.warning("Open trades error: %s", e)
             return []
 
-    def _get_recent_signals(self, limit: int = 10) -> list[dict[str, Any]]:
+    def _get_recent_signals(self, limit: int = 10, user_id: int | None = None) -> list[dict[str, Any]]:
         try:
             session = get_session()
             try:
-                rows = (
-                    session.query(Signal)
-                    .order_by(Signal.created_at.desc().nullslast())
-                    .limit(limit)
-                    .all()
-                )
+                query = session.query(Signal)
+                if user_id is not None:
+                    query = query.filter(or_(Signal.user_id == user_id, Signal.user_id.is_(None)))
+                rows = query.order_by(Signal.created_at.desc().nullslast()).limit(limit).all()
             finally:
                 session.close()
 

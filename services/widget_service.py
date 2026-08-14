@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable
 from typing import Any, Optional
 
-from sqlalchemy import text
+from sqlalchemy import or_, text
 
 from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, Notification, PaperTrade, Signal, Trade, get_session
@@ -23,7 +23,7 @@ class WidgetService:
     def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
-    def get_widget(self, widget_type: str, **params) -> dict[str, Any]:
+    def get_widget(self, widget_type: str, user_id: int | None = None, **params) -> dict[str, Any]:
         factory = {
             "kpi": self._kpi_widget,
             "portfolio": self._portfolio_widget,
@@ -33,33 +33,34 @@ class WidgetService:
         handler = factory.get(widget_type)
         if not handler:
             return {"error": f"Unknown widget type: {widget_type}"}
-        return handler(**params)
+        return handler(user_id=user_id, **params)
 
-    def get_all_widgets(self) -> dict[str, Any]:
+    def get_all_widgets(self, user_id: int | None = None) -> dict[str, Any]:
         return {
-            "kpi": self._kpi_widget(),
-            "portfolio": self._portfolio_widget(),
-            "monitoring": self._monitoring_widget(),
-            "notifications": self._notifications_widget(),
+            "kpi": self._kpi_widget(user_id=user_id),
+            "portfolio": self._portfolio_widget(user_id=user_id),
+            "monitoring": self._monitoring_widget(user_id=user_id),
+            "notifications": self._notifications_widget(user_id=user_id),
         }
 
-    def _kpi_widget(self, **kwargs) -> dict[str, Any]:
+    def _kpi_widget(self, user_id: int | None = None, **kwargs) -> dict[str, Any]:
         from services.kpi_service import KPIService
         kpi_svc = KPIService(session_factory=self.session_factory)
-        kpis = kpi_svc.get_kpis()
+        kpis = kpi_svc.get_kpis(user_id=user_id)
         return KPIDashboardWidgetDTO(
             kpis=[k.to_dict() for k in kpis],
             period="all",
         ).to_dict()
 
-    def _portfolio_widget(self, **kwargs) -> dict[str, Any]:
+    def _portfolio_widget(self, user_id: int | None = None, **kwargs) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            results = (
-                session.query(Trade, PaperTrade)
-                .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
-                .all()
+            query = session.query(Trade, PaperTrade).outerjoin(
+                PaperTrade, PaperTrade.position_id == Trade.id
             )
+            if user_id is not None:
+                query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+            results = query.all()
             dollar_pnls = []
             for t, pt in results:
                 qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 1.0
@@ -115,12 +116,22 @@ class WidgetService:
         finally:
             session.close()
 
-    def _notifications_widget(self, limit: int = 10) -> dict[str, Any]:
+    def _notifications_widget(self, user_id: int | None = None, limit: int = 10) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            recent = session.query(Notification).order_by(Notification.created_at.desc()).limit(limit).all()
-            unread = session.query(Notification).filter(Notification.read == False).count()  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
-            total = session.query(Notification).count()
+            notif_scope = or_(Notification.user_id == user_id, Notification.user_id.is_(None))
+            notif_query = session.query(Notification)
+            if user_id is not None:
+                notif_query = notif_query.filter(notif_scope)
+            recent = notif_query.order_by(Notification.created_at.desc()).limit(limit).all()
+            unread_query = session.query(Notification)
+            if user_id is not None:
+                unread_query = unread_query.filter(notif_scope)
+            unread = unread_query.filter(Notification.read == False).count()  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
+            total_query = session.query(Notification)
+            if user_id is not None:
+                total_query = total_query.filter(notif_scope)
+            total = total_query.count()
             return NotificationDashboardWidgetDTO(
                 unread=unread,
                 total=total,

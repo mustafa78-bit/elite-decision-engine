@@ -6,7 +6,9 @@ from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy import or_
 
+from api.dependencies import require_user_id
 from database import FINAL_STATUSES, OPEN, PaperTrade, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
@@ -37,12 +39,13 @@ def _get_analytics_service():
 
 @router.get("/dashboard/overview")
 def dashboard_overview(request: Request):
+    user_id = require_user_id(request)
     try:
         kpi_service = KPIService()
         analytics_service = _get_analytics_service()
 
-        kpis = kpi_service.get_kpis()
-        analytics = analytics_service.full_analytics(limit=100)
+        kpis = kpi_service.get_kpis(user_id=user_id)
+        analytics = analytics_service.full_analytics(limit=100, user_id=user_id)
 
         widgets: list[dict[str, Any]] = [
             KPIDashboardWidgetDTO(
@@ -75,9 +78,10 @@ def dashboard_overview(request: Request):
 
 @router.get("/dashboard/kpi")
 def dashboard_kpi(request: Request):
+    user_id = require_user_id(request)
     try:
         service = KPIService()
-        kpis = service.get_kpis()
+        kpis = service.get_kpis(user_id=user_id)
         widget = KPIDashboardWidgetDTO(
             kpis=[k.to_dict() for k in kpis],
             period="all",
@@ -90,9 +94,14 @@ def dashboard_kpi(request: Request):
 
 @router.get("/dashboard/explanation/{signal_id}")
 def dashboard_explanation(signal_id: int, request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        signal = session.query(Signal).filter(Signal.id == signal_id).first()
+        signal = (
+            session.query(Signal)
+            .filter(Signal.id == signal_id, or_(Signal.user_id == user_id, Signal.user_id.is_(None)))
+            .first()
+        )
         if signal is None:
             return JSONResponse(status_code=404, content={"error": f"Signal {signal_id} not found"})
 
@@ -123,9 +132,14 @@ def dashboard_explanation(signal_id: int, request: Request):
 
 @router.get("/dashboard/timeline/{signal_id}")
 def dashboard_timeline(signal_id: int, request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        signal = session.query(Signal).filter(Signal.id == signal_id).first()
+        signal = (
+            session.query(Signal)
+            .filter(Signal.id == signal_id, or_(Signal.user_id == user_id, Signal.user_id.is_(None)))
+            .first()
+        )
         if signal is None:
             return JSONResponse(status_code=404, content={"error": f"Signal {signal_id} not found"})
 
@@ -146,11 +160,13 @@ def dashboard_timeline(signal_id: int, request: Request):
 
 @router.get("/dashboard/portfolio")
 def dashboard_portfolio(request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
         results = (
             session.query(Trade, PaperTrade)
             .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+            .filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
             .all()
         )
         parsed_trades = []
@@ -228,18 +244,21 @@ def dashboard_monitoring(request: Request):
 
 @router.get("/dashboard/notifications")
 def dashboard_notifications(request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
         from database import Notification
 
-        unread = session.query(Notification).filter(Notification.read == False).count()  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
+        notif_scope = or_(Notification.user_id == user_id, Notification.user_id.is_(None))
+        unread = session.query(Notification).filter(notif_scope, Notification.read == False).count()  # noqa: E712 (SQLAlchemy filter expression, not a Python bool comparison)
         recent = (
             session.query(Notification)
+            .filter(notif_scope)
             .order_by(Notification.created_at.desc())
             .limit(10)
             .all()
         )
-        total = session.query(Notification).count()
+        total = session.query(Notification).filter(notif_scope).count()
         widget = NotificationDashboardWidgetDTO(
             unread=unread,
             total=total,
@@ -264,20 +283,28 @@ def dashboard_notifications(request: Request):
 
 @router.get("/dashboard/hero")
 def dashboard_hero(request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     signal: Signal | None = None
     trade: Trade | None = None
     try:
-        signal = session.query(Signal).order_by(Signal.created_at.desc()).first()
-        trade = session.query(Trade).filter(Trade.status == OPEN).order_by(Trade.created_at.desc()).first()
+        signal_scope = or_(Signal.user_id == user_id, Signal.user_id.is_(None))
+        trade_scope = or_(Trade.user_id == user_id, Trade.user_id.is_(None))
+        signal = session.query(Signal).filter(signal_scope).order_by(Signal.created_at.desc()).first()
+        trade = (
+            session.query(Trade)
+            .filter(trade_scope, Trade.status == OPEN)
+            .order_by(Trade.created_at.desc())
+            .first()
+        )
     finally:
         session.close()
 
     try:
         from performance.engine import PerformanceEngine
         from portfolio.engine import PortfolioEngine
-        snapshot = PortfolioEngine().snapshot()
-        perf = PerformanceEngine().report(snapshot)
+        snapshot = PortfolioEngine().snapshot(user_id=user_id)
+        perf = PerformanceEngine().report(snapshot, user_id=user_id)
 
         market_regime = "UNKNOWN"
         try:

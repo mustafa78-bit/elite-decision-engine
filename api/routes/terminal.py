@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
+from api.dependencies import require_user_id
 from services.terminal_service import TerminalService
 
 router = APIRouter()
@@ -19,10 +20,11 @@ def get_terminal() -> TerminalService:
 
 
 @router.get("/terminal/overview")
-def terminal_overview():
+def terminal_overview(request: Request):
     """Unified overview — market, portfolio, performance, trades, signals, opportunities, risk."""
+    user_id = require_user_id(request)
     service = get_terminal()
-    return service.get_overview()
+    return service.get_overview(user_id=user_id)
 
 
 @router.get("/terminal/market")
@@ -33,10 +35,11 @@ def terminal_market():
 
 
 @router.get("/terminal/open-trades")
-def terminal_open_trades():
+def terminal_open_trades(request: Request):
     """Currently open trades."""
+    user_id = require_user_id(request)
     service = get_terminal()
-    return service.get_open_trades()
+    return service.get_open_trades(user_id=user_id)
 
 
 @router.get("/terminal/opportunities")
@@ -47,10 +50,11 @@ def terminal_opportunities(n: int = Query(5, ge=1, le=50)):
 
 
 @router.get("/terminal/signals")
-def terminal_signals(limit: int = Query(10, ge=1, le=100)):
+def terminal_signals(request: Request, limit: int = Query(10, ge=1, le=100)):
     """Recent trading signals."""
+    user_id = require_user_id(request)
     service = get_terminal()
-    return service.get_recent_signals(limit=limit)
+    return service.get_recent_signals(limit=limit, user_id=user_id)
 
 
 @router.get("/terminal/risk")
@@ -61,17 +65,19 @@ def terminal_risk():
 
 
 @router.get("/terminal/portfolio")
-def terminal_portfolio():
+def terminal_portfolio(request: Request):
     """Portfolio summary."""
+    user_id = require_user_id(request)
     service = get_terminal()
-    return service.get_portfolio()
+    return service.get_portfolio(user_id=user_id)
 
 
 @router.get("/terminal/performance")
-def terminal_performance():
+def terminal_performance(request: Request):
     """Performance metrics."""
+    user_id = require_user_id(request)
     service = get_terminal()
-    return service.get_performance()
+    return service.get_performance(user_id=user_id)
 
 
 @router.get("/terminal/decision/{symbol}")

@@ -4,6 +4,8 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from sqlalchemy import or_
+
 from database import FINAL_STATUSES, PaperTrade, Signal, Trade, get_session
 from dto.analytics import KPIDTO
 
@@ -14,15 +16,20 @@ class KPIService:
     def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
-    def get_kpis(self) -> list[KPIDTO]:
+    def get_kpis(self, user_id: int | None = None) -> list[KPIDTO]:
         session = self.session_factory()
         try:
-            results = (
-                session.query(Trade, PaperTrade)
-                .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
-                .all()
+            query = session.query(Trade, PaperTrade).outerjoin(
+                PaperTrade, PaperTrade.position_id == Trade.id
             )
-            signals = session.query(Signal).all()
+            signal_query = session.query(Signal)
+            if user_id is not None:
+                query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+                signal_query = signal_query.filter(
+                    or_(Signal.user_id == user_id, Signal.user_id.is_(None))
+                )
+            results = query.all()
+            signals = signal_query.all()
             return self._compute(results, signals)
         finally:
             session.close()

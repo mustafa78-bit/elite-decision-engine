@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
+from sqlalchemy import or_
+
 from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, PaperTrade, Trade, get_session
 
@@ -52,15 +54,18 @@ class PortfolioEngine:
         self.session_factory = session_factory or get_session
         self.initial_equity = initial_equity if initial_equity is not None else ACCOUNT_EQUITY
 
-    def stats(self) -> PortfolioStats:
+    def stats(self, user_id: int | None = None) -> PortfolioStats:
         session = self.session_factory()
         try:
-            return self._compute(session)
+            return self._compute(session, user_id)
         finally:
             session.close()
 
-    def _compute(self, session: Any) -> PortfolioStats:
-        results = session.query(Trade, PaperTrade).outerjoin(PaperTrade, PaperTrade.position_id == Trade.id).all()
+    def _compute(self, session: Any, user_id: int | None = None) -> PortfolioStats:
+        query = session.query(Trade, PaperTrade).outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+        if user_id is not None:
+            query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+        results = query.all()
         all_trades = [r[0] for r in results]
 
         # Trade.pnl is a raw per-unit price delta, not a dollar amount -- scale
