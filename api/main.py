@@ -123,6 +123,16 @@ async def lifespan(app: FastAPI):
     setup_logging()
     logger.info("Application starting up")
 
+    # Provision/upgrade the DB schema before anything else touches it. This
+    # uvicorn entrypoint previously never ran any schema setup at all --
+    # database.create_tables() existed but was only ever wired into the
+    # separate app.py/startup.py CLI path, which the real Docker image
+    # (`CMD uvicorn api.main:app`) never runs. The live schema has only ever
+    # existed because create_tables() was run manually at some point in the
+    # past; this closes that gap going forward.
+    import database
+    database.run_migrations()
+
     # Initialize OLLO Service
     global _ollo_service
     try:

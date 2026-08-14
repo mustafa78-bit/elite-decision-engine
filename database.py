@@ -418,6 +418,22 @@ def create_tables():
     Base.metadata.create_all(bind=engine)
 
 
+def run_migrations() -> None:
+    """Apply pending Alembic migrations up to head. Idempotent -- a no-op if
+    the DB is already at head. This is the real schema-provisioning path for
+    the live app (see api/main.py's lifespan()); create_tables() above stays
+    only for the legacy app.py/startup.py CLI entrypoint and test fixtures,
+    neither of which the production Docker image actually runs.
+    """
+    from pathlib import Path
+
+    from alembic import command
+    from alembic.config import Config
+
+    alembic_cfg = Config(str(Path(__file__).resolve().parent / "alembic.ini"))
+    command.upgrade(alembic_cfg, "head")
+
+
 def is_alert_sent(category: str, headline_hash: str) -> bool:
     """True if this (category, headline) pair has already been alerted."""
     session = get_session()
