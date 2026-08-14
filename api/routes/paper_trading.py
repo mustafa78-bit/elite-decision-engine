@@ -3,8 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from sqlalchemy import or_
 
+from api.dependencies import require_user_id
 from database import FINAL_STATUSES, PaperTrade, Trade, get_session
 from execution.paper_executor import PaperExecutor as PaperExec
 from portfolio_engine import PortfolioEngine
@@ -37,12 +39,16 @@ class PaperPerformance:
 
 
 @router.get("/paper-trading")
-def get_paper_trading():
+def get_paper_trading(request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        results = session.query(Trade, PaperTrade).outerjoin(
-            PaperTrade, PaperTrade.position_id == Trade.id
-        ).all()
+        results = (
+            session.query(Trade, PaperTrade)
+            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
+            .filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+            .all()
+        )
     finally:
         session.close()
 

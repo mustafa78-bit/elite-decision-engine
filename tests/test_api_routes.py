@@ -177,6 +177,20 @@ def test_get_paper_trading_with_trades(api_client, db_session):
     assert body["performance"]["total_pnl"] == 500.0
 
 
+def test_get_paper_trading_scoped_to_owning_user(api_client, db_session):
+    _make_trade(db_session, signal_id=1, symbol="BTCUSDT", status="OPEN", user_id=1)
+    _make_trade(db_session, signal_id=2, symbol="ETHUSDT", status="OPEN", user_id=2)
+
+    resp = api_client.get("/paper-trading")
+    symbols = {t["symbol"] for t in resp.json()["open"]}
+    assert symbols == {"BTCUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/paper-trading", headers={"Authorization": f"Bearer {other_user_token}"})
+    symbols2 = {t["symbol"] for t in resp2.json()["open"]}
+    assert symbols2 == {"ETHUSDT"}
+
+
 def test_get_paper_trading_mixed_quantities(api_client, db_session):
     from database import PaperTrade
 

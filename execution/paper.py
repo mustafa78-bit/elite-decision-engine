@@ -258,6 +258,7 @@ class PaperExecutor:
                 entry=float(entry),
                 quantity=float(order.quantity),
                 status=OPEN,
+                user_id=trade.user_id,
             )
             session.add(paper_trade)
             session.commit()
@@ -457,6 +458,7 @@ class PaperExecutor:
                 filled_quantity=float(quantity),
                 status=FILLED,
                 trade_id=trade.id,
+                user_id=trade.user_id,
             )
             session.add(order)
             session.flush()
@@ -469,6 +471,7 @@ class PaperExecutor:
                 entry=float(entry),
                 quantity=float(quantity),
                 status=OPEN,
+                user_id=trade.user_id,
             )
             session.add(paper_trade)
             session.commit()

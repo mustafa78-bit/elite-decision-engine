@@ -291,6 +291,8 @@ class PaperOrder(Base):
     __tablename__ = "paper_orders"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Nullable, no ForeignKey -- same convention as Signal/Trade.user_id.
+    user_id = Column(Integer, nullable=True, index=True)
     symbol = Column(String(20), nullable=False)
     side = Column(String(10), nullable=False)
     order_type = Column(String(20), default="MARKET")
@@ -313,6 +315,8 @@ class PaperTrade(Base):
     __tablename__ = "paper_trades"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Nullable, no ForeignKey -- same convention as Signal/Trade.user_id.
+    user_id = Column(Integer, nullable=True, index=True)
     position_id = Column(Integer, nullable=False)
     order_id = Column(Integer, nullable=True)
     symbol = Column(String(20), nullable=False)

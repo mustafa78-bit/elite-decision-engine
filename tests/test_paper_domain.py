@@ -567,3 +567,39 @@ class TestShortTradeLifecycle:
         assert closed_position.status == TAKE_PROFIT
         assert closed_trade is not None
         assert closed_trade.status == TAKE_PROFIT
+
+
+# ---------------------------------------------------------------------------
+# PaperExecutor.execute_signal -- the primary automation-loop integration
+# point (execution/execution_loop.py's trade_journal.execute_signal(...))
+# ---------------------------------------------------------------------------
+
+class TestExecuteSignal:
+
+    def test_execute_signal_stamps_user_id_from_trade(self, db_session, session_factory):
+        trade = Trade(symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49000.0, status="OPEN", user_id=3)
+        db_session.add(trade)
+        db_session.flush()
+
+        executor = PaperExecutor(session_factory=session_factory)
+        result = executor.execute_signal(trade_id=trade.id, entry=50000.0, quantity=1.0)
+        assert result is not None
+
+        order = db_session.query(PaperOrderModel).filter(PaperOrderModel.trade_id == trade.id).first()
+        paper_trade = db_session.query(PaperTradeModel).filter(PaperTradeModel.position_id == trade.id).first()
+        assert order.user_id == 3
+        assert paper_trade.user_id == 3
+
+    def test_execute_signal_without_signal_user_leaves_user_id_none(self, db_session, session_factory):
+        trade = Trade(symbol="ETHUSDT", side="LONG", entry=3000.0, stop=2900.0, status="OPEN", user_id=None)
+        db_session.add(trade)
+        db_session.flush()
+
+        executor = PaperExecutor(session_factory=session_factory)
+        result = executor.execute_signal(trade_id=trade.id, entry=3000.0, quantity=1.0)
+        assert result is not None
+
+        order = db_session.query(PaperOrderModel).filter(PaperOrderModel.trade_id == trade.id).first()
+        paper_trade = db_session.query(PaperTradeModel).filter(PaperTradeModel.position_id == trade.id).first()
+        assert order.user_id is None
+        assert paper_trade.user_id is None

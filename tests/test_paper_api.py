@@ -153,6 +153,18 @@ def test_list_orders_invalid_status_returns_422(api_client):
     assert resp.status_code == 422
 
 
+def test_list_orders_scoped_to_owning_user(api_client, db_session):
+    _make_paper_order(db_session, symbol="BTCUSDT", user_id=1)
+    _make_paper_order(db_session, symbol="ETHUSDT", user_id=2)
+
+    resp = api_client.get("/paper/orders")
+    assert {o["symbol"] for o in resp.json()["orders"]} == {"BTCUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/paper/orders", headers={"Authorization": f"Bearer {other_user_token}"})
+    assert {o["symbol"] for o in resp2.json()["orders"]} == {"ETHUSDT"}
+
+
 # ── GET /paper/orders/{id} ──────────────────────────────────────────────────
 
 
@@ -169,6 +181,12 @@ def test_get_order_not_found(api_client):
     resp = api_client.get("/paper/orders/99999")
     assert resp.status_code == 404
     assert "not found" in resp.json()["detail"].lower()
+
+
+def test_get_order_owned_by_another_user_returns_404(api_client, db_session):
+    o = _make_paper_order(db_session, user_id=2)
+    resp = api_client.get(f"/paper/orders/{o.id}")
+    assert resp.status_code == 404
 
 
 # ── GET /paper/trades ───────────────────────────────────────────────────────
@@ -236,6 +254,24 @@ def test_get_trade_found(api_client, db_session):
 
 def test_get_trade_not_found(api_client):
     resp = api_client.get("/paper/trades/99999")
+    assert resp.status_code == 404
+
+
+def test_list_trades_scoped_to_owning_user(api_client, db_session):
+    _make_paper_trade(db_session, symbol="BTCUSDT", user_id=1)
+    _make_paper_trade(db_session, symbol="ETHUSDT", position_id=2, order_id=2, user_id=2)
+
+    resp = api_client.get("/paper/trades")
+    assert {t["symbol"] for t in resp.json()["trades"]} == {"BTCUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/paper/trades", headers={"Authorization": f"Bearer {other_user_token}"})
+    assert {t["symbol"] for t in resp2.json()["trades"]} == {"ETHUSDT"}
+
+
+def test_get_trade_owned_by_another_user_returns_404(api_client, db_session):
+    t = _make_paper_trade(db_session, user_id=2)
+    resp = api_client.get(f"/paper/trades/{t.id}")
     assert resp.status_code == 404
 
 
@@ -344,3 +380,15 @@ def test_summary_total_pnl_scales_by_real_quantity(api_client, db_session):
 
     # Real dollar pnl: 100*0.5 + -20*2 = 50 - 40 = 10, not the raw sum 80.
     assert body["performance"]["total_pnl"] == 10.0
+
+
+def test_summary_scoped_to_owning_user(api_client, db_session):
+    _make_paper_order(db_session, status=FILLED, user_id=1)
+    _make_paper_order(db_session, status=FILLED, user_id=2)
+    _make_paper_trade(db_session, status=OPEN, user_id=1)
+    _make_paper_trade(db_session, position_id=2, order_id=2, status=OPEN, user_id=2)
+
+    resp = api_client.get("/paper/summary")
+    body = resp.json()
+    assert body["orders"]["total"] == 1
+    assert body["trades"]["total"] == 1
