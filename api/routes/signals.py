@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
+from sqlalchemy import or_
 
+from api.dependencies import require_user_id
 from database import Signal, get_session
 
 router = APIRouter()
@@ -16,11 +18,13 @@ def _decision(confidence: float) -> str:
 
 
 @router.get("/signals")
-def get_signals(limit: int = Query(50, ge=1, le=200)):
+def get_signals(request: Request, limit: int = Query(50, ge=1, le=200)):
+    user_id = require_user_id(request)
     session = get_session()
     try:
         rows = (
             session.query(Signal)
+            .filter(or_(Signal.user_id == user_id, Signal.user_id.is_(None)))
             .order_by(Signal.created_at.desc())
             .limit(limit)
             .all()

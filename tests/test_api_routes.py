@@ -493,6 +493,38 @@ def test_get_signals_with_data(api_client, db_session):
     assert data[0]["status"] == "OPEN"
 
 
+def test_get_signals_scoped_to_owning_user(api_client, db_session):
+    # api_client is authenticated as user_id=1 (see conftest.py's api_client fixture)
+    _make_signal(db_session, symbol="BTCUSDT", user_id=1)
+    _make_signal(db_session, symbol="ETHUSDT", user_id=2)
+
+    resp = api_client.get("/signals")
+    assert resp.status_code == 200
+    symbols = {row["symbol"] for row in resp.json()}
+    assert symbols == {"BTCUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/signals", headers={"Authorization": f"Bearer {other_user_token}"})
+    assert resp2.status_code == 200
+    symbols2 = {row["symbol"] for row in resp2.json()}
+    assert symbols2 == {"ETHUSDT"}
+
+
+def test_get_signals_null_owner_visible_to_everyone(api_client, db_session):
+    # Background-job-created signals (the scanner) have no owning user --
+    # NULL user_id, must stay visible to every authenticated user.
+    _make_signal(db_session, symbol="SOLUSDT", user_id=None)
+
+    resp = api_client.get("/signals")
+    assert resp.status_code == 200
+    assert {row["symbol"] for row in resp.json()} == {"SOLUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/signals", headers={"Authorization": f"Bearer {other_user_token}"})
+    assert resp2.status_code == 200
+    assert {row["symbol"] for row in resp2.json()} == {"SOLUSDT"}
+
+
 # ─── Risk (functional) ────────────────────────────────────────────────────
 
 

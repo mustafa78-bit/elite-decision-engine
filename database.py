@@ -60,6 +60,16 @@ class Signal(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # Nullable: signals created by background jobs (the scanner, via
+    # services/signal_generator.py) have no request context and thus no
+    # owning user to stamp -- callers filter with
+    # or_(Signal.user_id == user_id, Signal.user_id.is_(None)), same
+    # NULL-fallback idiom as services/notification_service.py's
+    # _owned_by(). No ForeignKey, matching every other user_id column in
+    # this file (Notification, UserSettings, Watchlist) -- established
+    # convention here, unlike Trade.signal_id's real FK.
+    user_id = Column(Integer, nullable=True, index=True)
+
     symbol = Column(String(20), nullable=False, index=True)
     side = Column(String(10))
     timeframe = Column(String(10))
