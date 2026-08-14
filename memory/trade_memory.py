@@ -45,6 +45,7 @@ class TradeMemory:
         conditions: dict[str, Any] | None = None,
         tags: list[str] | None = None,
         trade_id: int | None = None,
+        user_id: int | None = None,
         session: Any | None = None,
     ) -> int:
         """Record a new trade in memory (and journal)."""
@@ -61,6 +62,7 @@ class TradeMemory:
                     "tags": tags or [],
                 }),
                 trade_id=trade_id,
+                user_id=user_id,
             )
             local_session.add(entry)
             if session is None:

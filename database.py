@@ -252,6 +252,13 @@ class JournalEntry(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # Nullable: entries created via TradeMemory.record() as a side effect of
+    # PaperExecutor.open_trade() inherit the trade's user_id (may itself be
+    # None for a manual paper trade with no signal); entries created
+    # directly via POST /journal always have a real user_id stamped by the
+    # route. Same NULL-fallback filter convention as Signal/Trade.
+    user_id = Column(Integer, nullable=True, index=True)
+
     symbol = Column(String(20), index=True)
     side = Column(String(10))
     entry_price = Column(Float)

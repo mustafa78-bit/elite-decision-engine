@@ -174,6 +174,7 @@ class PaperExecutor:
                     entry_price=trade.entry,
                     entry_reason=entry_reason,
                     trade_id=trade.id,
+                    user_id=trade.user_id,
                     session=session,
                 )
             except Exception as e:
