@@ -81,6 +81,7 @@ class TradeEngine:
 
             trade = Trade(
                 signal_id=signal.id,
+                user_id=signal.user_id,
                 symbol=signal.symbol,
                 side=signal.side,
                 entry=levels["entry"],

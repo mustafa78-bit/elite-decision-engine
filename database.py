@@ -112,6 +112,12 @@ class Trade(Base):
 
     signal_id = Column(Integer, ForeignKey("signals.id"), nullable=True)
 
+    # Nullable, no ForeignKey -- same convention as Signal.user_id. Stamped
+    # from the parent Signal.user_id at creation time where available (see
+    # execution/paper_executor.py), left None otherwise (NULL-fallback
+    # filter, same idiom as Signal/Notification).
+    user_id = Column(Integer, nullable=True, index=True)
+
     symbol = Column(String(20))
     side = Column(String(10))
 

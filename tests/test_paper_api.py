@@ -7,6 +7,7 @@ Uses ``api_client`` (which patches ``database.get_session``) and
 import logging
 from datetime import datetime, timezone
 
+from auth.jwt import create_access_token
 from database import (
     CANCEL,
     CLOSED,
@@ -262,6 +263,32 @@ def test_list_positions_filter_by_status(api_client, db_session):
     body = resp.json()
     assert body["total"] == 1
     assert body["positions"][0]["status"] == "OPEN"
+
+
+def test_list_positions_scoped_to_owning_user(api_client, db_session):
+    # api_client is authenticated as user_id=1 (see conftest.py's api_client fixture)
+    _make_trade(db_session, symbol="BTCUSDT", user_id=1)
+    _make_trade(db_session, signal_id=2, symbol="ETHUSDT", user_id=2)
+
+    resp = api_client.get("/paper/positions")
+    symbols = {p["symbol"] for p in resp.json()["positions"]}
+    assert symbols == {"BTCUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/paper/positions", headers={"Authorization": f"Bearer {other_user_token}"})
+    symbols2 = {p["symbol"] for p in resp2.json()["positions"]}
+    assert symbols2 == {"ETHUSDT"}
+
+
+def test_list_positions_null_owner_visible_to_everyone(api_client, db_session):
+    _make_trade(db_session, symbol="SOLUSDT", user_id=None)
+
+    resp = api_client.get("/paper/positions")
+    assert {p["symbol"] for p in resp.json()["positions"]} == {"SOLUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/paper/positions", headers={"Authorization": f"Bearer {other_user_token}"})
+    assert {p["symbol"] for p in resp2.json()["positions"]} == {"SOLUSDT"}
 
 
 # ── GET /paper/summary ──────────────────────────────────────────────────────

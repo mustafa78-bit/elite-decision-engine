@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
+from sqlalchemy import or_
 
+from api.dependencies import require_user_id
 from database import (
     CANCEL,
     CLOSED,
@@ -201,6 +203,7 @@ def get_trade(trade_id: int):
 
 @router.get("/paper/positions")
 def list_positions(
+    request: Request,
     symbol: str | None = Query(None, min_length=1, max_length=20),
     status: str | None = Query(None, pattern="^(OPEN|TAKE_PROFIT|STOP_LOSS|CLOSED|CANCEL)$"),
     side: str | None = Query(None, pattern="^(LONG|SHORT)$"),
@@ -209,9 +212,10 @@ def list_positions(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        q = session.query(Trade)
+        q = session.query(Trade).filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
         q = _apply_filters(q, Trade, symbol, status, side, date_from, date_to)
         total = q.count()
         rows = q.order_by(Trade.created_at.desc()).offset(offset).limit(limit).all()
@@ -229,7 +233,8 @@ def list_positions(
 
 
 @router.get("/paper/summary")
-def get_paper_summary():
+def get_paper_summary(request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
         total_orders = session.query(PaperOrderModel).count()
@@ -243,8 +248,9 @@ def get_paper_summary():
             PaperTradeModel.status.in_({TAKE_PROFIT, STOP_LOSS, CLOSED}),
         ).count()
 
-        total_positions = session.query(Trade).count()
-        open_positions = session.query(Trade).filter(Trade.status == OPEN).count()
+        trade_scope = or_(Trade.user_id == user_id, Trade.user_id.is_(None))
+        total_positions = session.query(Trade).filter(trade_scope).count()
+        open_positions = session.query(Trade).filter(trade_scope, Trade.status == OPEN).count()
 
         winning_trades = session.query(PaperTradeModel).filter(
             PaperTradeModel.pnl.isnot(None),
