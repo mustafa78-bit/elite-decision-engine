@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
@@ -117,6 +118,28 @@ _background_tasks: set[asyncio.Task] = set()
 _ollo_service: Any | None = None
 
 
+def _on_task_done(task_name: str) -> Callable[[asyncio.Task], None]:
+    """Build a done-callback that logs a critical alert if `task_name`'s
+    background task dies from an unhandled exception. Each of the 6 tasks
+    started in lifespan() runs forever via its own `while True` loop with
+    per-iteration try/except -- this is a safety net for what those loops'
+    own except blocks can't catch (a bug in the except handler itself, an
+    exception outside the try, or a task like the Telegram bot that may not
+    have that wrapper at all). Without this, an unhandled exception in a
+    background task silently surfaces only as Python's default "Task
+    exception was never retrieved" warning at garbage-collection time.
+    """
+    def _callback(task: asyncio.Task) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            logger.critical(
+                "Background task '%s' died unexpectedly: %s", task_name, exc, exc_info=exc,
+            )
+    return _callback
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from logging_config import setup_logging
@@ -154,6 +177,7 @@ async def lifespan(app: FastAPI):
         bot_manager.set_event_loop(running_loop)
         if bot_manager.setup():
             bot_task = asyncio.create_task(bot_manager.start())
+            bot_task.add_done_callback(_on_task_done(f"Telegram bot '{bot_name}'"))
             _background_tasks.add(bot_task)
             started_bot_managers.append(bot_manager)
 
@@ -167,6 +191,7 @@ async def lifespan(app: FastAPI):
 
     if AUTO_TRADING_ENABLED:
         scan_task = asyncio.create_task(_scan_and_generate_signals())
+        scan_task.add_done_callback(_on_task_done("Scan-and-signal task"))
         _background_tasks.add(scan_task)
 
         decision_engine = DecisionEngine(
@@ -177,6 +202,7 @@ async def lifespan(app: FastAPI):
             )
         )
         engine_task = asyncio.create_task(decision_engine.run())
+        engine_task.add_done_callback(_on_task_done("Decision engine"))
         _background_tasks.add(engine_task)
 
         logger.info(
@@ -185,12 +211,15 @@ async def lifespan(app: FastAPI):
         )
 
     task = asyncio.create_task(_periodic_broadcast())
+    task.add_done_callback(_on_task_done("Periodic broadcast"))
     _background_tasks.add(task)
 
     health_task = asyncio.create_task(_health_monitor_loop(shared_dispatcher))
+    health_task.add_done_callback(_on_task_done("Health monitor loop"))
     _background_tasks.add(health_task)
 
     news_task = asyncio.create_task(_news_alert_loop())
+    news_task.add_done_callback(_on_task_done("News alert loop"))
     _background_tasks.add(news_task)
 
     yield
