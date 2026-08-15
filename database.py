@@ -1,5 +1,6 @@
 import logging
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import (
     JSON,
@@ -17,7 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
-from config import DATABASE_URL
+from config import DATABASE_URL, MAX_SIGNAL_RETRIES, SIGNAL_RETRY_BACKOFF_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +96,14 @@ class Signal(Base):
     status = Column(String(30), default="OPEN")
 
     reason = Column(Text)
+
+    # Retry/backoff for transient processing failures (a network blip, a
+    # momentary DB error) in DecisionEngine.process_signal() -- distinct
+    # from a deliberate REJECTED verdict from the decision pipeline or risk
+    # manager, which never touches these columns. See
+    # SPRINT_JULES_SIGNAL_RETRY_BACKOFF.md for the full design rationale.
+    retry_count = Column(Integer, nullable=False, default=0)
+    next_retry_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(
         DateTime(timezone=True),
@@ -542,6 +551,61 @@ def reap_orphaned_processing_signals():
         session.rollback()
         logger.error("Failed to reap orphaned PROCESSING signals: %s", e)
         return 0
+
+    finally:
+        session.close()
+
+
+def schedule_signal_retry(signal_id) -> bool:
+    """On a transient processing failure (see
+    core/engine.py::DecisionEngine.process_signal()'s except block),
+    increment the signal's retry_count and either schedule a
+    backoff-delayed retry (status -> OPEN, next_retry_at set per
+    config.SIGNAL_RETRY_BACKOFF_SECONDS) or, once
+    config.MAX_SIGNAL_RETRIES is exhausted, leave the signal untouched for
+    the caller to mark REJECTED instead.
+
+    Deliberately does NOT apply to the deliberate REJECTED verdicts from
+    the decision pipeline or risk manager (execution/execution_loop.py) --
+    those are real business decisions, not transient failures, and never
+    call this function.
+
+    Returns True if a retry was scheduled, False if retries are already
+    exhausted (or the signal/session lookup failed) -- the caller should
+    fall back to update_signal_status(signal_id, "REJECTED") on False.
+    """
+    if signal_id is None:
+        logger.warning("schedule_signal_retry called with None signal_id")
+        return False
+
+    session = get_session()
+
+    try:
+        signal = session.query(Signal).filter(Signal.id == signal_id).first()
+
+        if not signal:
+            logger.warning("Signal %s not found for retry scheduling", signal_id)
+            return False
+
+        if signal.retry_count >= MAX_SIGNAL_RETRIES:
+            return False
+
+        signal.retry_count += 1
+        delay_index = min(signal.retry_count - 1, len(SIGNAL_RETRY_BACKOFF_SECONDS) - 1)
+        delay_seconds = SIGNAL_RETRY_BACKOFF_SECONDS[delay_index]
+        signal.next_retry_at = datetime.now(UTC) + timedelta(seconds=delay_seconds)
+        signal.status = "OPEN"
+        session.commit()
+        logger.info(
+            "Signal %s scheduled for retry %d/%d in %ds",
+            signal_id, signal.retry_count, MAX_SIGNAL_RETRIES, delay_seconds,
+        )
+        return True
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to schedule retry for signal %s: %s", signal_id, e)
+        return False
 
     finally:
         session.close()

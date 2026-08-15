@@ -120,6 +120,17 @@ assert HEALTH_CHECK_INTERVAL_SECONDS > 0, (
 )
 MIN_SCORE = int(os.getenv("MIN_SCORE", "85"))
 assert 0 <= MIN_SCORE <= 100, f"MIN_SCORE must be 0-100, got {MIN_SCORE}"
+
+MAX_SIGNAL_RETRIES = int(os.getenv("MAX_SIGNAL_RETRIES", "3"))
+assert MAX_SIGNAL_RETRIES >= 0, f"MAX_SIGNAL_RETRIES must be >= 0, got {MAX_SIGNAL_RETRIES}"
+# Backoff delays (seconds) for signal-processing retry attempts 1/2/3+ -- a
+# transient failure (network blip, momentary DB error) in
+# DecisionEngine.process_signal() gets these increasing delays before
+# reprocessing, rather than an immediate retry on the next CHECK_INTERVAL
+# tick. Deliberately much larger than CHECK_INTERVAL's default 10s so a
+# retry is a real wait, not effectively instant. The last entry is reused
+# for any attempt beyond the list's length.
+SIGNAL_RETRY_BACKOFF_SECONDS = [30, 120, 300]
 MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "3"))
 assert MAX_OPEN_TRADES >= 0, f"MAX_OPEN_TRADES must be >= 0, got {MAX_OPEN_TRADES}"
 MAX_EXPOSURE_PER_SYMBOL = float(os.getenv("MAX_EXPOSURE_PER_SYMBOL", "200000"))
