@@ -14,6 +14,8 @@ from datetime import datetime
 from statistics import mean, stdev
 from typing import Any
 
+from sqlalchemy import or_
+
 from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, Trade, get_session
 from database import PaperTrade as PaperTradeModel
@@ -50,20 +52,22 @@ class PerformanceEngine:
         self.initial_equity = initial_equity if initial_equity is not None else ACCOUNT_EQUITY
         self.risk_free_rate = risk_free_rate
 
-    def stats(self) -> PerformanceStats:
+    def stats(self, user_id: int | None = None) -> PerformanceStats:
         session = self.session_factory()
         try:
-            return self._compute(session)
+            return self._compute(session, user_id)
         finally:
             session.close()
 
-    def _compute(self, session: Any) -> PerformanceStats:
-        results = (
+    def _compute(self, session: Any, user_id: int | None = None) -> PerformanceStats:
+        query = (
             session.query(Trade, PaperTradeModel)
             .outerjoin(PaperTradeModel, PaperTradeModel.position_id == Trade.id)
             .filter(Trade.status.in_(FINAL_STATUSES))
-            .all()
         )
+        if user_id is not None:
+            query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+        results = query.all()
 
         if not results:
             return PerformanceStats()

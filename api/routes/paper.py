@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
+from sqlalchemy import or_
 
+from api.dependencies import require_user_id
 from database import (
     CANCEL,
     CLOSED,
@@ -119,6 +121,7 @@ _VALID_SIDES = frozenset({"LONG", "SHORT"})
 
 @router.get("/paper/orders")
 def list_orders(
+    request: Request,
     symbol: str | None = Query(None, min_length=1, max_length=20),
     status: str | None = Query(None, pattern="^(PENDING|FILLED|PARTIALLY_FILLED|CANCEL)$"),
     side: str | None = Query(None, pattern="^(LONG|SHORT)$"),
@@ -127,9 +130,12 @@ def list_orders(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        q = session.query(PaperOrderModel)
+        q = session.query(PaperOrderModel).filter(
+            or_(PaperOrderModel.user_id == user_id, PaperOrderModel.user_id.is_(None))
+        )
         q = _apply_filters(q, PaperOrderModel, symbol, status, side, date_from, date_to)
         total = q.count()
         rows = q.order_by(PaperOrderModel.created_at.desc()).offset(offset).limit(limit).all()
@@ -144,10 +150,18 @@ def list_orders(
 
 
 @router.get("/paper/orders/{order_id}")
-def get_order(order_id: int):
+def get_order(order_id: int, request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        order = session.query(PaperOrderModel).filter(PaperOrderModel.id == order_id).first()
+        order = (
+            session.query(PaperOrderModel)
+            .filter(
+                PaperOrderModel.id == order_id,
+                or_(PaperOrderModel.user_id == user_id, PaperOrderModel.user_id.is_(None)),
+            )
+            .first()
+        )
         if order is None:
             raise HTTPException(status_code=404, detail="Order not found")
         return _serialize_order(order)
@@ -160,6 +174,7 @@ def get_order(order_id: int):
 
 @router.get("/paper/trades")
 def list_trades(
+    request: Request,
     symbol: str | None = Query(None, min_length=1, max_length=20),
     status: str | None = Query(None, pattern="^(OPEN|TAKE_PROFIT|STOP_LOSS|CLOSED|CANCEL)$"),
     side: str | None = Query(None, pattern="^(LONG|SHORT)$"),
@@ -168,9 +183,12 @@ def list_trades(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        q = session.query(PaperTradeModel)
+        q = session.query(PaperTradeModel).filter(
+            or_(PaperTradeModel.user_id == user_id, PaperTradeModel.user_id.is_(None))
+        )
         q = _apply_filters(q, PaperTradeModel, symbol, status, side, date_from, date_to)
         total = q.count()
         rows = q.order_by(PaperTradeModel.created_at.desc()).offset(offset).limit(limit).all()
@@ -185,10 +203,18 @@ def list_trades(
 
 
 @router.get("/paper/trades/{trade_id}")
-def get_trade(trade_id: int):
+def get_trade(trade_id: int, request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        t = session.query(PaperTradeModel).filter(PaperTradeModel.id == trade_id).first()
+        t = (
+            session.query(PaperTradeModel)
+            .filter(
+                PaperTradeModel.id == trade_id,
+                or_(PaperTradeModel.user_id == user_id, PaperTradeModel.user_id.is_(None)),
+            )
+            .first()
+        )
         if t is None:
             raise HTTPException(status_code=404, detail="Trade not found")
         return _serialize_trade(t)
@@ -201,6 +227,7 @@ def get_trade(trade_id: int):
 
 @router.get("/paper/positions")
 def list_positions(
+    request: Request,
     symbol: str | None = Query(None, min_length=1, max_length=20),
     status: str | None = Query(None, pattern="^(OPEN|TAKE_PROFIT|STOP_LOSS|CLOSED|CANCEL)$"),
     side: str | None = Query(None, pattern="^(LONG|SHORT)$"),
@@ -209,9 +236,10 @@ def list_positions(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        q = session.query(Trade)
+        q = session.query(Trade).filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
         q = _apply_filters(q, Trade, symbol, status, side, date_from, date_to)
         total = q.count()
         rows = q.order_by(Trade.created_at.desc()).offset(offset).limit(limit).all()
@@ -229,35 +257,42 @@ def list_positions(
 
 
 @router.get("/paper/summary")
-def get_paper_summary():
+def get_paper_summary(request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        total_orders = session.query(PaperOrderModel).count()
-        pending_orders = session.query(PaperOrderModel).filter(PaperOrderModel.status == PENDING).count()
-        filled_orders = session.query(PaperOrderModel).filter(PaperOrderModel.status == FILLED).count()
-        cancelled_orders = session.query(PaperOrderModel).filter(PaperOrderModel.status == CANCEL).count()
+        order_scope = or_(PaperOrderModel.user_id == user_id, PaperOrderModel.user_id.is_(None))
+        total_orders = session.query(PaperOrderModel).filter(order_scope).count()
+        pending_orders = session.query(PaperOrderModel).filter(order_scope, PaperOrderModel.status == PENDING).count()
+        filled_orders = session.query(PaperOrderModel).filter(order_scope, PaperOrderModel.status == FILLED).count()
+        cancelled_orders = session.query(PaperOrderModel).filter(order_scope, PaperOrderModel.status == CANCEL).count()
 
-        total_trades = session.query(PaperTradeModel).count()
-        open_trades = session.query(PaperTradeModel).filter(PaperTradeModel.status == OPEN).count()
+        paper_trade_scope = or_(PaperTradeModel.user_id == user_id, PaperTradeModel.user_id.is_(None))
+        total_trades = session.query(PaperTradeModel).filter(paper_trade_scope).count()
+        open_trades = session.query(PaperTradeModel).filter(paper_trade_scope, PaperTradeModel.status == OPEN).count()
         closed_trades = session.query(PaperTradeModel).filter(
+            paper_trade_scope,
             PaperTradeModel.status.in_({TAKE_PROFIT, STOP_LOSS, CLOSED}),
         ).count()
 
-        total_positions = session.query(Trade).count()
-        open_positions = session.query(Trade).filter(Trade.status == OPEN).count()
+        trade_scope = or_(Trade.user_id == user_id, Trade.user_id.is_(None))
+        total_positions = session.query(Trade).filter(trade_scope).count()
+        open_positions = session.query(Trade).filter(trade_scope, Trade.status == OPEN).count()
 
         winning_trades = session.query(PaperTradeModel).filter(
+            paper_trade_scope,
             PaperTradeModel.pnl.isnot(None),
             PaperTradeModel.pnl > 0,
         ).count()
         losing_trades = session.query(PaperTradeModel).filter(
+            paper_trade_scope,
             PaperTradeModel.pnl.isnot(None),
             PaperTradeModel.pnl < 0,
         ).count()
         total_wl = winning_trades + losing_trades
         total_pnl = (
             session.query(PaperTradeModel)
-            .filter(PaperTradeModel.pnl.isnot(None))
+            .filter(paper_trade_scope, PaperTradeModel.pnl.isnot(None))
             .with_entities(PaperTradeModel.pnl, PaperTradeModel.quantity)
             .all()
         )

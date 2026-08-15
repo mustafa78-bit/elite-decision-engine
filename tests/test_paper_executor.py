@@ -465,6 +465,38 @@ class TestPaperExecutorTradeMemoryIntegration:
         assert entry.entry_reason == "Manual paper trade"
         assert entry.result == "PENDING"
 
+    def test_open_trade_stamps_user_id_from_parent_signal(self, db_session, session_factory, monkeypatch):
+        from database import Signal
+        signal = Signal(symbol="ETHUSDT", side="LONG", timeframe="1h", status="OPEN", user_id=9)
+        db_session.add(signal)
+        db_session.flush()
+
+        executor = PaperExecutor(collector=_MockCollector(), session_factory=session_factory)
+        trade = executor.open_trade(
+            symbol="ETHUSDT",
+            side="LONG",
+            entry=50000.0,
+            stop_loss=49000.0,
+            take_profit=51000.0,
+            signal_id=signal.id,
+        )
+
+        assert trade is not None
+        assert trade.user_id == 9
+
+    def test_open_trade_without_signal_leaves_user_id_none(self, session_factory, monkeypatch):
+        executor = PaperExecutor(collector=_MockCollector(), session_factory=session_factory)
+        trade = executor.open_trade(
+            symbol="BTCUSDT",
+            side="LONG",
+            entry=50000.0,
+            stop_loss=49000.0,
+            take_profit=51000.0,
+        )
+
+        assert trade is not None
+        assert trade.user_id is None
+
     def test_close_trade_updates_journal_entry(self, db_session, session_factory, monkeypatch):
         from database import JournalEntry, PaperTrade, Signal
         monkeypatch.setattr(

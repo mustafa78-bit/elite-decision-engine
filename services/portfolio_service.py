@@ -5,6 +5,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
+from sqlalchemy import or_
+
 from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, PaperTrade, Trade, get_session
 from services.pnl import trade_dollar_pnl, trade_notional_exposure
@@ -18,49 +20,50 @@ class PortfolioService:
     def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
-    def _fetch_trades(self, session: Any) -> list[TradePair]:
-        return (
-            session.query(Trade, PaperTrade)
-            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
-            .all()
+    def _fetch_trades(self, session: Any, user_id: int | None = None) -> list[TradePair]:
+        query = session.query(Trade, PaperTrade).outerjoin(
+            PaperTrade, PaperTrade.position_id == Trade.id
         )
+        if user_id is not None:
+            query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+        return query.all()
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self, user_id: int | None = None) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            trades = self._fetch_trades(session)
+            trades = self._fetch_trades(session, user_id)
             return self._compute_summary(trades)
         finally:
             session.close()
 
-    def distribution(self) -> dict[str, Any]:
+    def distribution(self, user_id: int | None = None) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            trades = self._fetch_trades(session)
+            trades = self._fetch_trades(session, user_id)
             return self._compute_distribution(trades)
         finally:
             session.close()
 
-    def performance(self) -> dict[str, Any]:
+    def performance(self, user_id: int | None = None) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            trades = self._fetch_trades(session)
+            trades = self._fetch_trades(session, user_id)
             return self._compute_performance(trades)
         finally:
             session.close()
 
-    def risk_metrics(self) -> dict[str, Any]:
+    def risk_metrics(self, user_id: int | None = None) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            trades = self._fetch_trades(session)
+            trades = self._fetch_trades(session, user_id)
             return self._compute_risk(trades)
         finally:
             session.close()
 
-    def full_portfolio(self) -> dict[str, Any]:
+    def full_portfolio(self, user_id: int | None = None) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            trades = self._fetch_trades(session)
+            trades = self._fetch_trades(session, user_id)
             return {
                 "summary": self._compute_summary(trades),
                 "distribution": self._compute_distribution(trades),

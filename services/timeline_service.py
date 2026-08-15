@@ -5,6 +5,8 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from sqlalchemy import or_
+
 from database import PaperTrade, Signal, Trade, get_session
 
 logger = logging.getLogger(__name__)
@@ -19,10 +21,15 @@ class TimelineService:
     def __init__(self, session_factory: Callable[[], Any] | None = None):
         self.session_factory = session_factory or get_session
 
-    def signal_timeline(self, signal_id: int) -> list[dict[str, Any]]:
+    def signal_timeline(self, signal_id: int, user_id: int | None = None) -> list[dict[str, Any]]:
         session = self.session_factory()
         try:
-            signal = session.query(Signal).filter(Signal.id == signal_id).first()
+            signal_query = session.query(Signal).filter(Signal.id == signal_id)
+            if user_id is not None:
+                signal_query = signal_query.filter(
+                    or_(Signal.user_id == user_id, Signal.user_id.is_(None))
+                )
+            signal = signal_query.first()
             if not signal:
                 return []
             events = []
@@ -49,10 +56,15 @@ class TimelineService:
         finally:
             session.close()
 
-    def trade_timeline(self, trade_id: int) -> list[dict[str, Any]]:
+    def trade_timeline(self, trade_id: int, user_id: int | None = None) -> list[dict[str, Any]]:
         session = self.session_factory()
         try:
-            trade = session.query(Trade).filter(Trade.id == trade_id).first()
+            trade_query = session.query(Trade).filter(Trade.id == trade_id)
+            if user_id is not None:
+                trade_query = trade_query.filter(
+                    or_(Trade.user_id == user_id, Trade.user_id.is_(None))
+                )
+            trade = trade_query.first()
             if not trade:
                 return []
             events = []
@@ -80,11 +92,17 @@ class TimelineService:
         self, limit: int = 50, offset: int = 0,
         event_type: str | None = None,
         symbol: str | None = None,
+        user_id: int | None = None,
     ) -> dict[str, Any]:
         session = self.session_factory()
         try:
             events: list[dict[str, Any]] = []
-            signals = session.query(Signal).order_by(Signal.created_at.desc()).limit(limit).all()
+            signal_query = session.query(Signal)
+            if user_id is not None:
+                signal_query = signal_query.filter(
+                    or_(Signal.user_id == user_id, Signal.user_id.is_(None))
+                )
+            signals = signal_query.order_by(Signal.created_at.desc()).limit(limit).all()
             for s in signals:
                 if symbol and s.symbol != symbol:
                     continue
@@ -96,13 +114,12 @@ class TimelineService:
                     "symbol": s.symbol, "side": s.side, "status": s.status,
                     "timestamp": s.created_at.isoformat() if s.created_at else None,
                 })
-            trade_rows = (
-                session.query(Trade, PaperTrade)
-                .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
-                .order_by(Trade.created_at.desc())
-                .limit(limit)
-                .all()
+            trade_query = session.query(Trade, PaperTrade).outerjoin(
+                PaperTrade, PaperTrade.position_id == Trade.id
             )
+            if user_id is not None:
+                trade_query = trade_query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+            trade_rows = trade_query.order_by(Trade.created_at.desc()).limit(limit).all()
             for t, pt in trade_rows:
                 if symbol and t.symbol != symbol:
                     continue

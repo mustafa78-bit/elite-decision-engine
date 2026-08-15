@@ -1,9 +1,22 @@
 """Tests for trade memory system."""
 
+from database import JournalEntry
 from memory.trade_memory import TradeMemory, TradeMemoryEntry
 
 
 class TestTradeMemory:
+    def test_record_stamps_user_id(self, session_factory, db_session):
+        mem = TradeMemory(session_factory=session_factory)
+        mid = mem.record("BTC", "LONG", 50000.0, "Bullish breakout", user_id=5)
+        entry = db_session.query(JournalEntry).filter(JournalEntry.id == mid).first()
+        assert entry.user_id == 5
+
+    def test_record_without_user_id_leaves_it_none(self, session_factory, db_session):
+        mem = TradeMemory(session_factory=session_factory)
+        mid = mem.record("BTC", "LONG", 50000.0, "Manual trade, no signal")
+        entry = db_session.query(JournalEntry).filter(JournalEntry.id == mid).first()
+        assert entry.user_id is None
+
     def test_record(self, session_factory):
         mem = TradeMemory(session_factory=session_factory)
         mid = mem.record("BTC", "LONG", 50000.0, "Bullish breakout", conditions={"rsi": 65, "trend": "BULLISH"})

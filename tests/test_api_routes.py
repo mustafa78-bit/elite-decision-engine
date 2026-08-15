@@ -177,6 +177,20 @@ def test_get_paper_trading_with_trades(api_client, db_session):
     assert body["performance"]["total_pnl"] == 500.0
 
 
+def test_get_paper_trading_scoped_to_owning_user(api_client, db_session):
+    _make_trade(db_session, signal_id=1, symbol="BTCUSDT", status="OPEN", user_id=1)
+    _make_trade(db_session, signal_id=2, symbol="ETHUSDT", status="OPEN", user_id=2)
+
+    resp = api_client.get("/paper-trading")
+    symbols = {t["symbol"] for t in resp.json()["open"]}
+    assert symbols == {"BTCUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/paper-trading", headers={"Authorization": f"Bearer {other_user_token}"})
+    symbols2 = {t["symbol"] for t in resp2.json()["open"]}
+    assert symbols2 == {"ETHUSDT"}
+
+
 def test_get_paper_trading_mixed_quantities(api_client, db_session):
     from database import PaperTrade
 
@@ -375,6 +389,52 @@ def test_delete_journal_missing(api_client):
     assert "not found" in resp.json().get("detail", "").lower()
 
 
+def test_another_user_cannot_read_update_or_delete_this_journal_entry(api_client):
+    # api_client is authenticated as user_id=1 (see conftest.py's api_client fixture)
+    payload = {"symbol": "BTCUSDT", "side": "LONG", "entry_price": 50000.0}
+    create_resp = api_client.post("/journal", json=payload)
+    entry_id = create_resp.json()["id"]
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    headers = {"Authorization": f"Bearer {other_user_token}"}
+
+    # GET /journal is list-only (no get-by-id) -- prove it via the list, not
+    # a per-id read.
+    other_list = api_client.get("/journal", headers=headers)
+    assert other_list.status_code == 200
+    assert entry_id not in {row["id"] for row in other_list.json()}
+
+    assert api_client.put(
+        f"/journal/{entry_id}", json={"result": "WIN"}, headers=headers
+    ).status_code == 404
+    assert api_client.delete(f"/journal/{entry_id}", headers=headers).status_code == 404
+
+    # Confirm it's genuinely untouched, not silently modified.
+    still_there = api_client.get("/journal").json()
+    assert len(still_there) == 1
+    assert still_there[0]["id"] == entry_id
+    assert still_there[0]["result"] == "PENDING"
+
+
+def test_journal_entry_with_no_owner_visible_and_editable_by_everyone(api_client, db_session):
+    # TradeMemory.record() creates JournalEntry rows as a side effect of
+    # opening a paper trade with no signal (no owning user to inherit) --
+    # these must stay visible/editable by every authenticated user, same
+    # NULL-fallback contract as Signal/Trade.
+    entry = JournalEntry(symbol="ETHUSDT", side="LONG", entry_price=3000.0, user_id=None)
+    db_session.add(entry)
+    db_session.flush()
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    headers = {"Authorization": f"Bearer {other_user_token}"}
+
+    resp = api_client.get("/journal", headers=headers)
+    assert entry.id in {row["id"] for row in resp.json()}
+
+    update_resp = api_client.put(f"/journal/{entry.id}", json={"result": "WIN"}, headers=headers)
+    assert update_resp.status_code == 200
+
+
 # ─── Backtest ──────────────────────────────────────────────────────────────
 
 
@@ -491,6 +551,38 @@ def test_get_signals_with_data(api_client, db_session):
     assert data[0]["confidence"] == 85.0
     assert data[0]["decision"] == "APPROVE"
     assert data[0]["status"] == "OPEN"
+
+
+def test_get_signals_scoped_to_owning_user(api_client, db_session):
+    # api_client is authenticated as user_id=1 (see conftest.py's api_client fixture)
+    _make_signal(db_session, symbol="BTCUSDT", user_id=1)
+    _make_signal(db_session, symbol="ETHUSDT", user_id=2)
+
+    resp = api_client.get("/signals")
+    assert resp.status_code == 200
+    symbols = {row["symbol"] for row in resp.json()}
+    assert symbols == {"BTCUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/signals", headers={"Authorization": f"Bearer {other_user_token}"})
+    assert resp2.status_code == 200
+    symbols2 = {row["symbol"] for row in resp2.json()}
+    assert symbols2 == {"ETHUSDT"}
+
+
+def test_get_signals_null_owner_visible_to_everyone(api_client, db_session):
+    # Background-job-created signals (the scanner) have no owning user --
+    # NULL user_id, must stay visible to every authenticated user.
+    _make_signal(db_session, symbol="SOLUSDT", user_id=None)
+
+    resp = api_client.get("/signals")
+    assert resp.status_code == 200
+    assert {row["symbol"] for row in resp.json()} == {"SOLUSDT"}
+
+    other_user_token = create_access_token({"sub": "2", "username": "other"})
+    resp2 = api_client.get("/signals", headers={"Authorization": f"Bearer {other_user_token}"})
+    assert resp2.status_code == 200
+    assert {row["symbol"] for row in resp2.json()} == {"SOLUSDT"}
 
 
 # ─── Risk (functional) ────────────────────────────────────────────────────

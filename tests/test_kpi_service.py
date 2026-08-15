@@ -179,3 +179,27 @@ def test_kpi_service_profit_factor_sharpe_drawdown(db_session):
     # 4. Loss (-200): running = 100, peak = 300, dd = 200.
     # Max DD should be 200.0.
     assert kpi_map["Max Drawdown"].value == 200.0
+
+
+def test_kpi_service_scoped_to_owning_user(db_session, session_factory):
+    now = datetime.now(UTC)
+    db_session.add(Trade(
+        symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
+        status="TP_HIT", pnl=100.0, created_at=now, user_id=1,
+    ))
+    db_session.add(Trade(
+        symbol="ETHUSDT", side="LONG", entry=3000, stop=2900,
+        status="TP_HIT", pnl=50.0, created_at=now, user_id=2,
+    ))
+    db_session.flush()
+
+    # get_kpis() closes the session it's given -- use session_factory (fresh
+    # Session per call, same underlying test transaction) rather than a
+    # single shared db_session, so the second call below isn't operating on
+    # an already-closed session.
+    svc = KPIService(session_factory=session_factory)
+    kpis_user1 = {k.name: k for k in svc.get_kpis(user_id=1)}
+    assert kpis_user1["Total PnL"].value == 100.0
+
+    kpis_user2 = {k.name: k for k in svc.get_kpis(user_id=2)}
+    assert kpis_user2["Total PnL"].value == 50.0

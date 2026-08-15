@@ -117,8 +117,16 @@ class PaperExecutor:
                 self.logger.info("Duplicate paper position skipped: %s %s", symbol, side)
                 return None
 
+            owning_user_id = None
+            if request.signal_id is not None:
+                from database import Signal
+                owning_user_id = (
+                    session.query(Signal.user_id).filter(Signal.id == request.signal_id).scalar()
+                )
+
             trade = Trade(
                 signal_id=request.signal_id,
+                user_id=owning_user_id,
                 symbol=symbol,
                 side=side,
                 entry=float(request.entry),
@@ -166,6 +174,7 @@ class PaperExecutor:
                     entry_price=trade.entry,
                     entry_reason=entry_reason,
                     trade_id=trade.id,
+                    user_id=trade.user_id,
                     session=session,
                 )
             except Exception as e:

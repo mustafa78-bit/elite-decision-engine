@@ -1,9 +1,11 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
+from sqlalchemy import or_
 
+from api.dependencies import require_user_id
 from database import JournalEntry, get_session
 
 logger = logging.getLogger(__name__)
@@ -35,10 +37,17 @@ class JournalUpdate(BaseModel):
 
 
 @router.get("/journal")
-def list_journal(limit: int = Query(100, ge=1, le=500)):
+def list_journal(request: Request, limit: int = Query(100, ge=1, le=500)):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        rows = session.query(JournalEntry).order_by(JournalEntry.created_at.desc()).limit(limit).all()
+        rows = (
+            session.query(JournalEntry)
+            .filter(or_(JournalEntry.user_id == user_id, JournalEntry.user_id.is_(None)))
+            .order_by(JournalEntry.created_at.desc())
+            .limit(limit)
+            .all()
+        )
     finally:
         session.close()
 
@@ -65,7 +74,8 @@ def list_journal(limit: int = Query(100, ge=1, le=500)):
 
 
 @router.post("/journal")
-def create_journal(body: JournalCreate):
+def create_journal(body: JournalCreate, request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
         entry = JournalEntry(
@@ -82,6 +92,7 @@ def create_journal(body: JournalCreate):
             pnl=body.pnl,
             signal_id=body.signal_id,
             trade_id=body.trade_id,
+            user_id=user_id,
         )
         session.add(entry)
         session.commit()
@@ -95,10 +106,18 @@ def create_journal(body: JournalCreate):
 
 
 @router.put("/journal/{entry_id}")
-def update_journal(entry_id: int, body: JournalUpdate):
+def update_journal(entry_id: int, body: JournalUpdate, request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        entry = session.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+        entry = (
+            session.query(JournalEntry)
+            .filter(
+                JournalEntry.id == entry_id,
+                or_(JournalEntry.user_id == user_id, JournalEntry.user_id.is_(None)),
+            )
+            .first()
+        )
         if not entry:
             raise HTTPException(status_code=404, detail="Entry not found")
 
@@ -126,10 +145,18 @@ def update_journal(entry_id: int, body: JournalUpdate):
 
 
 @router.delete("/journal/{entry_id}")
-def delete_journal(entry_id: int):
+def delete_journal(entry_id: int, request: Request):
+    user_id = require_user_id(request)
     session = get_session()
     try:
-        entry = session.query(JournalEntry).filter(JournalEntry.id == entry_id).first()
+        entry = (
+            session.query(JournalEntry)
+            .filter(
+                JournalEntry.id == entry_id,
+                or_(JournalEntry.user_id == user_id, JournalEntry.user_id.is_(None)),
+            )
+            .first()
+        )
         if not entry:
             raise HTTPException(status_code=404, detail="Entry not found")
 

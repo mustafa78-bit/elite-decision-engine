@@ -5,6 +5,8 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from sqlalchemy import or_
+
 from config import ACCOUNT_EQUITY
 from database import (
     CANCEL,
@@ -40,10 +42,11 @@ class PortfolioEngine:
     def snapshot(
         self,
         current_prices: dict[str, float] | None = None,
+        user_id: int | None = None,
     ) -> PortfolioSnapshot:
         session = self.session_factory()
         try:
-            return self._compute(session, current_prices or {})
+            return self._compute(session, current_prices or {}, user_id)
         finally:
             session.close()
 
@@ -51,6 +54,7 @@ class PortfolioEngine:
         self,
         session: Any,
         current_prices: dict[str, float],
+        user_id: int | None = None,
     ) -> PortfolioSnapshot:
         # Trade.status is the real source of truth for open/closed -- the
         # matching PaperTrade row's own .status is never actually updated by
@@ -61,11 +65,12 @@ class PortfolioEngine:
         # permanently OPEN. PaperTrade is only used below for its real
         # quantity, via the same outer join the already-fixed root
         # portfolio_engine.py uses.
-        results = (
-            session.query(Trade, PaperTradeModel)
-            .outerjoin(PaperTradeModel, PaperTradeModel.position_id == Trade.id)
-            .all()
+        query = session.query(Trade, PaperTradeModel).outerjoin(
+            PaperTradeModel, PaperTradeModel.position_id == Trade.id
         )
+        if user_id is not None:
+            query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
+        results = query.all()
         open_pairs = [(t, pt) for t, pt in results if t.status == OPEN]
         closed_pairs = [(t, pt) for t, pt in results if t.status in _TRADE_TERMINAL_STATUSES]
 

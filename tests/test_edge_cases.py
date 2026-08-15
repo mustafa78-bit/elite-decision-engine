@@ -212,6 +212,21 @@ class TestTradeEngineEdgeCases:
         assert trade is not None
         assert trade.status == "OPEN"
 
+    def test_create_trade_stamps_user_id_from_parent_signal(self, db_session, monkeypatch):
+        from database import Signal
+        signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN", user_id=7)
+        db_session.add(signal)
+        db_session.flush()
+
+        monkeypatch.setattr(
+            "execution.trade_engine.NotificationDispatcher.emit",
+            lambda *a, **kw: None,
+        )
+
+        trade = TradeEngine().create_trade(signal=signal, entry=50000.0, atr=100.0)
+        assert trade is not None
+        assert trade.user_id == 7
+
     def test_create_trade_negative_atr(self, db_session, monkeypatch):
         from database import Signal
         signal = Signal(symbol="BTCUSDT", side="LONG", timeframe="1h", status="OPEN")

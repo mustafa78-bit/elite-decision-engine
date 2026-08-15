@@ -60,6 +60,16 @@ class Signal(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # Nullable: signals created by background jobs (the scanner, via
+    # services/signal_generator.py) have no request context and thus no
+    # owning user to stamp -- callers filter with
+    # or_(Signal.user_id == user_id, Signal.user_id.is_(None)), same
+    # NULL-fallback idiom as services/notification_service.py's
+    # _owned_by(). No ForeignKey, matching every other user_id column in
+    # this file (Notification, UserSettings, Watchlist) -- established
+    # convention here, unlike Trade.signal_id's real FK.
+    user_id = Column(Integer, nullable=True, index=True)
+
     symbol = Column(String(20), nullable=False, index=True)
     side = Column(String(10))
     timeframe = Column(String(10))
@@ -101,6 +111,12 @@ class Trade(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     signal_id = Column(Integer, ForeignKey("signals.id"), nullable=True)
+
+    # Nullable, no ForeignKey -- same convention as Signal.user_id. Stamped
+    # from the parent Signal.user_id at creation time where available (see
+    # execution/paper_executor.py), left None otherwise (NULL-fallback
+    # filter, same idiom as Signal/Notification).
+    user_id = Column(Integer, nullable=True, index=True)
 
     symbol = Column(String(20))
     side = Column(String(10))
@@ -236,6 +252,13 @@ class JournalEntry(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # Nullable: entries created via TradeMemory.record() as a side effect of
+    # PaperExecutor.open_trade() inherit the trade's user_id (may itself be
+    # None for a manual paper trade with no signal); entries created
+    # directly via POST /journal always have a real user_id stamped by the
+    # route. Same NULL-fallback filter convention as Signal/Trade.
+    user_id = Column(Integer, nullable=True, index=True)
+
     symbol = Column(String(20), index=True)
     side = Column(String(10))
     entry_price = Column(Float)
@@ -268,6 +291,8 @@ class PaperOrder(Base):
     __tablename__ = "paper_orders"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Nullable, no ForeignKey -- same convention as Signal/Trade.user_id.
+    user_id = Column(Integer, nullable=True, index=True)
     symbol = Column(String(20), nullable=False)
     side = Column(String(10), nullable=False)
     order_type = Column(String(20), default="MARKET")
@@ -290,6 +315,8 @@ class PaperTrade(Base):
     __tablename__ = "paper_trades"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Nullable, no ForeignKey -- same convention as Signal/Trade.user_id.
+    user_id = Column(Integer, nullable=True, index=True)
     position_id = Column(Integer, nullable=False)
     order_id = Column(Integer, nullable=True)
     symbol = Column(String(20), nullable=False)
