@@ -156,6 +156,15 @@ async def lifespan(app: FastAPI):
     import database
     database.run_migrations()
 
+    # Recover Signal rows orphaned in PROCESSING status by a prior process
+    # crash (see database.reap_orphaned_processing_signals docstring). Runs
+    # unconditionally -- the orphaned rows exist independent of whether
+    # AUTO_TRADING_ENABLED is on, and must run before the scan/decision-engine
+    # loops below start touching signals.
+    recovered = database.reap_orphaned_processing_signals()
+    if recovered > 0:
+        logger.info("Recovered %d orphaned PROCESSING signal(s) on startup", recovered)
+
     # Initialize OLLO Service
     global _ollo_service
     try:

@@ -515,3 +515,33 @@ def update_signal_status(signal_id, new_status):
 
     finally:
         session.close()
+
+
+def reap_orphaned_processing_signals():
+    """Reset any Signal stuck in PROCESSING back to OPEN so it gets picked
+    up again. PROCESSING should only ever be a sub-millisecond transient
+    state within a single DecisionEngine.process_signal() call (see
+    core/engine.py) -- if any row is still PROCESSING when a fresh process
+    starts, the previous process crashed mid-execution and orphaned it.
+    Meant to be called once, at application startup. Returns the number of
+    rows recovered.
+    """
+    session = get_session()
+
+    try:
+        orphaned = session.query(Signal).filter(Signal.status == "PROCESSING").all()
+        count = len(orphaned)
+
+        for signal in orphaned:
+            signal.status = "OPEN"
+
+        session.commit()
+        return count
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to reap orphaned PROCESSING signals: %s", e)
+        return 0
+
+    finally:
+        session.close()
