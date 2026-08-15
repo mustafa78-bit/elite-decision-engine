@@ -23,7 +23,10 @@ from execution.paper_executor import PaperExecutor
 from execution.pipeline import DecisionPipeline
 from risk_manager import RiskManager
 from scanner.models import Opportunity
+from scoring.scoring_engine import ScoringEngine
 from services.signal_generator import generate_signals
+from simulator.models import ScenarioType
+from simulator.scenarios import generate_scenario_data
 
 
 class MockCollector:
@@ -262,3 +265,93 @@ class TestAutomationBadSignalIsolation:
         )
         assert paper_order is not None
         assert paper_order.status == "FILLED"
+
+
+class TestAutomationRealScoring:
+    """Exercises the full automation chain with the REAL ScoringEngine +
+    ConfidenceEngine, unlike every other test class in this file which
+    injects a hand-rolled fixed-score fake. See
+    SPRINT_JULES_AUTOMATION_E2E_REAL_SCORING.md for the full design
+    rationale, in particular why market.provider.multi.MultiProvider.get_ohlcv
+    is the correct single mock boundary: ScoringEngine's internal
+    BTCHealth()/MTFEngine() each construct their own MultiProvider() with
+    no injection point, and ScoringEngine.score() silently returns a fixed
+    fallback dict (no "entry" key) on ANY market-data failure -- an
+    incorrectly-mocked test would pass fallback values without ever
+    failing loudly.
+
+    Both scenarios below reuse the exact same BULL_RUN fixture (a real,
+    seeded random-walk uptrend from simulator/scenarios.py, 200 candles so
+    EMA200 is meaningful) -- only the signal's side differs, which is what
+    proves the real scoring math is genuinely direction-sensitive rather
+    than a static return.
+    """
+
+    def test_uptrend_long_signal_is_genuinely_approved_and_executed(
+        self, db_session, session_factory, monkeypatch,
+    ):
+        fixture_df = generate_scenario_data(
+            ScenarioType.BULL_RUN, symbol="BTC", timeframe="1h", num_candles=200,
+        )
+        monkeypatch.setattr(
+            "market.provider.multi.MultiProvider.get_ohlcv",
+            lambda self, **kwargs: fixture_df,
+        )
+
+        opp = _make_opportunity("BTCUSDT", "LONG")
+        generate_signals([opp], timeframe="1h", session=db_session)
+        signal = db_session.query(Signal).filter(Signal.symbol == "BTCUSDT").first()
+
+        # Guard: prove real computation ran, not the silent _score_fallback()
+        # path (which never includes an "entry" key at all).
+        scores = ScoringEngine().score(signal)
+        assert "entry" in scores and scores["entry"] > 0
+        assert scores["ema20"] > scores["ema50"] > scores["ema200"]
+
+        engine = _build_engine(session_factory, ScoringEngine())
+        for open_signal in engine.get_open_signals():
+            engine.process_signal(open_signal)
+
+        db_session.refresh(signal)
+        assert signal.status == "EXECUTED", (
+            f"expected a real uptrend + LONG signal to be approved, got {signal.status}"
+        )
+        # The scope here stops at "was a real Trade opened" -- fill/PnL
+        # lifecycle (TestAutomationHappyPath's concern) depends on
+        # _build_engine()'s unrelated fixed-price MockCollector for
+        # monitoring, which is deliberately a different price scale than
+        # this real-uptrend fixture's computed entry.
+        trade = db_session.query(Trade).filter(Trade.signal_id == signal.id).first()
+        assert trade is not None
+        assert trade.side == "LONG"
+
+    def test_uptrend_short_signal_genuinely_contradicts_trend_and_is_rejected(
+        self, db_session, session_factory, monkeypatch,
+    ):
+        fixture_df = generate_scenario_data(
+            ScenarioType.BULL_RUN, symbol="BTC", timeframe="1h", num_candles=200,
+        )
+        monkeypatch.setattr(
+            "market.provider.multi.MultiProvider.get_ohlcv",
+            lambda self, **kwargs: fixture_df,
+        )
+
+        opp = _make_opportunity("BTCUSDT", "SHORT")
+        generate_signals([opp], timeframe="1h", session=db_session)
+        signal = db_session.query(Signal).filter(Signal.symbol == "BTCUSDT").first()
+
+        scores = ScoringEngine().score(signal)
+        assert "entry" in scores and scores["entry"] > 0
+        # A SHORT signal against a real uptrend should score badly on trend
+        # (real, computed, not hardcoded 0).
+        assert scores["trend_score"] < 0.5
+
+        engine = _build_engine(session_factory, ScoringEngine())
+        for open_signal in engine.get_open_signals():
+            engine.process_signal(open_signal)
+
+        db_session.refresh(signal)
+        assert signal.status == "REJECTED", (
+            f"expected a SHORT signal against a real uptrend to be rejected, got {signal.status}"
+        )
+        assert db_session.query(Trade).filter(Trade.signal_id == signal.id).first() is None
