@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Query
 
-from market_data.collector import HyperliquidCollector
+from market.provider import MultiProvider
 from market_data.live.engine import LiveMarketEngine
 from market_data.pivots import calculate_channel, calculate_divergence, calculate_levels
 
@@ -52,7 +52,7 @@ def get_market_levels(
     limit: int = Query(200, ge=10, le=500),
 ):
     try:
-        collector = HyperliquidCollector()
+        collector = MultiProvider()
         df = collector.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
         if df.empty:
             return []
@@ -70,7 +70,7 @@ def get_market_divergence(
     limit: int = Query(200, ge=10, le=500),
 ):
     try:
-        collector = HyperliquidCollector()
+        collector = MultiProvider()
         df = collector.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
         if df.empty:
             return {"found": False, "type": "none", "p1": None, "p2": None}
@@ -88,7 +88,7 @@ def get_market_channel(
     limit: int = Query(200, ge=10, le=500),
 ):
     try:
-        collector = HyperliquidCollector()
+        collector = MultiProvider()
         df = collector.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
         if df.empty:
             return {"found": False, "direction": "none", "upper": None, "lower": None}

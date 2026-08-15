@@ -15,7 +15,7 @@ from typing import Any, Optional, Protocol
 
 from core.confidence_engine import ConfidenceEngine
 from filters.btc_filter import BTCHealthFilter
-from market_data.collector import HyperliquidCollector
+from market.provider import MultiProvider
 from memory.trade_memory import TradeMemory
 from scoring.regime_ai import RegimeAI, get_regime_ai
 from scoring.scoring_engine import ScoringEngine
@@ -94,7 +94,7 @@ class DecisionPipeline:
     ) -> None:
         """Initialize the pipeline with injectable dependencies."""
 
-        self.collector = collector or HyperliquidCollector()
+        self.collector = collector or MultiProvider()
         self.filters = tuple(filters) if filters is not None else (BTCHealthFilter(),)
         self.scoring_engine = scoring_engine or ScoringEngine(market_service=market_service)
         self.confidence_engine = confidence_engine or ConfidenceEngine()

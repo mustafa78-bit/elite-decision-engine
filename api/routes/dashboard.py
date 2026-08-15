@@ -308,10 +308,10 @@ def dashboard_hero(request: Request):
 
         market_regime = "UNKNOWN"
         try:
-            from market_data.collector import HyperliquidCollector
+            from market.provider import MultiProvider
             from market_data.indicators import IndicatorEngine
             from scoring.regime_ai import get_regime_ai
-            collector = HyperliquidCollector()
+            collector = MultiProvider()
             df = collector.get_ohlcv(symbol="BTC", timeframe="1h")
             if not df.empty:
                 values = IndicatorEngine().calculate(df)

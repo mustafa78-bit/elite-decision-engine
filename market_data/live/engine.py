@@ -8,7 +8,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
-from market_data.collector import HyperliquidCollector
+from market.provider import MultiProvider
+from market.provider.base import DataProvider
 from market_data.indicators import IndicatorEngine
 
 logger = logging.getLogger(__name__)
@@ -54,11 +55,11 @@ class LiveMarketEngine:
 
     def __init__(
         self,
-        collector: HyperliquidCollector | None = None,
+        collector: DataProvider | None = None,
         indicators: IndicatorEngine | None = None,
         cache_ttl: float = _CACHE_TTL,
     ) -> None:
-        self.collector = collector or HyperliquidCollector()
+        self.collector = collector or MultiProvider()
         self.indicators = indicators or IndicatorEngine()
         self.cache_ttl = cache_ttl
         self._cache: dict[str, tuple[float, MarketSnapshot]] = {}

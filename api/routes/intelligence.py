@@ -3,8 +3,8 @@ import logging
 from fastapi import APIRouter
 
 from database import FINAL_STATUSES, Signal, get_session
+from market.provider import MultiProvider
 from market_data.btc_health import BTCHealth
-from market_data.collector import HyperliquidCollector
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
 from scoring.regime_ai import get_regime_ai
@@ -19,7 +19,7 @@ def get_intelligence():
     logger.info("GET /intelligence")
     market_data = {}
     try:
-        collector = HyperliquidCollector()
+        collector = MultiProvider()
         indicators = IndicatorEngine()
         btc = BTCHealth()
         vol = VolatilityEngine()
