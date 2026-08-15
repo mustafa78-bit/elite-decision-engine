@@ -1,8 +1,11 @@
 import asyncio
 import logging
+from datetime import UTC, datetime
+
+from sqlalchemy import or_
 
 from config import CHECK_INTERVAL
-from database import Signal, get_session, update_signal_status
+from database import Signal, get_session, schedule_signal_retry, update_signal_status
 from execution.execution_loop import ExecutionLoop
 
 logger = logging.getLogger(__name__)
@@ -17,7 +20,11 @@ class DecisionEngine:
     def get_open_signals(self):
         session = get_session()
         try:
-            return session.query(Signal).filter(Signal.status == "OPEN").all()
+            now = datetime.now(UTC)
+            return session.query(Signal).filter(
+                Signal.status == "OPEN",
+                or_(Signal.next_retry_at.is_(None), Signal.next_retry_at <= now),
+            ).all()
         finally:
             session.close()
 
@@ -30,7 +37,8 @@ class DecisionEngine:
             self.execution_loop.run_once([signal])
         except Exception as e:
             logger.exception("Signal processing failed: %s", e)
-            update_signal_status(signal.id, "REJECTED")
+            if not schedule_signal_retry(signal.id):
+                update_signal_status(signal.id, "REJECTED")
 
     def _process_open_signals(self):
         """Synchronous, blocking pass: fetch OPEN signals and process each.

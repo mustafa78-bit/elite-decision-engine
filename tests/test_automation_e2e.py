@@ -240,8 +240,16 @@ class TestAutomationBadSignalIsolation:
         # Exercises core/engine.py's per-signal try/except in _process_open_signals().
         engine._process_open_signals()
 
+        # The risk manager's RuntimeError is an unexpected exception during
+        # run_once(), which core/engine.py's process_signal() now treats as
+        # a transient failure eligible for backoff-delayed retry (see
+        # SPRINT_JULES_SIGNAL_RETRY_BACKOFF.md) rather than an immediate
+        # permanent REJECTED -- it goes back to OPEN with retry_count
+        # incremented, not REJECTED, on the very first such failure.
         bad_signal = db_session.query(Signal).filter(Signal.symbol == "BADCOIN").first()
-        assert bad_signal.status == "REJECTED"
+        assert bad_signal.status == "OPEN"
+        assert bad_signal.retry_count == 1
+        assert bad_signal.next_retry_at is not None
         assert db_session.query(Trade).filter(Trade.signal_id == bad_signal.id).first() is None
 
         good_signal = db_session.query(Signal).filter(Signal.symbol == "GOODCOIN").first()
