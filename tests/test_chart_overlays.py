@@ -228,7 +228,7 @@ def test_api_market_levels(api_client):
     dummy_df.loc[25, "high"] = 110.0
     dummy_df.loc[40, "high"] = 110.0
 
-    with patch("market_data.collector.HyperliquidCollector.get_ohlcv", return_value=dummy_df):
+    with patch("market.provider.multi.MultiProvider.get_ohlcv", return_value=dummy_df):
         resp = api_client.get("/market/levels?symbol=BTC&timeframe=1h")
         assert resp.status_code == 200
         body = resp.json()
@@ -248,7 +248,7 @@ def test_api_market_divergence(api_client):
         "close": [100.0] * 50,
         "volume": [10.0] * 50,
     })
-    with patch("market_data.collector.HyperliquidCollector.get_ohlcv", return_value=dummy_df):
+    with patch("market.provider.multi.MultiProvider.get_ohlcv", return_value=dummy_df):
         resp = api_client.get("/market/divergence?symbol=BTC&timeframe=1h")
         assert resp.status_code == 200
         body = resp.json()
@@ -265,7 +265,7 @@ def test_api_market_channel(api_client):
         "close": [100.0] * 50,
         "volume": [10.0] * 50,
     })
-    with patch("market_data.collector.HyperliquidCollector.get_ohlcv", return_value=dummy_df):
+    with patch("market.provider.multi.MultiProvider.get_ohlcv", return_value=dummy_df):
         resp = api_client.get("/market/channel?symbol=BTC&timeframe=1h")
         assert resp.status_code == 200
         body = resp.json()

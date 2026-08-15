@@ -14,7 +14,8 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from database import CLOSED, FINAL_STATUSES, OPEN, SL_HIT, TP_HIT, PaperTrade, Trade, get_session
-from market_data.collector import HyperliquidCollector
+from market.provider import MultiProvider
+from market.provider.base import DataProvider
 from notifications.dispatcher import NotificationDispatcher
 from notifications.events import TradeEvent
 
@@ -63,7 +64,7 @@ class PaperExecutor:
 
     def __init__(
         self,
-        collector: HyperliquidCollector | None = None,
+        collector: DataProvider | None = None,
         session_factory: Callable[[], Any] = get_session,
         logger: logging.Logger | None = None,
         notifications: NotificationDispatcher | None = None,
@@ -71,7 +72,7 @@ class PaperExecutor:
     ) -> None:
         """Create a paper executor with injectable infrastructure."""
 
-        self.collector = collector or HyperliquidCollector()
+        self.collector = collector or MultiProvider()
         self.session_factory = session_factory
         self.logger = logger or logging.getLogger(__name__)
         self._pnl_percentages: dict[int, float] = {}

@@ -1,11 +1,11 @@
-from market_data.collector import HyperliquidCollector
+from market.provider import MultiProvider
 from market_data.indicators import IndicatorEngine
 
 
 class BTCHealth:
 
     def __init__(self, collector=None):
-        self.collector = collector or HyperliquidCollector()
+        self.collector = collector or MultiProvider()
         self.indicators = IndicatorEngine()
 
     def score(self):

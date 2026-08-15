@@ -29,7 +29,7 @@ from market.features import FeatureStore
 from market.indicators import IndicatorService
 from market.intelligence.service import IntelligenceService
 from market.models import Asset, AssetMetadata, OHLCVData
-from market.provider import HyperliquidProvider
+from market.provider import MultiProvider
 
 logger = logging.getLogger(__name__)
 
@@ -64,14 +64,14 @@ class MarketDataService:
 
     def __init__(
         self,
-        provider: HyperliquidProvider | None = None,
+        provider: MultiProvider | None = None,
         cache: CacheManager | None = None,
         indicators: IndicatorService | None = None,
         features: FeatureStore | None = None,
         context: ContextService | None = None,
         intelligence: IntelligenceService | None = None,
     ) -> None:
-        self.provider = provider or HyperliquidProvider()
+        self.provider = provider or MultiProvider()
         self.cache = cache or CacheManager()
         self.indicators = indicators or IndicatorService(cache=self.cache)
         self.features = features or FeatureStore()

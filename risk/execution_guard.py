@@ -135,9 +135,9 @@ class ExecutionGuard:
                 atr = float(indicators.get("atr", 0))
                 atr_pct = (atr / price) * 100 if price > 0 else 0
             else:
-                from market_data.collector import HyperliquidCollector
+                from market.provider import MultiProvider
                 from market_data.indicators import IndicatorEngine
-                collector = HyperliquidCollector()
+                collector = MultiProvider()
                 df = collector.get_ohlcv(symbol=symbol, timeframe="1h", limit=100)
                 if not df.empty:
                     indicators = IndicatorEngine()

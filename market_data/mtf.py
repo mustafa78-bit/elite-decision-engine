@@ -1,11 +1,11 @@
-from market_data.collector import HyperliquidCollector
+from market.provider import MultiProvider
 from market_data.indicators import IndicatorEngine
 
 
 class MTFEngine:
 
     def __init__(self):
-        self.collector = HyperliquidCollector()
+        self.collector = MultiProvider()
         self.indicators = IndicatorEngine()
 
     def score(self, symbol, side):
