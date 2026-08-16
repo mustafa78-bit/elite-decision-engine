@@ -17,6 +17,13 @@
       "tradeClosed": "İşlem Kapandı",
       "systemHealthDegraded": "Sağlık Bozuldu",
       "systemHealthRecovered": "Sağlık Düzeldi"
+    },
+    "messages": {
+      "tradeOpened": "{{symbol}} {{side}} @ {{entry}} fiyatından açıldı",
+      "tradeClosed": "{{symbol}} {{side}} kapandı, K/Z {{pnl}} ({{reason}})",
+      "systemHealthDegraded": "{{component}} bozuldu{{detail}}",
+      "systemHealthRecovered": "{{component}} düzeldi",
+      "unknown": "{{eventType}}"
     }
   }
 }

@@ -17,6 +17,13 @@
       "tradeClosed": "Trade Closed",
       "systemHealthDegraded": "Health Degraded",
       "systemHealthRecovered": "Health Recovered"
+    },
+    "messages": {
+      "tradeOpened": "{{symbol}} {{side}} opened @ {{entry}}",
+      "tradeClosed": "{{symbol}} {{side}} closed, PnL {{pnl}} ({{reason}})",
+      "systemHealthDegraded": "{{component}} degraded{{detail}}",
+      "systemHealthRecovered": "{{component}} recovered",
+      "unknown": "{{eventType}}"
     }
   }
 }

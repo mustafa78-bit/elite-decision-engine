@@ -7,6 +7,7 @@ from typing import Any, Optional
 from services.ai.ai_service import AIService
 from services.ollo.briefing import BriefingGenerator
 from services.ollo.context import ContextBuilder, OLLOContext
+from services.ollo.i18n_fallback import ai_unavailable_message
 from services.ollo.memory import CommanderMemory
 from services.ollo.mission_profile import get_profile
 from services.ollo.parser import OLLOBriefing, OLLOResponse, parse_response
@@ -40,7 +41,7 @@ class OLLOService:
     def ai_service(self) -> AIService:
         return self._ai
 
-    def greet(self, room_id: str = "command_deck") -> OLLOResponse:
+    def greet(self, room_id: str = "command_deck", language: str = "en") -> OLLOResponse:
         start = time.perf_counter()
         profile = get_profile(room_id)
         plan = self._planner.plan_greet(room_id)
@@ -76,10 +77,7 @@ class OLLOService:
         # message with no indication the AI service actually failed.
         content = result.content
         if result.error and not content:
-            content = (
-                "Founder, I couldn't reach the AI service right now "
-                f"({result.error}). Please try again in a moment."
-            )
+            content = ai_unavailable_message(result.error, language)
 
         response = parse_response(
             raw_text=content,
@@ -93,7 +91,7 @@ class OLLOService:
 
         return response
 
-    def query(self, query: str, room_id: str = "command_deck") -> OLLOResponse:
+    def query(self, query: str, room_id: str = "command_deck", language: str = "en") -> OLLOResponse:
         start = time.perf_counter()
         profile = get_profile(room_id)
         plan = self._planner.plan_query(room_id, query)
@@ -129,10 +127,7 @@ class OLLOService:
         # empty response with no indication anything went wrong.
         content = result.content
         if result.error and not content:
-            content = (
-                "Founder, I couldn't reach the AI service right now "
-                f"({result.error}). Please try again in a moment."
-            )
+            content = ai_unavailable_message(result.error, language)
 
         self._memory.record_recommendation(query, room_id, content)
 
@@ -169,7 +164,7 @@ class OLLOService:
 
         return response
 
-    def briefing(self, kind: str = "morning", room_id: str = "command_deck") -> OLLOBriefing:
+    def briefing(self, kind: str = "morning", room_id: str = "command_deck", language: str = "en") -> OLLOBriefing:
         plan = self._planner.plan_briefing(room_id, kind)
         context = self._context.build(plan.context_keys, room=room_id)
 
@@ -178,7 +173,7 @@ class OLLOService:
             kind, room_id, context.summary_line(),
         )
 
-        briefing = self._briefing.generate(plan, context)
+        briefing = self._briefing.generate(plan, context, language=language)
 
         self._memory.record_briefing(kind, briefing.text)
 

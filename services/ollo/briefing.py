@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from services.ai.ai_service import AIService
 from services.ollo.context import OLLOContext
+from services.ollo.i18n_fallback import briefing_unavailable_message
 from services.ollo.parser import OLLOBriefing, parse_briefing
 from services.ollo.personality import get_system_prompt
 from services.ollo.planner import Plan
@@ -22,6 +23,7 @@ class BriefingGenerator:
         self,
         plan: Plan,
         context: OLLOContext,
+        language: str = "en",
     ) -> OLLOBriefing:
         from services.ollo.prompts.briefing import get_briefing
 
@@ -56,10 +58,7 @@ class BriefingGenerator:
         # no indication the AI service actually failed.
         content = result.content
         if result.error and not content:
-            content = (
-                "Founder, I couldn't generate this briefing right now "
-                f"({result.error}). Please try again in a moment."
-            )
+            content = briefing_unavailable_message(result.error, language)
 
         briefing = parse_briefing(
             kind=kind,

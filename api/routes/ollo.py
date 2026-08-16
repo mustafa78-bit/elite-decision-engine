@@ -23,12 +23,12 @@ def _get_ollo() -> Optional:
 
 
 @router.get("/ollo/greet")
-def ollo_greet(room: str = "command_deck", request: Request = None):
+def ollo_greet(room: str = "command_deck", lang: str = "en", request: Request = None):
     svc = _get_ollo()
     if svc is None:
         return JSONResponse(status_code=503, content={"error": "OLLO not initialized"})
     try:
-        response = svc.greet(room_id=room)
+        response = svc.greet(room_id=room, language=lang)
         return response.to_dict()
     except Exception as e:
         logger.error("OLLO greet failed: %s", e)
@@ -37,14 +37,14 @@ def ollo_greet(room: str = "command_deck", request: Request = None):
 
 @router.post("/ollo/query")
 @limiter.limit("20/minute")
-def ollo_query(request: Request, query: str, room: str = "command_deck"):
+def ollo_query(request: Request, query: str, room: str = "command_deck", lang: str = "en"):
     if not query or not query.strip():
         return JSONResponse(status_code=400, content={"error": "Query is required"})
     svc = _get_ollo()
     if svc is None:
         return JSONResponse(status_code=503, content={"error": "OLLO not initialized"})
     try:
-        response = svc.query(query=query.strip(), room_id=room)
+        response = svc.query(query=query.strip(), room_id=room, language=lang)
         return response.to_dict()
     except Exception as e:
         logger.error("OLLO query failed: %s", e)
@@ -55,6 +55,7 @@ def ollo_query(request: Request, query: str, room: str = "command_deck"):
 def ollo_briefing(
     kind: str = "morning",
     room: str = "command_deck",
+    lang: str = "en",
     request: Request = None,
 ):
     valid_kinds = ("morning", "evening", "market_update", "emergency", "mission")
@@ -67,7 +68,7 @@ def ollo_briefing(
     if svc is None:
         return JSONResponse(status_code=503, content={"error": "OLLO not initialized"})
     try:
-        briefing = svc.briefing(kind=kind, room_id=room)
+        briefing = svc.briefing(kind=kind, room_id=room, language=lang)
         return briefing.to_dict()
     except Exception as e:
         logger.error("OLLO briefing failed: %s", e)

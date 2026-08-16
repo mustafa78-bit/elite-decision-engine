@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import i18n from "../../i18n";
 
 interface Props {
   children: ReactNode;
@@ -32,7 +33,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
           <div className="text-[var(--accent-red)] text-sm font-mono uppercase tracking-wider">
-            Something went wrong
+            {i18n.t("errorBoundary:title")}
           </div>
           <pre className="text-xs text-[var(--text-muted)] max-w-md text-center font-mono">
             {this.state.error?.message}
@@ -41,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
             onClick={() => this.setState({ hasError: false, error: null })}
             className="px-3 py-1.5 text-xs border border-[var(--border-default)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-colors font-mono uppercase tracking-wider"
           >
-            Try Again
+            {i18n.t("errorBoundary:tryAgain")}
           </button>
         </div>
       );
