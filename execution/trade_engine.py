@@ -107,6 +107,7 @@ class TradeEngine:
                     TradeEvent.TRADE_OPENED,
                     {
                         "trade_id": trade.id,
+                        "user_id": trade.user_id,
                         "symbol": trade.symbol,
                         "side": trade.side,
                         "entry": trade.entry,

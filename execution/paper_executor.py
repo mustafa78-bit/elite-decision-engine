@@ -220,6 +220,7 @@ class PaperExecutor:
                 if str(t.status) in FINAL_STATUSES:
                     closed.append({
                         "trade_id": t.id,
+                        "user_id": t.user_id,
                         "symbol": t.symbol,
                         "side": t.side,
                         "status": t.status,
@@ -298,6 +299,7 @@ class PaperExecutor:
                     TradeEvent.TRADE_CLOSED,
                     {
                         "trade_id": trade.id,
+                        "user_id": trade.user_id,
                         "symbol": trade.symbol,
                         "side": trade.side,
                         "status": normalized_status,

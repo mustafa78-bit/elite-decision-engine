@@ -38,7 +38,7 @@ async def test_trade_engine_broadcasts_trade_opened_via_shared_dispatcher(db_ses
     # dispatcher constructed with a real websocket_manager, injected into
     # TradeEngine -- not TradeEngine's own default-constructed dispatcher.
     ws_manager = MagicMock(spec=WebSocketManager)
-    ws_manager.broadcast = AsyncMock()
+    ws_manager.broadcast_to_owner = AsyncMock()
     shared_dispatcher = NotificationDispatcher(websocket_manager=ws_manager)
 
     engine = TradeEngine(notifications=shared_dispatcher)
@@ -51,8 +51,8 @@ async def test_trade_engine_broadcasts_trade_opened_via_shared_dispatcher(db_ses
     assert trade is not None
 
     await asyncio.sleep(0.05)
-    ws_manager.broadcast.assert_awaited_once()
-    sent = json.loads(ws_manager.broadcast.call_args[0][0])
+    ws_manager.broadcast_to_owner.assert_awaited_once()
+    sent = json.loads(ws_manager.broadcast_to_owner.call_args[0][0])
     assert sent["event"] == "TRADE_OPENED"
     assert sent["payload"]["symbol"] == "BTCUSDT"
 
@@ -62,7 +62,7 @@ async def test_paper_executor_broadcasts_trade_closed_via_shared_dispatcher(db_s
     from database import PaperTrade, Trade
 
     ws_manager = MagicMock(spec=WebSocketManager)
-    ws_manager.broadcast = AsyncMock()
+    ws_manager.broadcast_to_owner = AsyncMock()
     shared_dispatcher = NotificationDispatcher(websocket_manager=ws_manager)
 
     executor = PaperExecutor(session_factory=session_factory, notifications=shared_dispatcher)
@@ -83,8 +83,8 @@ async def test_paper_executor_broadcasts_trade_closed_via_shared_dispatcher(db_s
     executor.close_trade(trade.id, exit_price=3100.0, close_reason="MANUAL_CLOSE")
 
     await asyncio.sleep(0.05)
-    ws_manager.broadcast.assert_awaited()
-    events = [json.loads(c.args[0])["event"] for c in ws_manager.broadcast.await_args_list]
+    ws_manager.broadcast_to_owner.assert_awaited()
+    events = [json.loads(c.args[0])["event"] for c in ws_manager.broadcast_to_owner.await_args_list]
     assert "TRADE_CLOSED" in events
 
 

@@ -56,7 +56,14 @@ def _persist_notification(event: str, payload: dict) -> None:
         notif = Notification(
             event_type=event,
             payload=payload,
-            user_id=_PRIMARY_USER_ID,
+            # Use the event's real owner (Trade.user_id, threaded through
+            # by execution/trade_engine.py + execution/paper_executor.py)
+            # when present, so services/notification_service.py's
+            # _owned_by() actually shows this notification to the user it
+            # belongs to instead of only ever being visible to
+            # _PRIMARY_USER_ID. Events with no owner concept (system
+            # health, etc.) keep the existing single-tenant fallback.
+            user_id=payload.get("user_id") or _PRIMARY_USER_ID,
         )
         session.add(notif)
         session.commit()
@@ -106,7 +113,7 @@ class NotificationDispatcher:
         _persist_notification(event, payload)
 
         if self.websocket_manager is not None:
-            self._broadcast(message)
+            self._broadcast(message, payload.get("user_id"))
 
         # Trigger proactive Telegram alert if configured
         proactive_events = (
@@ -165,7 +172,7 @@ class NotificationDispatcher:
             "payload": payload,
         }
 
-    def _broadcast(self, message: str) -> None:
+    def _broadcast(self, message: str, owner_user_id: int | None = None) -> None:
         # emit() (and therefore this) can run inside a worker thread with no
         # running loop of its own -- asyncio.get_running_loop() would raise
         # there, which the old code silently swallowed, dropping the
@@ -173,6 +180,9 @@ class NotificationDispatcher:
         # captured at construction time works from any thread.
         if self._loop is None:
             return
+        # broadcast_to_owner() falls back to a full broadcast when
+        # owner_user_id is None (system/health events, or a payload with no
+        # user_id key) -- same behavior as the old unconditional broadcast().
         asyncio.run_coroutine_threadsafe(
-            self.websocket_manager.broadcast(message), self._loop
+            self.websocket_manager.broadcast_to_owner(message, owner_user_id), self._loop
         )

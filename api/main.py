@@ -568,19 +568,33 @@ async def _broadcast_risk() -> None:
         finally:
             session.close()
 
-        open_trades = [t for t in all_trades if t.status == "OPEN"]
-
         risk_engine = RiskEngine()
         risk_score = risk_engine.score({"atr": 0}, {"score": 0})
 
-        event = RiskEvent(payload=RiskPayload(
-            risk_score=risk_score,
-            open_trades=len(open_trades),
-            max_open_trades=3,
-            daily_loss=0.0,
-            max_daily_loss=10000,
-        ))
-        await manager.broadcast(serialize(event))
+        # Per-user open_trades count -- the old version summed every
+        # tenant's open trades into one number broadcast to every
+        # connected client, leaking an aggregate cross-user signal. Group
+        # by owner (None = orphaned/pre-migration rows, falls back to
+        # everyone via broadcast_to_owner, same NULL-fallback convention
+        # as services/notification_service.py's _owned_by()) and send each
+        # owner only their own count. Union with connected_user_ids() so a
+        # user with zero trades still gets a real (open_trades=0) update
+        # instead of none at all.
+        trades_by_owner: dict[int | None, list] = {}
+        for t in all_trades:
+            trades_by_owner.setdefault(t.user_id, []).append(t)
+
+        owner_ids = set(trades_by_owner.keys()) | manager.connected_user_ids()
+        for owner_user_id in owner_ids:
+            open_trades = [t for t in trades_by_owner.get(owner_user_id, []) if t.status == "OPEN"]
+            event = RiskEvent(payload=RiskPayload(
+                risk_score=risk_score,
+                open_trades=len(open_trades),
+                max_open_trades=3,
+                daily_loss=0.0,
+                max_daily_loss=10000,
+            ))
+            await manager.broadcast_to_owner(serialize(event), owner_user_id)
     except Exception:
         logger.exception("Risk broadcast failed")
 
