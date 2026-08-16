@@ -37,6 +37,7 @@ RECOMMENDED_VARS = {
     "TELEGRAM_TOKEN": "Telegram notifications will be disabled",
     "HL_API_KEY": "Hyperliquid exchange connector will be unavailable",
     "NVIDIA_API_KEY": "NVIDIA NIM provider will be unavailable",
+    "SENTRY_DSN": "Error tracking will be disabled",
 }
 
 NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "")
@@ -61,6 +62,7 @@ JWT_SECRET = os.getenv("JWT_SECRET", "")
 ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "")
 HL_API_KEY: str = os.getenv("HL_API_KEY", "")
 HL_SECRET: str = os.getenv("HL_SECRET", "")
+SENTRY_DSN: str = os.getenv("SENTRY_DSN", "")
 TELEGRAM_TOKEN: str = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_ALLOWED_CHAT_IDS: str = os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "")

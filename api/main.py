@@ -4,6 +4,7 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
+import sentry_sdk
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -74,6 +75,7 @@ from config import (
     DEBUG,
     HEALTH_CHECK_INTERVAL_SECONDS,
     SCAN_INTERVAL_SECONDS,
+    SENTRY_DSN,
 )
 from core.engine import DecisionEngine
 from database import FINAL_STATUSES, Trade, get_session
@@ -113,6 +115,14 @@ if API_ENV == "production" and ("*" in origins or not origins):
         "a wildcard origin lets any website make authenticated cross-origin "
         "requests against this API."
     )
+
+# Error tracking only (no performance tracing/session replay/profiling) --
+# no-op when SENTRY_DSN is unset, matching every other optional integration
+# in config.py (TELEGRAM_TOKEN, HL_API_KEY, etc). Must run before the
+# FastAPI(...) instance below is constructed so Sentry's FastAPI/Starlette
+# auto-instrumentation actually attaches to it.
+if SENTRY_DSN:
+    sentry_sdk.init(dsn=SENTRY_DSN, environment=API_ENV, send_default_pii=False)
 
 _background_tasks: set[asyncio.Task] = set()
 _ollo_service: Any | None = None
@@ -266,6 +276,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 async def global_exception_handler(request: Request, exc: Exception):
     rid = getattr(request.state, "request_id", "N/A")
     logger.exception("[%s] Unhandled exception on %s %s", rid, request.method, request.url.path)
+    # Sentry's FastAPI/Starlette auto-instrumentation only sees exceptions
+    # that propagate unhandled through the ASGI stack -- registering this
+    # handler for the base Exception class means every unhandled exception
+    # is caught and converted to a normal 500 response right here, so it
+    # never reaches Sentry automatically. Explicit capture (a safe no-op
+    # when SENTRY_DSN is unset / sentry_sdk.init() was never called).
+    sentry_sdk.capture_exception(exc)
     response = JSONResponse(
         status_code=500,
         content={"detail": "Internal server error", "request_id": rid},
