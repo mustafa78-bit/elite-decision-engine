@@ -56,7 +56,7 @@ def test_emit_does_not_raise_when_persistence_is_totally_unavailable(monkeypatch
 @pytest.mark.asyncio
 async def test_dispatcher_broadcasts_via_websocket_manager():
     ws_manager = MagicMock(spec=WebSocketManager)
-    ws_manager.broadcast = AsyncMock()
+    ws_manager.broadcast_to_owner = AsyncMock()
 
     dispatcher = NotificationDispatcher(websocket_manager=ws_manager)
 
@@ -72,11 +72,14 @@ async def test_dispatcher_broadcasts_via_websocket_manager():
     # hop beyond a plain Task -- a single sleep(0) isn't always enough to
     # let it run.
     await asyncio.sleep(0.05)
-    ws_manager.broadcast.assert_awaited_once()
+    ws_manager.broadcast_to_owner.assert_awaited_once()
 
-    sent = json.loads(ws_manager.broadcast.call_args[0][0])
+    sent = json.loads(ws_manager.broadcast_to_owner.call_args[0][0])
     assert sent["event"] == "TRADE_OPENED"
     assert sent["payload"]["symbol"] == "BTCUSDT"
+    # No "user_id" key in this payload -> owner_user_id arg is None,
+    # matching the NULL-fallback (broadcast to everyone) convention.
+    assert ws_manager.broadcast_to_owner.call_args[0][1] is None
 
 
 def test_dispatcher_no_op_without_websocket_manager():
@@ -196,7 +199,7 @@ async def test_dispatcher_broadcasts_from_worker_thread():
     implementation silently swallowed, dropping the broadcast entirely.
     """
     ws_manager = MagicMock(spec=WebSocketManager)
-    ws_manager.broadcast = AsyncMock()
+    ws_manager.broadcast_to_owner = AsyncMock()
 
     dispatcher = NotificationDispatcher(websocket_manager=ws_manager)
 
@@ -209,10 +212,54 @@ async def test_dispatcher_broadcasts_from_worker_thread():
     await asyncio.to_thread(background_work)
     await asyncio.sleep(0.05)
 
-    ws_manager.broadcast.assert_awaited_once()
-    sent = json.loads(ws_manager.broadcast.call_args[0][0])
+    ws_manager.broadcast_to_owner.assert_awaited_once()
+    sent = json.loads(ws_manager.broadcast_to_owner.call_args[0][0])
     assert sent["event"] == "SYSTEM_HEALTH_DEGRADED"
     assert sent["payload"]["component"] == "database"
+
+
+@pytest.mark.asyncio
+async def test_dispatcher_scopes_broadcast_to_payload_user_id():
+    ws_manager = MagicMock(spec=WebSocketManager)
+    ws_manager.broadcast_to_owner = AsyncMock()
+
+    dispatcher = NotificationDispatcher(websocket_manager=ws_manager)
+
+    dispatcher.emit(
+        TradeEvent.TRADE_OPENED,
+        {"trade_id": 1, "user_id": 7, "symbol": "BTCUSDT", "side": "LONG"},
+    )
+
+    await asyncio.sleep(0.05)
+    ws_manager.broadcast_to_owner.assert_awaited_once()
+    assert ws_manager.broadcast_to_owner.call_args[0][1] == 7
+
+
+def test_persist_notification_uses_payload_user_id_when_present(db_session, session_factory, monkeypatch):
+    monkeypatch.setattr("notifications.dispatcher.get_session", session_factory)
+
+    from database import Notification
+
+    _persist_notification(
+        TradeEvent.TRADE_OPENED,
+        {"trade_id": 1, "user_id": 42, "symbol": "BTCUSDT", "side": "LONG"},
+    )
+
+    notif = session_factory().query(Notification).filter_by(event_type="TRADE_OPENED").first()
+    assert notif.user_id == 42
+
+
+def test_persist_notification_falls_back_to_primary_user_without_payload_user_id(
+    db_session, session_factory, monkeypatch
+):
+    monkeypatch.setattr("notifications.dispatcher.get_session", session_factory)
+
+    from database import Notification
+
+    _persist_notification("SYSTEM_HEALTH_DEGRADED", {"component": "database"})
+
+    notif = session_factory().query(Notification).filter_by(event_type="SYSTEM_HEALTH_DEGRADED").first()
+    assert notif.user_id == 1
 
 
 def test_dispatcher_telegram_skipped_when_preference_disabled(db_session, session_factory, monkeypatch):
@@ -276,7 +323,7 @@ def test_dispatcher_disabled_telegram_preference_does_not_block_persistence_or_b
     db_session.commit()
 
     ws_manager = MagicMock(spec=WebSocketManager)
-    ws_manager.broadcast = AsyncMock()
+    ws_manager.broadcast_to_owner = AsyncMock()
     mock_bot = MagicMock()
     mock_bot.send_alert_threadsafe = MagicMock()
 
