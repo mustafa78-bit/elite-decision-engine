@@ -62,6 +62,9 @@ export interface TradePayload {
   symbol: string;
   side: string;
   entry: number;
+  stop?: number;
+  tp1?: number;
+  tp2?: number;
   status: string;
   exit_price?: number;
   pnl?: number;
