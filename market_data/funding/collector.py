@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import UTC, datetime, timedelta
 from typing import Any, Optional
 
@@ -16,11 +17,31 @@ class FundingCollector:
     MAX_RETRIES = 3
     BACKOFF_FACTOR = 2.0
 
+    # metaAndAssetCtxs is a bulk "every symbol in one call" endpoint, so
+    # every caller across the whole process asking for any symbol's funding
+    # rate is really asking for the exact same snapshot. Without this, each
+    # of the many independent places that construct their own
+    # FundingCollector() (IntelligenceService per scanned symbol,
+    # api/routes/funding.py, HyperliquidProvider, WhaleService, ...) fired
+    # its own redundant network call for identical data -- a single 25-
+    # symbol scanner pass alone could fire 25 of them, tripping
+    # Hyperliquid's rate limiting and hanging the scanner. Cached at the
+    # class level (not per-instance) so it collapses calls across separate
+    # instances too, not just repeated calls on one. Real funding rates
+    # update roughly hourly, so 30s is a large practical win with no
+    # meaningful staleness cost.
+    _CACHE_TTL_SECONDS = 30
+    _cache: tuple[float, FundingResult] | None = None
+
     def __init__(self, timeout: int = 20):
         self.timeout = timeout
         self._session = requests.Session()
 
     def fetch_all(self) -> FundingResult:
+        cached = FundingCollector._cache
+        if cached is not None and time.time() - cached[0] < FundingCollector._CACHE_TTL_SECONDS:
+            return cached[1]
+
         # metaAndAssetCtxs is Hyperliquid's bulk endpoint for current
         # per-asset context (funding, mark price, open interest, ...) --
         # returns [meta, assetCtxs] where meta["universe"][i]["name"] and
@@ -62,7 +83,9 @@ class FundingCollector:
                     ))
                 except (ValueError, TypeError):
                     continue
-            return FundingResult(rates=tuple(rates))
+            result = FundingResult(rates=tuple(rates))
+            FundingCollector._cache = (time.time(), result)
+            return result
         except requests.RequestException as e:
             logger.warning("Failed to fetch funding data: %s", e)
             return FundingResult()

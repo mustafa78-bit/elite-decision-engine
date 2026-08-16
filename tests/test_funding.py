@@ -1,8 +1,10 @@
 """Tests for funding rate data models and collection."""
 
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from market_data.funding.collector import FundingCollector
 from market_data.funding.models import (
@@ -13,6 +15,19 @@ from market_data.funding.models import (
     interpret_funding_risk,
     validate_funding_rate,
 )
+
+
+@pytest.fixture(autouse=True)
+def _reset_funding_collector_cache():
+    # FundingCollector.fetch_all() now caches at the class level (see that
+    # class's _CACHE_TTL_SECONDS comment) -- without resetting between
+    # tests, a real network call in one test (e.g.
+    # test_fetch_all_returns_result) would silently serve its cached result
+    # to a later test that mocks collector._session.post and expects that
+    # mock to actually be hit.
+    FundingCollector._cache = None
+    yield
+    FundingCollector._cache = None
 
 
 class TestFundingRate:
@@ -322,3 +337,67 @@ class TestFundingCollector:
         result = collector.check_freshness("BTC")
         assert isinstance(result, dict)
         assert "fresh" in result
+
+
+class TestFundingCollectorCaching:
+
+    @staticmethod
+    def _mock_response():
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = [
+            {"universe": [{"name": "BTC"}]},
+            [{"funding": "0.0001", "markPx": "60000.0"}],
+        ]
+        return mock_response
+
+    def test_repeated_calls_on_same_instance_hit_network_once(self):
+        collector = FundingCollector()
+        with patch.object(collector._session, "post", return_value=self._mock_response()) as mock_post:
+            first = collector.fetch_all()
+            second = collector.fetch_all()
+
+        assert mock_post.call_count == 1
+        assert first == second
+
+    def test_repeated_calls_across_separate_instances_hit_network_once(self):
+        # The cache is class-level, not per-instance -- this is what lets
+        # the many independent call sites (api/routes/funding.py,
+        # HyperliquidProvider, WhaleService, ...) share one real fetch
+        # instead of each firing their own.
+        first_collector = FundingCollector()
+        second_collector = FundingCollector()
+        response = self._mock_response()
+
+        with patch.object(first_collector._session, "post", return_value=response) as mock_post_one:
+            first = first_collector.fetch_all()
+        with patch.object(second_collector._session, "post", return_value=response) as mock_post_two:
+            second = second_collector.fetch_all()
+
+        assert mock_post_one.call_count == 1
+        assert mock_post_two.call_count == 0
+        assert first == second
+
+    def test_cache_expires_after_ttl(self):
+        collector = FundingCollector()
+        with patch.object(collector._session, "post", return_value=self._mock_response()) as mock_post:
+            collector.fetch_all()
+            with patch(
+                "market_data.funding.collector.time.time",
+                return_value=time.time() + FundingCollector._CACHE_TTL_SECONDS + 1,
+            ):
+                collector.fetch_all()
+
+        assert mock_post.call_count == 2
+
+    def test_failed_fetch_does_not_poison_cache(self):
+        collector = FundingCollector()
+        with patch.object(collector._session, "post", side_effect=requests.RequestException("boom")):
+            result = collector.fetch_all()
+        assert result.rates == ()
+        assert FundingCollector._cache is None
+
+        with patch.object(collector._session, "post", return_value=self._mock_response()) as mock_post:
+            result = collector.fetch_all()
+        assert mock_post.call_count == 1
+        assert len(result.rates) == 1

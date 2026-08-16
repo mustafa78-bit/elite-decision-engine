@@ -17,6 +17,15 @@ class OpenInterestCollector:
     BASE_URL = "https://api.hyperliquid.xyz/info"
     MAX_RETRIES = 3
 
+    # Same bulk "every symbol in one call" endpoint as
+    # market_data/funding/collector.py's FundingCollector -- see that
+    # class's _CACHE_TTL_SECONDS comment for why this must be a class-level
+    # (not per-instance) cache and why 30s is safe. This does NOT cache
+    # self._history / fetch_with_trend()'s trend derivation below -- only
+    # the raw network snapshot fetch_all() itself would otherwise repeat.
+    _CACHE_TTL_SECONDS = 30
+    _cache: tuple[float, OpenInterestResult] | None = None
+
     def __init__(self, timeout: int = 20):
         self.timeout = timeout
         self._session = requests.Session()
@@ -29,6 +38,10 @@ class OpenInterestCollector:
         self._history: dict[str, deque[OpenInterest]] = defaultdict(lambda: deque(maxlen=24))
 
     def fetch_all(self) -> OpenInterestResult:
+        cached = OpenInterestCollector._cache
+        if cached is not None and time.time() - cached[0] < OpenInterestCollector._CACHE_TTL_SECONDS:
+            return cached[1]
+
         # "openInterests" is not a real Hyperliquid info type -- every call
         # here 422'd and this collector has never actually returned data.
         # metaAndAssetCtxs (the same bulk endpoint market_data/funding/
@@ -72,7 +85,9 @@ class OpenInterestCollector:
                 except (ValueError, TypeError) as e:
                     logger.debug("Failed to parse OI entry: %s", e)
                     continue
-            return OpenInterestResult(records=tuple(records))
+            result = OpenInterestResult(records=tuple(records))
+            OpenInterestCollector._cache = (time.time(), result)
+            return result
         except requests.RequestException as e:
             logger.warning("Failed to fetch open interest: %s", e)
             return OpenInterestResult()
