@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 # Only these paths are accessible without authentication
 PUBLIC_PATHS = frozenset({
     "/health",
+    "/metrics",
     "/auth/register",
     "/auth/login",
     "/auth/refresh",
