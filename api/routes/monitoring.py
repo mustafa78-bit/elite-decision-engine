@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from config import API_ENV, DEBUG
 from database import FINAL_STATUSES, Notification, Signal, Trade, get_session
 from monitoring.health import HealthService
+from monitoring.metrics import CONTENT_TYPE_LATEST, collect_metrics
 
 router = APIRouter()
 
@@ -63,3 +64,14 @@ def get_monitoring():
 @router.get("/health/details")
 def health_details():
     return HealthService.full()
+
+
+@router.get("/metrics")
+def metrics():
+    """Prometheus text-exposition format -- a scraper's target, not a
+    browser/JSON API endpoint. Public (no auth), matching /health's
+    existing precedent: a real Prometheus scraper has no JWT to send, and
+    this is expected to be reachable only from an internal
+    network/firewalled scrape target, not the public internet.
+    """
+    return Response(content=collect_metrics(), media_type=CONTENT_TYPE_LATEST)
