@@ -32,6 +32,9 @@ def get_top_opportunities(
             "risk_score": o.risk_score,
             "confidence": o.confidence,
             "price": o.price,
+            "stop": o.stop,
+            "tp1": o.tp1,
+            "tp2": o.tp2,
             "signals": o.signals,
             "probability_signals": o.probability_signals,
             "risk_signals": o.risk_signals,
@@ -82,6 +85,9 @@ def get_category_opportunities(
             "risk_score": o.risk_score,
             "confidence": o.confidence,
             "price": o.price,
+            "stop": o.stop,
+            "tp1": o.tp1,
+            "tp2": o.tp2,
             "signals": o.signals,
         }
         for o in ops

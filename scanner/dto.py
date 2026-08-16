@@ -28,6 +28,9 @@ def opportunity_to_dto(opp: Any) -> dict[str, Any]:
         "risk_score": getattr(opp, "risk_score", 0.0),
         "confidence": opp.confidence,
         "price": opp.price,
+        "stop": getattr(opp, "stop", 0.0),
+        "tp1": getattr(opp, "tp1", 0.0),
+        "tp2": getattr(opp, "tp2", 0.0),
         "signals": opp.signals,
         "features": getattr(opp, "features", {}),
     }

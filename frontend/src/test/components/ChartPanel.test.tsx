@@ -225,4 +225,58 @@ describe("ChartPanel Overlays", () => {
       expect.objectContaining({ price: 100, title: "ENTRY" })
     );
   });
+
+  it("draws OPP entry/stop/tp1 lines for a passed-in scanner opportunity", async () => {
+    vi.mocked(marketApi.fetchMarketLevels).mockResolvedValue([]);
+    vi.mocked(marketApi.fetchMarketDivergence).mockResolvedValue({
+      found: false,
+      type: "none",
+      p1: null,
+      p2: null,
+    });
+    vi.mocked(marketApi.fetchMarketChannel).mockResolvedValue({
+      found: false,
+      direction: "none",
+      upper: null,
+      lower: null,
+    });
+
+    render(
+      <ChartPanel
+        data={dummyCandles}
+        timeframe="1h"
+        opportunities={[
+          {
+            rank: 1,
+            symbol: "BTC",
+            side: "LONG",
+            strategy: "trend",
+            score: 0.8,
+            probability: 75,
+            risk_score: 0.3,
+            confidence: 80,
+            price: 100,
+            stop: 90,
+            tp1: 120,
+            signals: [],
+          },
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(marketApi.fetchMarketLevels).toHaveBeenCalled();
+    });
+
+    expect(mockCreatePriceLine).toHaveBeenCalledTimes(3);
+    expect(mockCreatePriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 100, title: "OPP ENTRY" })
+    );
+    expect(mockCreatePriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 90, title: "OPP STOP" })
+    );
+    expect(mockCreatePriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 120, title: "OPP TP1" })
+    );
+  });
 });

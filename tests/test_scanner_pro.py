@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 import pandas as pd
+import pytest
 
 from scanner.confidence import ConfidenceScorer
 from scanner.dto import ScannerDashboardDTO, opportunity_to_dto
@@ -255,6 +256,86 @@ class TestScannerMarketFilterIntegration:
         assert ops[0].side == "SHORT"
 
 
+class TestScannerTpSlEnrichment:
+    # Opportunities carry real entry/stop/tp1/tp2 via _enrich_opportunities()
+    # -- the same TPSLEngine formula a real trade gets (execution/tp_sl.py),
+    # so the frontend can show a scanner opportunity's suggested levels on
+    # the chart consistently with what a real trade would actually get.
+
+    def test_long_opportunity_gets_real_tp_sl_levels(self):
+        from market.models import Asset, AssetMetadata
+        from scanner.core import OpportunityScanner
+        from scanner.models import Opportunity
+
+        mock_service = MagicMock()
+        mock_ranker = MagicMock()
+        mock_ranker.rank.return_value = [
+            Opportunity(symbol="BTCUSDT", side="LONG", strategy="trend", score=0.5, confidence=50.0, price=50000.0)
+        ]
+
+        ohlcv = pd.DataFrame({"close": [50000.0], "volume": [100.0]})
+        asset = Asset(
+            symbol="BTCUSDT",
+            metadata=AssetMetadata(symbol="BTCUSDT"),
+            price=50000.0,
+            ohlcv=ohlcv,
+            indicators={"ema20": 110, "ema50": 105, "ema200": 100, "rsi": 60},
+            features={
+                "trend": "BULLISH", "momentum": "STRONG", "liquidity": "HIGH",
+                "risk": "LOW", "volatility_class": "NORMAL", "atr_pct": 2.0,
+            },
+        )
+        asset.context = {"session": "OPEN", "btc": {"btc_trend": "BULLISH"}}
+        mock_service.get_asset.return_value = asset
+
+        scanner = OpportunityScanner(market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"])
+        ops = scanner.scan()
+
+        assert len(ops) == 1
+        opp = ops[0]
+        # 2% of 50000 = 1000 raw ATR; default ATR_MULTIPLIER=1.5
+        assert opp.stop == pytest.approx(48500.0)
+        assert opp.tp1 == pytest.approx(52000.0)
+        assert opp.tp2 == pytest.approx(54000.0)
+        assert opp.stop < opp.price < opp.tp1 < opp.tp2
+
+    def test_short_opportunity_gets_real_tp_sl_levels(self):
+        from market.models import Asset, AssetMetadata
+        from scanner.core import OpportunityScanner
+        from scanner.models import Opportunity
+
+        mock_service = MagicMock()
+        mock_ranker = MagicMock()
+        mock_ranker.rank.return_value = [
+            Opportunity(symbol="BTCUSDT", side="SHORT", strategy="reversal", score=0.5, confidence=50.0, price=50000.0)
+        ]
+
+        ohlcv = pd.DataFrame({"close": [50000.0], "volume": [100.0]})
+        asset = Asset(
+            symbol="BTCUSDT",
+            metadata=AssetMetadata(symbol="BTCUSDT"),
+            price=50000.0,
+            ohlcv=ohlcv,
+            indicators={"ema20": 110, "ema50": 105, "ema200": 100, "rsi": 60},
+            features={
+                "trend": "BEARISH", "momentum": "STRONG", "liquidity": "HIGH",
+                "risk": "LOW", "volatility_class": "NORMAL", "atr_pct": 2.0,
+            },
+        )
+        asset.context = {"session": "OPEN", "btc": {"btc_trend": "BEARISH"}}
+        mock_service.get_asset.return_value = asset
+
+        scanner = OpportunityScanner(market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"])
+        ops = scanner.scan()
+
+        assert len(ops) == 1
+        opp = ops[0]
+        assert opp.stop == pytest.approx(51500.0)
+        assert opp.tp1 == pytest.approx(48000.0)
+        assert opp.tp2 == pytest.approx(46000.0)
+        assert opp.tp2 < opp.tp1 < opp.price < opp.stop
+
+
 class TestFalseSignalFilter:
 
     def setup_method(self):
@@ -351,12 +432,16 @@ class TestDTO:
             score=0.8, confidence=80.0, price=50000, rank=1,
             signals=["BULLISH_TREND"],
             probability_score=75.0, risk_score=0.3,
+            stop=48500.0, tp1=52000.0, tp2=54000.0,
         )
         dto = opportunity_to_dto(opp)
         assert dto["rank"] == 1
         assert dto["symbol"] == "BTCUSDT"
         assert dto["probability"] == 75.0
         assert dto["risk_score"] == 0.3
+        assert dto["stop"] == 48500.0
+        assert dto["tp1"] == 52000.0
+        assert dto["tp2"] == 54000.0
 
     def test_dashboard_dto(self):
         dto = ScannerDashboardDTO(

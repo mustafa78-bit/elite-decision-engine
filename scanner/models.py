@@ -32,6 +32,14 @@ class Opportunity:
     oi_score: float = 0.0
     cvd_score: float = 0.0
 
+    # ATR-based stop/target, same formula real trades get (execution/tp_sl.py)
+    # -- lets the frontend show a scanner opportunity's suggested levels on
+    # the chart without inventing a separate/inconsistent calculation.
+    # 0.0 (never a real price) until _enrich_opportunities() computes them.
+    stop: float = 0.0
+    tp1: float = 0.0
+    tp2: float = 0.0
+
 
 @dataclass
 class ScanResult:

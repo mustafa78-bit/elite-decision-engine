@@ -7,6 +7,7 @@ import { ChartPanel } from "../components/trading/chart-panel";
 import { OrderPanel } from "../components/trading/order-panel";
 import { Skeleton } from "../components/ui/skeleton";
 import { apiFetch } from "../api/client";
+import { fetchScannerDashboard, type ScannerOpportunity } from "../api/scanner";
 import { useTerminalStore } from "../stores/terminal-store";
 import type { LayoutContext } from "../components/layout/Layout";
 
@@ -32,10 +33,12 @@ export default function TradingWorkspace() {
   const { t } = useTranslation("tradingWorkspace");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [opportunities, setOpportunities] = useState<ScannerOpportunity[]>([]);
   const { openTrades } = useOutletContext<LayoutContext>();
   const { symbol } = useTerminalStore();
   const currentSymbol = symbol || "BTC";
   const openTradesForSymbol = openTrades.filter((trade) => trade.symbol === currentSymbol);
+  const opportunitiesForSymbol = opportunities.filter((o) => o.symbol === currentSymbol);
 
   useEffect(() => {
     let mounted = true;
@@ -55,6 +58,19 @@ export default function TradingWorkspace() {
       })
       .catch(() => { if (mounted) setCandles([]); })
       .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    // n=25 covers the whole fixed coin universe (config.FIXED_COIN_UNIVERSE)
+    // so "does the current symbol have a live opportunity right now" is a
+    // real, honest answer -- not truncated to some smaller top-N.
+    fetchScannerDashboard(25)
+      .then((res) => {
+        if (mounted) setOpportunities(res.top_opportunities);
+      })
+      .catch(() => { if (mounted) setOpportunities([]); });
     return () => { mounted = false; };
   }, []);
 
@@ -81,7 +97,7 @@ export default function TradingWorkspace() {
           {loading ? (
             <Skeleton className="h-[400px] w-full rounded-xl" />
           ) : (
-            <ChartPanel data={candles} openTrades={openTradesForSymbol} />
+            <ChartPanel data={candles} openTrades={openTradesForSymbol} opportunities={opportunitiesForSymbol} />
           )}
         </motion.div>
 
