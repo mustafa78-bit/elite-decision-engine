@@ -172,6 +172,32 @@ class User(Base):
 
 
 # ------------------------------------------------------------------
+# REFRESH TOKEN TABLE
+# ------------------------------------------------------------------
+
+class RefreshToken(Base):
+    """A long-lived, rotatable credential separate from the short-lived
+    JWT access token -- see auth/service.py for the rotation + reuse-
+    detection logic this table exists to support. Stores a SHA-256 hash
+    of the token, never the raw value, matching this app's existing
+    password-hashing hygiene.
+    """
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Always created for a specific, known user at login/register/refresh
+    # time -- unlike Signal/Trade/Notification's nullable user_id (which
+    # can be background-job-created with no owner), a RefreshToken never
+    # exists without one. No ForeignKey, matching this file's other
+    # always-owned column (UserSettings.user_id).
+    user_id = Column(Integer, nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ------------------------------------------------------------------
 # USER SETTINGS TABLE
 # ------------------------------------------------------------------
 

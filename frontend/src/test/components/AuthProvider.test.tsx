@@ -25,13 +25,14 @@ describe("AuthProvider", () => {
     setUnauthorizedHandler(null);
   });
 
-  it("proactive refresh fires on the interval and updates the stored token", async () => {
+  it("proactive refresh fires on the interval, rotates both tokens", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     localStorage.setItem("auth_token", "old-token");
+    localStorage.setItem("auth_refresh_token", "old-refresh-token");
 
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ success: true, token: "new-token" }),
+      json: () => Promise.resolve({ success: true, token: "new-token", refresh_token: "new-refresh-token" }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -43,18 +44,37 @@ describe("AuthProvider", () => {
 
     expect(screen.getByTestId("token").textContent).toBe("old-token");
 
-    // Advance past the 45-minute proactive-refresh interval.
-    await vi.advanceTimersByTimeAsync(45 * 60 * 1000 + 1000);
+    // Advance past the 15-minute proactive-refresh interval.
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000 + 1000);
 
     await waitFor(() => {
       expect(screen.getByTestId("token").textContent).toBe("new-token");
       expect(localStorage.getItem("auth_token")).toBe("new-token");
+      expect(localStorage.getItem("auth_refresh_token")).toBe("new-refresh-token");
     });
 
     const refreshCall = fetchMock.mock.calls.find((call: unknown[]) =>
       String(call[0]).includes("/auth/refresh"),
     );
     expect(refreshCall).toBeDefined();
+    const body = JSON.parse((refreshCall![1] as RequestInit).body as string);
+    expect(body).toEqual({ refresh_token: "old-refresh-token" });
+  });
+
+  it("does not schedule a refresh when there is a token but no refresh token", () => {
+    vi.useFakeTimers();
+    localStorage.setItem("auth_token", "some-token");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>,
+    );
+
+    vi.advanceTimersByTime(60 * 60 * 1000);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("does not schedule a refresh when there is no token", () => {
@@ -102,5 +122,39 @@ describe("AuthProvider", () => {
     expect(localStorage.getItem("auth_user")).toBeNull();
 
     vi.restoreAllMocks();
+  });
+
+  it("logout revokes the refresh token server-side and clears it locally", async () => {
+    localStorage.setItem("auth_token", "some-token");
+    localStorage.setItem("auth_refresh_token", "some-refresh-token");
+    localStorage.setItem("auth_user", "someone");
+
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    let capturedLogout: (() => void) | null = null;
+    function Consumer() {
+      const { logout } = useAuth();
+      capturedLogout = logout;
+      return null;
+    }
+
+    render(
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>,
+    );
+
+    capturedLogout!();
+
+    expect(localStorage.getItem("auth_token")).toBeNull();
+    expect(localStorage.getItem("auth_refresh_token")).toBeNull();
+
+    await waitFor(() => {
+      const logoutCall = fetchMock.mock.calls.find((call: unknown[]) => String(call[0]).includes("/auth/logout"));
+      expect(logoutCall).toBeDefined();
+      const body = JSON.parse((logoutCall![1] as RequestInit).body as string);
+      expect(body).toEqual({ refresh_token: "some-refresh-token" });
+    });
   });
 });

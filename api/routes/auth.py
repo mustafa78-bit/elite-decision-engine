@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, field_validator
 
 from api.rate_limit import limiter
-from auth.service import login_user, register_user
+from auth.service import login_user, refresh_session, register_user, revoke_refresh_token
 
 router = APIRouter()
 
@@ -25,6 +25,14 @@ class RegisterRequest(BaseModel):
         return v
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str
+
+
 @router.post("/auth/register")
 @limiter.limit("5/minute")
 def register(request: Request, body: RegisterRequest):
@@ -39,45 +47,15 @@ def login(request: Request, body: AuthRequest):
 
 @router.post("/auth/refresh")
 @limiter.limit("5/minute")
-def refresh(request: Request):
-    from fastapi import HTTPException
+def refresh(request: Request, body: RefreshRequest):
+    result = refresh_session(body.refresh_token)
+    if not result["success"]:
+        raise HTTPException(status_code=401, detail=result["error"])
+    return result
 
-    from auth.jwt import create_access_token, decode_access_token
-    from database import User, get_session
 
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authentication required")
-
-    token = auth_header.split(" ", 1)[1]
-    payload = decode_access_token(token)
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-    user_id_str = payload.get("sub")
-    if not user_id_str:
-        raise HTTPException(status_code=401, detail="Invalid token claims")
-
-    try:
-        user_id = int(user_id_str)
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid token claims")
-
-    session = get_session()
-    try:
-        user = session.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-
-        new_token = create_access_token({"sub": str(user.id), "username": user.username})
-        return {
-            "success": True,
-            "token": new_token,
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email
-            }
-        }
-    finally:
-        session.close()
+@router.post("/auth/logout")
+@limiter.limit("10/minute")
+def logout(request: Request, body: LogoutRequest):
+    revoke_refresh_token(body.refresh_token)
+    return {"success": True}

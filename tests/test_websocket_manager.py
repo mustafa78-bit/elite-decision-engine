@@ -1,11 +1,29 @@
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
+import jwt as pyjwt
 import pytest
 
 from api.websocket.manager import WebSocketManager
-from auth.jwt import create_access_token
+from auth.jwt import ALGORITHM, _get_secret
 
-_TEST_TOKEN = create_access_token({"sub": "1", "username": "test"})
+
+def _make_test_token(sub: str = "1", username: str = "test") -> str:
+    """Builds a token with a fixed, deliberately long expiry, independent
+    of auth.jwt.ACCESS_TOKEN_EXPIRE_MINUTES -- these tests only need *a*
+    valid token, not a production-realistic one, and module-scoped tokens
+    created via create_access_token() would otherwise expire mid-run if
+    the full suite (which can take tens of minutes) outlives the real
+    access-token lifetime.
+    """
+    return pyjwt.encode(
+        {"sub": sub, "username": username, "exp": datetime.now(UTC) + timedelta(days=365)},
+        _get_secret(),
+        algorithm=ALGORITHM,
+    )
+
+
+_TEST_TOKEN = _make_test_token()
 
 
 @pytest.fixture
@@ -85,8 +103,8 @@ async def test_disconnect_removes_stored_user_id(manager, mock_ws):
 
 @pytest.mark.asyncio
 async def test_broadcast_to_owner_only_reaches_that_users_connections(manager):
-    token_user1 = create_access_token({"sub": "1", "username": "one"})
-    token_user2 = create_access_token({"sub": "2", "username": "two"})
+    token_user1 = _make_test_token("1", "one")
+    token_user2 = _make_test_token("2", "two")
 
     ws_user1 = _make_ws()
     ws_user1.query_params = {"token": token_user1}
@@ -104,8 +122,8 @@ async def test_broadcast_to_owner_only_reaches_that_users_connections(manager):
 
 @pytest.mark.asyncio
 async def test_broadcast_to_owner_with_none_falls_back_to_everyone(manager):
-    token_user1 = create_access_token({"sub": "1", "username": "one"})
-    token_user2 = create_access_token({"sub": "2", "username": "two"})
+    token_user1 = _make_test_token("1", "one")
+    token_user2 = _make_test_token("2", "two")
 
     ws_user1 = _make_ws()
     ws_user1.query_params = {"token": token_user1}
@@ -123,8 +141,8 @@ async def test_broadcast_to_owner_with_none_falls_back_to_everyone(manager):
 
 @pytest.mark.asyncio
 async def test_connected_user_ids_reflects_active_connections(manager):
-    token_user1 = create_access_token({"sub": "1", "username": "one"})
-    token_user2 = create_access_token({"sub": "2", "username": "two"})
+    token_user1 = _make_test_token("1", "one")
+    token_user2 = _make_test_token("2", "two")
 
     ws_user1 = _make_ws()
     ws_user1.query_params = {"token": token_user1}
@@ -143,7 +161,7 @@ async def test_connected_user_ids_reflects_active_connections(manager):
 async def test_broadcast_to_owner_survives_concurrent_connect_mid_iteration(manager):
     """Same iterate-a-snapshot regression this file already covers for
     broadcast(), but for broadcast_to_owner()'s parallel loop."""
-    token_user1 = create_access_token({"sub": "1", "username": "one"})
+    token_user1 = _make_test_token("1", "one")
 
     ws1 = _make_ws()
     ws1.query_params = {"token": token_user1}
