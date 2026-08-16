@@ -271,11 +271,21 @@ export default function OLLOCommander({ greeting, briefing, loading, error }: Pr
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-[10px] mt-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  {greeting.text}
-                </p>
-              )}
+              ) : (() => {
+                // The headline above is already greeting.text's first line
+                // -- for a single-line greeting (e.g. the backend's raw
+                // fallback error text, which has no newline at all) that
+                // headline IS the full text, so rendering greeting.text
+                // again here duplicated it verbatim underneath itself.
+                // Only show a body paragraph when there's real content
+                // beyond that first line.
+                const remainder = greeting.text.split("\n").slice(1).join("\n").trim();
+                return remainder ? (
+                  <p className="text-[10px] mt-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    {remainder}
+                  </p>
+                ) : null;
+              })()}
               <div className="mt-3 text-[7px] font-mono" style={{ color: "var(--text-muted)" }}>
                 {greeting.provider} · {greeting.model} · {(greeting.duration_ms / 1000).toFixed(1)}s
               </div>

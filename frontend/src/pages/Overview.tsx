@@ -29,7 +29,7 @@ interface PerfSummary {
   total_pnl: number;
   win_rate: number;
   total_trades: number;
-  sharpe_ratio: number;
+  profit_factor: number;
 }
 
 function OverviewCard({ label, children }: { label: string; children: React.ReactNode }) {
@@ -154,7 +154,7 @@ export default function Overview() {
             </div>
             <div className="grid grid-cols-2 gap-1 text-xs">
               <div><span className="text-[var(--text-secondary)]">{t("labels.winRate")}</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.win_rate.toFixed(0)}%</span></div>
-              <div><span className="text-[var(--text-secondary)]">{t("labels.sharpe")}</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.sharpe_ratio.toFixed(2)}</span></div>
+              <div><span className="text-[var(--text-secondary)]">{t("labels.profitFactor")}</span> <span className="tabular-nums text-[var(--text-primary)] float-right">{perf.profit_factor.toFixed(2)}</span></div>
             </div>
           </OverviewCard>
         )}
