@@ -1,5 +1,3 @@
-from datetime import UTC
-
 from database import User
 
 
@@ -13,6 +11,7 @@ def test_register_success(api_client):
     body = resp.json()
     assert body["success"] is True
     assert "token" in body
+    assert "refresh_token" in body
     assert body["user"]["username"] == "newuser"
 
 
@@ -54,6 +53,7 @@ def test_login_success(api_client, db_session):
     body = resp.json()
     assert body["success"] is True
     assert "token" in body
+    assert "refresh_token" in body
 
 
 def test_login_invalid_password(api_client, db_session):
@@ -98,104 +98,66 @@ def test_register_short_password_returns_422_not_500(api_client):
 
 
 def test_refresh_success(api_client, db_session):
-    from datetime import datetime, timedelta
+    # register_user() called directly (not via the rate-limited
+    # /auth/register route -- this test exercises /auth/refresh, and this
+    # file's other tests already exhaust /auth/register's 5/minute cap).
+    from auth.service import register_user
 
-    import jwt
+    register_result = register_user("refreshtest", "refresh@example.com", "pass1234")
+    original_refresh_token = register_result["refresh_token"]
 
-    from auth.jwt import _get_secret
-    from auth.service import hash_password
-
-    # Create user
-    user = User(username="refreshtest", email="refresh@example.com", hashed_password=hash_password("pass123"))
-    db_session.add(user)
-    db_session.flush()
-
-    # Generate an active token that is valid but with an early expiry
-    # e.g., expires in 5 minutes
-    early_exp = datetime.now(UTC) + timedelta(minutes=5)
-    token_payload = {"sub": str(user.id), "username": user.username, "exp": early_exp}
-    original_token = jwt.encode(token_payload, _get_secret(), algorithm="HS256")
-
-    # Call /auth/refresh with original_token
-    resp = api_client.post(
-        "/auth/refresh",
-        headers={"Authorization": f"Bearer {original_token}"}
-    )
+    resp = api_client.post("/auth/refresh", json={"refresh_token": original_refresh_token})
     assert resp.status_code == 200
     body = resp.json()
     assert body["success"] is True
     assert "token" in body
+    assert "refresh_token" in body
+    assert body["refresh_token"] != original_refresh_token
     assert body["user"]["username"] == "refreshtest"
     assert body["user"]["email"] == "refresh@example.com"
-    assert body["user"]["id"] == user.id
-
-    # Decode new token and verify expiry is pushed forward
-    new_token = body["token"]
-    new_payload = jwt.decode(new_token, _get_secret(), algorithms=["HS256"])
-    original_exp_timestamp = int(early_exp.timestamp())
-    new_exp_timestamp = new_payload["exp"]
-    assert new_exp_timestamp > original_exp_timestamp
 
 
-def test_refresh_expired_token(api_client, db_session):
-    from datetime import datetime, timedelta
+def test_refresh_rotation_rejects_the_old_token_on_reuse(api_client, db_session):
+    from auth.service import register_user
 
-    import jwt
+    register_result = register_user("rotationtest", "rotation@example.com", "pass1234")
+    original_refresh_token = register_result["refresh_token"]
 
-    from auth.jwt import _get_secret
-    from auth.service import hash_password
+    first = api_client.post("/auth/refresh", json={"refresh_token": original_refresh_token})
+    assert first.status_code == 200
 
-    # Create user
-    user = User(username="refreshtest2", email="refresh2@example.com", hashed_password=hash_password("pass123"))
-    db_session.add(user)
-    db_session.flush()
+    # Presenting the already-rotated-away token again must fail -- this is
+    # the reuse-detection path (auth/service.py::refresh_session).
+    second = api_client.post("/auth/refresh", json={"refresh_token": original_refresh_token})
+    assert second.status_code == 401
 
-    # Generate an expired token
-    expired_time = datetime.now(UTC) - timedelta(minutes=10)
-    token_payload = {"sub": str(user.id), "username": user.username, "exp": expired_time}
-    expired_token = jwt.encode(token_payload, _get_secret(), algorithm="HS256")
 
-    # Call /auth/refresh
-    resp = api_client.post(
-        "/auth/refresh",
-        headers={"Authorization": f"Bearer {expired_token}"}
-    )
+def test_refresh_missing_body_returns_422(api_client):
+    resp = api_client.post("/auth/refresh", json={})
+    assert resp.status_code == 422
+
+
+def test_refresh_unknown_token(api_client):
+    resp = api_client.post("/auth/refresh", json={"refresh_token": "never-issued-token"})
     assert resp.status_code == 401
-    assert "Invalid or expired token" in resp.json()["detail"]
+    assert "Invalid refresh token" in resp.json()["detail"]
 
 
-def test_refresh_missing_token(api_client):
-    if "Authorization" in api_client.headers:
-        del api_client.headers["Authorization"]
-    resp = api_client.post("/auth/refresh")
-    assert resp.status_code == 401
-    assert "Authentication required" in resp.json()["detail"]
+def test_logout_revokes_refresh_token(api_client, db_session):
+    from auth.service import register_user
+
+    register_result = register_user("logouttest", "logout@example.com", "pass1234")
+    refresh_token = register_result["refresh_token"]
+
+    logout_resp = api_client.post("/auth/logout", json={"refresh_token": refresh_token})
+    assert logout_resp.status_code == 200
+    assert logout_resp.json()["success"] is True
+
+    refresh_resp = api_client.post("/auth/refresh", json={"refresh_token": refresh_token})
+    assert refresh_resp.status_code == 401
 
 
-def test_refresh_malformed_token(api_client):
-    resp = api_client.post(
-        "/auth/refresh",
-        headers={"Authorization": "Bearer malformed.token.here"}
-    )
-    assert resp.status_code == 401
-    assert "Invalid or expired token" in resp.json()["detail"]
-
-
-def test_refresh_user_not_found(api_client):
-    from datetime import datetime, timedelta
-
-    import jwt
-
-    from auth.jwt import _get_secret
-
-    # Generate a valid token but for a non-existent user ID
-    exp_time = datetime.now(UTC) + timedelta(minutes=10)
-    token_payload = {"sub": "999999", "username": "nonexistent", "exp": exp_time}
-    token = jwt.encode(token_payload, _get_secret(), algorithm="HS256")
-
-    resp = api_client.post(
-        "/auth/refresh",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert resp.status_code == 401
-    assert "User not found" in resp.json()["detail"]
+def test_logout_unknown_token_still_returns_success(api_client):
+    resp = api_client.post("/auth/logout", json={"refresh_token": "never-issued-token"})
+    assert resp.status_code == 200
+    assert resp.json()["success"] is True

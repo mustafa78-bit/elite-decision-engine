@@ -14,10 +14,11 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-// Renew well under the 24h access-token expiry so an actively-open tab never
+// Renew well under the access token's now-short 30-minute expiry (see
+// auth/jwt.py::ACCESS_TOKEN_EXPIRE_MINUTES) so an actively-open tab never
 // actually reaches it. This is a single-user/trial-scale app -- a plain
 // interval is proportionate, no need for a background job queue.
-const PROACTIVE_REFRESH_INTERVAL_MS = 45 * 60 * 1000; // 45 minutes
+const PROACTIVE_REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("auth_token"));
@@ -38,14 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const res = await apiFetch<{ success: boolean; token?: string; error?: string }>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-      });
-      if (!res.success || !res.token) {
+      const res = await apiFetch<{ success: boolean; token?: string; refresh_token?: string; error?: string }>(
+        "/auth/login",
+        { method: "POST", body: JSON.stringify({ username, password }) },
+      );
+      if (!res.success || !res.token || !res.refresh_token) {
         throw new Error(res.error || "Login failed");
       }
       setToken(res.token);
+      localStorage.setItem("auth_refresh_token", res.refresh_token);
       setUser(username);
       localStorage.setItem("auth_user", username);
     } finally {
@@ -54,9 +56,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    // Best-effort: revoke the refresh token server-side so a copy of it
+    // (if one leaked) can't be used later. Never block clearing local
+    // state on this -- the user is logged out locally regardless of
+    // whether the network call itself succeeds.
+    const refreshToken = localStorage.getItem("auth_refresh_token");
+    if (refreshToken) {
+      apiFetch("/auth/logout", {
+        method: "POST",
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch(() => {});
+    }
     setToken(null);
     setUser(null);
     localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_refresh_token");
     localStorage.removeItem("auth_user");
   }, []);
 
@@ -87,14 +101,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) return;
 
     const interval = setInterval(async () => {
-      const currentToken = localStorage.getItem("auth_token");
-      if (!currentToken) return;
+      const currentRefreshToken = localStorage.getItem("auth_refresh_token");
+      if (!currentRefreshToken) return;
       try {
-        const res = await apiFetch<{ success: boolean; token?: string }>("/auth/refresh", {
-          method: "POST",
-        });
-        if (res.success && res.token) {
+        // Rotation: the server always issues a brand-new refresh_token
+        // alongside the new access token and revokes the one just
+        // presented -- both must be persisted, or the next refresh
+        // attempt will present an already-revoked token and trip the
+        // server's reuse-detection (see auth/service.py::refresh_session).
+        const res = await apiFetch<{ success: boolean; token?: string; refresh_token?: string }>(
+          "/auth/refresh",
+          { method: "POST", body: JSON.stringify({ refresh_token: currentRefreshToken }) },
+        );
+        if (res.success && res.token && res.refresh_token) {
           setToken(res.token);
+          localStorage.setItem("auth_refresh_token", res.refresh_token);
         }
       } catch {
         // A refresh failure here isn't fatal on its own -- if the token
