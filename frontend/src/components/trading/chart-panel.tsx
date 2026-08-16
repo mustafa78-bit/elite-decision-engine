@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { LineWidth } from "lightweight-charts";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useTerminalStore } from "../../stores/terminal-store";
+import type { TradePayload } from "../../types/trade";
 
 interface Candle {
   time: number;
@@ -16,9 +17,10 @@ interface Candle {
 interface ChartPanelProps {
   data?: Candle[];
   timeframe?: string;
+  openTrades?: TradePayload[];
 }
 
-export function ChartPanel({ data = [], timeframe = "1h" }: ChartPanelProps) {
+export function ChartPanel({ data = [], timeframe = "1h", openTrades = [] }: ChartPanelProps) {
   const { t } = useTranslation("tradingWorkspace");
   const containerRef = useRef<HTMLDivElement>(null);
   const { symbol } = useTerminalStore();
@@ -79,6 +81,29 @@ export function ChartPanel({ data = [], timeframe = "1h" }: ChartPanelProps) {
         })));
 
         chart.timeScale().fitContent();
+
+        // 0. Open trade entry/stop/target lines -- local data, no fetch
+        // needed. Cleaned up automatically along with everything else on
+        // chart.remove() below when data/symbol/timeframe/openTrades change.
+        openTrades.forEach((trade) => {
+          const lines: [number | undefined, string, string][] = [
+            [trade.entry, "rgba(255,255,255,0.5)", "ENTRY"],
+            [trade.stop, "rgba(239, 68, 68, 0.8)", "STOP"],
+            [trade.tp1, "rgba(34, 197, 94, 0.8)", "TP1"],
+            [trade.tp2, "rgba(34, 197, 94, 0.5)", "TP2"],
+          ];
+          lines.forEach(([price, color, title]) => {
+            if (!price) return;
+            candleSeries.createPriceLine({
+              price,
+              color,
+              lineWidth: 2 as LineWidth,
+              lineStyle: 3, // Dotted -- distinguishes an open-trade level from the dashed S/R lines below
+              axisLabelVisible: true,
+              title,
+            });
+          });
+        });
 
         // Dynamically import fetch functions to draw overlays
         const { fetchMarketLevels, fetchMarketDivergence, fetchMarketChannel } = await import("../../api/market");
@@ -185,7 +210,7 @@ export function ChartPanel({ data = [], timeframe = "1h" }: ChartPanelProps) {
     return () => {
       cleanupPromise.then((cleanup) => cleanup?.());
     };
-  }, [data, symbol, timeframe]);
+  }, [data, symbol, timeframe, openTrades]);
 
   if (data.length === 0) {
     return (

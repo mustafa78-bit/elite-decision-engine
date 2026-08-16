@@ -6,6 +6,7 @@ import { LoadingScreen } from "./components/layout/LoadingScreen";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { AuthGuard } from "./components/auth/AuthGuard";
+import { apiFetch } from "./api/client";
 import type {
   CandleWsPayload,
   MarketPayload,
@@ -55,7 +56,7 @@ const MarketSimulator = lazy(() => import("./pages/MarketSimulator"));
 
 const MAX_EVENTS = 100;
 
-function AppRoutes() {
+export function AppRoutes() {
   const [notifications, setNotifications] = useState<TradeNotification[]>([]);
   const [openTrades, setOpenTrades] = useState<TradePayload[]>([]);
   const [closedTrades, setClosedTrades] = useState<TradePayload[]>([]);
@@ -79,6 +80,62 @@ function AppRoutes() {
     if (!token) return;
 
     let cancelled = false;
+
+    interface PositionRow {
+      id: number;
+      symbol: string;
+      side: string;
+      entry: number;
+      stop: number | null;
+      tp1: number | null;
+      tp2: number | null;
+      status: string;
+      pnl: number | null;
+      exit_price: number | null;
+      close_reason: string | null;
+    }
+
+    // Trades opened before this page load only ever reach openTrades/
+    // closedTrades via TRADE_OPENED/TRADE_CLOSED websocket events below --
+    // there was no initial hydration, so a fresh page load or hard refresh
+    // showed zero open trades until a *new* trade event happened to arrive
+    // during that session, even though the account genuinely had open
+    // positions. /paper/positions already returns the real Trade rows
+    // (entry/stop/tp1/tp2/status/pnl) this app needs -- fetch once here to
+    // seed both lists before/alongside the live websocket connection.
+    apiFetch<{ positions: PositionRow[] }>("/paper/positions?limit=200")
+      .then((res) => {
+        if (cancelled) return;
+        const mapped: TradePayload[] = res.positions.map((p) => ({
+          trade_id: p.id,
+          symbol: p.symbol,
+          side: p.side,
+          entry: p.entry,
+          stop: p.stop ?? undefined,
+          tp1: p.tp1 ?? undefined,
+          tp2: p.tp2 ?? undefined,
+          status: p.status,
+          exit_price: p.exit_price ?? undefined,
+          pnl: p.pnl ?? undefined,
+          close_reason: p.close_reason ?? undefined,
+        }));
+        setOpenTrades(mapped.filter((t) => t.status === "OPEN"));
+        setClosedTrades(mapped.filter((t) => t.status !== "OPEN"));
+      })
+      .catch(() => {
+        // Live websocket updates still work without this hydration --
+        // just no pre-existing trades to show until the next live event.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
     let retryCount = 0;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const MAX_RETRIES = 10;
@@ -94,7 +151,9 @@ function AppRoutes() {
         });
 
         if (data.event === "TRADE_OPENED") {
-          setOpenTrades((prev) => [...prev, p]);
+          setOpenTrades((prev) =>
+            prev.some((t) => t.trade_id === p.trade_id) ? prev : [...prev, p],
+          );
         }
 
         if (data.event === "TRADE_CLOSED") {

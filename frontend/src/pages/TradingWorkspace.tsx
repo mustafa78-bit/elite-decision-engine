@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { SymbolSearch } from "../components/trading/symbol-search";
@@ -6,6 +7,8 @@ import { ChartPanel } from "../components/trading/chart-panel";
 import { OrderPanel } from "../components/trading/order-panel";
 import { Skeleton } from "../components/ui/skeleton";
 import { apiFetch } from "../api/client";
+import { useTerminalStore } from "../stores/terminal-store";
+import type { LayoutContext } from "../components/layout/Layout";
 
 interface LiveCandle {
   timestamp: number;
@@ -29,6 +32,10 @@ export default function TradingWorkspace() {
   const { t } = useTranslation("tradingWorkspace");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [loading, setLoading] = useState(true);
+  const { openTrades } = useOutletContext<LayoutContext>();
+  const { symbol } = useTerminalStore();
+  const currentSymbol = symbol || "BTC";
+  const openTradesForSymbol = openTrades.filter((trade) => trade.symbol === currentSymbol);
 
   useEffect(() => {
     let mounted = true;
@@ -74,7 +81,7 @@ export default function TradingWorkspace() {
           {loading ? (
             <Skeleton className="h-[400px] w-full rounded-xl" />
           ) : (
-            <ChartPanel data={candles} />
+            <ChartPanel data={candles} openTrades={openTradesForSymbol} />
           )}
         </motion.div>
 

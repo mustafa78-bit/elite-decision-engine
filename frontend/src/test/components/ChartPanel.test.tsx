@@ -139,4 +139,90 @@ describe("ChartPanel Overlays", () => {
     // Only the Candlestick series should be added (1 series total)
     expect(mockChart.addSeries).toHaveBeenCalledTimes(1);
   });
+
+  it("draws entry/stop/target lines for a passed-in open trade", async () => {
+    vi.mocked(marketApi.fetchMarketLevels).mockResolvedValue([]);
+    vi.mocked(marketApi.fetchMarketDivergence).mockResolvedValue({
+      found: false,
+      type: "none",
+      p1: null,
+      p2: null,
+    });
+    vi.mocked(marketApi.fetchMarketChannel).mockResolvedValue({
+      found: false,
+      direction: "none",
+      upper: null,
+      lower: null,
+    });
+
+    render(
+      <ChartPanel
+        data={dummyCandles}
+        timeframe="1h"
+        openTrades={[
+          {
+            trade_id: 1,
+            symbol: "BTC",
+            side: "LONG",
+            entry: 100,
+            stop: 90,
+            tp1: 120,
+            status: "OPEN",
+          },
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(marketApi.fetchMarketLevels).toHaveBeenCalled();
+    });
+
+    // entry + stop + tp1 drawn, tp2 skipped (not set on this trade)
+    expect(mockCreatePriceLine).toHaveBeenCalledTimes(3);
+    expect(mockCreatePriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 100, title: "ENTRY" })
+    );
+    expect(mockCreatePriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 90, title: "STOP" })
+    );
+    expect(mockCreatePriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 120, title: "TP1" })
+    );
+  });
+
+  it("does not draw a price line for a null/zero stop or target", async () => {
+    vi.mocked(marketApi.fetchMarketLevels).mockResolvedValue([]);
+    vi.mocked(marketApi.fetchMarketDivergence).mockResolvedValue({
+      found: false,
+      type: "none",
+      p1: null,
+      p2: null,
+    });
+    vi.mocked(marketApi.fetchMarketChannel).mockResolvedValue({
+      found: false,
+      direction: "none",
+      upper: null,
+      lower: null,
+    });
+
+    render(
+      <ChartPanel
+        data={dummyCandles}
+        timeframe="1h"
+        openTrades={[
+          { trade_id: 2, symbol: "BTC", side: "LONG", entry: 100, stop: 0, status: "OPEN" },
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(marketApi.fetchMarketLevels).toHaveBeenCalled();
+    });
+
+    // Only entry drawn -- stop=0, tp1/tp2 unset are all skipped
+    expect(mockCreatePriceLine).toHaveBeenCalledTimes(1);
+    expect(mockCreatePriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 100, title: "ENTRY" })
+    );
+  });
 });
