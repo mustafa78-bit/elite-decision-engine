@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
 from config import FIXED_COIN_UNIVERSE
+from execution.tp_sl import TPSLEngine
 from market.services import MarketDataService
 from scanner.confidence import ConfidenceScorer
 from scanner.dto import ScannerDashboardDTO, opportunity_to_dto
@@ -47,6 +48,7 @@ class OpportunityScanner:
         false_signal_filter: FalseSignalFilter | None = None,
         watchlist_engine: WatchlistEngine | None = None,
         temporary_watch_service: TemporaryWatchService | None = None,
+        tp_sl_engine: TPSLEngine | None = None,
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.ranker = ranker or OpportunityRanker()
@@ -92,6 +94,7 @@ class OpportunityScanner:
         self.market_filter = market_filter or MarketFilter()
         self.false_signal_filter = false_signal_filter or FalseSignalFilter()
         self.watchlist = watchlist_engine or WatchlistEngine()
+        self.tp_sl_engine = tp_sl_engine or TPSLEngine()
 
     def scan(
         self,
@@ -306,6 +309,23 @@ class OpportunityScanner:
             opp.confidence_signals = conf_signals
 
             opp.trend_score = r.trend_score
+
+            # Same ATR-multiplier formula a real trade gets (execution/
+            # tp_sl.py), so a scanner opportunity's suggested levels are
+            # consistent with what actually happens if it's traded, not a
+            # separate/inconsistent estimate. features["atr_pct"] is a
+            # percentage (market/features/store.py) -- convert back to a
+            # raw price-unit ATR using this opportunity's own price.
+            if opp.price > 0:
+                atr_pct = r.features.get("atr_pct") or 0.0
+                atr = (atr_pct / 100.0) * opp.price
+                try:
+                    levels = self.tp_sl_engine.calculate(entry=opp.price, atr=atr, side=opp.side)
+                    opp.stop = levels["stop"]
+                    opp.tp1 = levels["tp1"]
+                    opp.tp2 = levels["tp2"]
+                except ValueError:
+                    pass
 
             funding_data = r.intelligence.get("funding", {})
             opp.funding_score = funding_data.get("risk_score", 0.0) if funding_data else 0.0

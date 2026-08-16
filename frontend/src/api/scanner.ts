@@ -10,6 +10,9 @@ export interface ScannerOpportunity {
   risk_score: number;
   confidence: number;
   price: number | null;
+  stop?: number;
+  tp1?: number;
+  tp2?: number;
   signals: string[];
 }
 

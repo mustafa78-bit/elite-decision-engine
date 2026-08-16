@@ -4,6 +4,7 @@ import type { LineWidth } from "lightweight-charts";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useTerminalStore } from "../../stores/terminal-store";
 import type { TradePayload } from "../../types/trade";
+import type { ScannerOpportunity } from "../../api/scanner";
 
 interface Candle {
   time: number;
@@ -18,9 +19,10 @@ interface ChartPanelProps {
   data?: Candle[];
   timeframe?: string;
   openTrades?: TradePayload[];
+  opportunities?: ScannerOpportunity[];
 }
 
-export function ChartPanel({ data = [], timeframe = "1h", openTrades = [] }: ChartPanelProps) {
+export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], opportunities = [] }: ChartPanelProps) {
   const { t } = useTranslation("tradingWorkspace");
   const containerRef = useRef<HTMLDivElement>(null);
   const { symbol } = useTerminalStore();
@@ -99,6 +101,31 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [] }: Cha
               color,
               lineWidth: 2 as LineWidth,
               lineStyle: 3, // Dotted -- distinguishes an open-trade level from the dashed S/R lines below
+              axisLabelVisible: true,
+              title,
+            });
+          });
+        });
+
+        // 0b. Scanner opportunity entry/stop/target -- same real TPSLEngine
+        // levels a trade would get if this signal were actually executed
+        // (scanner/core.py's _enrich_opportunities()), not a real position
+        // yet. Thinner + a lower opacity than the open-trade lines above so
+        // "the scanner is flagging this" reads as distinct from "you're
+        // actually in this trade".
+        opportunities.forEach((opp) => {
+          const lines: [number | null | undefined, string, string][] = [
+            [opp.price, "rgba(255,255,255,0.3)", "OPP ENTRY"],
+            [opp.stop, "rgba(239, 68, 68, 0.4)", "OPP STOP"],
+            [opp.tp1, "rgba(34, 197, 94, 0.4)", "OPP TP1"],
+          ];
+          lines.forEach(([price, color, title]) => {
+            if (!price) return;
+            candleSeries.createPriceLine({
+              price,
+              color,
+              lineWidth: 1 as LineWidth,
+              lineStyle: 1, // Dashed -- distinguishes an unrealized opportunity from a real open-trade level
               axisLabelVisible: true,
               title,
             });
@@ -210,7 +237,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [] }: Cha
     return () => {
       cleanupPromise.then((cleanup) => cleanup?.());
     };
-  }, [data, symbol, timeframe, openTrades]);
+  }, [data, symbol, timeframe, openTrades, opportunities]);
 
   if (data.length === 0) {
     return (
