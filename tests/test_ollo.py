@@ -651,6 +651,61 @@ class TestOLLOService:
         assert b.text != ""
         assert "429" in b.text
 
+    def test_greet_fallback_respects_language_param(self):
+        # Regression: the AI-unavailable fallback text was hardcoded English
+        # regardless of the UI's selected language -- greet()/query()/
+        # briefing() now thread a language param through to
+        # services/ollo/i18n_fallback.py's small en/tr dict.
+        failing_ai = MockAIService()
+        failing_ai.chat = MagicMock(return_value=GenerationResult(
+            content="",
+            model="test-model",
+            provider="test",
+            duration_ms=10.0,
+            retries=3,
+            error="HTTP 429",
+        ))
+        svc = OLLOService(ai_service=failing_ai)
+
+        r = svc.greet("command_deck", language="tr")
+
+        assert "429" in r.text
+        assert "Kurucu" in r.text
+
+    def test_query_fallback_respects_language_param(self):
+        failing_ai = MockAIService()
+        failing_ai.chat = MagicMock(return_value=GenerationResult(
+            content="",
+            model="test-model",
+            provider="test",
+            duration_ms=10.0,
+            retries=3,
+            error="HTTP 429",
+        ))
+        svc = OLLOService(ai_service=failing_ai)
+
+        r = svc.query("Portföy nasıl?", "command_deck", language="tr")
+
+        assert "429" in r.text
+        assert "Kurucu" in r.text
+
+    def test_briefing_fallback_respects_language_param(self):
+        failing_ai = MockAIService()
+        failing_ai.chat = MagicMock(return_value=GenerationResult(
+            content="",
+            model="test-model",
+            provider="test",
+            duration_ms=10.0,
+            retries=3,
+            error="HTTP 429",
+        ))
+        svc = OLLOService(ai_service=failing_ai)
+
+        b = svc.briefing("morning", "command_deck", language="tr")
+
+        assert "429" in b.text
+        assert "Kurucu" in b.text
+
 
 class TestCommanderMemory:
     """Commander memory stores and retrieves records."""

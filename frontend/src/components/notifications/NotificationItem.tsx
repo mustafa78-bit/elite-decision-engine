@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { NotificationRow } from "../../api/notifications";
 
 interface Props {
@@ -26,9 +27,40 @@ function formatTime(iso: string | null): string {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-function previewPayload(payload: Record<string, unknown>): string {
-  const entries = Object.entries(payload).slice(0, 3);
-  return entries.map(([k, v]) => `${k}=${v}`).join(" ");
+function formatPnl(pnl: unknown): string {
+  const n = typeof pnl === "number" ? pnl : Number(pnl);
+  if (Number.isNaN(n)) return "N/A";
+  return `${n > 0 ? "+" : ""}${n.toFixed(2)}`;
+}
+
+function formatMessage(t: TFunction, notification: NotificationRow): string {
+  const p = notification.payload;
+  switch (notification.event_type) {
+    case "TRADE_OPENED":
+      return t("item.messages.tradeOpened", {
+        symbol: p.symbol ?? "?",
+        side: p.side ?? "?",
+        entry: p.entry ?? "?",
+      });
+    case "TRADE_CLOSED":
+      return t("item.messages.tradeClosed", {
+        symbol: p.symbol ?? "?",
+        side: p.side ?? "?",
+        pnl: formatPnl(p.pnl),
+        reason: p.close_reason ?? p.status ?? "?",
+      });
+    case "SYSTEM_HEALTH_DEGRADED":
+      return t("item.messages.systemHealthDegraded", {
+        component: p.component ?? "?",
+        detail: p.detail ? ` — ${p.detail}` : "",
+      });
+    case "SYSTEM_HEALTH_RECOVERED":
+      return t("item.messages.systemHealthRecovered", {
+        component: p.component ?? "?",
+      });
+    default:
+      return t("item.messages.unknown", { eventType: notification.event_type });
+  }
 }
 
 export default function NotificationItem({ notification, onMarkRead }: Props) {
@@ -53,7 +85,7 @@ export default function NotificationItem({ notification, onMarkRead }: Props) {
           )}
         </div>
         <p className="text-[11px] text-gray-400 truncate mt-0.5">
-          {previewPayload(notification.payload)}
+          {formatMessage(t, notification)}
         </p>
         <p className="text-[9px] text-gray-600 mt-0.5">{formatTime(notification.created_at)}</p>
       </div>
