@@ -19,6 +19,7 @@ class OLLOContext:
     market_regime: dict | None = None
     risk_metrics: dict | None = None
     whale_activity: dict | None = None
+    news_headlines: dict | None = None
     council_latest: dict | None = None
     council_full: dict | None = None
     trade_history: dict | None = None
@@ -46,6 +47,7 @@ _CONTEXT_LOADERS: dict[str, str] = {
     "market_regime": "scoring.regime_ai.RegimeAI",
     "risk_metrics": "risk_manager",
     "whale_activity": "market.intelligence.whale.WhaleService",
+    "news_headlines": "market.intelligence.news.NewsService",
     "council_latest": "council.consensus.ConsensusEngine",
     "council_full": "council.consensus.ConsensusEngine",
     "trade_history": "memory.trade_memory.TradeMemory",
@@ -83,6 +85,8 @@ class ContextBuilder:
             return self._load_risk()
         if loader_path == "market.intelligence.whale.WhaleService":
             return self._load_whale()
+        if loader_path == "market.intelligence.news.NewsService":
+            return self._load_news()
         if loader_path == "council.consensus.ConsensusEngine":
             return self._load_council(key)
         if loader_path == "memory.trade_memory.TradeMemory":
@@ -289,6 +293,47 @@ class ContextBuilder:
             }
         except Exception as e:
             logger.warning("Whale load failed: %s", e)
+            return None
+
+    def _load_news(self) -> Any:
+        """General (not per-symbol) crypto market news, scored for impact.
+
+        Reuses the exact same fetch-once + batched-scoring calls the
+        periodic Telegram news job (services/news_job_service.py) already
+        makes -- and, since NewsService.classify_and_score() now goes
+        through provider_factory.get_shared_provider(), this shares that
+        same rate-limited NVIDIA provider rather than adding a new
+        independent consumer.
+        """
+        try:
+            from market.intelligence.news import NewsService
+            ns = NewsService()
+            entries = ns.fetch_rss_feeds()
+            seen: set[str] = set()
+            headlines: list[str] = []
+            for entry in entries:
+                title = (entry.get("title") or "").strip()
+                if title and title not in seen:
+                    seen.add(title)
+                    headlines.append(title)
+                if len(headlines) >= 8:
+                    break
+
+            if not headlines:
+                return {"headlines": [], "status": "no_data"}
+
+            scored = ns.classify_and_score(headlines)
+            ranked = sorted(
+                (
+                    {"headline": h, **scored.get(h.strip().lower(), {"sentiment": "neutral", "score": 50})}
+                    for h in headlines
+                ),
+                key=lambda item: item["score"],
+                reverse=True,
+            )
+            return {"headlines": ranked[:5], "status": "active"}
+        except Exception as e:
+            logger.warning("News load failed: %s", e)
             return None
 
     def _load_council(self, key: str) -> Any:

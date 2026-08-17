@@ -42,6 +42,10 @@ class CouncilReport:
     sources_disagreeing: int = 0
     risk_veto: bool = False
     risk_veto_reason: str | None = None
+    # Optional AI sanity-check commentary -- see council/ai_advisor.py's
+    # module docstring for why this is strictly advisory and never feeds
+    # back into consensus_direction/consensus_score/risk_veto above.
+    ai_opinion: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -50,12 +54,26 @@ class CouncilReport:
 
 
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "Technical": 0.25,
-    "Trend": 0.20,
+    # Rebalanced 2026-08-17 (founder decision): crypto price action on the
+    # short/intraday timeframes this system trades is driven far more by
+    # market structure/momentum than by traditional "fundamentals" -- crypto
+    # has no earnings/cash-flow fundamentals the way equities do. Technical +
+    # Trend now carry ~65% of the directional vote (was ~53%). Whale activity
+    # is treated as a leading TECHNICAL signal (large orders move price
+    # before it shows up elsewhere), not a fundamental one, so its weight
+    # goes up alongside Technical/Trend rather than with News/Macro. News and
+    # Macro are cut sharply -- they matter far more as regime-shift/risk
+    # filters (a Fed announcement, a hack, a regulatory ruling) than as a
+    # per-signal direction vote, so their remaining weight reflects that
+    # filter-leaning role rather than an equal seat at the table. Risk stays
+    # unchanged -- it's already a non-directional veto gate, not part of the
+    # directional vote at all (see is_directional in risk_agent.py).
+    "Technical": 0.30,
+    "Trend": 0.25,
     "Risk": 0.15,
-    "News": 0.10,
-    "Whale": 0.10,
-    "Macro": 0.20,
+    "News": 0.05,
+    "Whale": 0.15,
+    "Macro": 0.10,
 }
 
 class ConsensusEngine:
@@ -114,6 +132,7 @@ class ConsensusEngine:
         self,
         signal: TradingSignal | None = None,
         scores: dict[str, Any] | None = None,
+        include_ai_opinion: bool = False,
         **kwargs: Any,
     ) -> CouncilReport:
         self._eval_count += 1
@@ -162,7 +181,7 @@ class ConsensusEngine:
             )
             disagreeing = len(directional_reports) - agreeing
 
-        return CouncilReport(
+        report = CouncilReport(
             symbol=symbol,
             side=side,
             consensus_direction=consensus_direction,
@@ -176,6 +195,15 @@ class ConsensusEngine:
             risk_veto=risk_veto,
             risk_veto_reason=risk_veto_reason,
         )
+
+        if include_ai_opinion:
+            # After the fact, strictly commentary -- see
+            # council/ai_advisor.py's module docstring. Opt-in only, so the
+            # default evaluate() call stays exactly as fast/cheap as before.
+            from council.ai_advisor import get_ai_opinion
+            report.ai_opinion = get_ai_opinion(report)
+
+        return report
 
     def _compute_consensus(
         self, reports: list[AgentReport], side: str
