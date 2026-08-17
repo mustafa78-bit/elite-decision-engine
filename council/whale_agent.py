@@ -120,11 +120,14 @@ class WhaleAgent(BaseAgent):
 
                 if s_type == "WHALE_WALL":
                     wall_type = s.get("wall_type")
-                    direction_val = 1 if wall_type == "Support" else -1
+                    # Same convention as WHALE_TRADE below: an unrecognized/
+                    # missing wall_type carries no direction of its own and
+                    # must stay neutral, not default to bearish.
+                    direction_val = 1 if wall_type == "Support" else -1 if wall_type == "Resistance" else 0
                     reasoning.append(f"Whale wall: {wall_type} (conf={s_conf})")
                 elif s_type == "EXTREME_FUNDING":
                     fund_dir = s.get("direction")
-                    direction_val = 1 if fund_dir == "premium" else -1
+                    direction_val = 1 if fund_dir == "premium" else -1 if fund_dir == "discount" else 0
                     reasoning.append(f"Extreme funding: {fund_dir} (conf={s_conf})")
                 elif s_type == "WHALE_TRADE":
                     # Real direction from Binance's isBuyerMaker (see

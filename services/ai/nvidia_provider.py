@@ -6,6 +6,8 @@ from typing import Any, Optional
 
 import httpx
 
+from config import NVIDIA_MAX_REQUESTS_PER_SECOND
+from market.provider.rate_limiter import TokenBucketRateLimiter
 from services.ai.provider import AIProvider, GenerationResult, HealthStatus
 
 logger = logging.getLogger(__name__)
@@ -26,12 +28,18 @@ class NVIDIAProvider(AIProvider):
         base_url: str | None = None,
         model: str | None = None,
         timeout: float = _DEFAULT_TIMEOUT,
+        requests_per_second: float = NVIDIA_MAX_REQUESTS_PER_SECOND,
     ) -> None:
         self._api_key = api_key or ""
         self._base_url = (base_url or _DEFAULT_BASE_URL).rstrip("/")
         self._model_name = model or _DEFAULT_MODEL
         self._timeout = timeout
         self._client = httpx.Client(timeout=httpx.Timeout(timeout))
+        # Per-instance (= per API key, see MultiNVIDIAProvider) -- each key
+        # has its own independent rate limit/quota, so throttling must not
+        # be shared across keys. Proactively paces outbound requests instead
+        # of only reacting to 429s after the fact.
+        self._limiter = TokenBucketRateLimiter(requests_per_second)
 
     @property
     def model(self) -> str:
@@ -86,6 +94,12 @@ class NVIDIAProvider(AIProvider):
         return _RETRY_DELAY * (attempt + 1)
 
     def _chat_completion(self, messages: list[dict[str, Any]], **kwargs: Any) -> GenerationResult:
+        # Paces new logical requests, not individual retry attempts -- retry
+        # spacing within one already-in-flight request is already handled by
+        # _retry_delay_seconds below, so throttling every attempt here would
+        # just compound the two delays on top of each other.
+        self._limiter.acquire()
+
         start = time.perf_counter()
         last_error: Exception | None = None
         total_attempts = 0
@@ -172,6 +186,7 @@ class NVIDIAProvider(AIProvider):
         )
 
     def _check(self) -> None:
+        self._limiter.acquire()
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",

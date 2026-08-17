@@ -1,5 +1,6 @@
 """Tests for funding rate data models and collection."""
 
+import threading
 import time
 from unittest.mock import MagicMock, patch
 
@@ -291,6 +292,39 @@ class TestFundingCollector:
         with patch.object(collector._session, "post", return_value=mock_response):
             result = collector.fetch_all()
         assert result.rates == ()
+
+    def test_concurrent_cache_miss_only_fires_one_network_call(self):
+        # Regression: N concurrent callers all seeing a stale/empty cache at
+        # once (e.g. every scanner symbol firing at process startup) each
+        # used to fire their own network call before any of them populated
+        # the cache -- the exact thundering-herd burst that trips
+        # Hyperliquid's real rate limit. Only the first should hit the
+        # network; the rest should block on the lock and reuse its result.
+        collector = FundingCollector()
+        call_count = 0
+        call_lock = threading.Lock()
+
+        def slow_post(*args, **kwargs):
+            nonlocal call_count
+            with call_lock:
+                call_count += 1
+            time.sleep(0.05)  # widen the race window
+            mock_response = MagicMock()
+            mock_response.raise_for_status = MagicMock()
+            mock_response.json.return_value = [
+                {"universe": [{"name": "BTC"}]},
+                [{"funding": "0.0000125"}],
+            ]
+            return mock_response
+
+        with patch.object(collector._session, "post", side_effect=slow_post):
+            threads = [threading.Thread(target=collector.fetch_all) for _ in range(10)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+        assert call_count == 1
 
     def test_fetch_for_symbol_returns_rate_or_none(self):
         collector = FundingCollector()

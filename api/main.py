@@ -178,9 +178,14 @@ async def lifespan(app: FastAPI):
     # Initialize OLLO Service
     global _ollo_service
     try:
-        from services.ai.provider_factory import create_ai_service
+        from services.ai.ai_service import AIService
+        from services.ai.provider_factory import get_shared_provider
         from services.ollo.ollo_service import OLLOService
-        _ai_svc = create_ai_service()
+        # get_shared_provider() (not create_ai_service()) so OLLO shares its
+        # rate-limited NVIDIA provider with market/intelligence/news.py's
+        # classify calls and the Telegram bot's own OLLO instance below --
+        # see provider_factory.get_shared_provider()'s docstring.
+        _ai_svc = AIService(get_shared_provider())
         _ollo_service = OLLOService(_ai_svc)
         logger.info("OLLO Service initialized successfully")
     except Exception as e:

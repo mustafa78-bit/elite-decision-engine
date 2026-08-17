@@ -11,6 +11,7 @@ Verifies:
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import httpx
@@ -148,6 +149,39 @@ class TestAIService:
 
 class TestNVIDIAProvider:
     """NVIDIAProvider unit tests with mocked HTTP."""
+
+    def test_throttles_new_requests_to_configured_rate(self, monkeypatch):
+        # Regression: bursts of concurrent AI calls used to fire immediately
+        # and only react to NVIDIA's 429s/timeouts after the fact. A fresh
+        # provider's first call should be instant (full token bucket); a
+        # second call should genuinely wait for the next token instead of
+        # firing immediately, given a deliberately slow configured rate.
+        # requests_per_second=1.0 -> TokenBucketRateLimiter's default burst
+        # size is max(1, int(rate)) = 1, so the bucket starts with exactly
+        # one token and the 2nd call must wait for a fresh one.
+        provider = NVIDIAProvider(api_key="test-key", requests_per_second=1.0)
+
+        def mock_post(self, url, **kwargs):
+            return _make_response(
+                200,
+                json_data={
+                    "id": "cmpl-1",
+                    "choices": [{"message": {"content": "ok"}}],
+                    "usage": {},
+                },
+            )
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+
+        start = time.perf_counter()
+        provider.generate("first")
+        provider.generate("second")
+        elapsed = time.perf_counter() - start
+
+        # At 1 req/s with a burst-of-1 bucket, the 2nd call must wait ~1s
+        # for a fresh token -- some slack for scheduling jitter, but this
+        # must not be near-instant.
+        assert elapsed >= 0.5
 
     def test_generate_success(self, monkeypatch):
         provider = NVIDIAProvider(api_key="test-key")
@@ -437,6 +471,40 @@ class TestProviderFactory:
     def test_create_unknown_raises(self):
         with pytest.raises(ValueError):
             create_provider(provider="foobar")
+
+    def test_get_shared_provider_returns_same_instance(self, monkeypatch):
+        # The whole point (see get_shared_provider()'s docstring): every
+        # caller across OLLO/council/news/Telegram must share one provider
+        # so its rate limiter actually coordinates real aggregate load,
+        # instead of each caller resetting a fresh, full token bucket.
+        from services.ai.provider_factory import get_shared_provider
+
+        monkeypatch.setenv("AI_PROVIDER", "nvidia")
+        monkeypatch.setenv("NVIDIA_API_KEY", "test-key")
+
+        p1 = get_shared_provider()
+        p2 = get_shared_provider()
+        assert p1 is p2
+
+    def test_get_shared_provider_only_creates_once(self, monkeypatch):
+        import services.ai.provider_factory as provider_factory
+
+        calls = []
+        original = provider_factory.create_provider
+
+        def counting_create_provider(*args, **kwargs):
+            calls.append(1)
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(provider_factory, "create_provider", counting_create_provider)
+        monkeypatch.setenv("AI_PROVIDER", "nvidia")
+        monkeypatch.setenv("NVIDIA_API_KEY", "test-key")
+
+        provider_factory.get_shared_provider()
+        provider_factory.get_shared_provider()
+        provider_factory.get_shared_provider()
+
+        assert len(calls) == 1
 
     def test_create_ai_service(self, monkeypatch):
         monkeypatch.setenv("AI_PROVIDER", "nvidia")

@@ -65,6 +65,7 @@ class Planner:
                 "portfolio_summary", "portfolio_performance",
                 "market_regime", "risk_metrics", "council_latest",
                 "scanner_signals", "whale_activity", "trade_history",
+                "news_headlines",
             ]
 
         logger.info(

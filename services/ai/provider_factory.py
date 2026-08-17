@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import TYPE_CHECKING
 
 from config import AI_MODEL, AI_PROVIDER, NVIDIA_API_KEY, NVIDIA_API_KEY_2, NVIDIA_BASE_URL
@@ -78,3 +79,35 @@ def create_ai_service() -> AIService:
 
     provider = create_provider()
     return AIService(provider)
+
+
+_shared_provider: AIProvider | None = None
+_shared_provider_lock = threading.Lock()
+
+
+def get_shared_provider() -> AIProvider:
+    """Process-wide singleton AIProvider, created once and reused by every
+    caller instead of each independently calling create_provider().
+
+    Each NVIDIAProvider carries its own proactive rate limiter (see
+    nvidia_provider.py) -- that only actually throttles the real aggregate
+    request rate if callers share one instance. Before this, OLLO (via
+    api/main.py's one-time _ai_svc) and services/telegram/bot.py's
+    get_ollo_service() already did this correctly by accident, but
+    market/intelligence/news.py's classify_sentiment()/classify_and_score()
+    called create_provider() fresh on every single invocation -- a brand
+    new provider, and therefore a brand new full token bucket, every call.
+    That defeated the rate limiter entirely for the single heaviest AI
+    consumer in the app (news classification runs once per symbol per scan,
+    plus on-demand from council/news_agent.py's live NewsAgent path, plus
+    the periodic Telegram news job) and meant this one path had zero
+    coordination with every other AI consumer hitting the same NVIDIA
+    key(s). This makes that coordination real: one shared instance, one
+    real rate limit, across all of OLLO/council/news/Telegram.
+    """
+    global _shared_provider
+    if _shared_provider is None:
+        with _shared_provider_lock:
+            if _shared_provider is None:
+                _shared_provider = create_provider()
+    return _shared_provider

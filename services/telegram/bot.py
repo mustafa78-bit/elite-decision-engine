@@ -93,9 +93,14 @@ def get_ollo_service() -> Any:
     """Helper to initialize OLLOService on demand."""
     global _ollo_service
     if _ollo_service is None:
-        from services.ai.provider_factory import create_ai_service
+        from services.ai.ai_service import AIService
+        from services.ai.provider_factory import get_shared_provider
         from services.ollo.ollo_service import OLLOService
-        ai_svc = create_ai_service()
+        # get_shared_provider() so this shares its rate-limited NVIDIA
+        # provider with api/main.py's OLLO instance and
+        # market/intelligence/news.py's classify calls -- see
+        # provider_factory.get_shared_provider()'s docstring.
+        ai_svc = AIService(get_shared_provider())
         _ollo_service = OLLOService(ai_svc)
     return _ollo_service
 

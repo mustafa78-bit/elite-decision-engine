@@ -62,9 +62,24 @@ class _NeutralAgent(BaseAgent):
 
 class TestConsensusEngine:
     def test_default_weights(self):
-        assert DEFAULT_WEIGHTS["Technical"] == 0.25
-        assert DEFAULT_WEIGHTS["Macro"] == 0.20
+        # Rebalanced 2026-08-17: Technical/Trend/Whale (treated as a leading
+        # technical signal) carry most of the directional vote; News/Macro
+        # lean toward a filter role instead of an equal seat at the table.
+        assert DEFAULT_WEIGHTS["Technical"] == 0.30
+        assert DEFAULT_WEIGHTS["Trend"] == 0.25
+        assert DEFAULT_WEIGHTS["Whale"] == 0.15
+        assert DEFAULT_WEIGHTS["Macro"] == 0.10
+        assert DEFAULT_WEIGHTS["News"] == 0.05
+        assert DEFAULT_WEIGHTS["Risk"] == 0.15
         assert sum(DEFAULT_WEIGHTS.values()) == 1.0
+
+    def test_technical_and_trend_dominate_directional_vote(self):
+        # The actual point of the rebalance: excluding Risk (non-directional,
+        # doesn't compete for direction), Technical+Trend should now command
+        # roughly 60%+ of the directional voting weight.
+        directional_weight = sum(v for k, v in DEFAULT_WEIGHTS.items() if k != "Risk")
+        technical_trend_share = (DEFAULT_WEIGHTS["Technical"] + DEFAULT_WEIGHTS["Trend"]) / directional_weight
+        assert technical_trend_share >= 0.6
 
     def test_register_defaults(self):
         ce = ConsensusEngine()
@@ -76,6 +91,25 @@ class TestConsensusEngine:
         assert "News" in ce.agents
         assert "Whale" in ce.agents
         assert "Macro" in ce.agents
+
+    def test_evaluate_default_does_not_call_ai(self):
+        # include_ai_opinion defaults to False -- a plain evaluate() must
+        # never make an AI call, so it stays exactly as fast/cheap as
+        # before council/ai_advisor.py existed.
+        ce = ConsensusEngine(weights={"Bullish": 1.0})
+        ce.register_agent(_BullishAgent())
+        with patch("council.ai_advisor.get_ai_opinion") as mock_opinion:
+            report = ce.evaluate(symbol="BTC")
+        mock_opinion.assert_not_called()
+        assert report.ai_opinion is None
+
+    def test_evaluate_with_ai_opinion_true_calls_advisor(self):
+        ce = ConsensusEngine(weights={"Bullish": 1.0})
+        ce.register_agent(_BullishAgent())
+        with patch("council.ai_advisor.get_ai_opinion", return_value="Looks fine.") as mock_opinion:
+            report = ce.evaluate(symbol="BTC", include_ai_opinion=True)
+        mock_opinion.assert_called_once_with(report)
+        assert report.ai_opinion == "Looks fine."
 
     def test_register_agent(self):
         ce = ConsensusEngine()

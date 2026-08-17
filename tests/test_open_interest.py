@@ -1,5 +1,6 @@
 """Tests for open interest data models and collection."""
 
+import threading
 import time
 from unittest.mock import MagicMock, patch
 
@@ -121,6 +122,35 @@ class TestOpenInterestCollector:
         if oi is not None:
             assert isinstance(oi, OpenInterest)
             assert oi.value > 0
+
+    def test_concurrent_cache_miss_only_fires_one_network_call(self):
+        # See test_funding.py's identical regression test -- same
+        # thundering-herd fix, same class-level cache pattern.
+        collector = OpenInterestCollector()
+        call_count = 0
+        call_lock = threading.Lock()
+
+        def slow_post(*args, **kwargs):
+            nonlocal call_count
+            with call_lock:
+                call_count += 1
+            time.sleep(0.05)
+            mock_response = MagicMock()
+            mock_response.raise_for_status = MagicMock()
+            mock_response.json.return_value = [
+                {"universe": [{"name": "BTC"}]},
+                [{"openInterest": "1000.0"}],
+            ]
+            return mock_response
+
+        with patch.object(collector._session, "post", side_effect=slow_post):
+            threads = [threading.Thread(target=collector.fetch_all) for _ in range(10)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+        assert call_count == 1
 
     def test_fetch_with_trend_returns_dict(self):
         collector = OpenInterestCollector()

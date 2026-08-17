@@ -225,6 +225,40 @@ class TestContextBuilder:
             ctx = self.builder.build(["whale_activity"])
             assert ctx.whale_activity is None
 
+    def test_load_news_success_ranks_by_impact_score(self):
+        mock_news_service = MagicMock()
+        mock_news_service.fetch_rss_feeds.return_value = [
+            {"title": "Bitcoin surges past $60k on ETF inflows"},
+            {"title": "Minor exchange adds obscure altcoin"},
+        ]
+        mock_news_service.classify_and_score.return_value = {
+            "bitcoin surges past $60k on etf inflows": {"sentiment": "positive", "score": 85},
+            "minor exchange adds obscure altcoin": {"sentiment": "neutral", "score": 10},
+        }
+
+        with patch("market.intelligence.news.NewsService", return_value=mock_news_service):
+            ctx = self.builder.build(["news_headlines"])
+
+        assert ctx.news_headlines["status"] == "active"
+        assert len(ctx.news_headlines["headlines"]) == 2
+        # Highest-impact headline ranked first.
+        assert ctx.news_headlines["headlines"][0]["score"] == 85
+
+    def test_load_news_no_headlines_returns_no_data_status(self):
+        mock_news_service = MagicMock()
+        mock_news_service.fetch_rss_feeds.return_value = []
+
+        with patch("market.intelligence.news.NewsService", return_value=mock_news_service):
+            ctx = self.builder.build(["news_headlines"])
+
+        assert ctx.news_headlines == {"headlines": [], "status": "no_data"}
+        mock_news_service.classify_and_score.assert_not_called()
+
+    def test_load_news_failure_returns_none(self):
+        with patch("market.intelligence.news.NewsService", side_effect=Exception("News service error")):
+            ctx = self.builder.build(["news_headlines"])
+        assert ctx.news_headlines is None
+
     def test_load_scanner_success(self):
         # Regression test: _load_scanner() used to import a nonexistent
         # scanner.core.ScannerEngine, which raised ImportError on every call

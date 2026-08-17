@@ -32,6 +32,21 @@ TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
 
 
 @pytest.fixture(autouse=True)
+def _reset_shared_ai_provider():
+    """services.ai.provider_factory.get_shared_provider() memoizes one
+    AIProvider at module level for the whole process, by design (see its
+    docstring -- that's what makes rate limiting actually coordinate across
+    OLLO/council/news/Telegram). Without resetting it between tests, the
+    first test to call it would leak its (possibly mocked) provider into
+    every later test that expects create_provider()'s current mock/env vars
+    to take effect."""
+    import services.ai.provider_factory as provider_factory
+    provider_factory._shared_provider = None
+    yield
+    provider_factory._shared_provider = None
+
+
+@pytest.fixture(autouse=True)
 def mock_global_coin_universe(request, monkeypatch):
     """Globally mock the dynamic coin universe Binance network calls to prevent unmocked requests."""
     if "test_universe" in request.node.nodeid:

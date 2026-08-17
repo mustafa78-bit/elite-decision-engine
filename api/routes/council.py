@@ -38,8 +38,13 @@ def get_council_status(request: Request):
 
 
 @router.get("/council/evaluate/{signal_id}")
-def council_evaluate_signal(signal_id: int, request: Request):
-    """Evaluate a signal through the full AI Council (all 6 agents + consensus)."""
+def council_evaluate_signal(signal_id: int, request: Request, ai_opinion: bool = False):
+    """Evaluate a signal through the full AI Council (all 6 agents + consensus).
+
+    ai_opinion=true additionally requests a qualitative AI sanity-check on
+    the (already-final) consensus -- see council/ai_advisor.py. Opt-in and
+    off by default so a plain evaluate stays fast/cheap.
+    """
     session = get_session()
     try:
         signal = session.query(Signal).filter(Signal.id == signal_id).first()
@@ -47,7 +52,7 @@ def council_evaluate_signal(signal_id: int, request: Request):
             raise HTTPException(status_code=404, detail=f"Signal {signal_id} not found")
 
         engine = _get_consensus_engine()
-        report = engine.evaluate(signal=signal)
+        report = engine.evaluate(signal=signal, include_ai_opinion=ai_opinion)
 
         return {
             "signal_id": signal_id,
@@ -68,9 +73,15 @@ def council_evaluate_direct(
     symbol: str,
     side: str = "LONG",
     timeframe: str = "1h",
+    ai_opinion: bool = False,
     request: Request = None,
 ):
-    """Evaluate a symbol directly through the AI Council without a DB signal."""
+    """Evaluate a symbol directly through the AI Council without a DB signal.
+
+    ai_opinion=true additionally requests a qualitative AI sanity-check on
+    the (already-final) consensus -- see council/ai_advisor.py. Opt-in and
+    off by default so a plain evaluate stays fast/cheap.
+    """
     try:
         from unittest.mock import MagicMock
 
@@ -81,7 +92,7 @@ def council_evaluate_direct(
         signal.timeframe = timeframe
 
         engine = _get_consensus_engine()
-        report = engine.evaluate(signal=signal)
+        report = engine.evaluate(signal=signal, include_ai_opinion=ai_opinion)
 
         return {
             "symbol": symbol,
