@@ -30,7 +30,7 @@ export default function PreferencesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchPreferences(1);
+      const data = await fetchPreferences();
       setPrefs(data);
     } catch {
       addGlobalToast(t("toast.loadError"), "error");
@@ -82,7 +82,7 @@ export default function PreferencesPage() {
                 onClick={async () => {
                   const newTheme = prefs.theme === "dark" ? "light" : "dark";
                   try {
-                    await updateTheme(1, newTheme);
+                    await updateTheme(newTheme);
                     setPrefs((p) => (p ? { ...p, theme: newTheme } : p));
                     addGlobalToast(t("toast.themeChanged", { theme: newTheme }), "success");
                   } catch {
