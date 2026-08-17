@@ -15,11 +15,14 @@
   },
   "notificationPreferences": {
     "title": "Bildirim Tercihleri",
-    "tradeAlerts": "İşlem Uyarıları",
-    "riskWarnings": "Risk Uyarıları",
-    "dailyDigest": "Günlük Özet"
+    "tradeOpened": "İşlem Açılışı",
+    "tradeClosed": "İşlem Kapanışı",
+    "systemAlerts": "Sistem Uyarıları",
+    "on": "Açık",
+    "off": "Kapalı"
   },
   "recentActivity": {
-    "title": "Son Etkinlik"
+    "title": "Son Etkinlik",
+    "empty": "Henüz etkinlik yok"
   }
 }

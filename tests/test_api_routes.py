@@ -658,6 +658,9 @@ def test_get_users_me_with_auth(api_client, db_session):
     body = resp.json()
     assert body["username"] == "testuser"
     assert body["email"] == "test@example.com"
+    # Powers Profile.tsx's "member since" field -- previously absent, the
+    # page always showed a hardcoded "unavailable" for it.
+    assert body["created_at"] is not None
 
 
 def test_get_users_me_no_auth():

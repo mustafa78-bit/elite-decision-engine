@@ -15,11 +15,14 @@
   },
   "notificationPreferences": {
     "title": "Notification Preferences",
-    "tradeAlerts": "Trade Alerts",
-    "riskWarnings": "Risk Warnings",
-    "dailyDigest": "Daily Digest"
+    "tradeOpened": "Trade Opened",
+    "tradeClosed": "Trade Closed",
+    "systemAlerts": "System Alerts",
+    "on": "On",
+    "off": "Off"
   },
   "recentActivity": {
-    "title": "Recent Activity"
+    "title": "Recent Activity",
+    "empty": "No activity yet"
   }
 }
