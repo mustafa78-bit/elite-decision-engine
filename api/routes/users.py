@@ -18,7 +18,12 @@ def get_me(request: Request):
         user = session.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        return {"id": user.id, "username": user.username, "email": user.email}
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        }
     finally:
         session.close()
 
