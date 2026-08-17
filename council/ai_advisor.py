@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_ai_opinion(report: "CouncilReport") -> str | None:
+def get_ai_opinion(report: CouncilReport) -> str | None:
     """Returns a short qualitative sanity-check string, or None if the AI
     call fails/is unavailable -- a missing opinion must never block or
     degrade the council report it's attached to."""
