@@ -187,7 +187,9 @@ async def lifespan(app: FastAPI):
         logger.warning("OLLO Service initialization failed: %s", e)
 
     # Start Telegram bots if configured -- "trades" (status/brief/ask
-    # commands + trade/health alerts) plus the 2 push-only news bots.
+    # commands + trade/health alerts) plus the 2 push-only news/VC bots.
+    # New-listing alerts (services/listings_service.py) route through the
+    # "vc_funding" bot already started here, not a separate bot instance.
     from services.telegram.bot import TelegramBotManager
     running_loop = asyncio.get_running_loop()
     started_bot_managers = []
@@ -240,6 +242,10 @@ async def lifespan(app: FastAPI):
     news_task = asyncio.create_task(_news_alert_loop())
     news_task.add_done_callback(_on_task_done("News alert loop"))
     _background_tasks.add(news_task)
+
+    listings_task = asyncio.create_task(_listings_alert_loop())
+    listings_task.add_done_callback(_on_task_done("Listings alert loop"))
+    _background_tasks.add(listings_task)
 
     yield
 
@@ -667,6 +673,24 @@ async def _news_alert_loop() -> None:
             raise
         except Exception:
             logger.exception("News alert loop iteration failed")
+
+
+async def _listings_alert_loop() -> None:
+    """Periodically push proactive Telegram alerts for new Binance spot
+    listings. See services/listings_service.py for the full design
+    rationale (Binance only for now, not OKX/Bybit).
+    """
+    from services.listings_service import LISTINGS_JOB_INTERVAL_SECONDS, run_listings_alert_cycle
+
+    while True:
+        try:
+            await asyncio.sleep(LISTINGS_JOB_INTERVAL_SECONDS)
+            await asyncio.to_thread(run_listings_alert_cycle)
+        except asyncio.CancelledError:
+            logger.info("Listings alert loop cancelled")
+            raise
+        except Exception:
+            logger.exception("Listings alert loop iteration failed")
 
 
 

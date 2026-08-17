@@ -73,9 +73,20 @@ TELEGRAM_NEWS_TOKEN: str = os.getenv("TELEGRAM_NEWS_TOKEN", "")
 TELEGRAM_NEWS_CHAT_ID: str = os.getenv("TELEGRAM_NEWS_CHAT_ID", "")
 
 # Institutional/VC project-funding news bot -- also separate from both bots
-# above.
+# above. New spot-listing announcements (services/listings_service.py) also
+# route through this same bot, at the user's request -- no separate bot/
+# token needed for those.
 TELEGRAM_VC_TOKEN: str = os.getenv("TELEGRAM_VC_TOKEN", "")
 TELEGRAM_VC_CHAT_ID: str = os.getenv("TELEGRAM_VC_CHAT_ID", "")
+
+# Minimum classify_and_score() impact score (0-100) a market-moving headline
+# needs to actually trigger a Telegram push -- the score was computed and
+# shown in every alert's text but never gated whether one was sent at all,
+# so routine/low-impact headlines fired exactly as readily as genuinely
+# market-moving ones. The scoring prompt itself calibrates "most ordinary
+# headlines should score well below 50" (market/intelligence/news.py), so
+# 40 keeps real market-moving news while cutting the routine noise.
+NEWS_MIN_IMPACT_SCORE: int = int(os.getenv("NEWS_MIN_IMPACT_SCORE", "40"))
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_USER = os.getenv("POSTGRES_USER")

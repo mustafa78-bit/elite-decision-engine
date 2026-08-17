@@ -961,6 +961,30 @@ class TestLoggingConfig:
         assert parsed["level"] == "INFO"
         assert parsed["message"] == "hello"
 
+    def test_exclude_module_filter_passes_through_everything_not_excluded(self):
+        # Regression: engine.log used to allowlist only ("core", "database",
+        # "app") -- module names from an earlier, much smaller codebase.
+        # Every package added since (api, services, market, scanner,
+        # notifications, monitoring, ...) silently never reached engine.log;
+        # their real INFO/WARNING logs (e.g. every Telegram bot setup/send
+        # outcome) existed nowhere except live console output. engine.log's
+        # filter is now an exclude-list instead, so a brand new package is
+        # captured by default rather than silently dropped.
+        import logging
+
+        from logging_config import _ExcludeModuleFilter
+        filter_ = _ExcludeModuleFilter(("execution", "scoring"))
+
+        def record_for(name):
+            return logging.LogRecord(name, logging.INFO, "/test", 1, "msg", (), None)
+
+        assert filter_.filter(record_for("services.telegram.bot")) is True
+        assert filter_.filter(record_for("api.routes.ollo")) is True
+        assert filter_.filter(record_for("notifications.dispatcher")) is True
+        assert filter_.filter(record_for("core.engine")) is True
+        assert filter_.filter(record_for("execution.trade_engine")) is False
+        assert filter_.filter(record_for("scoring.scoring_engine")) is False
+
 
 # ─── Shutdown / Lifecycle ───────────────────────────────────────────────────
 

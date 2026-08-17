@@ -89,5 +89,6 @@ def get_default_preferences():
             "system_alert": True,
             "market_news": True,
             "vc_funding_news": True,
+            "new_listings": True,
         },
     }

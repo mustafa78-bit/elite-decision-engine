@@ -6,7 +6,8 @@ Usage:
 
 This configures three rotating file handlers and one console handler:
 
-    engine.log     ← core.*, database, app
+    engine.log     ← everything INFO+ except execution.*/scoring.* (which
+                     go to trade.log instead, to keep it a focused log)
     trade.log      ← execution.*, scoring.*
     error.log      ← ERROR+ from all loggers
 
@@ -69,6 +70,15 @@ class _ModuleFilter(logging.Filter):
         return any(record.name.startswith(p) for p in self.prefixes)
 
 
+class _ExcludeModuleFilter(logging.Filter):
+    def __init__(self, prefixes):
+        super().__init__()
+        self.prefixes = prefixes
+
+    def filter(self, record):
+        return not any(record.name.startswith(p) for p in self.prefixes)
+
+
 class _JsonFormatter(logging.Formatter):
     def format(self, record):
         return json.dumps({
@@ -105,19 +115,37 @@ def setup_logging(log_dir="logs"):
     console.setFormatter(console_formatter)
     console.addFilter(sensitive_filter)
 
+    # trade.log's own prefixes -- kept as a single source of truth so
+    # engine.log's exclude-filter (below) can never drift out of sync with
+    # what trade.log actually captures.
+    _trade_log_prefixes = ("execution", "scoring")
+
     handlers = [
         console,
         _file_handler(
             os.path.join(log_dir, "engine.log"),
             logging.INFO,
             file_formatter,
-            _ModuleFilter(("core", "database", "app")),
+            # Regression: this used to be an allowlist of ("core",
+            # "database", "app") -- module names from an earlier, much
+            # smaller version of this codebase. Every package added since
+            # (api, services, market, scanner, notifications, monitoring,
+            # council, decision, risk, ...) silently never reached this
+            # file; only genuine ERROR+ logs from them ever survived, in
+            # error.log. INFO/WARNING logs (e.g. every Telegram bot setup/
+            # send outcome in services/telegram/bot.py) were real, but
+            # existed nowhere except the live console output, which isn't
+            # retained for a self-hosted background process. Now an
+            # exclude-list instead, so a brand new package is captured by
+            # default rather than silently dropped until someone remembers
+            # to add it here.
+            _ExcludeModuleFilter(_trade_log_prefixes),
         ),
         _file_handler(
             os.path.join(log_dir, "trade.log"),
             logging.INFO,
             file_formatter,
-            _ModuleFilter(("execution", "scoring")),
+            _ModuleFilter(_trade_log_prefixes),
         ),
         _file_handler(
             os.path.join(log_dir, "error.log"),
