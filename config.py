@@ -46,6 +46,16 @@ AI_PROVIDER: str = os.getenv("AI_PROVIDER", "nvidia")
 AI_MODEL: str = os.getenv("AI_MODEL", "")
 NVIDIA_BASE_URL: str = os.getenv("NVIDIA_BASE_URL", "")
 
+# Observed live: bursts of concurrent AI calls (OLLO queries, per-symbol
+# council/decision prompts across the 25-coin universe) routinely hit
+# NVIDIA's real rate limit, burning the existing retry budget on 429s/
+# timeouts instead of avoiding them. Each NVIDIAProvider instance (one per
+# API key -- see MultiNVIDIAProvider) proactively throttles its own outbound
+# requests to this rate instead of firing them all immediately and retrying
+# after the fact. Conservative starting point, no documented NVIDIA NIM RPM
+# limit to size this against precisely -- tune based on real 429 volume.
+NVIDIA_MAX_REQUESTS_PER_SECOND: float = float(os.getenv("NVIDIA_MAX_REQUESTS_PER_SECOND", "1.0"))
+
 for var in CRITICAL_VARS:
     if not os.getenv(var):
         msg = f"{var} not set. {CRITICAL_VARS[var]}"

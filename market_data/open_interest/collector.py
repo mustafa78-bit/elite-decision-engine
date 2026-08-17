@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections import defaultdict, deque
 from datetime import UTC
@@ -25,6 +26,11 @@ class OpenInterestCollector:
     # the raw network snapshot fetch_all() itself would otherwise repeat.
     _CACHE_TTL_SECONDS = 30
     _cache: tuple[float, OpenInterestResult] | None = None
+    # See FundingCollector._cache_lock -- same thundering-herd fix: without
+    # this, every concurrent caller hitting a stale/empty cache at once
+    # (e.g. a full scanner pass at startup) each fires its own network call
+    # instead of one caller filling the cache for everyone else.
+    _cache_lock = threading.Lock()
 
     def __init__(self, timeout: int = 20):
         self.timeout = timeout
@@ -42,6 +48,13 @@ class OpenInterestCollector:
         if cached is not None and time.time() - cached[0] < OpenInterestCollector._CACHE_TTL_SECONDS:
             return cached[1]
 
+        with OpenInterestCollector._cache_lock:
+            cached = OpenInterestCollector._cache
+            if cached is not None and time.time() - cached[0] < OpenInterestCollector._CACHE_TTL_SECONDS:
+                return cached[1]
+            return self._fetch_all_uncached()
+
+    def _fetch_all_uncached(self) -> OpenInterestResult:
         # "openInterests" is not a real Hyperliquid info type -- every call
         # here 422'd and this collector has never actually returned data.
         # metaAndAssetCtxs (the same bulk endpoint market_data/funding/

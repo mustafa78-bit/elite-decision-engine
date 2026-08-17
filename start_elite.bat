@@ -58,8 +58,10 @@ echo [OK]  Node modules (frontend/node_modules)
 echo.
 
 echo [6/10] Starting FastAPI backend...
-set JWT_SECRET=dev-secret-for-local-development
-set DATABASE_URL=sqlite:///test_elite.db
+rem JWT_SECRET/DATABASE_URL come from .env (loaded by config.py via
+rem python-dotenv) -- this used to hardcode a dev secret and
+rem sqlite:///test_elite.db here, silently overriding .env's real
+rem elite_trial.db and locking real accounts out of their own data.
 start "Elite-Backend" cmd /c "title Elite-Backend && .venv\Scripts\python.exe -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
 
 echo [7/10] Waiting for backend to be ready...
@@ -115,8 +117,8 @@ echo  Frontend: http://localhost:5173
 echo  Backend:  http://localhost:8000
 echo  API Docs: http://localhost:8000/docs
 echo.
-echo  Database: SQLite (test_elite.db)
-echo  Auth:     JWT dev secret (login via UI)
+echo  Database: as configured in .env (DATABASE_URL)
+echo  Auth:     JWT_SECRET from .env (login via UI)
 echo.
 echo  To stop, close windows or run: stop_elite.bat
 echo ============================================

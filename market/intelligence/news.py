@@ -218,8 +218,8 @@ class NewsService:
 
         sentiment_mapped: dict[str, str] = {}
         try:
-            from services.ai.provider_factory import create_provider
-            provider = create_provider()
+            from services.ai.provider_factory import get_shared_provider
+            provider = get_shared_provider()
             if provider and getattr(provider, "_api_key", None):
                 headlines_bullet_str = "\n".join(f"- {h}" for h in headlines)
                 prompt = f"""Analyze the sentiment of the following crypto news headlines.
@@ -283,8 +283,8 @@ Do not include any other text, explainers, or Markdown block markers like ```jso
 
         mapped: dict[str, dict[str, Any]] = {}
         try:
-            from services.ai.provider_factory import create_provider
-            provider = create_provider()
+            from services.ai.provider_factory import get_shared_provider
+            provider = get_shared_provider()
             if provider and getattr(provider, "_api_key", None):
                 headlines_bullet_str = "\n".join(f"- {h}" for h in headlines)
                 prompt = f"""Analyze the sentiment and market impact of the following crypto news headlines.

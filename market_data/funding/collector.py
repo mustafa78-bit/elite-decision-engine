@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Any, Optional
@@ -32,6 +33,13 @@ class FundingCollector:
     # meaningful staleness cost.
     _CACHE_TTL_SECONDS = 30
     _cache: tuple[float, FundingResult] | None = None
+    # Without this, N concurrent callers who all see a stale/empty cache at
+    # once (e.g. every scanner symbol firing at process startup) each fire
+    # their own network call before any of them populates the cache -- the
+    # exact thundering-herd burst that trips Hyperliquid's real rate limit.
+    # Only the first caller to acquire this actually hits the network; the
+    # rest block, then read the now-fresh cache the first one just filled.
+    _cache_lock = threading.Lock()
 
     def __init__(self, timeout: int = 20):
         self.timeout = timeout
@@ -42,6 +50,15 @@ class FundingCollector:
         if cached is not None and time.time() - cached[0] < FundingCollector._CACHE_TTL_SECONDS:
             return cached[1]
 
+        with FundingCollector._cache_lock:
+            # Re-check: another thread may have refilled the cache while we
+            # were waiting for the lock.
+            cached = FundingCollector._cache
+            if cached is not None and time.time() - cached[0] < FundingCollector._CACHE_TTL_SECONDS:
+                return cached[1]
+            return self._fetch_all_uncached()
+
+    def _fetch_all_uncached(self) -> FundingResult:
         # metaAndAssetCtxs is Hyperliquid's bulk endpoint for current
         # per-asset context (funding, mark price, open interest, ...) --
         # returns [meta, assetCtxs] where meta["universe"][i]["name"] and
