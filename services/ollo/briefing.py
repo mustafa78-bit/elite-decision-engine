@@ -30,7 +30,7 @@ class BriefingGenerator:
         start = time.perf_counter()
         kind = plan.briefing_kind or "morning"
 
-        system_prompt = get_system_prompt()
+        system_prompt = get_system_prompt(language)
         user_prompt = get_briefing(kind, context.to_dict())
 
         messages = [

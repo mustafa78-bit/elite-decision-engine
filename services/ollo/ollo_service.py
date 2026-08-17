@@ -49,7 +49,7 @@ class OLLOService:
 
         from services.ollo.prompts.greeting import get_greeting
 
-        system_prompt = get_system_prompt()
+        system_prompt = get_system_prompt(language)
         user_prompt = get_greeting(room_id, context.to_dict())
 
         messages = [
@@ -99,7 +99,7 @@ class OLLOService:
 
         from services.ollo.prompts.rooms import room_query
 
-        system_prompt = _profile_prompt(profile)
+        system_prompt = _profile_prompt(profile, language)
         user_prompt = room_query(room_id, context.to_dict(), query)
 
         messages = [
@@ -198,8 +198,8 @@ class OLLOService:
         }
 
 
-def _profile_prompt(profile) -> str:
-    return f"""{get_system_prompt()}
+def _profile_prompt(profile, language: str = "en") -> str:
+    return f"""{get_system_prompt(language)}
 
 You are currently in {profile.display_name}.
 

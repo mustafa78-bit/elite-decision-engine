@@ -46,6 +46,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.success || !res.token || !res.refresh_token) {
         throw new Error(res.error || "Login failed");
       }
+      // Write auth_token synchronously here, not just via the [token]
+      // useEffect below -- setToken() flips AuthGuard's isAuthenticated in
+      // this same render, mounting Layout and every dashboard widget that
+      // fires its own apiFetch() on mount. React runs their mount effects
+      // before this component's own re-triggered effect (children before
+      // ancestor, same commit), so those requests read localStorage BEFORE
+      // the effect would have written the new token -- getAuthHeaders()
+      // sends no Authorization header, the backend 401s, and the global
+      // 401 handler immediately logs the user back out. Reproduced live:
+      // every fresh login was self-undone within the same tick. Writing it
+      // here closes the race; the effect stays as a harmless redundant
+      // sync for the token-refresh path below.
+      localStorage.setItem("auth_token", res.token);
       setToken(res.token);
       localStorage.setItem("auth_refresh_token", res.refresh_token);
       setUser(username);
@@ -114,6 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           { method: "POST", body: JSON.stringify({ refresh_token: currentRefreshToken }) },
         );
         if (res.success && res.token && res.refresh_token) {
+          // Same synchronous-write reasoning as login() above.
+          localStorage.setItem("auth_token", res.token);
           setToken(res.token);
           localStorage.setItem("auth_refresh_token", res.refresh_token);
         }

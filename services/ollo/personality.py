@@ -41,5 +41,17 @@ Your responses must be:
 """
 
 
-def get_system_prompt() -> str:
-    return SYSTEM_PROMPT
+_LANGUAGE_DIRECTIVE = {
+    "tr": "\nRespond in Turkish, regardless of the language the founder writes in.\n",
+}
+
+
+def get_system_prompt(language: str = "en") -> str:
+    # The UI's language switcher (frontend/src/components/layout/
+    # LanguageSwitcher.tsx) never actually reached OLLO -- every response
+    # was English regardless of the selected language, since nothing in
+    # this prompt ever told the model which language to answer in. The
+    # `language` param threads from the frontend's current i18n.language
+    # (see frontend/src/api/ollo.ts) through the /ollo/* routes.
+    directive = _LANGUAGE_DIRECTIVE.get(language, "")
+    return SYSTEM_PROMPT + directive
