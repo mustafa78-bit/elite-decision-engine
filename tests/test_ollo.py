@@ -476,6 +476,22 @@ class TestPersonality:
         prompt = get_system_prompt()
         assert "!" not in prompt or "Never" in prompt
 
+    def test_system_prompt_default_language_has_no_directive(self):
+        # Regression: OLLO's real AI responses (not just the error fallback
+        # -- see i18n_fallback.py) ignored the UI's selected language
+        # entirely, always answering in English regardless of the Turkish
+        # toggle, because nothing in the prompt ever told the model which
+        # language to respond in.
+        assert "Turkish" not in get_system_prompt()
+        assert "Turkish" not in get_system_prompt("en")
+
+    def test_system_prompt_turkish_adds_directive(self):
+        prompt = get_system_prompt("tr")
+        assert "Turkish" in prompt
+        # Directive must be additive, not a replacement of the real prompt.
+        assert "OLLO" in prompt
+        assert "Chief Investment Officer" in prompt
+
 
 class TestParser:
     """Parser extracts structured output from AI text."""
@@ -688,6 +704,30 @@ class TestOLLOService:
 
         assert "429" in r.text
         assert "Kurucu" in r.text
+
+    def test_query_with_turkish_language_sends_turkish_directive_to_the_model(self):
+        # The real bug (not just the error-fallback case above): OLLO's
+        # actual successful AI responses ignored the UI's selected language
+        # entirely, since nothing in the system prompt ever told the model
+        # to answer in Turkish -- confirmed live (a real Turkish-UI session
+        # got an English reply). Assert the directive actually reaches the
+        # model's system message, not just that a fallback string exists.
+        svc = OLLOService(ai_service=self.mock_ai)
+        svc.query("Portföy nasıl?", "command_deck", language="tr")
+        system_message = self.mock_ai.last_messages[0]["content"]
+        assert "Turkish" in system_message
+
+    def test_greet_with_turkish_language_sends_turkish_directive_to_the_model(self):
+        svc = OLLOService(ai_service=self.mock_ai)
+        svc.greet("command_deck", language="tr")
+        system_message = self.mock_ai.last_messages[0]["content"]
+        assert "Turkish" in system_message
+
+    def test_query_default_language_sends_no_turkish_directive(self):
+        svc = OLLOService(ai_service=self.mock_ai)
+        svc.query("How is the portfolio?", "command_deck")
+        system_message = self.mock_ai.last_messages[0]["content"]
+        assert "Turkish" not in system_message
 
     def test_briefing_fallback_respects_language_param(self):
         failing_ai = MockAIService()
