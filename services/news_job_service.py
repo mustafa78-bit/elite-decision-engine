@@ -36,7 +36,7 @@ from __future__ import annotations
 import logging
 
 import database
-from config import FIXED_COIN_UNIVERSE
+from config import FIXED_COIN_UNIVERSE, NEWS_MIN_IMPACT_SCORE
 from database import is_alert_sent, record_sent_alert
 from market.intelligence.news import NewsService, headline_hash
 from services.telegram.bot import TelegramBotManager
@@ -134,6 +134,17 @@ def run_news_alert_cycle(news_service: NewsService | None = None) -> None:
             return
         sentiment = scored["sentiment"]
         if sentiment == "neutral":
+            return
+        # The score was always computed and shown in the alert text but
+        # never actually gated whether one fired -- a routine, barely-
+        # relevant headline sent exactly as readily as genuinely
+        # market-moving news. Deliberately does NOT call record_sent_alert()
+        # for a below-threshold headline: it was never actually pushed, so
+        # marking it "sent" would be dishonest bookkeeping. If the same
+        # headline is still in the feed next cycle it's simply re-scored
+        # (cheap -- still one batched call either way, not a per-headline
+        # one) rather than permanently write-marked as delivered.
+        if scored["score"] < NEWS_MIN_IMPACT_SCORE:
             return
 
         headline_tr = ns.translate_to_turkish(headline)

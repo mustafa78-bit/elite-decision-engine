@@ -210,8 +210,10 @@ async def ask_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Credentials per named bot instance. "trades" is the original bot (status/
 # brief/ask commands, trade + system-health alerts) -- its env vars are
 # unchanged from before multi-bot support existed. "news" and "vc_funding"
-# are separate, push-only bots (own token/chat, no commands) added for
-# proactive market-news / institutional-funding alerts.
+# are separate, push-only bots (own token/chat, no commands) for proactive
+# market-news / institutional-funding alerts. New Binance spot-listing
+# alerts (services/listings_service.py) also route through "vc_funding",
+# at the user's request -- no separate bot for those.
 _INSTANCE_CREDENTIALS: dict[str, tuple[str, str]] = {
     "trades": (TELEGRAM_TOKEN, TELEGRAM_CHAT_ID),
     "news": (TELEGRAM_NEWS_TOKEN, TELEGRAM_NEWS_CHAT_ID),

@@ -115,6 +115,53 @@ class TestMarketMovingNews:
     @patch("services.news_job_service.is_alert_sent", return_value=False)
     @patch("services.news_job_service._preference_enabled", return_value=True)
     @patch("services.news_job_service.TelegramBotManager")
+    def test_low_impact_score_does_not_alert(self, mock_mgr_cls, mock_pref, mock_is_sent, mock_record):
+        # Regression: the impact score was always computed and shown in the
+        # alert text ("Etki: X/100") but never actually gated whether one
+        # fired -- a routine, barely-relevant headline sent exactly as
+        # readily as genuinely market-moving news. Below
+        # NEWS_MIN_IMPACT_SCORE (40 by default), non-neutral is not enough.
+        news_bot = MagicMock()
+        mock_mgr_cls.get_instance.return_value = news_bot
+
+        headline = "Minor exchange lists a small-cap altcoin"
+        ns = _fake_news_service(
+            [headline],
+            matches={headline: ["BTC"]},
+            scored={headline.strip().lower(): {"sentiment": "positive", "score": 25}},
+        )
+
+        run_news_alert_cycle(news_service=ns)
+
+        news_bot.send_alert_threadsafe.assert_not_called()
+        # Never actually pushed -- must not be marked "sent" either, or a
+        # later cycle could never re-evaluate it if it somehow became more
+        # relevant.
+        mock_record.assert_not_called()
+
+    @patch("services.news_job_service.record_sent_alert")
+    @patch("services.news_job_service.is_alert_sent", return_value=False)
+    @patch("services.news_job_service._preference_enabled", return_value=True)
+    @patch("services.news_job_service.TelegramBotManager")
+    def test_score_exactly_at_threshold_alerts(self, mock_mgr_cls, mock_pref, mock_is_sent, mock_record):
+        news_bot = MagicMock()
+        mock_mgr_cls.get_instance.return_value = news_bot
+
+        headline = "Regulator announces new crypto framework"
+        ns = _fake_news_service(
+            [headline],
+            matches={headline: ["BTC"]},
+            scored={headline.strip().lower(): {"sentiment": "positive", "score": 40}},
+        )
+
+        run_news_alert_cycle(news_service=ns)
+
+        news_bot.send_alert_threadsafe.assert_called_once()
+
+    @patch("services.news_job_service.record_sent_alert")
+    @patch("services.news_job_service.is_alert_sent", return_value=False)
+    @patch("services.news_job_service._preference_enabled", return_value=True)
+    @patch("services.news_job_service.TelegramBotManager")
     def test_headline_matching_no_symbol_is_skipped(self, mock_mgr_cls, mock_pref, mock_is_sent, mock_record):
         news_bot = MagicMock()
         mock_mgr_cls.get_instance.return_value = news_bot
