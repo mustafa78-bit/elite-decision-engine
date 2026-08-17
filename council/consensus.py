@@ -118,7 +118,11 @@ class ConsensusEngine:
     ) -> CouncilReport:
         self._eval_count += 1
         symbol = getattr(signal, "symbol", "?") if signal else kwargs.get("symbol", "?")
-        side = getattr(signal, "side", "LONG") if signal else kwargs.get("side", "LONG")
+        # `or "LONG"` (not just a getattr default) so an empty-string
+        # signal.side -- an attribute that exists but is falsy, which
+        # getattr's default never covers -- still normalizes to a real side
+        # instead of leaking "" into CouncilReport.side/evidence output.
+        side = (getattr(signal, "side", "LONG") if signal else kwargs.get("side", "LONG")) or "LONG"
 
         reports: list[AgentReport] = []
         for name, agent in self.agents.items():

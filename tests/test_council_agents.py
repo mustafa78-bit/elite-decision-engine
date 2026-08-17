@@ -386,6 +386,35 @@ class TestWhaleAgent:
         assert report.confidence == 0.85
         assert any("Extreme funding: premium" in r for r in report.reasoning)
 
+    def test_evaluate_malformed_wall_type_is_neutral_not_bearish(self, mock_signal):
+        # Regression: an unrecognized/missing wall_type used to default to
+        # bearish (any non-"Support" value) instead of neutral, same class
+        # of bug already fixed for WHALE_TRADE's direction field.
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        bundle.whales = [
+            {
+                "type": "WHALE_WALL", "wall_type": None, "severity": "high",
+                "confidence": 0.9, "description": "Malformed wall",
+            }
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_NEUTRAL
+
+    def test_evaluate_malformed_funding_direction_is_neutral_not_bearish(self, mock_signal):
+        agent = WhaleAgent()
+        bundle = MagicMock()
+        bundle.whales = [
+            {
+                "type": "EXTREME_FUNDING", "direction": "unknown", "severity": "high",
+                "confidence": 0.85, "description": "Malformed funding",
+            }
+        ]
+        mock_signal.side = "LONG"
+        report = agent.evaluate(signal=mock_signal, intelligence_bundle=bundle)
+        assert report.direction == DIRECTION_NEUTRAL
+
     def test_evaluate_conflicting_signals_consensus(self, mock_signal):
         agent = WhaleAgent()
         bundle = MagicMock()
