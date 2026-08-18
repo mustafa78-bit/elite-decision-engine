@@ -175,6 +175,27 @@ class TestNewsService:
         assert articles[1]["headline"] == "BTC drops 5%"
         assert articles[1]["sentiment"] == "negative"  # from keyword fallback
 
+    @patch("services.ai.provider_factory.create_provider")
+    def test_classify_sentiment_caches_identical_headline_set(self, mock_create_provider):
+        # Regression: a symbol with no news of its own falls back to the same
+        # general market headlines every other news-less symbol also falls
+        # back to -- a 25-symbol scan could re-classify that identical set
+        # up to ~15-20 times, once per symbol, for an answer that can't
+        # differ between them. Cache must collapse repeat calls with the
+        # same headline set (any order) into a single NVIDIA call.
+        mock_provider = MagicMock()
+        mock_provider._api_key = "test_key"
+        mock_provider.generate.return_value = MagicMock(
+            content='[{"headline": "Bitcoin surges past $60k", "sentiment": "positive"}]'
+        )
+        mock_create_provider.return_value = mock_provider
+
+        first = self.service.classify_sentiment(["Bitcoin surges past $60k"])
+        second = self.service.classify_sentiment(["Bitcoin surges past $60k"])
+
+        assert first == second == {"bitcoin surges past $60k": "positive"}
+        mock_provider.generate.assert_called_once()
+
     def test_rule_based_sentiment_matches_inflected_forms(self):
         # Regression: \bword\b alone missed common inflections real headlines
         # use ("surges", "growing", "falling") since there's no word boundary

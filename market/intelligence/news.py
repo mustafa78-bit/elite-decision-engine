@@ -6,11 +6,15 @@ import hashlib
 import json
 import logging
 import re
+import threading
+import time
 import xml.etree.ElementTree as ET
 from datetime import UTC, datetime
 from typing import Any
 
 import requests
+
+from config import INTELLIGENCE_CACHE_TTL_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +100,18 @@ _FUNDING_KEYWORDS = [
 
 class NewsService:
     """Provide news sentiment analysis from real news sources."""
+
+    # classify_sentiment() already batches one symbol's own headlines into a
+    # single NVIDIA call, but nothing shared the result *across* symbols --
+    # a symbol with no news of its own falls back to the same 5 general
+    # market headlines every other news-less symbol also falls back to, so
+    # a 25-symbol scan could re-classify that identical headline set up to
+    # ~15-20 times, once per symbol, for an answer that can't differ between
+    # them. Cache keyed by the exact (sorted) headline set, class-level so it
+    # collapses calls across separate NewsService() instances too -- same
+    # pattern as IntelligenceService/WhaleService's caches.
+    _sentiment_cache: dict[str, tuple[float, dict[str, str]]] = {}
+    _sentiment_cache_lock = threading.Lock()
 
     def _rule_based_sentiment(self, headline: str) -> str:
         """Fallback simple sentiment classifier based on keyword heuristic."""
@@ -205,17 +221,29 @@ class NewsService:
         return [inst for inst in VC_INSTITUTIONS if inst in title_lower]
 
     def classify_sentiment(self, headlines: list[str]) -> dict[str, str]:
-        """Classify sentiment for a batch of headlines in as few LLM calls as
-        possible (one batched prompt for all of them), falling back to the
-        rule-based classifier per-headline on any failure.
-
-        Returns a dict keyed by the headline's lowercased, stripped text --
-        callers should look up with `headline.strip().lower()`.
+        """Classify sentiment for a batch of headlines, reusing a cached
+        result for the exact same headline set (regardless of which symbol
+        is asking -- see the class-level cache docstring above) before
+        falling through to the real, uncached classification.
         """
-        result: dict[str, str] = {}
         if not headlines:
+            return {}
+
+        cache_key = hashlib.sha256("|".join(sorted(h.strip().lower() for h in headlines)).encode()).hexdigest()
+        cached = NewsService._sentiment_cache.get(cache_key)
+        if cached is not None and time.time() - cached[0] < INTELLIGENCE_CACHE_TTL_SECONDS:
+            return cached[1]
+
+        with NewsService._sentiment_cache_lock:
+            cached = NewsService._sentiment_cache.get(cache_key)
+            if cached is not None and time.time() - cached[0] < INTELLIGENCE_CACHE_TTL_SECONDS:
+                return cached[1]
+            result = self._classify_sentiment_uncached(headlines)
+            NewsService._sentiment_cache[cache_key] = (time.time(), result)
             return result
 
+    def _classify_sentiment_uncached(self, headlines: list[str]) -> dict[str, str]:
+        result: dict[str, str] = {}
         sentiment_mapped: dict[str, str] = {}
         try:
             from services.ai.provider_factory import get_shared_provider

@@ -67,6 +67,19 @@ def _reset_intelligence_service_cache():
 
 
 @pytest.fixture(autouse=True)
+def _reset_news_sentiment_cache():
+    """market.intelligence.news.NewsService.classify_sentiment() caches its
+    result per exact headline set at the class level (see that class's
+    _sentiment_cache comment). Without resetting between tests, a test using
+    a common headline fixture could silently reuse another test's cached
+    (possibly mocked) sentiment instead of exercising its own mocks."""
+    import market.intelligence.news as news_service
+    news_service.NewsService._sentiment_cache = {}
+    yield
+    news_service.NewsService._sentiment_cache = {}
+
+
+@pytest.fixture(autouse=True)
 def _reset_shared_ai_provider():
     """services.ai.provider_factory.get_shared_provider() memoizes one
     AIProvider at module level for the whole process, by design (see its
