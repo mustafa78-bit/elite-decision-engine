@@ -1,12 +1,13 @@
 from typing import Optional
 
-from config import ATR_MULTIPLIER
+from config import ATR_MULTIPLIER, TP1_ATR_MULTIPLIER
 
 
 class TPSLEngine:
 
-    def __init__(self, atr_multiplier: float | None = None) -> None:
+    def __init__(self, atr_multiplier: float | None = None, tp1_atr_multiplier: float | None = None) -> None:
         self.atr_multiplier = atr_multiplier if atr_multiplier is not None else ATR_MULTIPLIER
+        self.tp1_atr_multiplier = tp1_atr_multiplier if tp1_atr_multiplier is not None else TP1_ATR_MULTIPLIER
 
     def calculate(self, entry, atr, side):
         if entry is None or entry == 0:
@@ -20,7 +21,7 @@ class TPSLEngine:
 
             stop = entry - (atr * self.atr_multiplier)
 
-            tp1 = entry + (atr * 2.0)
+            tp1 = entry + (atr * self.tp1_atr_multiplier)
 
             tp2 = entry + (atr * 4.0)
 
@@ -28,7 +29,7 @@ class TPSLEngine:
 
             stop = entry + (atr * self.atr_multiplier)
 
-            tp1 = entry - (atr * 2.0)
+            tp1 = entry - (atr * self.tp1_atr_multiplier)
 
             tp2 = entry - (atr * 4.0)
 

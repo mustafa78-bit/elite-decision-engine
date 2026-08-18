@@ -27,3 +27,4 @@ test_elite.db
 # Cache
 .pytest_cache/
 *.db
+data/historical/

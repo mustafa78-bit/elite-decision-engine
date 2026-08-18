@@ -32,6 +32,41 @@ TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
 
 
 @pytest.fixture(autouse=True)
+def mock_fundamental_veto(request, monkeypatch):
+    """execution/pipeline.py's DecisionPipeline now calls
+    council/fundamental_gate.py's check_fundamental_veto() by default for
+    every approved signal (FUNDAMENTAL_VETO_ENABLED defaults true -- it's a
+    pure safety net, see config.py's comment). That function hits real
+    market/news/whale data through MarketDataService -- without this,
+    every existing pipeline test that never anticipated it would make
+    unmocked real network calls, same class of problem
+    mock_global_coin_universe below already guards against. Defaults to
+    "never veto" so existing pipeline tests keep their prior behavior;
+    tests/test_fundamental_gate.py and the dedicated pipeline-integration
+    tests override this explicitly to exercise the real veto logic."""
+    if "test_fundamental_gate" in request.node.nodeid or "test_pipeline_fundamental_veto" in request.node.nodeid:
+        return
+    from council.fundamental_gate import FundamentalVetoResult
+    monkeypatch.setattr(
+        "council.fundamental_gate.check_fundamental_veto",
+        lambda *args, **kwargs: FundamentalVetoResult(False, None),
+    )
+
+
+@pytest.fixture(autouse=True)
+def _reset_intelligence_service_cache():
+    """market.intelligence.service.IntelligenceService.enrich() caches its
+    result per-symbol at the class level (see that class's _CACHE_TTL_SECONDS
+    comment). Without resetting between tests, a test using a real/default
+    symbol (commonly "BTC") could silently reuse another test's cached
+    bundle instead of exercising its own mocks."""
+    import market.intelligence.service as intelligence_service
+    intelligence_service.IntelligenceService._cache = {}
+    yield
+    intelligence_service.IntelligenceService._cache = {}
+
+
+@pytest.fixture(autouse=True)
 def _reset_shared_ai_provider():
     """services.ai.provider_factory.get_shared_provider() memoizes one
     AIProvider at module level for the whole process, by design (see its

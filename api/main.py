@@ -75,6 +75,7 @@ from config import (
     DEBUG,
     HEALTH_CHECK_INTERVAL_SECONDS,
     SCAN_INTERVAL_SECONDS,
+    SCANNER_TIMEFRAME,
     SENTRY_DSN,
 )
 from core.engine import DecisionEngine
@@ -251,6 +252,10 @@ async def lifespan(app: FastAPI):
     listings_task = asyncio.create_task(_listings_alert_loop())
     listings_task.add_done_callback(_on_task_done("Listings alert loop"))
     _background_tasks.add(listings_task)
+
+    historical_data_task = asyncio.create_task(_historical_data_refresh_loop())
+    historical_data_task.add_done_callback(_on_task_done("Historical data refresh loop"))
+    _background_tasks.add(historical_data_task)
 
     yield
 
@@ -616,7 +621,7 @@ async def _scan_and_generate_signals() -> None:
             await asyncio.sleep(SCAN_INTERVAL_SECONDS)
 
             def _run_scan():
-                return OpportunityScanner().scan()
+                return OpportunityScanner().scan(timeframe=SCANNER_TIMEFRAME)
 
             opportunities = await asyncio.to_thread(_run_scan)
             created = await asyncio.to_thread(generate_signals, opportunities)
@@ -696,6 +701,31 @@ async def _listings_alert_loop() -> None:
             raise
         except Exception:
             logger.exception("Listings alert loop iteration failed")
+
+
+_HISTORICAL_DATA_CHECK_INTERVAL_SECONDS = 6 * 3600  # 6h -- backtest/data.py's
+
+
+async def _historical_data_refresh_loop() -> None:
+    """Keeps backtest/data.py's locally-persisted historical OHLCV
+    (data/historical/*.csv, the fixed 25-coin universe's backtest dataset)
+    from silently going stale. Checks every 6h; fetch_all_historical()
+    itself only actually re-fetches a symbol once its saved file is older
+    than REFRESH_AFTER_HOURS (24h) -- so most checks are a fast no-op read
+    of file mtimes, not a real network burst. Runs in a thread since it's
+    sync, real I/O (same pattern as the alert loops above).
+    """
+    from backtest.data import fetch_all_historical
+
+    while True:
+        try:
+            await asyncio.sleep(_HISTORICAL_DATA_CHECK_INTERVAL_SECONDS)
+            await asyncio.to_thread(fetch_all_historical)
+        except asyncio.CancelledError:
+            logger.info("Historical data refresh loop cancelled")
+            raise
+        except Exception:
+            logger.exception("Historical data refresh loop iteration failed")
 
 
 

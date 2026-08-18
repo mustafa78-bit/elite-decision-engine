@@ -594,7 +594,48 @@ class TestOLLOService:
 
     def setup_method(self):
         self.mock_ai = MockAIService()
-        self.svc = OLLOService(ai_service=self.mock_ai)
+
+        # CommanderMemory(session_factory=database.get_session) is
+        # OLLOService's default -- meaning without this, every test in this
+        # class was writing real CommanderMemoryEntry rows into the actual
+        # live production database (elite_trial.db, per .env's
+        # DATABASE_URL), not a test-isolated one. Found live 2026-08-18:
+        # the real db had 978 fake "Test query"/"How is the portfolio?"
+        # entries plus real HTTP-429 failure messages accumulated from past
+        # test runs. Same isolated-in-memory-SQLite pattern as
+        # conftest.py's _default_engine(), just built directly here since
+        # this class predates pytest-fixture-style setup.
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from sqlalchemy.pool import StaticPool
+
+        from database import Base
+        test_engine = create_engine(
+            "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+        )
+        Base.metadata.create_all(test_engine)
+        self._test_session_factory = sessionmaker(bind=test_engine)
+        test_memory = CommanderMemory(session_factory=self._test_session_factory)
+
+        self.svc = OLLOService(ai_service=self.mock_ai, memory=test_memory)
+
+        # Command Deck's context now includes news_headlines (see
+        # services/ollo/context.py::_load_news()) -- without this, query()/
+        # briefing() below silently hit the real RSS feeds and, if any
+        # headlines came back, the real NVIDIA API via
+        # NewsService.classify_and_score(), even though ai_service above is
+        # mocked (that mock only covers OLLO's own chat generation, not
+        # context-gathering). An empty RSS result makes _load_news() return
+        # early before ever calling classify_and_score() -- see that
+        # method's early "if not headlines: return" -- so this one patch
+        # blocks both the real RSS call and the real NVIDIA call.
+        self._fetch_rss_patcher = patch(
+            "market.intelligence.news.NewsService.fetch_rss_feeds", return_value=[]
+        )
+        self._fetch_rss_patcher.start()
+
+    def teardown_method(self):
+        self._fetch_rss_patcher.stop()
 
     def test_greet_returns_response(self):
         r = self.svc.greet("command_deck")

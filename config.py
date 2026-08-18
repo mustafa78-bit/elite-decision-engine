@@ -170,6 +170,14 @@ RISK_PER_TRADE_PERCENT = float(os.getenv("RISK_PER_TRADE_PERCENT", "1.0"))
 assert 0 < RISK_PER_TRADE_PERCENT <= 100, f"RISK_PER_TRADE_PERCENT must be 0-100, got {RISK_PER_TRADE_PERCENT}"
 ATR_MULTIPLIER = float(os.getenv("ATR_MULTIPLIER", "1.5"))
 assert ATR_MULTIPLIER > 0, f"ATR_MULTIPLIER must be positive, got {ATR_MULTIPLIER}"
+# TP1 distance in ATR multiples -- was a hardcoded 2.0 in execution/tp_sl.py,
+# giving a real (non-simulator) risk:reward of only 2.0/1.5 = 1.33:1 (TP1 vs
+# the stop above). At a 1.33:1 payoff the breakeven win rate is ~43% -- a
+# 40% win rate, which a real system can plausibly land on, is a real loss.
+# Raised to 3.0 for a clean 2:1 minimum (founder decision, 2026-08-17,
+# "1 2 minimum değil mi") -- breakeven drops to a much more forgiving ~33%.
+TP1_ATR_MULTIPLIER = float(os.getenv("TP1_ATR_MULTIPLIER", "3.0"))
+assert TP1_ATR_MULTIPLIER > 0, f"TP1_ATR_MULTIPLIER must be positive, got {TP1_ATR_MULTIPLIER}"
 MIN_POSITION_QUANTITY = float(os.getenv("MIN_POSITION_QUANTITY", "0.001"))
 assert MIN_POSITION_QUANTITY > 0, f"MIN_POSITION_QUANTITY must be positive, got {MIN_POSITION_QUANTITY}"
 
@@ -209,5 +217,26 @@ SYMBOL_PROVIDER_ASSIGNMENT: dict[str, str] = {
 }
 
 AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "false").lower() == "true"
-SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "300"))
+
+# Gates a real (paper) trade behind council/fundamental_gate.py's News/Whale/
+# Macro majority-veto check -- see that module's docstring for the full
+# design rationale (majority quorum, veto-only/never-approve, fails open).
+# Defaults on: it's a pure safety net (can only block a trade
+# ScoringEngine/ConfidenceEngine already approved, never approve one they
+# didn't), so unlike AUTO_TRADING_ENABLED there's no reason to default it
+# off once it exists.
+FUNDAMENTAL_VETO_ENABLED = os.getenv("FUNDAMENTAL_VETO_ENABLED", "true").lower() == "true"
+
+# Was 300s (5 min) scanning against 1h candles -- a mismatch founder caught
+# live (2026-08-18): an hourly candle is still forming for up to 59 of every
+# 60 minutes, so 11 of every 12 scans re-evaluated nearly the same data as
+# the previous scan, wasting real API calls for almost no new information
+# ("bu da sistemi yoruyor" / "sürekli hata almamızın sebebi bu olabilir").
+# Scan cadence now matches the candle timeframe it evaluates -- every scan
+# sees genuinely fresh, closed price action instead of a still-forming
+# candle. 15m chosen over 1h for faster reaction to real setups while still
+# being a real closed candle each time, not scanner/core.py's previous
+# default 1h timeframe scanned 12x too often.
+SCANNER_TIMEFRAME = os.getenv("SCANNER_TIMEFRAME", "15m")
+SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "900"))
 assert SCAN_INTERVAL_SECONDS > 0, f"SCAN_INTERVAL_SECONDS must be positive, got {SCAN_INTERVAL_SECONDS}"
