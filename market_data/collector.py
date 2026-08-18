@@ -9,7 +9,27 @@ from market_data.models import OHLCVResult
 
 logger = logging.getLogger(__name__)
 
-_STALE_THRESHOLD_SECONDS = 7200  # 2 hours
+# A flat 7200s (2h) threshold regardless of timeframe was actually calibrated
+# for 1h candles specifically (2x its own 3600s period) and never revisited
+# for other timeframes -- a 4h candle spends over half its real, un-stale
+# lifecycle (2h-4h into the current candle) looking "stale" under that fixed
+# number, so get_ohlcv(timeframe="4h") returned an empty DataFrame roughly
+# half the time. That empty df then crashed market_data/mtf.py's
+# IndicatorEngine.calculate() call (pandas_ta's df.ta.ema() chokes on an
+# empty frame's integer-typed column index), caught by ScoringEngine.score()'s
+# broad except and silently falling back to neutral scores for every signal
+# hit during that window -- found live via real recurring "MARKET DATA
+# ERROR: Can only use .str accessor..." log lines. Scale with the timeframe's
+# own candle period instead (2x, preserving the existing 1h behavior exactly).
+_CANDLE_SECONDS: dict[str, int] = {
+    "1m": 60, "5m": 300, "15m": 900, "30m": 1800,
+    "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800,
+}
+_DEFAULT_CANDLE_SECONDS = 3600
+
+
+def _stale_threshold_seconds(timeframe: str) -> int:
+    return _CANDLE_SECONDS.get(timeframe, _DEFAULT_CANDLE_SECONDS) * 2
 
 
 class HyperliquidCollector:
@@ -104,7 +124,7 @@ class HyperliquidCollector:
         if latest_ts > 1e12:
             latest_ts = latest_ts / 1000
         age_seconds = now_seconds - latest_ts
-        if age_seconds > _STALE_THRESHOLD_SECONDS:
+        if age_seconds > _stale_threshold_seconds(timeframe):
             logger.warning(
                 "Stale market data for %s %s: latest candle is %.1f hours old",
                 symbol, timeframe, age_seconds / 3600,

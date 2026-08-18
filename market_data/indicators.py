@@ -11,6 +11,16 @@ class IndicatorEngine:
         return None
 
     def calculate(self, df):
+        # An empty df (e.g. a provider deeming its latest candle too stale
+        # and returning nothing, or a genuine fetch failure) previously
+        # crashed here: pandas_ta's df.ta.ema() calls df.columns.str.match()
+        # internally, which raises on an empty DataFrame's default
+        # integer-typed column index rather than a string one. Return
+        # neutral values instead of propagating -- callers already treat a
+        # flat ema20==ema50==ema200 as "no trend confirmation", which is the
+        # honest answer when there's no real data to compute one from.
+        if df is None or df.empty:
+            return {"ema20": 0.0, "ema50": 0.0, "ema200": 0.0, "rsi": 50.0, "atr": 0.0}
 
         df = df.copy()
 
