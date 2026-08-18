@@ -1,6 +1,7 @@
 """Unit tests for PaperExecutor core logic (no external API dependencies)."""
 
 from datetime import UTC
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
@@ -15,6 +16,35 @@ class _MockCollector:
 
     def get_ohlcv(self, symbol="BTC", timeframe="1h", limit=500):
         return pd.DataFrame({"close": [self.close_price] * 100})
+
+
+# ---------------------------------------------------------------------------
+# get_current_price
+# ---------------------------------------------------------------------------
+
+class TestGetCurrentPrice:
+
+    def test_uses_raw_collector_when_no_market_service(self):
+        e = PaperExecutor(collector=_MockCollector(close_price=123.0), session_factory=dict)
+        assert e.get_current_price("BTCUSDT") == 123.0
+
+    def test_uses_market_service_ohlcv_not_get_price_when_available(self):
+        # Regression: this used to call market_service.get_price(), which
+        # goes through get_asset()'s full intelligence enrichment (NVIDIA
+        # news classification, whale/funding/OI/fear-greed fan-out) just to
+        # read back .price -- confirmed live 2026-08-18 as unnecessarily
+        # expensive for a price-only lookup called on every trade-monitor
+        # tick. Must use get_ohlcv() (its own simple, non-intelligence TTL
+        # cache) instead.
+        mock_market_service = MagicMock()
+        mock_market_service.get_ohlcv.return_value = pd.DataFrame({"close": [456.0]})
+        e = PaperExecutor(
+            collector=_MockCollector(), session_factory=dict, market_service=mock_market_service,
+        )
+        price = e.get_current_price("BTCUSDT")
+        assert price == 456.0
+        mock_market_service.get_ohlcv.assert_called_once_with(symbol="BTC", timeframe="1h", limit=2)
+        mock_market_service.get_price.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
