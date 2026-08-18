@@ -238,7 +238,17 @@ async def lifespan(app: FastAPI):
         decision_engine = DecisionEngine(
             execution_loop=ExecutionLoop(
                 trade_engine=TradeEngine(notifications=shared_dispatcher),
-                paper_executor=PaperExecutor(notifications=shared_dispatcher),
+                # Without market_service, PaperExecutor.get_current_price()
+                # falls back to a raw, uncached HyperliquidCollector.get_ohlcv()
+                # call on every single trade-monitor tick (every
+                # CHECK_INTERVAL, ~10s, per open trade) -- confirmed live
+                # 2026-08-18 as a real recurring cause of Hyperliquid 429s
+                # ("Failed to monitor paper trade") once several trades were
+                # open simultaneously. MarketDataService's normal TTL cache
+                # (300s for 1h+ timeframes) means repeated checks for the
+                # same symbol between ticks now reuse one real fetch instead
+                # of hitting Hyperliquid every ~10s.
+                paper_executor=PaperExecutor(notifications=shared_dispatcher, market_service=MarketDataService()),
                 trade_journal=PaperDomainExecutor(),
             )
         )

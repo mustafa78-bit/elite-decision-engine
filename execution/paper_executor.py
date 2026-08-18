@@ -376,10 +376,19 @@ class PaperExecutor:
     def get_current_price(self, symbol: str) -> float:
         """Fetch the latest close price for a symbol from the configured collector."""
 
-        if self.market_service is not None:
-            return self.market_service.get_price(symbol)
         coin = self._collector_symbol(symbol)
-        data = self.collector.get_ohlcv(symbol=coin, timeframe="1h", limit=2)
+        if self.market_service is not None:
+            # get_ohlcv(), not get_price() -- get_price() goes through
+            # get_asset()'s full intelligence enrichment (NVIDIA news
+            # classification, whale/funding/OI/fear-greed fan-out) just to
+            # read back .price, which is both far more expensive than a
+            # price-only lookup needs and works against the NVIDIA call
+            # reduction done elsewhere today. get_ohlcv() has its own
+            # simple TTL cache (no intelligence involved) that's exactly
+            # what repeated monitoring ticks for the same symbol need.
+            data = self.market_service.get_ohlcv(symbol=coin, timeframe="1h", limit=2)
+        else:
+            data = self.collector.get_ohlcv(symbol=coin, timeframe="1h", limit=2)
         if self._is_empty_market_data(data):
             raise ValueError(f"No market data returned for {symbol}")
         return float(data["close"].iloc[-1])
