@@ -240,3 +240,17 @@ FUNDAMENTAL_VETO_ENABLED = os.getenv("FUNDAMENTAL_VETO_ENABLED", "true").lower()
 SCANNER_TIMEFRAME = os.getenv("SCANNER_TIMEFRAME", "15m")
 SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "900"))
 assert SCAN_INTERVAL_SECONDS > 0, f"SCAN_INTERVAL_SECONDS must be positive, got {SCAN_INTERVAL_SECONDS}"
+
+# scanner/core.py scanned its ~25-symbol universe fully sequentially --
+# per-symbol enrichment (news/whale/funding/OI, some LLM-backed) observed
+# live taking 26-56s each under real NVIDIA load, so a full scan pass took
+# 31-33 minutes against the 15-minute SCAN_INTERVAL_SECONDS above, silently
+# defeating that cadence (effective gap became ~46min: scan time + sleep).
+# Bounded thread pool instead -- the strategy evaluators are stateless and
+# the shared caches/rate-limiters (IntelligenceService, WhaleService,
+# FundingCollector/OpenInterestCollector) are already lock-protected
+# class-level singletons designed for concurrent access, so this doesn't
+# bypass throttling, it just lets independent symbols' I/O overlap instead
+# of queuing one at a time.
+SCAN_MAX_WORKERS = int(os.getenv("SCAN_MAX_WORKERS", "8"))
+assert SCAN_MAX_WORKERS > 0, f"SCAN_MAX_WORKERS must be positive, got {SCAN_MAX_WORKERS}"

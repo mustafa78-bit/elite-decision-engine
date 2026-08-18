@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
-from config import FIXED_COIN_UNIVERSE
+from config import FIXED_COIN_UNIVERSE, SCAN_MAX_WORKERS
 from execution.tp_sl import TPSLEngine
 from market.services import MarketDataService
 from scanner.confidence import ConfidenceScorer
@@ -106,11 +107,20 @@ class OpportunityScanner:
         target_symbols = symbols or self.symbols
         logger.info("Scanning %s symbols on %s", len(target_symbols), timeframe)
 
-        results: list[ScanResult] = []
-        for symbol in target_symbols:
-            result = self._scan_symbol(symbol, timeframe)
-            if result is not None:
-                results.append(result)
+        # Per-symbol enrichment (news/whale/funding/OI, some LLM-backed via
+        # NewsService.classify_and_score()) was observed live taking 26-56s
+        # each under real NVIDIA load -- fully sequential across ~25 symbols
+        # turned a scan into 31-33 minutes against SCAN_INTERVAL_SECONDS=900,
+        # silently defeating that cadence. Bounded thread pool instead: the
+        # strategy evaluators are stateless and the shared caches/rate-
+        # limiters (IntelligenceService, WhaleService, FundingCollector/
+        # OpenInterestCollector) are already lock-protected class-level
+        # singletons built for concurrent access, so this doesn't bypass
+        # throttling -- it lets independent symbols' I/O overlap instead of
+        # queuing one at a time. See config.SCAN_MAX_WORKERS.
+        with ThreadPoolExecutor(max_workers=SCAN_MAX_WORKERS) as executor:
+            scanned = executor.map(lambda s: self._scan_symbol(s, timeframe), target_symbols)
+            results: list[ScanResult] = [r for r in scanned if r is not None]
 
         results = self._apply_filters(results)
         logger.info("Scan complete: %d results after filters", len(results))

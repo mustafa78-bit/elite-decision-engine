@@ -50,10 +50,26 @@ class TestAutoTradingConfig:
         assert isinstance(config.SCAN_INTERVAL_SECONDS, int)
         assert config.SCAN_INTERVAL_SECONDS > 0
 
-    def test_auto_trading_disabled_by_default_in_test_env(self):
-        # tests/conftest.py never sets AUTO_TRADING_ENABLED, so the default
-        # (env unset -> "false") must hold in the test environment.
+    def test_auto_trading_enabled_parses_env_var_correctly(self, monkeypatch):
+        # Real deployments (including this one, once auto-trading is
+        # actually turned on) set AUTO_TRADING_ENABLED=true in their own
+        # .env -- asserting a fixed ambient value here was fragile and broke
+        # the moment that happened. Test the parsing itself instead
+        # ("true"/"false" strings map to the expected bool), then restore
+        # config to the real ambient env so no stale value leaks into other
+        # tests that import `config`.
+        import importlib
+
+        monkeypatch.setenv("AUTO_TRADING_ENABLED", "false")
+        importlib.reload(config)
         assert config.AUTO_TRADING_ENABLED is False
+
+        monkeypatch.setenv("AUTO_TRADING_ENABLED", "true")
+        importlib.reload(config)
+        assert config.AUTO_TRADING_ENABLED is True
+
+        monkeypatch.undo()
+        importlib.reload(config)
 
 
 class TestScannerPriceAndTrendScoreThreading:
