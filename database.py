@@ -27,8 +27,19 @@ _is_sqlite = DATABASE_URL.startswith("sqlite")
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=not _is_sqlite,
-    pool_size=1 if _is_sqlite else 10,
-    max_overflow=0 if _is_sqlite else 20,
+    # SQLite's pool used to be size=1/overflow=0 -- WAL mode below already
+    # lets readers proceed during a write and busy_timeout already makes a
+    # writer wait instead of erroring, so real safety against corruption
+    # comes from those pragmas, not from this pool being capped at exactly
+    # one Python-level connection. A single connection meant every one of
+    # this app's several concurrent background loops (scan, decision
+    # engine, paper trade monitor, websocket broadcast, Telegram bots) plus
+    # API requests serialized on it -- observed live causing real
+    # `QueuePool limit of size 1 overflow 0 reached, connection timed out`
+    # failures (e.g. paper trade monitoring silently skipping a tick) once
+    # AUTO_TRADING_ENABLED actually had concurrent load to serve.
+    pool_size=5 if _is_sqlite else 10,
+    max_overflow=5 if _is_sqlite else 20,
     connect_args={"check_same_thread": False} if _is_sqlite else {},
 )
 
