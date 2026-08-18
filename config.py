@@ -254,3 +254,17 @@ assert SCAN_INTERVAL_SECONDS > 0, f"SCAN_INTERVAL_SECONDS must be positive, got 
 # of queuing one at a time.
 SCAN_MAX_WORKERS = int(os.getenv("SCAN_MAX_WORKERS", "8"))
 assert SCAN_MAX_WORKERS > 0, f"SCAN_MAX_WORKERS must be positive, got {SCAN_MAX_WORKERS}"
+
+# IntelligenceService.enrich()'s per-symbol cache was 60s -- too short to
+# survive from a scan's own enrichment to the same symbol's
+# fundamental_gate.py veto check moments later (both call enrich() for the
+# same symbol within a few minutes of each other), so approved signals were
+# paying for the same symbol's NVIDIA-backed news classification twice.
+# News/whale/fear-greed sentiment doesn't meaningfully change minute to
+# minute, so a longer TTL trades a small amount of freshness for real,
+# direct NVIDIA call-volume reduction -- 300s stays well under
+# SCAN_INTERVAL_SECONDS (900s) so a full scan cycle still sees fresh data.
+INTELLIGENCE_CACHE_TTL_SECONDS = int(os.getenv("INTELLIGENCE_CACHE_TTL_SECONDS", "300"))
+assert INTELLIGENCE_CACHE_TTL_SECONDS > 0, (
+    f"INTELLIGENCE_CACHE_TTL_SECONDS must be positive, got {INTELLIGENCE_CACHE_TTL_SECONDS}"
+)

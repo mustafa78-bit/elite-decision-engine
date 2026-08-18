@@ -496,6 +496,36 @@ class TestIntelligenceService:
         assert result is asset  # same object returned
         assert result.intelligence is None  # because price=0 and ohlcv=None
 
+    def test_cache_ttl_matches_config_and_survives_past_old_60s_value(self):
+        # Regression: the TTL used to be a hardcoded 60s, too short to
+        # survive from a scan's own enrichment to the same symbol's
+        # fundamental_gate.py veto check moments later -- both call
+        # enrich() for the same symbol within a few minutes of each other,
+        # paying for the same NVIDIA-backed news classification twice. Now
+        # driven by config.INTELLIGENCE_CACHE_TTL_SECONDS (default 300s).
+        import time as time_module
+
+        import pandas as pd
+
+        import config as config_module
+
+        assert IntelligenceService._CACHE_TTL_SECONDS == config_module.INTELLIGENCE_CACHE_TTL_SECONDS
+        assert IntelligenceService._CACHE_TTL_SECONDS > 60
+
+        bundle = IntelligenceBundle(symbol="TESTCOIN")
+        IntelligenceService._cache["TESTCOIN"] = (time_module.time() - 90, bundle)
+        try:
+            asset = Asset(
+                symbol="TESTCOIN",
+                metadata=AssetMetadata(symbol="TESTCOIN"),
+                price=100.0,
+                ohlcv=pd.DataFrame({"close": [100, 101], "volume": [10, 11]}),
+            )
+            result = self.service.enrich(asset)
+            assert result.intelligence is bundle
+        finally:
+            IntelligenceService._cache.pop("TESTCOIN", None)
+
     def test_concurrent_enrich_same_symbol_only_fetches_once(self):
         # Same thundering-herd concern as FundingCollector/OpenInterestCollector
         # (see market_data/funding/collector.py) -- N concurrent evaluations of
