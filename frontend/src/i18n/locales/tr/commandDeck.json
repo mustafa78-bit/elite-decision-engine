@@ -18,6 +18,9 @@
   "recommendation": {
     "title": "Güncel Öneri"
   },
+  "activeTrade": {
+    "title": "Aktif İşlem — {{symbol}} {{side}}"
+  },
   "evidence": {
     "title": "Kanıt Analizi",
     "decisionConfidence": "Karar Güveni",

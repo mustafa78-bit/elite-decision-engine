@@ -18,6 +18,9 @@
   "recommendation": {
     "title": "Current Recommendation"
   },
+  "activeTrade": {
+    "title": "Active Trade — {{symbol}} {{side}}"
+  },
   "evidence": {
     "title": "Evidence Analysis",
     "decisionConfidence": "Decision Confidence",

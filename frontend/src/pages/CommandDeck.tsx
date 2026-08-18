@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useOutletContext } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { useSubsystems } from "../hooks/useSubsystems"
@@ -14,6 +15,27 @@ import { SignalFeed } from "../components/ai/signal-feed"
 import { AnalysisDashboard } from "../components/ai/analysis-dashboard"
 import ScannerOpportunitiesPanel from "../components/dashboard/ScannerOpportunitiesPanel"
 import { apiFetch } from "../api/client"
+import { ChartPanel } from "../components/trading/chart-panel"
+import { useTerminalStore } from "../stores/terminal-store"
+import type { LayoutContext } from "../components/layout/Layout"
+
+interface LiveCandle {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+interface Candle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
 
 interface SignalData {
   id: number;
@@ -93,6 +115,38 @@ export default function CommandDeck() {
     scanner, risk, council, portfolio, whale, market, evidence,
     ollo, aiHealth, loading,
   } = useSubsystems()
+
+  // The system just approved and opened a real trade -- surface its chart
+  // right here instead of leaving the founder to go find it on another page.
+  const { openTrades } = useOutletContext<LayoutContext>()
+  const setTerminalSymbol = useTerminalStore((s) => s.setSymbol)
+  const activeTrade = openTrades.length > 0 ? openTrades[openTrades.length - 1] : null
+  const [activeTradeCandles, setActiveTradeCandles] = useState<Candle[]>([])
+
+  useEffect(() => {
+    if (!activeTrade) {
+      setActiveTradeCandles([])
+      return
+    }
+    const baseSymbol = activeTrade.symbol.replace(/USDT$/, "")
+    setTerminalSymbol(baseSymbol)
+    let mounted = true
+    apiFetch<{ candles: LiveCandle[] }>(`/market/live?symbol=${baseSymbol}&timeframe=1h&limit=100`)
+      .then((res) => {
+        if (mounted && res.candles) {
+          setActiveTradeCandles(res.candles.map((c) => ({
+            time: Math.floor(c.timestamp / 1000),
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+            volume: c.volume,
+          })))
+        }
+      })
+      .catch(() => { if (mounted) setActiveTradeCandles([]) })
+    return () => { mounted = false }
+  }, [activeTrade, setTerminalSymbol])
 
   // Fetch signals & market data for surrounding dashboard panels
   useEffect(() => {
@@ -290,6 +344,22 @@ export default function CommandDeck() {
             )}
           </div>
         </div>
+
+        {/* ====== ACTIVE TRADE CHART — appears once the system approves and opens a real trade ====== */}
+        {activeTrade && (
+          <motion.div
+            className="shrink-0 px-6 pt-6"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="hq-section-label">
+              {t("activeTrade.title", { symbol: activeTrade.symbol, side: activeTrade.side })}
+            </div>
+            <div style={{ height: 340 }}>
+              <ChartPanel data={activeTradeCandles} openTrades={[activeTrade]} />
+            </div>
+          </motion.div>
+        )}
 
         {/* ====== CONTENT — Evidence, Mission Flow & Merged AI Experience Side Panels ====== */}
         <div className="flex-1 grid grid-cols-1 xl:grid-cols-4 gap-6 p-6">
