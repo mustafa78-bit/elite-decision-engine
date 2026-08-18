@@ -7,6 +7,7 @@ import threading
 import time
 from typing import Any, Optional
 
+from config import INTELLIGENCE_CACHE_TTL_SECONDS
 from market.features import FeatureStore
 from market.intelligence.exchange_flow import ExchangeFlowService
 from market.intelligence.fear_greed import FearGreedService
@@ -47,7 +48,7 @@ class IntelligenceService:
     # exactly the kind of self-inflicted rate-limit storm fixed elsewhere
     # today for funding/OI. Cached per-symbol at the class level (not
     # per-instance) so it collapses calls across separate instances too.
-    _CACHE_TTL_SECONDS = 60
+    _CACHE_TTL_SECONDS = INTELLIGENCE_CACHE_TTL_SECONDS
     _cache: dict[str, tuple[float, IntelligenceBundle]] = {}
     _cache_lock = threading.Lock()
 
