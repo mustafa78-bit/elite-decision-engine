@@ -52,9 +52,20 @@ NVIDIA_BASE_URL: str = os.getenv("NVIDIA_BASE_URL", "")
 # timeouts instead of avoiding them. Each NVIDIAProvider instance (one per
 # API key -- see MultiNVIDIAProvider) proactively throttles its own outbound
 # requests to this rate instead of firing them all immediately and retrying
-# after the fact. Conservative starting point, no documented NVIDIA NIM RPM
-# limit to size this against precisely -- tune based on real 429 volume.
-NVIDIA_MAX_REQUESTS_PER_SECOND: float = float(os.getenv("NVIDIA_MAX_REQUESTS_PER_SECOND", "1.0"))
+# after the fact.
+#
+# The original 1.0 (60 RPM per key) was an admitted guess -- confirmed live
+# 2026-08-18 that guess was too high: NVIDIA NIM's free-tier hosted catalog
+# (build.nvidia.com) caps around ~40 RPM per key as an unofficial but
+# NVIDIA-staff-acknowledged community baseline (not a published SLA;
+# https://forums.developer.nvidia.com/t/clarity-on-nim-api-free-tier-rate-limit-increases/369624).
+# Set conservatively below that (0.3 -> 18 RPM per key, 36 RPM combined
+# across both MultiNVIDIAProvider keys) because it's unverified whether our
+# two API keys draw from one shared account-level quota or two fully
+# independent ones -- if shared, 2x an individual-key-safe rate would still
+# 429. Loosen once that's confirmed (check the NVIDIA developer account
+# dashboard) rather than guessing upward again.
+NVIDIA_MAX_REQUESTS_PER_SECOND: float = float(os.getenv("NVIDIA_MAX_REQUESTS_PER_SECOND", "0.3"))
 
 for var in CRITICAL_VARS:
     if not os.getenv(var):
