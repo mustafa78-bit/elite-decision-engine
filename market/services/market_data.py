@@ -106,8 +106,19 @@ class MarketDataService:
 
     # ── Asset ────────────────────────────────────────────────────────
 
-    def get_asset(self, symbol: str, timeframe: str = "1h") -> Asset:
-        """Return a fully enriched Asset for the given symbol."""
+    def get_asset(self, symbol: str, timeframe: str = "1h", enrich_intelligence: bool = True) -> Asset:
+        """Return an Asset for the given symbol.
+
+        enrich_intelligence=False skips IntelligenceService.enrich() (the
+        NVIDIA-backed news classification plus whale/funding/OI/fear-greed
+        fan-out) for a cheap, technical-only pass -- used by scanner/core.py's
+        pre-filter so a large symbol universe doesn't pay the expensive
+        enrichment cost for every symbol regardless of whether it shows any
+        real technical signal. The result is intentionally NOT cached in this
+        mode (a later enrich_intelligence=True call for the same symbol still
+        does the full fetch+enrich and caches normally; this just avoids
+        caching a partial asset under the same key a full one would use).
+        """
         cache_key = self.cache.make_key("asset", symbol, timeframe)
         cached = self.cache.get(cache_key)
         if cached is not None:
@@ -121,7 +132,8 @@ class MarketDataService:
                 metadata=AssetMetadata(symbol=symbol),
                 timeframe=timeframe,
             )
-            self.cache.set(cache_key, asset, ttl=10)
+            if enrich_intelligence:
+                self.cache.set(cache_key, asset, ttl=10)
             return asset
 
         price = float(ohlcv["close"].iloc[-1])
@@ -140,6 +152,9 @@ class MarketDataService:
             context=ctx,
             timestamp=datetime.now(UTC),
         )
+
+        if not enrich_intelligence:
+            return asset
 
         asset = self.intelligence.enrich(asset)
 

@@ -299,6 +299,36 @@ class TestOpportunityScanner:
         assert len(ops) > 0
         assert ops[0].score > 0
 
+    def test_scan_enriches_intelligence_when_technical_signal_found(self):
+        # Regression: a symbol with real technical signal (a strong bullish
+        # trend here) must still get the expensive NVIDIA-backed
+        # intelligence enrichment -- the pre-filter only skips symbols with
+        # zero signal on every directional strategy.
+        mock_service = MagicMock()
+        asset = _make_asset(indicators={"ema20": 110, "ema50": 105, "ema200": 100, "rsi": 60},
+                            features={"trend": "BULLISH", "momentum": "STRONG",
+                                      "liquidity": "HIGH", "risk": "LOW",
+                                      "volatility_class": "NORMAL"})
+        mock_service.get_asset.return_value = asset
+        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"])
+        scanner.scan()
+        mock_service.get_asset.assert_called_once_with("BTCUSDT", "1h", enrich_intelligence=False)
+        mock_service.intelligence.enrich.assert_called_once_with(asset)
+
+    def test_scan_skips_intelligence_enrichment_for_flat_symbol(self):
+        # A symbol with zero signal on every directional strategy (no real
+        # trend/momentum/breakout/reversal) was never going to become a real
+        # opportunity -- skip the expensive NVIDIA-backed enrichment for it.
+        # This is what makes a much larger symbol universe viable: NVIDIA
+        # call volume scales with how many symbols show real technical
+        # interest, not with the size of the universe itself.
+        mock_service = MagicMock()
+        asset = _make_asset(indicators={}, features={})
+        mock_service.get_asset.return_value = asset
+        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"])
+        scanner.scan()
+        mock_service.intelligence.enrich.assert_not_called()
+
     def test_empty_asset_skipped(self):
         mock_service = MagicMock()
         empty_asset = Asset(symbol="BTC", metadata=AssetMetadata(symbol="BTC"))

@@ -195,8 +195,19 @@ class OpportunityScanner:
         ]
 
     def _scan_symbol(self, symbol: str, timeframe: str) -> ScanResult | None:
+        # Two-phase: a cheap technical-only pass first (OHLCV + indicators,
+        # no NVIDIA/whale/funding/OI/fear-greed fan-out), then only pay for
+        # the expensive intelligence enrichment when at least one directional
+        # strategy actually found something. A symbol with zero signal on
+        # every directional strategy was never going to become a real
+        # opportunity regardless of what its news sentiment says -- this
+        # keeps today's 25-symbol universe's behavior unchanged in practice
+        # (most symbols do show some signal) while being the piece that
+        # makes a much larger universe (the founder's planned 125/625 scale-
+        # up) viable: NVIDIA call volume scales with how many symbols show
+        # real technical interest, not with the size of the universe itself.
         try:
-            asset = self.market_service.get_asset(symbol, timeframe)
+            asset = self.market_service.get_asset(symbol, timeframe, enrich_intelligence=False)
         except Exception as e:
             logger.warning("Failed to fetch asset %s: %s", symbol, e)
             return None
@@ -221,6 +232,14 @@ class OpportunityScanner:
 
         liquidity_score, ls = self.liquidity.evaluate(asset)
         all_signals.extend(ls)
+
+        if max(trend_score, momentum_score, breakout_score, reversal_score) > 0:
+            # IntelligenceService.enrich() mutates and returns the same
+            # Asset object -- don't rebind `asset` to its return value here,
+            # a mocked market_service (common in tests) would otherwise
+            # silently replace the real test-provided asset with an
+            # unconfigured MagicMock.
+            self.market_service.intelligence.enrich(asset)
 
         intelligence = asset.intelligence
         ctx = asset.context

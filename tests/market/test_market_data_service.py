@@ -61,6 +61,30 @@ class TestMarketDataService:
         assert asset.features["trend"] == "BULLISH"
         assert asset.context["session"] == "NY"
 
+    def test_get_asset_skips_enrichment_when_disabled(self):
+        # Regression: scanner/core.py's pre-filter calls get_asset() with
+        # enrich_intelligence=False for a cheap technical-only pass -- must
+        # not call IntelligenceService.enrich() nor cache the partial asset
+        # under the same key a fully-enriched one would use.
+        self.mock_cache.get.return_value = None
+        df = pd.DataFrame({"close": [100.0, 101.0, 102.0]})
+        self.mock_provider.get_ohlcv.return_value = df
+        self.mock_indicators.get_indicators.return_value = {"ema20": 101.0}
+        self.mock_features.extract.return_value = {"trend": "BULLISH"}
+        self.mock_context.get_context.return_value = {"session": "NY"}
+        mock_intelligence = MagicMock()
+        self.service.intelligence = mock_intelligence
+
+        asset = self.service.get_asset("ETH", enrich_intelligence=False)
+
+        assert asset.symbol == "ETH"
+        assert asset.indicators["ema20"] == 101.0
+        mock_intelligence.enrich.assert_not_called()
+        # cache.set is legitimately called once by get_ohlcv()'s own
+        # caching -- the asset-level cache (which would be a 2nd call, the
+        # enriched Asset itself) must not happen.
+        assert self.mock_cache.set.call_count == 1
+
     def test_get_price(self):
         self.mock_cache.get.return_value = None
         df = pd.DataFrame({"close": [100.0, 105.0]})
