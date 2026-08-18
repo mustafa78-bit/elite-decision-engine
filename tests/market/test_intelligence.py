@@ -496,6 +496,52 @@ class TestIntelligenceService:
         assert result is asset  # same object returned
         assert result.intelligence is None  # because price=0 and ohlcv=None
 
+    def test_concurrent_enrich_same_symbol_only_fetches_once(self):
+        # Same thundering-herd concern as FundingCollector/OpenInterestCollector
+        # (see market_data/funding/collector.py) -- N concurrent evaluations of
+        # the same symbol (e.g. council/fundamental_gate.py checking several
+        # open signals for the same coin within one poll cycle) must not each
+        # independently re-fan-out into whale/news/fear-greed network calls.
+        # Mocked at the NewsService.analyze()/WhaleService.detect() level
+        # (not the raw HTTP layer) so the count reflects real fan-out calls,
+        # not incidental internals (e.g. NewsService fetching 2 RSS feeds
+        # per legitimate call).
+        import threading
+        import time as time_module
+
+        import pandas as pd
+
+        call_count = 0
+        call_lock = threading.Lock()
+
+        def slow_analyze(*args, **kwargs):
+            nonlocal call_count
+            with call_lock:
+                call_count += 1
+            time_module.sleep(0.05)
+            return []
+
+        df = pd.DataFrame({"close": [50000] * 5, "volume": [100] * 5})
+
+        def make_asset():
+            return Asset(
+                symbol="BTC", metadata=AssetMetadata(symbol="BTC"), price=50000.0, ohlcv=df,
+                indicators={"rsi": 55, "volatility_score": 0.3, "volume_score": 0.7, "atr": 500},
+                features={"trend": "BULLISH", "liquidity": "HIGH"},
+                context={"btc": {"btc_trend": "BULLISH"}, "session": "NY"},
+            )
+
+        with patch("market.intelligence.news.NewsService.analyze", side_effect=slow_analyze), \
+             patch("market.intelligence.whale.WhaleService.detect", return_value=[]), \
+             patch("market.intelligence.fear_greed.FearGreedService.compute", return_value={"value": 50, "label": "NEUTRAL"}):
+            threads = [threading.Thread(target=lambda: self.service.enrich(make_asset())) for _ in range(10)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+        assert call_count == 1
+
     @patch("market.intelligence.news.NewsService._fetch_rss_items")
     @patch("market.intelligence.whale.WhaleService._binance_request")
     def test_enrich_with_full_asset(self, mock_binance_request, mock_fetch_rss):

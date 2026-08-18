@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 import requests
 
+from market.provider.rate_limiter import TokenBucketRateLimiter
 from market_data.funding.collector import FundingCollector
 from market_data.open_interest.collector import OpenInterestCollector
 
@@ -18,6 +19,19 @@ BINANCE_HOSTS = ["https://api.binance.com", "https://api.binance.us"]
 
 class WhaleService:
     """Detect whale activity signals from market data."""
+
+    # Unlike OHLCV (market/provider/multi.py's MultiProvider), these direct
+    # Binance trades/depth calls bypassed every rate limit in the codebase --
+    # scanner/core.py's OpportunityScanner sweeps the full 25-symbol universe
+    # sequentially every SCAN_INTERVAL_SECONDS (5 min default), each symbol
+    # firing 2 of these calls via IntelligenceService.enrich(). Class-level
+    # (not per-instance) so every WhaleService() construction across the app
+    # (Scanner, OLLO's context loader, council/fundamental_gate.py) shares
+    # one real throttle instead of each getting its own fresh, unthrottled
+    # budget. Same conservative starting point as market/provider/multi.py's
+    # DEFAULT_REQUESTS_PER_SECOND -- no documented Binance limit to size
+    # this against precisely.
+    _rate_limiter = TokenBucketRateLimiter(tokens_per_second=5.0)
 
     def __init__(
         self,
@@ -36,6 +50,7 @@ class WhaleService:
 
     def _binance_request(self, path: str, params: dict[str, Any]) -> Any | None:
         """Try querying Binance hosts sequentially to avoid geographic restriction 451 errors."""
+        WhaleService._rate_limiter.acquire()
         for host in BINANCE_HOSTS:
             url = f"{host}{path}"
             try:

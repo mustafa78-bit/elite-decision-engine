@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from typing import Any, Optional
 
 from market.features import FeatureStore
@@ -35,6 +37,20 @@ def _candles_per_24h(timeframe: str) -> int:
 class IntelligenceService:
     """Aggregate all intelligence sources into a unified bundle per symbol."""
 
+    # enrich() fans out into ~6 real network calls (Binance trades/depth for
+    # whale detection, alternative.me for fear/greed, RSS for news, plus
+    # funding/OI which already cache themselves) -- fine for an occasional
+    # on-demand call (a dashboard view, OLLO context), but this service is
+    # also the data source a real per-signal trading decision would use
+    # (see council/fundamental_gate.py), which can run every CHECK_INTERVAL
+    # (default 10s) per open signal. Without caching, that reproduces
+    # exactly the kind of self-inflicted rate-limit storm fixed elsewhere
+    # today for funding/OI. Cached per-symbol at the class level (not
+    # per-instance) so it collapses calls across separate instances too.
+    _CACHE_TTL_SECONDS = 60
+    _cache: dict[str, tuple[float, IntelligenceBundle]] = {}
+    _cache_lock = threading.Lock()
+
     def __init__(
         self,
         funding_collector: FundingCollector | None = None,
@@ -58,6 +74,20 @@ class IntelligenceService:
         if asset.is_empty:
             return asset
 
+        symbol = asset.symbol
+        cached = IntelligenceService._cache.get(symbol)
+        if cached is not None and time.time() - cached[0] < IntelligenceService._CACHE_TTL_SECONDS:
+            asset.intelligence = cached[1]
+            return asset
+
+        with IntelligenceService._cache_lock:
+            cached = IntelligenceService._cache.get(symbol)
+            if cached is not None and time.time() - cached[0] < IntelligenceService._CACHE_TTL_SECONDS:
+                asset.intelligence = cached[1]
+                return asset
+            return self._enrich_uncached(asset)
+
+    def _enrich_uncached(self, asset: Asset) -> Asset:
         symbol = asset.symbol
         indicators = asset.indicators
         features = asset.features
@@ -123,6 +153,7 @@ class IntelligenceService:
         )
 
         asset.intelligence = bundle
+        IntelligenceService._cache[symbol] = (time.time(), bundle)
         return asset
 
     def _get_funding(self, symbol: str) -> dict[str, Any] | None:

@@ -293,9 +293,9 @@ class TestScannerTpSlEnrichment:
 
         assert len(ops) == 1
         opp = ops[0]
-        # 2% of 50000 = 1000 raw ATR; default ATR_MULTIPLIER=1.5
+        # 2% of 50000 = 1000 raw ATR; default ATR_MULTIPLIER=1.5, TP1_ATR_MULTIPLIER=3.0
         assert opp.stop == pytest.approx(48500.0)
-        assert opp.tp1 == pytest.approx(52000.0)
+        assert opp.tp1 == pytest.approx(53000.0)
         assert opp.tp2 == pytest.approx(54000.0)
         assert opp.stop < opp.price < opp.tp1 < opp.tp2
 
@@ -331,7 +331,7 @@ class TestScannerTpSlEnrichment:
         assert len(ops) == 1
         opp = ops[0]
         assert opp.stop == pytest.approx(51500.0)
-        assert opp.tp1 == pytest.approx(48000.0)
+        assert opp.tp1 == pytest.approx(47000.0)
         assert opp.tp2 == pytest.approx(46000.0)
         assert opp.tp2 < opp.tp1 < opp.price < opp.stop
 

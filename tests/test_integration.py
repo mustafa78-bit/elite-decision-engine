@@ -120,8 +120,8 @@ def test_end_to_end_paper_trading(db_session, session_factory):
     assert trade.side == "LONG"
     assert trade.entry == 50000.0
     assert trade.stop == 49250.0
-    assert trade.tp1 == 51000.0
-    assert abs(trade.rr - 1.33) < 0.01
+    assert trade.tp1 == 51500.0
+    assert abs(trade.rr - 2.0) < 0.01
     assert signal.status == "EXECUTED", f"Expected EXECUTED, got {signal.status}"
 
     monitor_executor = PaperExecutor(
@@ -196,7 +196,7 @@ def test_short_tp_hit(db_session, session_factory):
 
     assert trade.side == "SHORT"
     assert trade.stop == 50750.0
-    assert trade.tp1 == 49000.0
+    assert trade.tp1 == 48500.0
 
     monitor_executor = PaperExecutor(
         collector=MockCollector(close_price=48000.0),

@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Optional, Protocol
 
+from config import FUNDAMENTAL_VETO_ENABLED
 from core.confidence_engine import ConfidenceEngine
 from filters.btc_filter import BTCHealthFilter
 from market.provider import MultiProvider
@@ -91,6 +92,7 @@ class DecisionPipeline:
         regime_ai: RegimeAI | None = None,
         trade_memory: TradeMemory | None = None,
         market_service: Any | None = None,
+        fundamental_veto_enabled: bool | None = None,
     ) -> None:
         """Initialize the pipeline with injectable dependencies."""
 
@@ -103,6 +105,9 @@ class DecisionPipeline:
         self.regime_ai = regime_ai if regime_ai is not None else get_regime_ai()
         self.trade_memory = trade_memory if trade_memory is not None else TradeMemory()
         self.market_service = market_service
+        self.fundamental_veto_enabled = (
+            FUNDAMENTAL_VETO_ENABLED if fundamental_veto_enabled is None else fundamental_veto_enabled
+        )
 
     def evaluate(self, signal: TradingSignal) -> TradeCandidate | None:
         """Return an approved trade candidate for a signal, or ``None``."""
@@ -140,6 +145,16 @@ class DecisionPipeline:
                     scores.get("final_score"),
                 )
                 return None
+
+            if self.fundamental_veto_enabled:
+                from council.fundamental_gate import check_fundamental_veto
+                veto = check_fundamental_veto(signal.symbol, signal.side, signal.timeframe)
+                if veto.vetoed:
+                    self.logger.info(
+                        "Fundamental veto rejected %s %s (was %s): %s",
+                        signal.symbol, signal.side, decision, veto.reason,
+                    )
+                    return None
 
             regime_context: dict[str, Any] | None = None
             if self.regime_ai is not None:
