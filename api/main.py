@@ -153,10 +153,6 @@ def _on_task_done(task_name: str) -> Callable[[asyncio.Task], None]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from logging_config import setup_logging
-    setup_logging()
-    logger.info("Application starting up")
-
     # Provision/upgrade the DB schema before anything else touches it. This
     # uvicorn entrypoint previously never ran any schema setup at all --
     # database.create_tables() existed but was only ever wired into the
@@ -164,8 +160,26 @@ async def lifespan(app: FastAPI):
     # (`CMD uvicorn api.main:app`) never runs. The live schema has only ever
     # existed because create_tables() was run manually at some point in the
     # past; this closes that gap going forward.
+    #
+    # Must run BEFORE setup_logging(): migrations/env.py's fileConfig() call
+    # (disable_existing_loggers=False) still replaces the root logger's
+    # *handler list* with whatever alembic.ini's [logger_root] specifies
+    # (handlers=console) -- disable_existing_loggers only stops loggers not
+    # named in the ini from being silenced, it does not preserve root's
+    # existing handlers. Every prior process ordering ran setup_logging()
+    # first, so this silently deleted the engine.log/trade.log/error.log
+    # file handlers on every single startup, permanently, for the rest of
+    # that process's life -- confirmed live via a real restart on
+    # 2026-08-18 (engine.log's mtime froze at the exact migration timestamp
+    # while real traffic kept flowing to console-only). Running migrations
+    # first means only alembic's own transient startup messages are
+    # console-only; setup_logging() then runs last and its handlers survive.
     import database
     database.run_migrations()
+
+    from logging_config import setup_logging
+    setup_logging()
+    logger.info("Application starting up")
 
     # Recover Signal rows orphaned in PROCESSING status by a prior process
     # crash (see database.reap_orphaned_processing_signals docstring). Runs
