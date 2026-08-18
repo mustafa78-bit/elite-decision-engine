@@ -75,6 +75,7 @@ from config import (
     DEBUG,
     HEALTH_CHECK_INTERVAL_SECONDS,
     SCAN_INTERVAL_SECONDS,
+    SCANNER_TIMEFRAME,
     SENTRY_DSN,
 )
 from core.engine import DecisionEngine
@@ -620,7 +621,7 @@ async def _scan_and_generate_signals() -> None:
             await asyncio.sleep(SCAN_INTERVAL_SECONDS)
 
             def _run_scan():
-                return OpportunityScanner().scan()
+                return OpportunityScanner().scan(timeframe=SCANNER_TIMEFRAME)
 
             opportunities = await asyncio.to_thread(_run_scan)
             created = await asyncio.to_thread(generate_signals, opportunities)
