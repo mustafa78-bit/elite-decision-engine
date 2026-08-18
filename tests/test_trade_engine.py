@@ -30,9 +30,9 @@ class TestTradeEngine:
         assert trade.side == "SHORT"
         assert trade.entry == 3000.0
         assert trade.stop == 3090.0
-        assert trade.tp1 == 2880.0
+        assert trade.tp1 == 2820.0
         assert trade.tp2 == 2760.0
-        assert abs(trade.rr - 1.33) < 0.01
+        assert abs(trade.rr - 2.0) < 0.01
         assert trade.status == "OPEN"
 
     def test_trade_still_created_when_notification_emit_fails(self, db_session, monkeypatch):
