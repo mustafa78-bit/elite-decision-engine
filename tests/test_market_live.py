@@ -24,7 +24,13 @@ def _make_df(n, close_start=100.0, close_step=1.0):
 
 class TestMarketSnapshot:
     def test_snapshot_returns_snapshot(self):
-        engine = LiveMarketEngine()
+        # Regression: this was the one test in this file constructing a
+        # default LiveMarketEngine() with no mock collector, hitting the
+        # real Hyperliquid API -- flaky in CI (observed a genuine live 429
+        # from a shared CI runner IP) and in any environment without network
+        # access. Every other test here already uses _MockCollector.
+        df = _make_df(30, close_start=100.0, close_step=1.0)
+        engine = LiveMarketEngine(collector=_MockCollector(df))
         snap = engine.snapshot(symbol="BTC")
         assert isinstance(snap, MarketSnapshot)
         assert snap.symbol == "BTC"
