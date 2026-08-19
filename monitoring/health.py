@@ -85,10 +85,10 @@ class HealthService:
 
     @staticmethod
     def collector(symbol: str = "BTC", timeout: int = 10) -> dict:
-        from market.provider import MultiProvider
+        from market.provider import get_shared_multi_provider
         start = time.monotonic()
         try:
-            collector = MultiProvider()
+            collector = get_shared_multi_provider()
             df = collector.get_ohlcv(symbol=symbol, timeframe="1h", limit=1)
             ok = df is not None and not df.empty
             lat = (time.monotonic() - start) * 1000

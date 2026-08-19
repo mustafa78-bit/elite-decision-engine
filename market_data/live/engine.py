@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
-from market.provider import MultiProvider
+from market.provider import get_shared_multi_provider
 from market.provider.base import DataProvider
 from market_data.indicators import IndicatorEngine
 
@@ -59,7 +59,7 @@ class LiveMarketEngine:
         indicators: IndicatorEngine | None = None,
         cache_ttl: float = _CACHE_TTL,
     ) -> None:
-        self.collector = collector or MultiProvider()
+        self.collector = collector or get_shared_multi_provider()
         self.indicators = indicators or IndicatorEngine()
         self.cache_ttl = cache_ttl
         self._cache: dict[str, tuple[float, MarketSnapshot]] = {}

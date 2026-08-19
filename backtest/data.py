@@ -17,7 +17,7 @@ from pathlib import Path
 import pandas as pd
 
 from config import FIXED_COIN_UNIVERSE
-from market.provider import MultiProvider
+from market.provider import MultiProvider, get_shared_multi_provider
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ def fetch_symbol_history(
             logger.warning("Failed to read cached history for %s: %s, re-fetching", symbol, e)
 
     try:
-        mp = provider or MultiProvider()
+        mp = provider or get_shared_multi_provider()
         df = mp.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
         if df is None or df.empty:
             logger.warning("Empty historical OHLCV for %s %s", symbol, timeframe)
@@ -88,7 +88,7 @@ def fetch_all_historical(
     needs BTC's own history to reconstruct BTCHealth.score() at each
     historical point (see market_data/btc_health.py).
     """
-    mp = MultiProvider()
+    mp = get_shared_multi_provider()
     target_symbols = list(symbols or FIXED_COIN_UNIVERSE)
     if "BTCUSDT" not in target_symbols and "BTC" not in target_symbols:
         target_symbols.append("BTCUSDT")

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 
 from config import FIXED_COIN_UNIVERSE, SYMBOL_PROVIDER_ASSIGNMENT
-from market.provider.multi import MultiProvider
+from market.provider.multi import MultiProvider, get_shared_multi_provider
 
 
 class TestSymbolProviderAssignment:
@@ -115,3 +115,47 @@ class TestMultiProviderRateLimiting:
         expected_min = 4 * (1.0 / 10.0)
         assert elapsed >= expected_min * 0.8
         assert mock_hl.get_ticker.call_count == 5
+
+
+class TestSharedMultiProvider:
+
+    def setup_method(self):
+        # get_shared_multi_provider() caches into a module-level global --
+        # reset it so each test starts from a clean, unconstructed state
+        # rather than leaking whatever a previous test (or import-time
+        # caller) already built.
+        import market.provider.multi as multi_module
+        multi_module._shared_instance = None
+
+    def teardown_method(self):
+        import market.provider.multi as multi_module
+        multi_module._shared_instance = None
+
+    def test_returns_a_multi_provider_instance(self):
+        instance = get_shared_multi_provider()
+        assert isinstance(instance, MultiProvider)
+
+    def test_returns_the_same_instance_on_repeated_calls(self):
+        first = get_shared_multi_provider()
+        second = get_shared_multi_provider()
+        assert first is second
+
+    def test_concurrent_first_calls_all_get_the_same_instance(self):
+        import threading
+
+        results: list[MultiProvider] = []
+        results_lock = threading.Lock()
+
+        def worker():
+            instance = get_shared_multi_provider()
+            with results_lock:
+                results.append(instance)
+
+        threads = [threading.Thread(target=worker) for _ in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(results) == 20
+        assert all(r is results[0] for r in results)

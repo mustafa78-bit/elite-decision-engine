@@ -29,7 +29,7 @@ from market.features import FeatureStore
 from market.indicators import IndicatorService
 from market.intelligence.service import IntelligenceService
 from market.models import Asset, AssetMetadata, OHLCVData
-from market.provider import MultiProvider
+from market.provider import MultiProvider, get_shared_multi_provider
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class MarketDataService:
         context: ContextService | None = None,
         intelligence: IntelligenceService | None = None,
     ) -> None:
-        self.provider = provider or MultiProvider()
+        self.provider = provider or get_shared_multi_provider()
         self.cache = cache or CacheManager()
         self.indicators = indicators or IndicatorService(cache=self.cache)
         self.features = features or FeatureStore()

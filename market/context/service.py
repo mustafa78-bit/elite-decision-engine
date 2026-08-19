@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timezone
 from typing import Any, Optional
 
 from market.cache import CacheManager
-from market.provider import MultiProvider
+from market.provider import MultiProvider, get_shared_multi_provider
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class ContextService:
         cache: CacheManager | None = None,
         cache_ttl: float = 300,
     ) -> None:
-        self.provider = provider or MultiProvider()
+        self.provider = provider or get_shared_multi_provider()
         self.cache = cache or CacheManager(default_ttl=cache_ttl)
         self._cache_ttl = cache_ttl
 

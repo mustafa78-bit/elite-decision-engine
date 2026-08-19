@@ -1,11 +1,11 @@
-from market.provider import MultiProvider
+from market.provider import get_shared_multi_provider
 from market_data.indicators import IndicatorEngine
 
 
 class MTFEngine:
 
     def __init__(self):
-        self.collector = MultiProvider()
+        self.collector = get_shared_multi_provider()
         self.indicators = IndicatorEngine()
 
     def score(self, symbol, side):

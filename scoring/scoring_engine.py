@@ -2,7 +2,7 @@ import logging
 from typing import Any, Optional
 
 from config import SCORE_WEIGHTS
-from market.provider import MultiProvider
+from market.provider import get_shared_multi_provider
 from market_data.btc_health import BTCHealth
 from market_data.indicators import IndicatorEngine
 from market_data.mtf import MTFEngine
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ScoringEngine:
 
     def __init__(self, collector: Any | None = None, market_service: Any | None = None):
-        self.collector = collector or MultiProvider()
+        self.collector = collector or get_shared_multi_provider()
         self.market_service = market_service
         self.indicators = IndicatorEngine()
         self.volume = VolumeEngine()

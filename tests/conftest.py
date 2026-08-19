@@ -95,6 +95,22 @@ def _reset_shared_ai_provider():
 
 
 @pytest.fixture(autouse=True)
+def _reset_shared_multi_provider():
+    """market.provider.multi.get_shared_multi_provider() memoizes one
+    MultiProvider at module level for the whole process, by design (see its
+    docstring -- 19 real call sites used to each build their own instance
+    with an uncoordinated rate limiter, which is exactly the bug this
+    singleton exists to fix). Without resetting it between tests, the first
+    test to call it would leak its (possibly mocked) instance into every
+    later test that expects its own injected `collector=`/`provider=` to
+    take effect via the `or get_shared_multi_provider()` default."""
+    import market.provider.multi as multi_module
+    multi_module._shared_instance = None
+    yield
+    multi_module._shared_instance = None
+
+
+@pytest.fixture(autouse=True)
 def mock_global_coin_universe(request, monkeypatch):
     """Globally mock the dynamic coin universe Binance network calls to prevent unmocked requests."""
     if "test_universe" in request.node.nodeid:

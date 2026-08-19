@@ -118,7 +118,7 @@ class TestScoringEngineUsesConfigWeights:
 
         mock_df = _make_mock_df()
         monkeypatch.setattr(
-            "scoring.scoring_engine.MultiProvider.get_ohlcv",
+            "market.provider.multi.MultiProvider.get_ohlcv",
             lambda _self, **kwargs: mock_df,
         )
         monkeypatch.setattr(
@@ -167,7 +167,7 @@ class TestScoringEngineUsesConfigWeights:
     def test_scoring_engine_btc_score_side_awareness(self, monkeypatch):
         mock_df = _make_mock_df()
         monkeypatch.setattr(
-            "scoring.scoring_engine.MultiProvider.get_ohlcv",
+            "market.provider.multi.MultiProvider.get_ohlcv",
             lambda _self, **kwargs: mock_df,
         )
         monkeypatch.setattr(
@@ -216,7 +216,7 @@ class TestScoringEngineUsesConfigWeights:
             raise ValueError("test error")
 
         monkeypatch.setattr(
-            "scoring.scoring_engine.MultiProvider.get_ohlcv",
+            "market.provider.multi.MultiProvider.get_ohlcv",
             _raise,
         )
 

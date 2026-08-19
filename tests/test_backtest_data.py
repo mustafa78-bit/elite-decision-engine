@@ -88,7 +88,7 @@ class TestFetchAllHistorical:
         mock_provider = MagicMock()
         mock_provider.get_ohlcv.return_value = _fake_ohlcv()
 
-        with patch("backtest.data.MultiProvider", return_value=mock_provider):
+        with patch("backtest.data.get_shared_multi_provider", return_value=mock_provider):
             results = fetch_all_historical(symbols=["ETHUSDT"])
 
         # BTC gets appended even when not explicitly requested (needed for
@@ -107,7 +107,7 @@ class TestFetchAllHistorical:
 
         mock_provider.get_ohlcv.side_effect = side_effect
 
-        with patch("backtest.data.MultiProvider", return_value=mock_provider):
+        with patch("backtest.data.get_shared_multi_provider", return_value=mock_provider):
             results = fetch_all_historical(symbols=["MKRUSDT", "ETHUSDT"])
 
         assert results["MKRUSDT"].empty

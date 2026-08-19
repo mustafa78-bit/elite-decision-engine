@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter
 
-from market.provider import MultiProvider
+from market.provider import get_shared_multi_provider
 from market_data.btc_health import BTCHealth
 from market_data.indicators import IndicatorEngine
 from market_data.volatility import VolatilityEngine
@@ -15,7 +15,7 @@ router = APIRouter()
 @router.get("/market")
 def get_market():
     logger.info("GET /market")
-    collector = MultiProvider()
+    collector = get_shared_multi_provider()
     indicators = IndicatorEngine()
     btc_health = BTCHealth()
     volatility = VolatilityEngine()
