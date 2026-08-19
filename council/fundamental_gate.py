@@ -24,6 +24,15 @@ This module is the bridge, built deliberately narrow and conservative:
     DEFAULT_WEIGHTS rebalance comment) -- this gate exists to catch a
     genuinely alarming confluence (bad news + whale selling + extreme
     funding all at once), not to second-guess every trade.
+  - Exception: a single-agent emergency override exists for Whale/Macro
+    only (not News -- LLM-derived sentiment, noisier by this project's own
+    repeated observation) at an EXTREME confidence
+    (_EMERGENCY_OVERRIDE_CONFIDENCE_THRESHOLD). 742+ real signals with zero
+    quorum-based vetoes (2026-08-19 audit) showed the 2-of-3 requirement
+    alone was too conservative to ever fire in practice -- this override
+    lets one genuinely extreme reading (not just an ordinary confident one)
+    still block a trade without waiting for a second agent to independently
+    agree.
   - Fails OPEN on any error or missing data (never veto because a data
     source was unavailable -- that would make an outage more disruptive
     than the thing it's meant to catch).
@@ -45,10 +54,28 @@ logger = logging.getLogger(__name__)
 
 # An agent's disagreement only counts toward a veto above this confidence --
 # keeps a weak/uncertain reading from contributing to blocking a trade.
-_CONTRADICTION_CONFIDENCE_THRESHOLD = 0.6
+# Was 0.6 -- live-observed 2026-08-19 across 742+ real signals, this gate
+# had triggered zero times, not because nothing alarming ever happened but
+# because the bar was too high for how noisy News/Whale/Macro confidence
+# readings actually are in practice (founder + independent review agreed).
+# Lowered to 0.45 -- still below "more likely than not" (0.5), so a weak
+# reading still doesn't count, but a real majority-confidence contradiction
+# now does.
+_CONTRADICTION_CONFIDENCE_THRESHOLD = 0.45
 # How many of the 3 fundamental agents must independently, strongly
 # contradict the trade direction before it's actually vetoed.
 _VETO_QUORUM = 2
+
+# Emergency single-agent override: if Whale or Macro alone reports an
+# EXTREME bearish confidence, veto without waiting for a second agent to
+# agree. Deliberately excludes News -- it's the one fundamental agent whose
+# signal is LLM-derived sentiment (market/intelligence/news.py), which this
+# project has repeatedly found noisier/less consistent than Whale's real
+# trade data or Macro's rule-based funding/OI/fear-greed inputs. A single
+# noisy News reading should not be able to unilaterally block a trade the
+# same way a single Whale/Macro reading can.
+_EMERGENCY_OVERRIDE_CONFIDENCE_THRESHOLD = 0.85
+_EMERGENCY_OVERRIDE_AGENTS = frozenset({"Whale", "Macro"})
 
 
 class FundamentalVetoResult(NamedTuple):
@@ -82,6 +109,18 @@ def check_fundamental_veto(symbol: str, side: str, timeframe: str = "1h") -> Fun
             WhaleAgent().evaluate(signal=signal, intelligence_bundle=bundle),
             MacroAgent().evaluate(signal=signal, intelligence_bundle=bundle),
         ]
+
+        emergency = [
+            r for r in reports
+            if r.agent_name in _EMERGENCY_OVERRIDE_AGENTS
+            and r.direction == DIRECTION_BEARISH
+            and r.confidence > _EMERGENCY_OVERRIDE_CONFIDENCE_THRESHOLD
+        ]
+        if emergency:
+            r = emergency[0]
+            reason = f"Emergency override: {r.agent_name} reports extreme confidence ({r.confidence:.2f}) contradicting this {side} on {symbol}"
+            logger.info("Fundamental veto: %s", reason)
+            return FundamentalVetoResult(True, reason)
 
         contradicting = [
             r for r in reports
