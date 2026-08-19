@@ -105,6 +105,16 @@ class DeepSeekProvider(AIProvider):
                 payload = {
                     "model": self._model_name,
                     "messages": messages,
+                    # V4 models default to "thinking" mode (returns a
+                    # reasoning_content trace, default effort high) unless
+                    # explicitly disabled -- confirmed via DeepSeek's own
+                    # API docs. Our only use case here is short news-
+                    # sentiment classification, which needs no reasoning
+                    # trace at all; leaving the default on would silently
+                    # inflate output tokens (cost) and latency for every
+                    # call. kwargs comes last so a future caller can still
+                    # override this explicitly if a real use case needs it.
+                    "thinking": {"type": "disabled"},
                     **kwargs,
                 }
 

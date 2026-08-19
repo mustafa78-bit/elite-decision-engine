@@ -428,6 +428,31 @@ class TestDeepSeekProvider:
     TestNVIDIAProvider's coverage since the two share the same
     retry/backoff/rate-limiting structure."""
 
+    def test_disables_thinking_mode_by_default(self, monkeypatch):
+        # V4 models default to "thinking" mode (a reasoning_content trace,
+        # default effort high) unless explicitly disabled. Our only use
+        # case is short news-sentiment classification -- no reasoning
+        # needed, and leaving the default on would silently inflate output
+        # tokens/cost/latency on every call.
+        provider = DeepSeekProvider(api_key="test-key")
+        captured_payload = {}
+
+        def mock_post(self, url, json=None, **kwargs):
+            captured_payload.update(json)
+            return _make_response(
+                200,
+                json_data={
+                    "id": "cmpl-1",
+                    "choices": [{"message": {"content": "ok"}}],
+                    "usage": {},
+                    "model": "deepseek-v4-flash",
+                },
+            )
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        provider.generate("test prompt")
+        assert captured_payload["thinking"] == {"type": "disabled"}
+
     def test_generate_success(self, monkeypatch):
         provider = DeepSeekProvider(api_key="test-key")
 
