@@ -16,6 +16,7 @@ yet.
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any
 
 import pandas as pd
@@ -97,3 +98,25 @@ class MultiProvider:
         provider, limiter = self._resolve(symbol)
         limiter.acquire()
         return provider.get_trades(symbol, limit=limit)
+
+
+_shared_instance: MultiProvider | None = None
+_shared_instance_lock = threading.Lock()
+
+
+def get_shared_multi_provider() -> MultiProvider:
+    """Process-wide singleton -- every real call site used to default to its
+    own `MultiProvider()`, so 19 independent instances each ran their own
+    per-provider rate limiter with zero coordination between them (same
+    "unshared throttle" bug this whole module was built to fix, just
+    reintroduced one layer up). Live-observed 2026-08-19: 3 concurrent scan
+    loops logging "Scanning 25 symbols on 1h" within the same second, each
+    presumably burning its own 5 req/s allowance against the same upstream
+    APIs. Callers should default to this instead of constructing their own.
+    """
+    global _shared_instance
+    if _shared_instance is None:
+        with _shared_instance_lock:
+            if _shared_instance is None:
+                _shared_instance = MultiProvider()
+    return _shared_instance

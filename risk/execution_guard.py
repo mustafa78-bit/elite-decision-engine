@@ -135,9 +135,9 @@ class ExecutionGuard:
                 atr = float(indicators.get("atr", 0))
                 atr_pct = (atr / price) * 100 if price > 0 else 0
             else:
-                from market.provider import MultiProvider
+                from market.provider import get_shared_multi_provider
                 from market_data.indicators import IndicatorEngine
-                collector = MultiProvider()
+                collector = get_shared_multi_provider()
                 df = collector.get_ohlcv(symbol=symbol, timeframe="1h", limit=100)
                 if not df.empty:
                     indicators = IndicatorEngine()

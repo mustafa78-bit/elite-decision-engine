@@ -1,11 +1,11 @@
-from market.provider import MultiProvider
+from market.provider import get_shared_multi_provider
 from market_data.indicators import IndicatorEngine
 
 
 class BTCHealth:
 
     def __init__(self, collector=None):
-        self.collector = collector or MultiProvider()
+        self.collector = collector or get_shared_multi_provider()
         self.indicators = IndicatorEngine()
 
     def score(self):

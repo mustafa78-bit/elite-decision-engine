@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from database import CLOSED, FINAL_STATUSES, OPEN, SL_HIT, TP_HIT, PaperTrade, Trade, get_session
-from market.provider import MultiProvider
+from market.provider import get_shared_multi_provider
 from market.provider.base import DataProvider
 from notifications.dispatcher import NotificationDispatcher
 from notifications.events import TradeEvent
@@ -72,7 +72,7 @@ class PaperExecutor:
     ) -> None:
         """Create a paper executor with injectable infrastructure."""
 
-        self.collector = collector or MultiProvider()
+        self.collector = collector or get_shared_multi_provider()
         self.session_factory = session_factory
         self.logger = logger or logging.getLogger(__name__)
         self._pnl_percentages: dict[int, float] = {}
