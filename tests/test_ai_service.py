@@ -21,6 +21,7 @@ from services.ai import (
     AIProvider,
     AIService,
     ConversationMemory,
+    DeepSeekProvider,
     GenerationResult,
     HealthStatus,
     InMemoryConversation,
@@ -422,6 +423,149 @@ class TestNVIDIAProvider:
         assert NVIDIAProvider._retry_delay_seconds(0, timeout_error) == 1.0
 
 
+class TestDeepSeekProvider:
+    """DeepSeekProvider unit tests with mocked HTTP -- mirrors
+    TestNVIDIAProvider's coverage since the two share the same
+    retry/backoff/rate-limiting structure."""
+
+    def test_generate_success(self, monkeypatch):
+        provider = DeepSeekProvider(api_key="test-key")
+
+        def mock_post(self, url, **kwargs):
+            return _make_response(
+                200,
+                json_data={
+                    "id": "cmpl-1",
+                    "choices": [{"message": {"content": "Hello from DeepSeek"}}],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 20},
+                    "model": "deepseek-v4-flash",
+                },
+            )
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.generate("test prompt")
+        assert result.content == "Hello from DeepSeek"
+        assert result.provider == "deepseek"
+        assert result.tokens_in == 10
+        assert result.tokens_out == 20
+        assert result.error is None
+
+    def test_chat_success(self, monkeypatch):
+        provider = DeepSeekProvider(api_key="test-key")
+
+        def mock_post(self, url, **kwargs):
+            return _make_response(
+                200,
+                json_data={
+                    "id": "cmpl-2",
+                    "choices": [{"message": {"content": "Chat response"}}],
+                    "usage": {"prompt_tokens": 5, "completion_tokens": 15},
+                    "model": "deepseek-v4-flash",
+                },
+            )
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.chat([{"role": "user", "content": "hi"}])
+        assert result.content == "Chat response"
+        assert result.error is None
+
+    def test_health_success(self, monkeypatch):
+        provider = DeepSeekProvider(api_key="test-key")
+
+        def mock_post(self, url, **kwargs):
+            return _make_response(
+                200,
+                json_data={
+                    "id": "cmpl-ping",
+                    "choices": [{"message": {"content": "ok"}}],
+                    "usage": {},
+                    "model": "deepseek-v4-flash",
+                },
+            )
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        status = provider.health()
+        assert status.connected is True
+        assert status.provider == "deepseek"
+        assert status.error is None
+
+    def test_generate_http_error(self, monkeypatch):
+        provider = DeepSeekProvider(api_key="bad-key")
+
+        def mock_post(self, url, **kwargs):
+            return _make_response(401, json_data={"error": "unauthorized"})
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.generate("test")
+        assert result.content == ""
+        assert result.error is not None
+
+    def test_generate_timeout(self, monkeypatch):
+        provider = DeepSeekProvider(api_key="test-key")
+
+        def mock_post(self, url, **kwargs):
+            raise httpx.TimeoutException("timeout", request=_make_request())
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.generate("test")
+        assert result.content == ""
+        assert result.error is not None
+
+    def test_generate_retries_on_429_then_succeeds(self, monkeypatch):
+        monkeypatch.setattr("services.ai.deepseek_provider.time.sleep", lambda *_: None)
+        provider = DeepSeekProvider(api_key="test-key")
+        call_count = [0]
+
+        def mock_post(self, url, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return _make_response(429, json_data={"error": "rate limited"})
+            return _make_response(
+                200,
+                json_data={
+                    "id": "cmpl-6",
+                    "choices": [{"message": {"content": "recovered after 429"}}],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                    "model": "deepseek-v4-flash",
+                },
+            )
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.generate("hi")
+        assert call_count[0] == 2
+        assert result.content == "recovered after 429"
+        assert result.retries == 1
+
+    def test_generate_401_still_fails_fast_no_retry(self, monkeypatch):
+        provider = DeepSeekProvider(api_key="bad-key")
+        call_count = [0]
+
+        def mock_post(self, url, **kwargs):
+            call_count[0] += 1
+            return _make_response(401, json_data={"error": "unauthorized"})
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+        result = provider.generate("test")
+        assert call_count[0] == 1
+        assert result.content == ""
+
+    def test_model_property(self):
+        provider = DeepSeekProvider(api_key="test-key", model="custom-model")
+        assert provider.model == "custom-model"
+
+    def test_default_model(self):
+        # Deliberately deepseek-v4-flash (lightweight), not deepseek-v4-pro
+        # (a much larger reasoning model requiring separate account
+        # permission this account doesn't have, and overkill for short
+        # news-sentiment classification anyway).
+        provider = DeepSeekProvider(api_key="test-key")
+        assert provider.model == "deepseek-v4-flash"
+
+    def test_close(self):
+        provider = DeepSeekProvider(api_key="test-key")
+        provider.close()
+
+
 class TestProviderFactory:
     """Provider factory creates correct provider instances."""
 
@@ -455,6 +599,17 @@ class TestProviderFactory:
     def test_create_nvidia_provider_explicit(self):
         provider = create_provider(provider="nvidia", api_key="test-key")
         assert isinstance(provider, NVIDIAProvider)
+
+    def test_create_deepseek_provider(self, monkeypatch):
+        monkeypatch.setattr("services.ai.provider_factory.AI_PROVIDER", "deepseek")
+        monkeypatch.setattr("services.ai.provider_factory.DEEPSEEK_API_KEY", "test-key")
+        provider = create_provider()
+        assert isinstance(provider, DeepSeekProvider)
+        assert provider._api_key == "test-key"
+
+    def test_create_deepseek_provider_explicit(self):
+        provider = create_provider(provider="deepseek", api_key="test-key")
+        assert isinstance(provider, DeepSeekProvider)
 
     def test_create_openai_raises(self):
         with pytest.raises(NotImplementedError):

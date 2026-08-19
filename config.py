@@ -67,6 +67,22 @@ NVIDIA_BASE_URL: str = os.getenv("NVIDIA_BASE_URL", "")
 # dashboard) rather than guessing upward again.
 NVIDIA_MAX_REQUESTS_PER_SECOND: float = float(os.getenv("NVIDIA_MAX_REQUESTS_PER_SECOND", "0.3"))
 
+# Alternative AI_PROVIDER -- DeepSeek's own platform (platform.deepseek.com),
+# not routed through NVIDIA NIM at all, so it's unaffected by NVIDIA's ~40
+# RPM free-tier ceiling above. DeepSeek documents only a concurrency limit,
+# no published RPM/TPM figures, so 2.0 here is a reasonable self-imposed
+# default rather than a real observed constraint like NVIDIA's -- loosen
+# freely if it turns out to be too conservative. deepseek-chat/deepseek-
+# reasoner were retired 2026-07-24; the current lightweight (non-reasoning)
+# model is deepseek-v4-flash -- deliberately not deepseek-v4-pro, a much
+# larger 1.6T-parameter reasoning model that's overkill for short news-
+# sentiment classification and additionally requires a separate "Public API
+# Endpoints" permission this account doesn't have.
+DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_BASE_URL: str = os.getenv("DEEPSEEK_BASE_URL", "")
+DEEPSEEK_MODEL: str = os.getenv("DEEPSEEK_MODEL", "")
+DEEPSEEK_MAX_REQUESTS_PER_SECOND: float = float(os.getenv("DEEPSEEK_MAX_REQUESTS_PER_SECOND", "2.0"))
+
 for var in CRITICAL_VARS:
     if not os.getenv(var):
         msg = f"{var} not set. {CRITICAL_VARS[var]}"
