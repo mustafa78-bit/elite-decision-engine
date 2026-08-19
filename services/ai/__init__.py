@@ -1,4 +1,5 @@
 from services.ai.ai_service import AIService
+from services.ai.deepseek_provider import DeepSeekProvider
 from services.ai.memory import (
     ConversationMemory,
     InMemoryConversation,
@@ -25,6 +26,7 @@ __all__ = [
     "HealthStatus",
     "NVIDIAProvider",
     "MultiNVIDIAProvider",
+    "DeepSeekProvider",
     "create_provider",
     "create_ai_service",
     "briefing_prompt",

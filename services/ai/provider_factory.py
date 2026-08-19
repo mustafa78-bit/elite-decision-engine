@@ -4,7 +4,17 @@ import logging
 import threading
 from typing import TYPE_CHECKING
 
-from config import AI_MODEL, AI_PROVIDER, NVIDIA_API_KEY, NVIDIA_API_KEY_2, NVIDIA_BASE_URL
+from config import (
+    AI_MODEL,
+    AI_PROVIDER,
+    DEEPSEEK_API_KEY,
+    DEEPSEEK_BASE_URL,
+    DEEPSEEK_MODEL,
+    NVIDIA_API_KEY,
+    NVIDIA_API_KEY_2,
+    NVIDIA_BASE_URL,
+)
+from services.ai.deepseek_provider import DeepSeekProvider
 from services.ai.multi_nvidia_provider import MultiNVIDIAProvider
 from services.ai.nvidia_provider import NVIDIAProvider
 from services.ai.provider import AIProvider
@@ -51,6 +61,17 @@ def create_provider(
             model=model or AI_MODEL or None,
         )
 
+    if provider_name == "deepseek":
+        logger.info(
+            "Creating DeepSeek provider | model=%s",
+            model or DEEPSEEK_MODEL or AI_MODEL or "default",
+        )
+        return DeepSeekProvider(
+            api_key=api_key or DEEPSEEK_API_KEY,
+            base_url=base_url or DEEPSEEK_BASE_URL or None,
+            model=model or DEEPSEEK_MODEL or AI_MODEL or None,
+        )
+
     if provider_name == "openai":
         raise NotImplementedError(
             "OpenAI provider is not yet implemented. "
@@ -69,7 +90,7 @@ def create_provider(
             "Set AI_PROVIDER=nvidia to use NVIDIA NIM."
         )
 
-    msg = "Unknown AI_PROVIDER='%s'. Supported: nvidia, openai, ollama, local"
+    msg = "Unknown AI_PROVIDER='%s'. Supported: nvidia, deepseek, openai, ollama, local"
     logger.error(msg, provider_name)
     raise ValueError(msg % provider_name)
 
