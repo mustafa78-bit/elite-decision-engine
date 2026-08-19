@@ -3,6 +3,24 @@ from __future__ import annotations
 from typing import Any
 
 import pandas as pd
+import pandas_ta as ta
+
+from config import SCANNER_SQUEEZE_BONUS, SCANNER_SQUEEZE_WIDTH_RATIO
+
+
+def _bollinger_band_width(closes: pd.Series) -> pd.Series | None:
+    """Bollinger Band width (upper-lower)/middle as a series -- narrower
+    means more compressed volatility. Returns None if pandas_ta can't
+    compute bands (e.g. too few candles or a degenerate/flat series)."""
+    bb = ta.bbands(closes, length=20, std=2.0)
+    if bb is None or bb.empty:
+        return None
+    upper_col = next((c for c in bb.columns if c.startswith("BBU")), None)
+    lower_col = next((c for c in bb.columns if c.startswith("BBL")), None)
+    middle_col = next((c for c in bb.columns if c.startswith("BBM")), None)
+    if not (upper_col and lower_col and middle_col):
+        return None
+    return (bb[upper_col] - bb[lower_col]) / bb[middle_col]
 
 
 class BreakoutStrategy:
@@ -11,6 +29,7 @@ class BreakoutStrategy:
     name = "breakout"
 
     MIN_LOOKBACK = 20
+    SQUEEZE_MIN_CANDLES = 30
 
     def evaluate(self, asset: Any) -> tuple[float, list[str]]:
         indicators = asset.indicators
@@ -66,6 +85,26 @@ class BreakoutStrategy:
             elif float(recent[-1]) < ema20 and float(prior[-1]) >= ema20:
                 score_short += 0.2
                 signals.append("EMA_CROSSUNDER")
+
+        # Squeeze-confirmed breakout: only rewards a real directional
+        # breakout already found above -- a squeeze with no breakout
+        # direction to confirm isn't scored here at all.
+        if len(ohlcv) >= self.SQUEEZE_MIN_CANDLES and (score_long != score_short):
+            bb_width = _bollinger_band_width(ohlcv["close"])
+            if bb_width is not None:
+                avg_width = bb_width.tail(50).mean()
+                # Excludes the current/breakout candle -- its width is
+                # already expanding by the time price clears the range,
+                # so only the candles *before* it count as "was squeezed".
+                pre_breakout_width = bb_width.iloc[-11:-1]
+                if pd.notna(avg_width) and avg_width > 0 and not pre_breakout_width.empty:
+                    min_pre_width = pre_breakout_width.min()
+                    if pd.notna(min_pre_width) and min_pre_width < avg_width * SCANNER_SQUEEZE_WIDTH_RATIO:
+                        signals.append("SQUEEZE_RELEASE")
+                        if score_long > score_short:
+                            score_long += SCANNER_SQUEEZE_BONUS
+                        else:
+                            score_short += SCANNER_SQUEEZE_BONUS
 
         if score_long >= score_short:
             return round(min(score_long, 1.0), 4), signals

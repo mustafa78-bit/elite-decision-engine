@@ -7,9 +7,15 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
-from config import FIXED_COIN_UNIVERSE, SCAN_MAX_WORKERS
+from config import (
+    FIXED_COIN_UNIVERSE,
+    SCAN_MAX_WORKERS,
+    SCANNER_FUNDING_CROWDING_PENALTY,
+    SCANNER_MTF_PENALTY,
+)
 from execution.tp_sl import TPSLEngine
 from market.services import MarketDataService
+from market_data.mtf import MTFEngine
 from scanner.confidence import ConfidenceScorer
 from scanner.dto import ScannerDashboardDTO, opportunity_to_dto
 from scanner.filters import FalseSignalFilter, MarketFilter
@@ -33,6 +39,14 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
+# Funding levels that mean "the crowd is already positioned this way" for a
+# given side -- mirrors council/macro_agent.py's FUNDING_RISK_MAP vocabulary
+# (interpret_funding_risk() in market_data/funding/models.py is the shared
+# source of both), applied here as a scanner-side score penalty rather than
+# a hard filter: crowded doesn't mean wrong, just higher squeeze risk.
+_CROWDED_LONG_FUNDING_LEVELS = frozenset({"extreme", "high", "elevated"})
+_CROWDED_SHORT_FUNDING_LEVELS = frozenset({"extreme_negative", "high_negative", "elevated_negative"})
+
 
 class OpportunityScanner:
     """Detect and rank trade opportunities across multiple symbols."""
@@ -50,6 +64,7 @@ class OpportunityScanner:
         watchlist_engine: WatchlistEngine | None = None,
         temporary_watch_service: TemporaryWatchService | None = None,
         tp_sl_engine: TPSLEngine | None = None,
+        mtf_engine: MTFEngine | None = None,
     ) -> None:
         self.market_service = market_service or MarketDataService()
         self.ranker = ranker or OpportunityRanker()
@@ -96,6 +111,7 @@ class OpportunityScanner:
         self.false_signal_filter = false_signal_filter or FalseSignalFilter()
         self.watchlist = watchlist_engine or WatchlistEngine()
         self.tp_sl_engine = tp_sl_engine or TPSLEngine()
+        self.mtf_engine = mtf_engine or MTFEngine()
 
     def scan(
         self,
@@ -147,6 +163,14 @@ class OpportunityScanner:
         opportunities = side_filtered
 
         opportunities = self._enrich_opportunities(opportunities, results)
+
+        # _enrich_opportunities() can shrink score/confidence (MTF
+        # disagreement, funding crowding) after ranker.rank() already sorted
+        # by the pre-enrichment score -- re-sort so the final order reflects
+        # what actually got returned.
+        opportunities.sort(key=lambda o: o.score, reverse=True)
+        for i, opp in enumerate(opportunities):
+            opp.rank = i + 1
 
         if watchlist:
             opportunities = self.watchlist.filter_opportunities(opportunities, watchlist)
@@ -369,6 +393,35 @@ class OpportunityScanner:
                 opp.cvd_score = (sentiment + 1.0) / 2.0
             else:
                 opp.cvd_score = 0.0
+
+            # MTF confirmation: shrink score/confidence when the higher
+            # timeframes disagree with this opportunity's side. Only applied
+            # here (already-ranked, typically small opportunity list), not
+            # per scanned symbol -- MTFEngine.score() makes 3 real OHLCV
+            # calls (15m/1h/4h) per invocation.
+            try:
+                mtf_score = self.mtf_engine.score(opp.symbol, opp.side)
+            except Exception as e:
+                logger.warning("MTF confirmation failed for %s: %s", opp.symbol, e)
+                mtf_score = 1.0
+            mtf_multiplier = 1.0 - SCANNER_MTF_PENALTY * (1.0 - mtf_score)
+            if mtf_score < 1.0:
+                opp.signals.append("MTF_PARTIAL_CONFIRMATION" if mtf_score > 0 else "MTF_CONTRADICTS_SIDE")
+            opp.score = round(opp.score * mtf_multiplier, 4)
+            opp.confidence = round(opp.confidence * mtf_multiplier, 4)
+
+            # Funding-crowding penalty: an opportunity whose side matches the
+            # crowd already leaning that way (extreme funding) carries real
+            # squeeze risk beyond what the technical score alone reflects.
+            crowded = (
+                (opp.side == "LONG" and funding_data.get("level") in _CROWDED_LONG_FUNDING_LEVELS)
+                or (opp.side == "SHORT" and funding_data.get("level") in _CROWDED_SHORT_FUNDING_LEVELS)
+            )
+            if crowded:
+                opp.signals.append("CROWDED_FUNDING_RISK")
+                funding_multiplier = 1.0 - SCANNER_FUNDING_CROWDING_PENALTY
+                opp.score = round(opp.score * funding_multiplier, 4)
+                opp.confidence = round(opp.confidence * funding_multiplier, 4)
 
         return opportunities
 

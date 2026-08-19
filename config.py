@@ -289,6 +289,60 @@ assert SCAN_INTERVAL_SECONDS > 0, f"SCAN_INTERVAL_SECONDS must be positive, got 
 SCAN_MAX_WORKERS = int(os.getenv("SCAN_MAX_WORKERS", "8"))
 assert SCAN_MAX_WORKERS > 0, f"SCAN_MAX_WORKERS must be positive, got {SCAN_MAX_WORKERS}"
 
+# Scanner signal-quality filters (2026-08-19 founder request) -- Scanner is
+# advisory/discovery only (see scanner/core.py's module docstring), never
+# gates a real trade, so these are lower-stakes than SCORE_WEIGHTS above.
+
+# MTF confirmation: an opportunity whose higher-timeframe (1h) trend
+# contradicts its own side (e.g. a 15m LONG breakout while 1h is bearish)
+# gets its score/confidence shrunk by up to this fraction. Reuses the
+# existing, already side-aware market_data/mtf.py::MTFEngine (same engine
+# ScoringEngine's real trade path already trusts) rather than a new
+# indicator -- applied only to already-ranked opportunities in
+# scanner/core.py::_enrich_opportunities(), not the full scanned universe,
+# to avoid an extra MTFEngine.score() network call per symbol.
+SCANNER_MTF_PENALTY = float(os.getenv("SCANNER_MTF_PENALTY", "0.20"))
+assert 0 <= SCANNER_MTF_PENALTY <= 1, f"SCANNER_MTF_PENALTY must be 0-1, got {SCANNER_MTF_PENALTY}"
+
+# Overextension guard: TrendStrategy's EMA-order check alone can't tell a
+# healthy trend from one that's already vertical and due for a pullback --
+# if price is more than this % away from EMA20, trend_score is multiplied
+# down rather than trusted at full strength.
+TREND_OVEREXTENSION_PCT_THRESHOLD = float(os.getenv("TREND_OVEREXTENSION_PCT_THRESHOLD", "5.0"))
+assert TREND_OVEREXTENSION_PCT_THRESHOLD > 0, (
+    f"TREND_OVEREXTENSION_PCT_THRESHOLD must be positive, got {TREND_OVEREXTENSION_PCT_THRESHOLD}"
+)
+TREND_OVEREXTENSION_MULTIPLIER = float(os.getenv("TREND_OVEREXTENSION_MULTIPLIER", "0.7"))
+assert 0 <= TREND_OVEREXTENSION_MULTIPLIER <= 1, (
+    f"TREND_OVEREXTENSION_MULTIPLIER must be 0-1, got {TREND_OVEREXTENSION_MULTIPLIER}"
+)
+
+# Bollinger squeeze: BreakoutStrategy previously had no way to distinguish a
+# breakout that follows a real volatility contraction (higher-quality, per
+# established TA practice) from one that doesn't. A breakout is treated as
+# "squeeze-confirmed" if BB width was compressed to below this fraction of
+# its own 50-candle average width at any point in the 10 candles before the
+# breakout candle (excludes the breakout candle itself, whose width is
+# already expanding by the time price clears the range).
+SCANNER_SQUEEZE_WIDTH_RATIO = float(os.getenv("SCANNER_SQUEEZE_WIDTH_RATIO", "0.7"))
+assert 0 < SCANNER_SQUEEZE_WIDTH_RATIO < 1, (
+    f"SCANNER_SQUEEZE_WIDTH_RATIO must be 0-1, got {SCANNER_SQUEEZE_WIDTH_RATIO}"
+)
+SCANNER_SQUEEZE_BONUS = float(os.getenv("SCANNER_SQUEEZE_BONUS", "0.2"))
+assert SCANNER_SQUEEZE_BONUS >= 0, f"SCANNER_SQUEEZE_BONUS must be >= 0, got {SCANNER_SQUEEZE_BONUS}"
+
+# Funding-rate crowding penalty: reuses council/macro_agent.py's existing
+# FUNDING_RISK_MAP vocabulary/thresholds for consistency (that module
+# already treats extreme positive funding as a "crowded long" warning and
+# extreme negative funding as a "crowded short" warning) instead of
+# inventing a second, possibly-inconsistent set of funding thresholds.
+# Funding data is already fetched into ScanResult.intelligence["funding"]
+# during the existing enrichment pass -- no new network call needed.
+SCANNER_FUNDING_CROWDING_PENALTY = float(os.getenv("SCANNER_FUNDING_CROWDING_PENALTY", "0.15"))
+assert 0 <= SCANNER_FUNDING_CROWDING_PENALTY <= 1, (
+    f"SCANNER_FUNDING_CROWDING_PENALTY must be 0-1, got {SCANNER_FUNDING_CROWDING_PENALTY}"
+)
+
 # IntelligenceService.enrich()'s per-symbol cache was 60s -- too short to
 # survive from a scan's own enrichment to the same symbol's
 # fundamental_gate.py veto check moments later (both call enrich() for the

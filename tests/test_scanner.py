@@ -1,6 +1,6 @@
 """Tests for the Elite Scanner Core."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
@@ -60,6 +60,20 @@ class TestTrendStrategy:
         asset = _make_asset(indicators={"ema20": 100, "ema50": 100, "ema200": 100})
         score, signals = self.strategy.evaluate(asset)
         assert score == 0.0
+
+    def test_overextension_penalizes_score(self):
+        # Same aligned bullish EMA structure, but price is far (~9.5%) above
+        # EMA20 -- a vertical move due for a pullback, not a healthy trend.
+        asset = _make_asset(price=115.0, indicators={"ema20": 105, "ema50": 102, "ema200": 100})
+        score, signals = self.strategy.evaluate(asset)
+        assert "TREND_OVEREXTENDED" in signals
+        assert score == round(0.8 * 0.7, 4)
+
+    def test_no_overextension_penalty_when_price_near_ema20(self):
+        asset = _make_asset(price=105.0, indicators={"ema20": 105, "ema50": 102, "ema200": 100})
+        score, signals = self.strategy.evaluate(asset)
+        assert "TREND_OVEREXTENDED" not in signals
+        assert score == 0.8
 
 
 class TestMomentumStrategy:
@@ -138,6 +152,35 @@ class TestBreakoutStrategy:
         assert "EMA_CROSSUNDER" in signals
         assert score < 0
 
+    def test_squeeze_release_boosts_breakout_score(self):
+        # 40 quiet, tightly-ranged candles (real Bollinger-width compression)
+        # followed by a clean breakout above the prior range.
+        import random
+        random.seed(42)
+        quiet = [100.0 + random.uniform(-0.2, 0.2) for _ in range(40)]
+        breakout = [100.0, 101.0, 103.0, 106.0, 110.0]
+        closes = quiet + breakout
+        volumes = [50.0] * 40 + [80.0, 90.0, 100.0, 110.0, 120.0]
+        df = pd.DataFrame({"close": closes, "volume": volumes})
+        asset = _make_asset(price=110.0, indicators={"ema20": 101.0}, ohlcv=df)
+        score, signals = self.strategy.evaluate(asset)
+        assert "SQUEEZE_RELEASE" in signals
+        assert score > 0.5
+
+    def test_no_squeeze_signal_without_prior_compression(self):
+        # High, steady volatility throughout -- no real compression before
+        # the breakout, so SQUEEZE_RELEASE must not fire.
+        import random
+        random.seed(7)
+        wide = [100.0 + random.uniform(-5.0, 5.0) for _ in range(40)]
+        breakout = [100.0, 101.0, 103.0, 106.0, 130.0]
+        closes = wide + breakout
+        volumes = [50.0] * 45
+        df = pd.DataFrame({"close": closes, "volume": volumes})
+        asset = _make_asset(price=130.0, indicators={"ema20": 101.0}, ohlcv=df)
+        score, signals = self.strategy.evaluate(asset)
+        assert "SQUEEZE_RELEASE" not in signals
+
 
 class TestReversalStrategy:
 
@@ -165,6 +208,48 @@ class TestReversalStrategy:
         df = pd.DataFrame({"close": closes})
         asset = _make_asset(indicators={"rsi": 50}, features={"momentum": "NEUTRAL"}, ohlcv=df)
         score, signals = self.strategy.evaluate(asset)
+        assert score == 0.0
+
+    def test_bullish_divergence_boosts_long_score(self):
+        # Real pivot-based divergence detection is exercised directly in
+        # market_data/pivots.py's own tests -- here we only verify this
+        # strategy correctly wires calculate_divergence()'s result into
+        # score_long/signals, matching every other test file's convention
+        # of mocking at the real network/computation boundary.
+        closes = [100.0] * 15
+        df = pd.DataFrame({"close": closes})
+        asset = _make_asset(indicators={"rsi": 50}, features={"momentum": "NEUTRAL"}, ohlcv=df)
+        with patch(
+            "scanner.strategies.reversal.calculate_divergence",
+            return_value={"found": True, "type": "bullish", "p1": {}, "p2": {}},
+        ):
+            score, signals = self.strategy.evaluate(asset)
+        assert "BULLISH_DIVERGENCE" in signals
+        assert score > 0
+
+    def test_bearish_divergence_boosts_short_score(self):
+        closes = [100.0] * 15
+        df = pd.DataFrame({"close": closes})
+        asset = _make_asset(indicators={"rsi": 50}, features={"momentum": "NEUTRAL"}, ohlcv=df)
+        with patch(
+            "scanner.strategies.reversal.calculate_divergence",
+            return_value={"found": True, "type": "bearish", "p1": {}, "p2": {}},
+        ):
+            score, signals = self.strategy.evaluate(asset)
+        assert "BEARISH_DIVERGENCE" in signals
+        assert score < 0
+
+    def test_no_divergence_found_adds_no_signal(self):
+        closes = [100.0] * 15
+        df = pd.DataFrame({"close": closes})
+        asset = _make_asset(indicators={"rsi": 50}, features={"momentum": "NEUTRAL"}, ohlcv=df)
+        with patch(
+            "scanner.strategies.reversal.calculate_divergence",
+            return_value={"found": False, "type": "none", "p1": None, "p2": None},
+        ):
+            score, signals = self.strategy.evaluate(asset)
+        assert "BULLISH_DIVERGENCE" not in signals
+        assert "BEARISH_DIVERGENCE" not in signals
         assert score == 0.0
 
 
@@ -294,7 +379,9 @@ class TestOpportunityScanner:
                                       "liquidity": "HIGH", "risk": "LOW",
                                       "volatility_class": "NORMAL"})
         mock_service.get_asset.return_value = asset
-        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"])
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"], mtf_engine=mock_mtf)
         ops = scanner.scan()
         assert len(ops) > 0
         assert ops[0].score > 0
@@ -310,7 +397,9 @@ class TestOpportunityScanner:
                                       "liquidity": "HIGH", "risk": "LOW",
                                       "volatility_class": "NORMAL"})
         mock_service.get_asset.return_value = asset
-        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"])
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"], mtf_engine=mock_mtf)
         scanner.scan()
         mock_service.get_asset.assert_called_once_with("BTCUSDT", "1h", enrich_intelligence=False)
         mock_service.intelligence.enrich.assert_called_once_with(asset)
@@ -325,7 +414,9 @@ class TestOpportunityScanner:
         mock_service = MagicMock()
         asset = _make_asset(indicators={}, features={})
         mock_service.get_asset.return_value = asset
-        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"])
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"], mtf_engine=mock_mtf)
         scanner.scan()
         mock_service.intelligence.enrich.assert_not_called()
 
@@ -333,7 +424,9 @@ class TestOpportunityScanner:
         mock_service = MagicMock()
         empty_asset = Asset(symbol="BTC", metadata=AssetMetadata(symbol="BTC"))
         mock_service.get_asset.return_value = empty_asset
-        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"])
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT"], mtf_engine=mock_mtf)
         ops = scanner.scan()
         assert len(ops) == 0
 
@@ -344,6 +437,10 @@ class TestOpportunityScanner:
                                       "liquidity": "HIGH", "risk": "LOW",
                                       "volatility_class": "NORMAL"})
         mock_service.get_asset.return_value = asset
-        scanner = OpportunityScanner(market_service=mock_service, symbols=["BTCUSDT", "ETHUSDT"])
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(
+            market_service=mock_service, symbols=["BTCUSDT", "ETHUSDT"], mtf_engine=mock_mtf
+        )
         top = scanner.top_opportunities(n=1)
         assert len(top) <= 1

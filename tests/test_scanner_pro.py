@@ -249,7 +249,11 @@ class TestScannerMarketFilterIntegration:
         asset.context = {"session": "OPEN", "btc": {"btc_trend": "BEARISH"}}
         mock_service.get_asset.return_value = asset
 
-        scanner = OpportunityScanner(market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"])
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(
+            market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"], mtf_engine=mock_mtf
+        )
         ops = scanner.scan()
         assert len(ops) == 1
         assert ops[0].symbol == "BTCUSDT"
@@ -288,7 +292,11 @@ class TestScannerTpSlEnrichment:
         asset.context = {"session": "OPEN", "btc": {"btc_trend": "BULLISH"}}
         mock_service.get_asset.return_value = asset
 
-        scanner = OpportunityScanner(market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"])
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(
+            market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"], mtf_engine=mock_mtf
+        )
         ops = scanner.scan()
 
         assert len(ops) == 1
@@ -325,7 +333,11 @@ class TestScannerTpSlEnrichment:
         asset.context = {"session": "OPEN", "btc": {"btc_trend": "BEARISH"}}
         mock_service.get_asset.return_value = asset
 
-        scanner = OpportunityScanner(market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"])
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(
+            market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"], mtf_engine=mock_mtf
+        )
         ops = scanner.scan()
 
         assert len(ops) == 1
@@ -334,6 +346,95 @@ class TestScannerTpSlEnrichment:
         assert opp.tp1 == pytest.approx(47000.0)
         assert opp.tp2 == pytest.approx(46000.0)
         assert opp.tp2 < opp.tp1 < opp.price < opp.stop
+
+
+class TestScannerMtfAndFundingEnrichment:
+    """_enrich_opportunities() applies an MTF-confirmation multiplier and a
+    funding-crowding penalty on top of the ranker's pre-enrichment score."""
+
+    @staticmethod
+    def _build_scanner(mock_mtf_score: float, funding_level: str | None):
+        from market.models import Asset, AssetMetadata
+        from scanner.core import OpportunityScanner
+        from scanner.models import Opportunity
+
+        mock_service = MagicMock()
+        mock_ranker = MagicMock()
+        mock_ranker.rank.return_value = [
+            Opportunity(symbol="BTCUSDT", side="LONG", strategy="trend", score=0.8, confidence=80.0, price=50000.0)
+        ]
+
+        ohlcv = pd.DataFrame({"close": [50000.0], "volume": [100.0]})
+        asset = Asset(
+            symbol="BTCUSDT",
+            metadata=AssetMetadata(symbol="BTCUSDT"),
+            price=50000.0,
+            ohlcv=ohlcv,
+            indicators={"ema20": 110, "ema50": 105, "ema200": 100, "rsi": 60},
+            features={"trend": "BULLISH", "momentum": "STRONG", "liquidity": "HIGH", "risk": "LOW", "volatility_class": "NORMAL"},
+        )
+        asset.context = {"session": "OPEN", "btc": {"btc_trend": "BULLISH"}}
+        asset.intelligence = MagicMock()
+        asset.intelligence.fear_greed = {}
+        asset.intelligence.funding = {"level": funding_level} if funding_level else {}
+        asset.intelligence.liquidity_context = {}
+        asset.intelligence.confidence = 0.5
+        asset.intelligence.open_interest = {}
+        asset.intelligence.news = []
+        asset.intelligence.whales = []
+        mock_service.get_asset.return_value = asset
+
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = mock_mtf_score
+        scanner = OpportunityScanner(
+            market_service=mock_service, ranker=mock_ranker, symbols=["BTCUSDT"], mtf_engine=mock_mtf
+        )
+        return scanner
+
+    def test_full_mtf_confirmation_leaves_score_unchanged(self):
+        scanner = self._build_scanner(mock_mtf_score=1.0, funding_level=None)
+        ops = scanner.scan()
+        assert ops[0].score == 0.8
+        assert "MTF_CONTRADICTS_SIDE" not in ops[0].signals
+        assert "MTF_PARTIAL_CONFIRMATION" not in ops[0].signals
+
+    def test_mtf_contradiction_shrinks_score(self):
+        # SCANNER_MTF_PENALTY defaults to 0.20 -- zero MTF agreement means
+        # the full 20% reduction applies: 0.8 * (1 - 0.20) = 0.64.
+        scanner = self._build_scanner(mock_mtf_score=0.0, funding_level=None)
+        ops = scanner.scan()
+        assert ops[0].score == pytest.approx(0.64)
+        assert "MTF_CONTRADICTS_SIDE" in ops[0].signals
+
+    def test_partial_mtf_confirmation_shrinks_score_proportionally(self):
+        # mtf_score=0.5 -> multiplier = 1 - 0.20*0.5 = 0.9 -> 0.8*0.9 = 0.72
+        scanner = self._build_scanner(mock_mtf_score=0.5, funding_level=None)
+        ops = scanner.scan()
+        assert ops[0].score == pytest.approx(0.72)
+        assert "MTF_PARTIAL_CONFIRMATION" in ops[0].signals
+
+    def test_crowded_long_funding_penalizes_long_opportunity(self):
+        # SCANNER_FUNDING_CROWDING_PENALTY defaults to 0.15 -- full MTF
+        # confirmation (1.0) isolates the funding penalty's own effect:
+        # 0.8 * (1 - 0.15) = 0.68.
+        scanner = self._build_scanner(mock_mtf_score=1.0, funding_level="extreme")
+        ops = scanner.scan()
+        assert ops[0].score == pytest.approx(0.68)
+        assert "CROWDED_FUNDING_RISK" in ops[0].signals
+
+    def test_neutral_funding_does_not_penalize(self):
+        scanner = self._build_scanner(mock_mtf_score=1.0, funding_level="neutral")
+        ops = scanner.scan()
+        assert ops[0].score == 0.8
+        assert "CROWDED_FUNDING_RISK" not in ops[0].signals
+
+    def test_crowded_short_funding_level_does_not_penalize_a_long_opportunity(self):
+        # This opportunity is LONG -- a crowded-SHORT funding level (very
+        # negative) is a bullish signal for LONG, not a penalty.
+        scanner = self._build_scanner(mock_mtf_score=1.0, funding_level="extreme_negative")
+        ops = scanner.scan()
+        assert ops[0].score == 0.8
+        assert "CROWDED_FUNDING_RISK" not in ops[0].signals
 
 
 class TestFalseSignalFilter:
