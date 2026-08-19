@@ -13,12 +13,29 @@ class TestSymbolProviderAssignment:
     def test_every_fixed_universe_symbol_has_an_assignment(self):
         for symbol in FIXED_COIN_UNIVERSE:
             assert symbol in SYMBOL_PROVIDER_ASSIGNMENT
-            assert SYMBOL_PROVIDER_ASSIGNMENT[symbol] in ("hyperliquid", "binance")
+            assert SYMBOL_PROVIDER_ASSIGNMENT[symbol] in ("hyperliquid", "binance", "bybit")
 
-    def test_split_is_roughly_even(self):
-        hl_count = sum(1 for v in SYMBOL_PROVIDER_ASSIGNMENT.values() if v == "hyperliquid")
-        binance_count = sum(1 for v in SYMBOL_PROVIDER_ASSIGNMENT.values() if v == "binance")
-        assert abs(hl_count - binance_count) <= 1
+    def test_hyperliquid_carries_the_smallest_share(self):
+        # Rebalanced 2026-08-19 (Bybit added as a 3rd provider) specifically
+        # because Hyperliquid kept showing real, recurring 429s even at a
+        # roughly-even 2-way split -- it must now carry the smallest share
+        # of the three, not the largest or an equal share.
+        counts = {"hyperliquid": 0, "binance": 0, "bybit": 0}
+        for v in SYMBOL_PROVIDER_ASSIGNMENT.values():
+            counts[v] += 1
+        assert counts["hyperliquid"] < counts["binance"]
+        assert counts["hyperliquid"] < counts["bybit"]
+
+    def test_binance_and_bybit_share_is_roughly_even(self):
+        counts = {"hyperliquid": 0, "binance": 0, "bybit": 0}
+        for v in SYMBOL_PROVIDER_ASSIGNMENT.values():
+            counts[v] += 1
+        assert abs(counts["binance"] - counts["bybit"]) <= 1
+
+    def test_btc_stays_on_hyperliquid(self):
+        # BTC is the most-tested path -- deliberately kept on Hyperliquid
+        # through the rebalance rather than moved to the new provider.
+        assert SYMBOL_PROVIDER_ASSIGNMENT["BTCUSDT"] == "hyperliquid"
 
 
 class TestMultiProviderRouting:
@@ -26,28 +43,34 @@ class TestMultiProviderRouting:
     def setup_method(self):
         self.mock_hl = MagicMock()
         self.mock_binance = MagicMock()
+        self.mock_bybit = MagicMock()
         self.provider = MultiProvider(
             hyperliquid_provider=self.mock_hl,
             binance_provider=self.mock_binance,
+            bybit_provider=self.mock_bybit,
             requests_per_second=1000.0,  # effectively unthrottled for routing tests
         )
+        self._mocks = {
+            "hyperliquid": self.mock_hl,
+            "binance": self.mock_binance,
+            "bybit": self.mock_bybit,
+        }
 
     def test_each_fixed_symbol_resolves_to_its_assigned_provider(self):
-        self.mock_hl.get_ticker.return_value = {"symbol": "x", "price": 1.0}
-        self.mock_binance.get_ticker.return_value = {"symbol": "x", "price": 1.0}
+        for mock in self._mocks.values():
+            mock.get_ticker.return_value = {"symbol": "x", "price": 1.0}
 
         for symbol, assignment in SYMBOL_PROVIDER_ASSIGNMENT.items():
-            self.mock_hl.reset_mock()
-            self.mock_binance.reset_mock()
+            for mock in self._mocks.values():
+                mock.reset_mock()
 
             self.provider.get_ticker(symbol)
 
-            if assignment == "hyperliquid":
-                self.mock_hl.get_ticker.assert_called_once_with(symbol)
-                self.mock_binance.get_ticker.assert_not_called()
-            else:
-                self.mock_binance.get_ticker.assert_called_once_with(symbol)
-                self.mock_hl.get_ticker.assert_not_called()
+            for name, mock in self._mocks.items():
+                if name == assignment:
+                    mock.get_ticker.assert_called_once_with(symbol)
+                else:
+                    mock.get_ticker.assert_not_called()
 
     def test_symbol_outside_fixed_universe_always_resolves_to_hyperliquid(self):
         self.mock_hl.get_ticker.return_value = {"symbol": "NEWCOIN", "price": 1.0}
@@ -56,6 +79,7 @@ class TestMultiProviderRouting:
 
         self.mock_hl.get_ticker.assert_called_once_with("NEWCOINUSDT")
         self.mock_binance.get_ticker.assert_not_called()
+        self.mock_bybit.get_ticker.assert_not_called()
 
     def test_get_ohlcv_routes_and_forwards_args(self):
         df = pd.DataFrame({"close": [1.0, 2.0]})

@@ -1,16 +1,16 @@
-"""Routes each symbol to the Hyperliquid or Binance provider per
+"""Routes each symbol to the Hyperliquid, Binance, or Bybit provider per
 config.SYMBOL_PROVIDER_ASSIGNMENT, with a shared per-provider rate limiter.
 
 Step 2 of 3 in the Hyperliquid-rate-limit fix (see
 SPRINT_JULES_HYPERLIQUID_NO_GLOBAL_RATE_LIMIT.md / SPRINT_JULES_BINANCE_PROVIDER_STEP2.md
-for the full background). This module is new, tested, currently-unused code --
-none of the ~19 real call sites are migrated to it yet (that's Step 3).
+for the full background). Bybit added 2026-08-19 as a third provider after
+Hyperliquid kept showing real, recurring 429s even split two ways -- see
+market/provider/bybit.py's module docstring.
 
 Request coalescing (deduping identical concurrent (provider, symbol, timeframe)
 OHLCV requests within a short window) is deliberately NOT implemented here --
-left for Step 3 once real call-site migration shows the actual concurrency
-pattern; adding it now would be premature given no caller exercises this path
-yet.
+left for a later step once real call-site migration shows the actual
+concurrency pattern; adding it now would be premature.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ import pandas as pd
 from config import SYMBOL_PROVIDER_ASSIGNMENT
 from market.provider.base import DataProvider
 from market.provider.binance import BinanceProvider
+from market.provider.bybit import BybitProvider
 from market.provider.hyperliquid import HyperliquidProvider
 from market.provider.rate_limiter import TokenBucketRateLimiter
 
@@ -38,20 +39,23 @@ DEFAULT_REQUESTS_PER_SECOND = 5.0
 
 class MultiProvider:
     """Implements DataProvider by delegating each call to whichever real
-    provider (Hyperliquid or Binance) config.SYMBOL_PROVIDER_ASSIGNMENT assigns
-    the given symbol to, rate-limited per provider.
+    provider (Hyperliquid, Binance, or Bybit) config.SYMBOL_PROVIDER_ASSIGNMENT
+    assigns the given symbol to, rate-limited per provider.
     """
 
     def __init__(
         self,
         hyperliquid_provider: DataProvider | None = None,
         binance_provider: DataProvider | None = None,
+        bybit_provider: DataProvider | None = None,
         requests_per_second: float = DEFAULT_REQUESTS_PER_SECOND,
     ) -> None:
         self._hyperliquid = hyperliquid_provider or HyperliquidProvider()
         self._binance = binance_provider or BinanceProvider()
+        self._bybit = bybit_provider or BybitProvider()
         self._hyperliquid_limiter = TokenBucketRateLimiter(requests_per_second)
         self._binance_limiter = TokenBucketRateLimiter(requests_per_second)
+        self._bybit_limiter = TokenBucketRateLimiter(requests_per_second)
 
     def _resolve(self, symbol: str) -> tuple[DataProvider, TokenBucketRateLimiter]:
         """Symbols not in the fixed 25-symbol universe (temp-watch additions,
@@ -61,6 +65,8 @@ class MultiProvider:
         assignment = SYMBOL_PROVIDER_ASSIGNMENT.get(symbol, "hyperliquid")
         if assignment == "binance":
             return self._binance, self._binance_limiter
+        if assignment == "bybit":
+            return self._bybit, self._bybit_limiter
         return self._hyperliquid, self._hyperliquid_limiter
 
     def get_ohlcv(
