@@ -4,6 +4,8 @@ from typing import Any
 
 import pandas as pd
 
+from market_data.pivots import calculate_divergence
+
 
 class ReversalStrategy:
     """Score reversal opportunities using RSI extremes and divergence."""
@@ -11,6 +13,7 @@ class ReversalStrategy:
     name = "reversal"
 
     MIN_LOOKBACK = 14
+    DIVERGENCE_BONUS = 0.3
 
     def evaluate(self, asset: Any) -> tuple[float, list[str]]:
         indicators = asset.indicators
@@ -52,6 +55,19 @@ class ReversalStrategy:
         elif momentum == "OVERSOLD" and price <= price_low * 1.02:
             score_long += 0.3
             signals.append("PRICE_AT_SUPPORT")
+
+        # Real pivot-based RSI divergence (not just an RSI level check) --
+        # reuses market_data/pivots.py::calculate_divergence(), the same
+        # function already live behind the /market/divergence chart-overlay
+        # endpoint, rather than re-deriving pivot/divergence logic here.
+        divergence = calculate_divergence(ohlcv)
+        if divergence["found"]:
+            if divergence["type"] == "bullish":
+                score_long += self.DIVERGENCE_BONUS
+                signals.append("BULLISH_DIVERGENCE")
+            elif divergence["type"] == "bearish":
+                score_short += self.DIVERGENCE_BONUS
+                signals.append("BEARISH_DIVERGENCE")
 
         if score_long >= score_short:
             return round(min(score_long, 1.0), 4), signals
