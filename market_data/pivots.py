@@ -297,11 +297,18 @@ def calculate_channel(df: pd.DataFrame, window: int = 5, pct_tol: float = 0.003)
     else:
         direction = "sideways"
 
-    # We want start/end pairs. Start is first candle index (0), end is last candle index (len(df) - 1).
-    # This draws the lines across the entire visible chart cleanly!
+    # Draw the lines only across the span the regression is actually
+    # supported by: from the earliest pivot used in the fit through to the
+    # current candle. Extrapolating all the way back to index 0 (the start
+    # of the whole fetched window, e.g. 200 candles) regardless of where
+    # the pivots actually are produced wildly exaggerated lines shooting
+    # off like a ray whenever the pivots were clustered in a small, recent
+    # index range but the fitted slope was non-trivial -- confirmed live
+    # 2026-08-20. Extending forward to the last candle is kept: that's the
+    # useful "where does the channel put price right now" projection.
     has_timestamp = "timestamp" in df.columns
 
-    idx_start = 0
+    idx_start = int(min(x_high.min(), x_low.min()))
     idx_end = len(df) - 1
 
     time_start = int(df["timestamp"].iloc[idx_start]) if has_timestamp else idx_start
