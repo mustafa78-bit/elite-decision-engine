@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_MAX_LEN = 500
 
+_shared_cache_instance: CandleStreamCache | None = None
+_shared_cache_lock = threading.Lock()
+
 
 def normalize_symbol(symbol: str) -> str:
     """Normalize symbol representation to standard base symbol (e.g., 'btc/usdt' or 'BTC-USDT' -> 'BTC')."""
@@ -177,3 +180,19 @@ class CandleStreamCache:
             else:
                 self._cache.clear()
                 self._updated_at.clear()
+
+
+def get_shared_candle_stream_cache() -> CandleStreamCache:
+    """Process-wide singleton -- same lazy double-checked-locking pattern as
+    market/provider/multi.py::get_shared_multi_provider(). This is the one
+    real cache instance Step 2's WebSocket clients write into and the
+    instance Step 3's real read path will read from -- there must be
+    exactly one shared instance the whole running app agrees on, not one
+    per caller.
+    """
+    global _shared_cache_instance
+    if _shared_cache_instance is None:
+        with _shared_cache_lock:
+            if _shared_cache_instance is None:
+                _shared_cache_instance = CandleStreamCache()
+    return _shared_cache_instance
