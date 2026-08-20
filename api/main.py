@@ -153,6 +153,24 @@ def _on_task_done(task_name: str) -> Callable[[asyncio.Task], None]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Raise anyio's default worker-thread capacity (40) before anything
+    # else runs. Starlette dispatches every sync route handler and sync
+    # dependency (this app has ~187/193 sync routes) through this single,
+    # process-wide limiter via run_in_threadpool() -- confirmed live
+    # 2026-08-20: GET /risk (a fast, pure in-memory + DB call with no
+    # external network dependency) took 4-5 minutes to return even a 401
+    # auth rejection during a burst of slow NVIDIA calls (each 40-100+s,
+    # their own retry backoff also blocking a thread via time.sleep()) and
+    # heavy market-data activity. This alone doesn't prove the two shared
+    # the identical pool (asyncio.to_thread()'s default executor and
+    # anyio's limiter are technically separate), but raising a limiter
+    # that's shared by ~all of this app's HTTP-facing sync work is a safe,
+    # additive change either way -- it cannot make contention worse, only
+    # reduce it if this limiter turns out to be part of the bottleneck.
+    # Chosen conservatively higher than the default, not unbounded.
+    import anyio.to_thread
+    anyio.to_thread.current_default_thread_limiter().total_tokens = 200
+
     # Provision/upgrade the DB schema before anything else touches it. This
     # uvicorn entrypoint previously never ran any schema setup at all --
     # database.create_tables() existed but was only ever wired into the

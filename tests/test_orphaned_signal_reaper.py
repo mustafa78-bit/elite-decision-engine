@@ -64,3 +64,18 @@ class TestReaperWiredIntoLifespan:
         guard_idx = source.index("if AUTO_TRADING_ENABLED:")
 
         assert migrations_idx < reap_idx < guard_idx
+
+    def test_threadpool_capacity_is_raised_before_migrations_run(self):
+        # anyio's default sync-route threadpool limiter (40 tokens, shared
+        # by ~187/193 sync routes) is raised as the very first thing
+        # lifespan() does -- see that line's own comment for the live
+        # 2026-08-20 finding (GET /risk took 4-5 minutes under load) that
+        # motivated this. Must run before anything else queues work onto
+        # it, so before even the DB migrations call.
+        from api.main import lifespan
+
+        source = inspect.getsource(lifespan)
+        limiter_idx = source.index("current_default_thread_limiter()")
+        migrations_idx = source.index("database.run_migrations()")
+
+        assert limiter_idx < migrations_idx
