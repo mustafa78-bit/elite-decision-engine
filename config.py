@@ -250,6 +250,21 @@ SYMBOL_PROVIDER_ASSIGNMENT: dict[str, str] = {
     for i, symbol in enumerate(FIXED_COIN_UNIVERSE)
 }
 
+# Per-symbol overrides for the formula above -- confirmed live 2026-08-20
+# against each exchange's real, current API:
+#   - MKRUSDT: Bybit's linear perp is delisted (real API response:
+#     status="Closed", deliveryTime 2026-08-18) -- every fetch returned
+#     "No candle data" and silently wasted a request/retry cycle forever.
+#   - TONUSDT: Binance's spot/perp pair is halted (real API response:
+#     status="BREAK") -- the collector kept returning the same ~51-day-old
+#     candle as if it were live data.
+# Both are confirmed listed and actively trading on Hyperliquid (real
+# /info "meta" response), so route them there instead of their formulaic
+# assignment. Re-check with the exchanges before reverting either override
+# if the underlying listing status ever changes.
+SYMBOL_PROVIDER_ASSIGNMENT["MKRUSDT"] = "hyperliquid"
+SYMBOL_PROVIDER_ASSIGNMENT["TONUSDT"] = "hyperliquid"
+
 AUTO_TRADING_ENABLED = os.getenv("AUTO_TRADING_ENABLED", "false").lower() == "true"
 
 # Gates a real (paper) trade behind council/fundamental_gate.py's News/Whale/
