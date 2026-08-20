@@ -10,8 +10,16 @@ class MTFEngine:
 
     def score(self, symbol, side):
 
-        coin = symbol.replace("USDT", "")
-
+        # Do NOT strip "USDT" here -- self.collector is MultiProvider, which
+        # needs the full ticker symbol (e.g. "TAOUSDT") to look up
+        # config.SYMBOL_PROVIDER_ASSIGNMENT and route to the correct
+        # exchange. A bare "TAO" is never a key in that table, so it always
+        # silently fell through to the "hyperliquid" default regardless of
+        # the symbol's real assignment -- confirmed live 2026-08-20: roughly
+        # half of all real Hyperliquid 429s were for symbols assigned to
+        # Binance/Bybit, not Hyperliquid, entirely because of this. Each
+        # underlying provider (Hyperliquid/Binance/Bybit) already accepts
+        # the full ticker symbol and strips/formats it itself as needed.
         timeframes = ["15m", "1h", "4h"]
 
         score = 0
@@ -19,7 +27,7 @@ class MTFEngine:
         for tf in timeframes:
 
             df = self.collector.get_ohlcv(
-                symbol=coin,
+                symbol=symbol,
                 timeframe=tf,
             )
 
