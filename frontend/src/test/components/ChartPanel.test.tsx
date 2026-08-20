@@ -34,6 +34,8 @@ vi.mock("../../api/market", () => ({
   fetchMarketLevels: vi.fn(),
   fetchMarketDivergence: vi.fn(),
   fetchMarketChannel: vi.fn(),
+  fetchLiquidityZones: vi.fn().mockResolvedValue([]),
+  fetchVolumeProfile: vi.fn().mockResolvedValue({ bins: [], poc_price: null, value_area_high: null, value_area_low: null }),
 }));
 
 describe("ChartPanel Overlays", () => {

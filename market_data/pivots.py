@@ -325,3 +325,178 @@ def calculate_channel(df: pd.DataFrame, window: int = 5, pct_tol: float = 0.003)
             "end": {"time": time_end, "price": round(y_low_end, 4)}
         }
     }
+
+
+def calculate_liquidity_zones(df: pd.DataFrame, window: int = 5, pct_tol: float = 0.003):
+    """
+    Swing-based liquidity pools (ICT/SMC concept): resting stop/liquidation
+    orders are assumed to cluster just beyond swing points -- sell-side
+    liquidity (SSL) just above swing highs, buy-side liquidity (BSL) just
+    below swing lows. Reuses find_pivots() (the same swing-point detector
+    calculate_levels()/calculate_channel() already use) rather than a
+    second, separate pivot algorithm.
+
+    Two refinements beyond a single pivot:
+      - Equal-highs/equal-lows clustering: pivots of the SAME type within
+        pct_tol of each other's average price are merged into one zone with
+        a higher `strength` (touch count) -- multiple swings failing at
+        almost the same price is a stronger real-world liquidity signal
+        than any single pivot, and is a named concept ("equal highs/lows")
+        in its own right.
+      - Swept-zone filtering: a zone is only reported if no LATER candle in
+        the series has already traded through it (a swing high's zone is
+        swept once a later candle's high exceeds it; a swing low's zone is
+        swept once a later candle's low goes below it). An already-swept
+        pool is stale, not a real target -- reporting it would be
+        misleading, not just uninteresting.
+
+    Returns:
+        List of dicts, sorted by strength descending:
+        [{"price": float, "type": "buy_side"|"sell_side", "strength": int,
+          "touches": int}]
+    """
+    if df.empty:
+        return []
+
+    pivots = find_pivots(df, window=window)
+    if not pivots:
+        return []
+
+    highs = df["high"].values
+    lows = df["low"].values
+
+    def _cluster(same_type_pivots: list) -> list:
+        if not same_type_pivots:
+            return []
+        sorted_p = sorted(same_type_pivots, key=lambda x: x[1])
+        clusters = [[sorted_p[0]]]
+        for p in sorted_p[1:]:
+            avg_price = sum(x[1] for x in clusters[-1]) / len(clusters[-1])
+            if avg_price > 0 and abs(p[1] - avg_price) / avg_price <= pct_tol:
+                clusters[-1].append(p)
+            else:
+                clusters.append([p])
+        return clusters
+
+    zones = []
+
+    high_pivots = [p for p in pivots if p[2] == "high"]
+    for cluster in _cluster(high_pivots):
+        level_price = sum(x[1] for x in cluster) / len(cluster)
+        # Swept if any candle strictly after the LAST pivot in this cluster
+        # already traded above it.
+        last_idx = max(x[3] for x in cluster)
+        if last_idx + 1 < len(highs) and highs[last_idx + 1:].max() > level_price:
+            continue
+        zones.append({
+            "price": round(level_price, 4),
+            "type": "sell_side",
+            "strength": len(cluster),
+            "touches": len(cluster),
+        })
+
+    low_pivots = [p for p in pivots if p[2] == "low"]
+    for cluster in _cluster(low_pivots):
+        level_price = sum(x[1] for x in cluster) / len(cluster)
+        last_idx = max(x[3] for x in cluster)
+        if last_idx + 1 < len(lows) and lows[last_idx + 1:].min() < level_price:
+            continue
+        zones.append({
+            "price": round(level_price, 4),
+            "type": "buy_side",
+            "strength": len(cluster),
+            "touches": len(cluster),
+        })
+
+    return sorted(zones, key=lambda z: z["strength"], reverse=True)
+
+
+def calculate_volume_profile(df: pd.DataFrame, num_bins: int = 24):
+    """
+    Volume-at-price histogram over the visible candle range. Without raw
+    tick data, each candle's volume is distributed evenly across every
+    price bin its [low, high] range overlaps -- the standard approximation
+    used when only OHLCV candles (not individual trades) are available.
+
+    Also reports the Point of Control (POC, the single highest-volume bin)
+    and the Value Area (the smallest set of bins containing >= 70% of
+    total volume, built outward from the POC) -- both standard volume
+    profile concepts, not custom to this implementation.
+
+    Returns:
+        dict: {
+            "bins": [{"price_low": float, "price_high": float, "volume": float}, ...],
+            "poc_price": float | None,
+            "value_area_high": float | None,
+            "value_area_low": float | None,
+        }
+    """
+    empty = {"bins": [], "poc_price": None, "value_area_high": None, "value_area_low": None}
+    if df.empty or num_bins < 1:
+        return empty
+
+    price_min = float(df["low"].min())
+    price_max = float(df["high"].max())
+    if price_max <= price_min:
+        return empty
+
+    bin_size = (price_max - price_min) / num_bins
+    bin_volumes = [0.0] * num_bins
+
+    for _, row in df.iterrows():
+        low, high, volume = float(row["low"]), float(row["high"]), float(row["volume"])
+        if volume <= 0:
+            continue
+        candle_range = high - low
+        first_bin = min(int((low - price_min) / bin_size), num_bins - 1)
+        last_bin = min(int((high - price_min) / bin_size), num_bins - 1)
+        if first_bin == last_bin or candle_range <= 0:
+            bin_volumes[first_bin] += volume
+            continue
+        # Distribute proportional to how much of the candle's range falls in
+        # each bin it overlaps.
+        for b in range(first_bin, last_bin + 1):
+            bin_low = price_min + b * bin_size
+            bin_high = bin_low + bin_size
+            overlap = min(high, bin_high) - max(low, bin_low)
+            if overlap > 0:
+                bin_volumes[b] += volume * (overlap / candle_range)
+
+    bins = [
+        {
+            "price_low": round(price_min + i * bin_size, 4),
+            "price_high": round(price_min + (i + 1) * bin_size, 4),
+            "volume": round(v, 4),
+        }
+        for i, v in enumerate(bin_volumes)
+    ]
+
+    total_volume = sum(bin_volumes)
+    if total_volume <= 0:
+        return {**empty, "bins": bins}
+
+    poc_idx = max(range(num_bins), key=lambda i: bin_volumes[i])
+    poc_price = round((bins[poc_idx]["price_low"] + bins[poc_idx]["price_high"]) / 2, 4)
+
+    # Value area: grow outward from POC, always taking whichever neighbor
+    # (above or below the current window) holds more volume, until >= 70%
+    # of total volume is included.
+    lo_idx, hi_idx = poc_idx, poc_idx
+    included = bin_volumes[poc_idx]
+    target = total_volume * 0.70
+    while included < target and (lo_idx > 0 or hi_idx < num_bins - 1):
+        vol_below = bin_volumes[lo_idx - 1] if lo_idx > 0 else -1.0
+        vol_above = bin_volumes[hi_idx + 1] if hi_idx < num_bins - 1 else -1.0
+        if vol_above >= vol_below:
+            hi_idx += 1
+            included += bin_volumes[hi_idx]
+        else:
+            lo_idx -= 1
+            included += bin_volumes[lo_idx]
+
+    return {
+        "bins": bins,
+        "poc_price": poc_price,
+        "value_area_high": bins[hi_idx]["price_high"],
+        "value_area_low": bins[lo_idx]["price_low"],
+    }

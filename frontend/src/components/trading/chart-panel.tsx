@@ -133,7 +133,10 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
         });
 
         // Dynamically import fetch functions to draw overlays
-        const { fetchMarketLevels, fetchMarketDivergence, fetchMarketChannel } = await import("../../api/market");
+        const {
+          fetchMarketLevels, fetchMarketDivergence, fetchMarketChannel,
+          fetchLiquidityZones, fetchVolumeProfile,
+        } = await import("../../api/market");
         const symbolStr = symbol || "BTC";
 
         // 1. Support/Resistance Levels
@@ -216,6 +219,95 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           })
           .catch((err) => console.error("Error fetching Trend Channel", err));
 
+        // 4. Swing liquidity pools (ICT/SMC concept) -- resting stop/
+        // liquidation orders assumed to cluster just beyond swing points.
+        // Reuses the same createPriceLine() pattern as S/R above, but with
+        // its own colors (amber/violet) so the two concepts stay visually
+        // distinct even though both render as horizontal lines.
+        fetchLiquidityZones(symbolStr, timeframe)
+          .then((zones) => {
+            if (!zones || zones.length === 0) return;
+            zones.forEach((zone) => {
+              const isSellSide = zone.type === "sell_side";
+              const color = isSellSide ? "rgba(245, 158, 11, 0.7)" : "rgba(168, 85, 247, 0.7)"; // amber / violet
+              const lineWidth = Math.min(3, Math.max(1, zone.touches)) as LineWidth;
+              candleSeries.createPriceLine({
+                price: zone.price,
+                color,
+                lineWidth,
+                lineStyle: 0, // Solid -- liquidity pools are a harder "the market wants this price" signal than dashed S/R
+                axisLabelVisible: true,
+                title: `${isSellSide ? "SSL" : "BSL"} x${zone.touches}`,
+              });
+            });
+          })
+          .catch((err) => console.error("Error fetching liquidity zones", err));
+
+        // 5. Volume Profile -- a horizontal volume-at-price histogram has
+        // no native lightweight-charts series type (HistogramSeries is
+        // volume-by-time along the bottom, not volume-by-price along the
+        // side), so it's drawn as a plain <canvas> overlay positioned over
+        // the chart, using the candle series' own priceToCoordinate() to
+        // stay aligned with the real price scale.
+        let latestVolumeProfile: Awaited<ReturnType<typeof fetchVolumeProfile>> | null = null;
+        const volumeCanvas = document.createElement("canvas");
+        volumeCanvas.style.position = "absolute";
+        volumeCanvas.style.top = "0";
+        volumeCanvas.style.left = "0";
+        volumeCanvas.style.pointerEvents = "none";
+        container.style.position = "relative";
+        container.appendChild(volumeCanvas);
+
+        const drawVolumeProfile = () => {
+          const profile = latestVolumeProfile;
+          const ctx = volumeCanvas.getContext("2d");
+          if (!ctx) return;
+
+          const dpr = window.devicePixelRatio || 1;
+          const w = container.clientWidth;
+          const h = container.clientHeight;
+          volumeCanvas.width = w * dpr;
+          volumeCanvas.height = h * dpr;
+          volumeCanvas.style.width = `${w}px`;
+          volumeCanvas.style.height = `${h}px`;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+
+          if (!profile || profile.bins.length === 0) return;
+
+          const maxVolume = Math.max(...profile.bins.map((b) => b.volume), 1e-9);
+          const maxBarWidth = w * 0.22; // occupy at most ~22% of chart width from the left edge
+
+          profile.bins.forEach((bin) => {
+            const yTop = candleSeries.priceToCoordinate(bin.price_high);
+            const yBottom = candleSeries.priceToCoordinate(bin.price_low);
+            if (yTop == null || yBottom == null) return;
+
+            const isPoc = profile.poc_price != null
+              && bin.price_low <= profile.poc_price && profile.poc_price <= bin.price_high;
+            const inValueArea = profile.value_area_low != null && profile.value_area_high != null
+              && bin.price_high >= profile.value_area_low && bin.price_low <= profile.value_area_high;
+
+            ctx.fillStyle = isPoc
+              ? "rgba(251, 191, 36, 0.55)" // amber -- Point of Control
+              : inValueArea
+                ? "rgba(99, 102, 241, 0.28)" // indigo -- Value Area (70% of volume)
+                : "rgba(148, 163, 184, 0.16)"; // slate -- outside the value area
+
+            const barWidth = Math.max(1, (bin.volume / maxVolume) * maxBarWidth);
+            const top = Math.min(yTop, yBottom);
+            const barHeight = Math.max(1, Math.abs(yBottom - yTop) - 1);
+            ctx.fillRect(0, top, barWidth, barHeight);
+          });
+        };
+
+        fetchVolumeProfile(symbolStr, timeframe)
+          .then((profile) => {
+            latestVolumeProfile = profile;
+            drawVolumeProfile();
+          })
+          .catch((err) => console.error("Error fetching volume profile", err));
+
         // ResizeObserver (not a window "resize" listener) -- the chart's own
         // container can change size for reasons that never fire a window
         // resize event at all (sidebar collapsing, a sibling panel loading
@@ -237,6 +329,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           const { width, height } = entry.contentRect;
           if (width > 0 && height > 0) {
             chart.applyOptions({ width, height });
+            drawVolumeProfile();
           }
         });
         resizeObserver.observe(container);
@@ -245,6 +338,9 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           disposed = true;
           resizeObserver.disconnect();
           chart.remove();
+          if (container.contains(volumeCanvas)) {
+            container.removeChild(volumeCanvas);
+          }
         };
       } catch {
         // lightweight-charts not available
