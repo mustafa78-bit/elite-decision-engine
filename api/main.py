@@ -281,9 +281,30 @@ async def lifespan(app: FastAPI):
     historical_data_task.add_done_callback(_on_task_done("Historical data refresh loop"))
     _background_tasks.add(historical_data_task)
 
+    # Real WebSocket connections to Binance/Bybit/Hyperliquid start here,
+    # populating market.stream's shared CandleStreamCache -- see
+    # SPRINT_JULES_WEBSOCKET_MARKET_DATA_STEP2.md. Nothing reads from that
+    # cache yet (MultiProvider/MarketDataService are still 100% REST,
+    # unchanged); this is a deliberate soak period to verify the WS layer
+    # stays healthy under real load before a later step depends on it. One
+    # provider's stream failing to start must not block the others or
+    # startup itself -- get_shared_stream_manager().start_all() already
+    # isolates failures per client.
+    from market.stream import get_shared_stream_manager
+    stream_manager = get_shared_stream_manager()
+    try:
+        await stream_manager.start_all()
+    except Exception as e:
+        logger.error("Failed to start market data WebSocket streams: %s", e)
+
     yield
 
     logger.info("Application shutting down")
+    try:
+        await stream_manager.stop_all()
+    except Exception as e:
+        logger.warning("Market data WebSocket stream shutdown error: %s", e)
+
     for bot_manager in started_bot_managers:
         try:
             await bot_manager.stop()
