@@ -216,16 +216,34 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           })
           .catch((err) => console.error("Error fetching Trend Channel", err));
 
-        const handleResize = () => {
-          chart.applyOptions({
-            width: container.clientWidth,
-            height: container.clientHeight,
-          });
-        };
-        window.addEventListener("resize", handleResize);
+        // ResizeObserver (not a window "resize" listener) -- the chart's own
+        // container can change size for reasons that never fire a window
+        // resize event at all (sidebar collapsing, a sibling panel loading
+        // in, a flex/grid reflow from unrelated layout changes), so relying
+        // on window resize alone left the canvas stuck at whatever size it
+        // happened to be created at.
+        //
+        // disposed guards against a real race: ResizeObserver can deliver an
+        // already-queued callback even after disconnect() runs (it doesn't
+        // synchronously cancel one in flight), which would call
+        // chart.applyOptions() on an already-chart.remove()'d instance and
+        // throw "Object is disposed". Set this before chart.remove() so the
+        // callback becomes a no-op instead.
+        let disposed = false;
+        const resizeObserver = new ResizeObserver((entries) => {
+          if (disposed) return;
+          const entry = entries[0];
+          if (!entry) return;
+          const { width, height } = entry.contentRect;
+          if (width > 0 && height > 0) {
+            chart.applyOptions({ width, height });
+          }
+        });
+        resizeObserver.observe(container);
 
         return () => {
-          window.removeEventListener("resize", handleResize);
+          disposed = true;
+          resizeObserver.disconnect();
           chart.remove();
         };
       } catch {
