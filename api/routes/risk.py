@@ -49,7 +49,7 @@ def get_risk():
         for t, pnl_val in closed_with_pnl
         if pnl_val < 0
         and t.closed_at is not None
-        and t.closed_at >= today_start
+        and (t.closed_at if t.closed_at.tzinfo is not None else t.closed_at.replace(tzinfo=UTC)) >= today_start
     )
 
     risk_engine = RiskEngine()
