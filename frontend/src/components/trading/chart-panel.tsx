@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LineWidth } from "lightweight-charts";
+import { Maximize2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useTerminalStore } from "../../stores/terminal-store";
 import type { TradePayload } from "../../types/trade";
@@ -26,6 +27,16 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
   const { t } = useTranslation("tradingWorkspace");
   const containerRef = useRef<HTMLDivElement>(null);
   const { symbol } = useTerminalStore();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullscreen]);
 
   useEffect(() => {
     if (!containerRef.current || data.length === 0) return;
@@ -369,12 +380,21 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
   }
 
   return (
-    <Card className="h-full">
+    <Card className={isFullscreen ? "fixed inset-0 z-50 flex flex-col h-screen w-screen rounded-none" : "h-full"}>
       <CardHeader>
         <CardTitle>{symbol}</CardTitle>
+        <button
+          type="button"
+          onClick={() => setIsFullscreen((v) => !v)}
+          aria-label={t(isFullscreen ? "chartPanel.collapse" : "chartPanel.expand")}
+          title={t(isFullscreen ? "chartPanel.collapse" : "chartPanel.expand")}
+          className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          {isFullscreen ? <X size={14} /> : <Maximize2 size={14} />}
+        </button>
       </CardHeader>
-      <CardContent className="p-0">
-        <div ref={containerRef} className="w-full h-[400px]" />
+      <CardContent className={isFullscreen ? "p-0 flex-1 min-h-0" : "p-0"}>
+        <div ref={containerRef} className={isFullscreen ? "w-full h-full" : "w-full h-[400px]"} />
       </CardContent>
     </Card>
   );
