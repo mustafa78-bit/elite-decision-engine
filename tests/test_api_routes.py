@@ -602,6 +602,22 @@ def test_get_risk_with_trades(api_client, db_session):
     assert body["risk_score"] is not None
 
 
+def test_get_risk_daily_loss_with_naive_closed_at(api_client, db_session):
+    # SQLite returns naive datetimes for Trade.closed_at regardless of the
+    # column's DateTime(timezone=True) declaration -- confirmed live
+    # 2026-08-20: /risk 500'd on every request that had a closed, losing
+    # trade because it compared this naive value against an
+    # aware datetime.now(UTC) today_start.
+    _make_trade(
+        db_session, signal_id=1, status="TP_HIT", entry=50000.0, pnl=-500.0,
+        closed_at=datetime.now(),
+    )
+    headers = {"Authorization": f"Bearer {_token_for_user(_make_user(db_session))}"}
+    resp = api_client.get("/risk", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["daily_loss"] == -500.0
+
+
 # ─── Position Sizing (functional) ──────────────────────────────────────────
 
 
