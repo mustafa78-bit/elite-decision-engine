@@ -37,6 +37,13 @@ class TestSymbolProviderAssignment:
         # through the rebalance rather than moved to the new provider.
         assert SYMBOL_PROVIDER_ASSIGNMENT["BTCUSDT"] == "hyperliquid"
 
+    def test_mkr_and_ton_are_overridden_off_their_delisted_halted_exchange(self):
+        # MKRUSDT: Bybit's linear perp is delisted (confirmed live
+        # 2026-08-20). TONUSDT: Binance's pair is halted (status=BREAK).
+        # Both route to Hyperliquid instead of their formulaic assignment.
+        assert SYMBOL_PROVIDER_ASSIGNMENT["MKRUSDT"] == "hyperliquid"
+        assert SYMBOL_PROVIDER_ASSIGNMENT["TONUSDT"] == "hyperliquid"
+
 
 class TestMultiProviderRouting:
 
