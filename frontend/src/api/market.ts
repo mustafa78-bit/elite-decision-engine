@@ -65,6 +65,26 @@ export interface MarketChannel {
   lower: ChannelBoundary | null;
 }
 
+export interface LiquidityZone {
+  price: number;
+  type: "buy_side" | "sell_side";
+  strength: number;
+  touches: number;
+}
+
+export interface VolumeProfileBin {
+  price_low: number;
+  price_high: number;
+  volume: number;
+}
+
+export interface VolumeProfile {
+  bins: VolumeProfileBin[];
+  poc_price: number | null;
+  value_area_high: number | null;
+  value_area_low: number | null;
+}
+
 export function fetchMarket(): Promise<MarketData> {
   return apiFetch<MarketData>("/market");
 }
@@ -94,6 +114,22 @@ export async function fetchMarketDivergence(symbol: string, timeframe: string): 
 export async function fetchMarketChannel(symbol: string, timeframe: string): Promise<MarketChannel> {
   const res = await apiFetch<MarketChannel & { error?: string }>(
     `/market/channel?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+  );
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+export async function fetchLiquidityZones(symbol: string, timeframe: string): Promise<LiquidityZone[]> {
+  const res = await apiFetch<LiquidityZone[] & { error?: string }>(
+    `/market/liquidity-zones?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+  );
+  if ("error" in res) throw new Error(res.error);
+  return res;
+}
+
+export async function fetchVolumeProfile(symbol: string, timeframe: string): Promise<VolumeProfile> {
+  const res = await apiFetch<VolumeProfile & { error?: string }>(
+    `/market/volume-profile?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
   );
   if (res.error) throw new Error(res.error);
   return res;

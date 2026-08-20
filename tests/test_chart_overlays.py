@@ -8,6 +8,8 @@ from market_data.pivots import (
     calculate_channel,
     calculate_divergence,
     calculate_levels,
+    calculate_liquidity_zones,
+    calculate_volume_profile,
     find_pivots,
 )
 
@@ -271,3 +273,175 @@ def test_api_market_channel(api_client):
         body = resp.json()
         assert "found" in body
         assert "direction" in body
+
+
+class TestCalculateLiquidityZones:
+
+    def test_unswept_pivots_are_reported(self):
+        # Same shape as test_find_pivots_basic: a forced pivot high that's
+        # never exceeded afterward, and a forced pivot low never undercut
+        # afterward -- both should surface as unswept liquidity zones.
+        highs = [10.0 + 0.1 * i for i in range(21)]
+        lows = [5.0 + 0.1 * i for i in range(21)]
+        highs[10] = 15.0
+        lows[15] = 2.0
+
+        df = pd.DataFrame({
+            "timestamp": range(100, 121),
+            "open": [7.0] * 21,
+            "high": highs,
+            "low": lows,
+            "close": [8.0] * 21,
+            "volume": [100.0] * 21,
+        })
+
+        zones = calculate_liquidity_zones(df, window=5)
+
+        sell_side = [z for z in zones if z["type"] == "sell_side"]
+        buy_side = [z for z in zones if z["type"] == "buy_side"]
+        assert len(sell_side) == 1
+        assert sell_side[0]["price"] == 15.0
+        assert len(buy_side) == 1
+        assert buy_side[0]["price"] == 2.0
+
+    def test_swept_zone_is_excluded(self):
+        # Same pivot-high setup, but a later candle trades above it --
+        # that liquidity has already been taken, must not be reported.
+        highs = [10.0 + 0.1 * i for i in range(25)]
+        lows = [5.0] * 25
+        highs[10] = 15.0
+        highs[20] = 16.0  # sweeps the pivot at index 10
+
+        df = pd.DataFrame({
+            "timestamp": range(100, 125),
+            "open": [7.0] * 25,
+            "high": highs,
+            "low": lows,
+            "close": [8.0] * 25,
+            "volume": [100.0] * 25,
+        })
+
+        zones = calculate_liquidity_zones(df, window=5)
+        sell_side_at_15 = [z for z in zones if z["type"] == "sell_side" and z["price"] == 15.0]
+        assert sell_side_at_15 == []
+
+    def test_equal_highs_cluster_into_one_stronger_zone(self):
+        # Two pivot highs at almost the same price ("equal highs") must
+        # merge into a single zone with touches=2, not two separate zones.
+        highs = [10.0] * 31
+        lows = [5.0] * 31
+        highs[5] = 20.0
+        highs[6] = 12.0  # dip so index 5 and index 15 are both real pivots
+        highs[15] = 20.05  # within 0.3% of 20.0
+        highs[16] = 12.0
+
+        df = pd.DataFrame({
+            "timestamp": range(100, 131),
+            "open": [7.0] * 31,
+            "high": highs,
+            "low": lows,
+            "close": [8.0] * 31,
+            "volume": [100.0] * 31,
+        })
+
+        zones = calculate_liquidity_zones(df, window=5, pct_tol=0.003)
+        sell_side = [z for z in zones if z["type"] == "sell_side"]
+        assert len(sell_side) == 1
+        assert sell_side[0]["touches"] == 2
+
+    def test_empty_df_returns_empty_list(self):
+        assert calculate_liquidity_zones(pd.DataFrame()) == []
+
+
+class TestCalculateVolumeProfile:
+
+    def test_poc_is_the_highest_volume_bin(self):
+        # Flat, narrow-range candles except one huge-volume candle near the
+        # top of the range -- POC must land in that price area.
+        n = 30
+        df = pd.DataFrame({
+            "timestamp": range(100, 100 + n),
+            "open": [100.0] * n,
+            "high": [101.0] * n,
+            "low": [99.0] * n,
+            "close": [100.0] * n,
+            "volume": [10.0] * n,
+        })
+        df.loc[15, ["low", "high"]] = [109.5, 110.0]
+        df.loc[15, "volume"] = 10000.0
+
+        profile = calculate_volume_profile(df, num_bins=20)
+        assert profile["poc_price"] is not None
+        assert 109.0 <= profile["poc_price"] <= 110.5
+
+    def test_bins_conserve_total_volume(self):
+        n = 20
+        df = pd.DataFrame({
+            "timestamp": range(100, 100 + n),
+            "open": [100.0] * n,
+            "high": [105.0] * n,
+            "low": [95.0] * n,
+            "close": [100.0] * n,
+            "volume": [50.0] * n,
+        })
+        profile = calculate_volume_profile(df, num_bins=10)
+        total_binned = sum(b["volume"] for b in profile["bins"])
+        assert total_binned == pytest.approx(sum(df["volume"]), rel=1e-6)
+
+    def test_value_area_contains_poc(self):
+        n = 20
+        df = pd.DataFrame({
+            "timestamp": range(100, 100 + n),
+            "open": [100.0] * n,
+            "high": [105.0] * n,
+            "low": [95.0] * n,
+            "close": [100.0] * n,
+            "volume": [50.0] * n,
+        })
+        profile = calculate_volume_profile(df, num_bins=10)
+        assert profile["value_area_low"] <= profile["poc_price"] <= profile["value_area_high"]
+
+    def test_empty_df_returns_empty_profile(self):
+        profile = calculate_volume_profile(pd.DataFrame())
+        assert profile["bins"] == []
+        assert profile["poc_price"] is None
+
+
+def test_api_market_liquidity_zones(api_client):
+    highs = [10.0 + 0.1 * i for i in range(21)]
+    lows = [5.0 + 0.1 * i for i in range(21)]
+    highs[10] = 15.0
+    lows[15] = 2.0
+    dummy_df = pd.DataFrame({
+        "timestamp": range(100, 121),
+        "open": [7.0] * 21,
+        "high": highs,
+        "low": lows,
+        "close": [8.0] * 21,
+        "volume": [100.0] * 21,
+    })
+    with patch("market.provider.multi.MultiProvider.get_ohlcv", return_value=dummy_df):
+        resp = api_client.get("/market/liquidity-zones?symbol=BTC&timeframe=1h")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert isinstance(body, list)
+        assert any(z["type"] == "sell_side" for z in body)
+        assert any(z["type"] == "buy_side" for z in body)
+
+
+def test_api_market_volume_profile(api_client):
+    dummy_df = pd.DataFrame({
+        "timestamp": range(100, 150),
+        "open": [100.0] * 50,
+        "high": [105.0] * 50,
+        "low": [95.0] * 50,
+        "close": [100.0] * 50,
+        "volume": [10.0] * 50,
+    })
+    with patch("market.provider.multi.MultiProvider.get_ohlcv", return_value=dummy_df):
+        resp = api_client.get("/market/volume-profile?symbol=BTC&timeframe=1h&num_bins=10")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "bins" in body
+        assert "poc_price" in body
+        assert len(body["bins"]) == 10

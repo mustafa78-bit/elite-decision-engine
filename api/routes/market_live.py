@@ -4,7 +4,13 @@ from fastapi import APIRouter, Query
 
 from market.provider import get_shared_multi_provider
 from market_data.live.engine import LiveMarketEngine
-from market_data.pivots import calculate_channel, calculate_divergence, calculate_levels
+from market_data.pivots import (
+    calculate_channel,
+    calculate_divergence,
+    calculate_levels,
+    calculate_liquidity_zones,
+    calculate_volume_profile,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -96,4 +102,39 @@ def get_market_channel(
         return channel
     except Exception as e:
         logger.error("Failed to calculate trend channel: %s", e)
+        return {"error": str(e)}
+
+
+@router.get("/market/liquidity-zones")
+def get_market_liquidity_zones(
+    symbol: str = Query("BTC"),
+    timeframe: str = Query("1h"),
+    limit: int = Query(200, ge=10, le=500),
+):
+    try:
+        collector = get_shared_multi_provider()
+        df = collector.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
+        if df.empty:
+            return []
+        return calculate_liquidity_zones(df)
+    except Exception as e:
+        logger.error("Failed to calculate liquidity zones: %s", e)
+        return {"error": str(e)}
+
+
+@router.get("/market/volume-profile")
+def get_market_volume_profile(
+    symbol: str = Query("BTC"),
+    timeframe: str = Query("1h"),
+    limit: int = Query(200, ge=10, le=500),
+    num_bins: int = Query(24, ge=5, le=100),
+):
+    try:
+        collector = get_shared_multi_provider()
+        df = collector.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
+        if df.empty:
+            return {"bins": [], "poc_price": None, "value_area_high": None, "value_area_low": None}
+        return calculate_volume_profile(df, num_bins=num_bins)
+    except Exception as e:
+        logger.error("Failed to calculate volume profile: %s", e)
         return {"error": str(e)}
