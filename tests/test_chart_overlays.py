@@ -214,6 +214,49 @@ def test_channel():
     assert res_none["found"] is False
 
 
+def test_channel_does_not_extrapolate_back_before_the_earliest_pivot():
+    # 150 flat candles, then a clean ascending channel only in the LAST 40 --
+    # confirmed live 2026-08-20: extrapolating the fitted line back to
+    # index 0 regardless of where the pivots actually sit turned this into
+    # a line shooting off like a ray, dwarfing the real candles once the
+    # chart auto-fit to include it.
+    n_flat = 150
+    highs = [100.0] * n_flat
+    lows = [90.0] * n_flat
+    closes = [95.0] * n_flat
+    opens = [95.0] * n_flat
+
+    n_channel = 50
+    highs += [200.0 + 0.5 * i for i in range(n_channel)]
+    lows += [190.0 + 0.5 * i for i in range(n_channel)]
+    closes += [195.0 + 0.5 * i for i in range(n_channel)]
+    opens += [195.0 + 0.5 * i for i in range(n_channel)]
+
+    highs[n_flat + 10] += 5.0
+    highs[n_flat + 20] += 5.0
+    highs[n_flat + 30] += 5.0
+    lows[n_flat + 15] -= 5.0
+    lows[n_flat + 25] -= 5.0
+    lows[n_flat + 35] -= 5.0
+
+    total = n_flat + n_channel
+    df = pd.DataFrame({
+        "timestamp": range(1000, 1000 + total),
+        "open": opens, "high": highs, "low": lows, "close": closes,
+    })
+
+    res = calculate_channel(df, window=4)
+    assert res["found"] is True
+    # The line must start at or after the earliest pivot (index n_flat + 10
+    # at the very earliest), never at candle 0 of the flat lead-in.
+    assert res["upper"]["start"]["time"] >= 1000 + n_flat
+    assert res["lower"]["start"]["time"] >= 1000 + n_flat
+    # And its price must stay within a sane range of the real channel data,
+    # not shoot off far below/above it from backward extrapolation.
+    assert 150.0 <= res["upper"]["start"]["price"] <= 260.0
+    assert 150.0 <= res["lower"]["start"]["price"] <= 260.0
+
+
 # ─── Integration tests for the new API endpoints ─────────────────────────
 
 def test_api_market_levels(api_client):
