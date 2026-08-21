@@ -5,13 +5,17 @@ import * as marketApi from "../../api/market";
 
 // Mock lightweight-charts
 const mockCreatePriceLine = vi.fn();
+const mockRemovePriceLine = vi.fn();
 const mockSetData = vi.fn();
 const mockRemove = vi.fn();
 const mockFitContent = vi.fn();
+const mockPriceToCoordinate = vi.fn().mockReturnValue(100);
 
 const mockSeries = {
   setData: mockSetData,
   createPriceLine: mockCreatePriceLine,
+  removePriceLine: mockRemovePriceLine,
+  priceToCoordinate: mockPriceToCoordinate,
 };
 
 const mockChart = {
@@ -338,11 +342,85 @@ describe("ChartPanel Overlays", () => {
     expect(mockChart.addSeries).toHaveBeenCalledWith(
       "LineSeries", expect.objectContaining({ title: "EMA50" })
     );
-    // 2 candles of data -> 2 EMA points per series
-    expect(mockSetData).toHaveBeenCalledWith([
-      { time: 1000, value: 105 },
-      { time: 2000, value: expect.any(Number) },
+    // Series creation (effect 1) and pushing actual EMA values onto them
+    // (effect 2, once the created series lands in state) are two separate
+    // renders now -- wait for the values specifically.
+    await waitFor(() => {
+      // 2 candles of data -> 2 EMA points per series
+      expect(mockSetData).toHaveBeenCalledWith([
+        { time: 1000, value: 105 },
+        { time: 2000, value: expect.any(Number) },
+      ]);
+    });
+  });
+
+  it("does not re-fetch overlays or rebuild the chart when only `data` changes", async () => {
+    // Real reported bug 2026-08-21: a new candle tick (data changing, same
+    // symbol/timeframe) tore down and re-fetched every overlay from
+    // scratch, visibly flickering S/R lines away and back -- and leaving
+    // them gone for minutes under Hyperliquid rate-limit pressure.
+    vi.mocked(marketApi.fetchMarketLevels).mockResolvedValue([
+      { price: 100, type: "support", strength: 3, touches: 2 },
     ]);
+    vi.mocked(marketApi.fetchMarketDivergence).mockResolvedValue({
+      found: false, type: "none", p1: null, p2: null,
+    });
+    vi.mocked(marketApi.fetchMarketChannel).mockResolvedValue({
+      found: false, direction: "none", upper: null, lower: null,
+    });
+
+    const { rerender } = render(<ChartPanel data={dummyCandles} timeframe="1h" />);
+
+    await waitFor(() => {
+      expect(mockCreatePriceLine).toHaveBeenCalledWith(
+        expect.objectContaining({ price: 100 })
+      );
+    });
+    const createPriceLineCallsBefore = mockCreatePriceLine.mock.calls.length;
+    const addSeriesCallsBefore = mockChart.addSeries.mock.calls.length;
+
+    // A new candle tick -- same symbol/timeframe, different `data` array.
+    const updatedCandles = [
+      ...dummyCandles,
+      { time: 3000, open: 110, high: 120, low: 105, close: 118 },
+    ];
+    rerender(<ChartPanel data={updatedCandles} timeframe="1h" />);
+
+    await waitFor(() => {
+      expect(mockSetData).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ time: 3000 })])
+      );
+    });
+
+    // The chart itself must not have been torn down and recreated...
+    expect(mockRemove).not.toHaveBeenCalled();
+    expect(mockChart.addSeries.mock.calls.length).toBe(addSeriesCallsBefore);
+    // ...and the overlay fetch/line must not have re-run either.
+    expect(marketApi.fetchMarketLevels).toHaveBeenCalledTimes(1);
+    expect(mockCreatePriceLine.mock.calls.length).toBe(createPriceLineCallsBefore);
+  });
+
+  it("does rebuild the chart and re-fetch overlays when the timeframe changes", async () => {
+    vi.mocked(marketApi.fetchMarketLevels).mockResolvedValue([]);
+    vi.mocked(marketApi.fetchMarketDivergence).mockResolvedValue({
+      found: false, type: "none", p1: null, p2: null,
+    });
+    vi.mocked(marketApi.fetchMarketChannel).mockResolvedValue({
+      found: false, direction: "none", upper: null, lower: null,
+    });
+
+    const { rerender } = render(<ChartPanel data={dummyCandles} timeframe="1h" />);
+
+    await waitFor(() => {
+      expect(marketApi.fetchMarketLevels).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(<ChartPanel data={dummyCandles} timeframe="4h" />);
+
+    await waitFor(() => {
+      expect(marketApi.fetchMarketLevels).toHaveBeenCalledTimes(2);
+    });
+    expect(mockRemove).toHaveBeenCalled();
   });
 });
 

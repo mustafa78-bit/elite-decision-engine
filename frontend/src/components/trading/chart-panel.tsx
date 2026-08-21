@@ -44,11 +44,43 @@ interface ChartPanelProps {
   onReady?: () => void;
 }
 
+// Minimal shape of what this component actually calls on the real
+// lightweight-charts chart/series objects -- avoids depending on their
+// exact exported type names (which have moved between package versions)
+// while still catching real typos at compile time.
+interface MinimalSeries {
+  setData: (data: any[]) => void;
+  createPriceLine: (opts: any) => any;
+  removePriceLine: (line: any) => void;
+  priceToCoordinate: (price: number) => number | null;
+}
+interface MinimalChart {
+  applyOptions: (opts: { width: number; height: number }) => void;
+  timeScale: () => { fitContent: () => void };
+  remove: () => void;
+}
+interface ChartHandles {
+  chart: MinimalChart;
+  candleSeries: MinimalSeries;
+  ema20Series: MinimalSeries;
+  ema50Series: MinimalSeries;
+  drawVolumeProfile: () => void;
+}
+
 export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], opportunities = [], onReady }: ChartPanelProps) {
   const { t } = useTranslation("tradingWorkspace");
   const containerRef = useRef<HTMLDivElement>(null);
   const { symbol } = useTerminalStore();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [handles, setHandles] = useState<ChartHandles | null>(null);
+  const latestVolumeProfileRef = useRef<any>(null);
+  const hasFitContentRef = useRef(false);
+  const tradeLinesRef = useRef<any[]>([]);
+  // Read (not reacted to) by effect 1 below to bound the overlay fetches to
+  // the same lookback window actually on screen -- kept current every
+  // render without adding `data` to effect 1's own dependency array.
+  const dataLengthRef = useRef(data.length);
+  dataLengthRef.current = data.length;
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -59,13 +91,30 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isFullscreen]);
 
+  // Effect 1: create the chart + fetch/draw every overlay (S/R, RSI
+  // divergence, trend channel, liquidity zones, volume profile) -- keyed on
+  // symbol+timeframe ONLY, not on `data`/`openTrades`/`opportunities`. Those
+  // change far more often (a new candle tick, a trade opening/closing) than
+  // the symbol being viewed does; previously this whole block re-ran on
+  // every one of those changes too, tearing down and re-fetching every
+  // overlay from scratch each time -- visibly flickering the S/R lines away
+  // and back, and (worse, under Hyperliquid rate-limit pressure) leaving
+  // them gone for minutes until the re-fetch finally succeeded. Confirmed
+  // live 2026-08-21.
   useEffect(() => {
-    if (!containerRef.current || data.length === 0) return;
+    if (!containerRef.current) return;
 
     const container = containerRef.current;
+    let cancelled = false;
+    setHandles(null);
+    hasFitContentRef.current = false;
+    latestVolumeProfileRef.current = null;
+
     const renderChart = async () => {
       try {
         const { createChart, ColorType, CandlestickSeries, LineSeries } = await import("lightweight-charts");
+        if (cancelled) return;
+
         const chart = createChart(container, {
           width: container.clientWidth,
           height: container.clientHeight,
@@ -105,93 +154,85 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           wickDownColor: "rgba(239, 68, 68, 0.4)",
         });
 
-        candleSeries.setData(data.map((d) => ({
-          time: d.time as any,
-          open: d.open,
-          high: d.high,
-          low: d.low,
-          close: d.close,
-          volume: d.volume,
-        })));
-
-        chart.timeScale().fitContent();
-
-        // EMA20/EMA50 -- computed client-side from the same candle data
-        // already on hand (no extra fetch), so the chart gives visual
-        // confirmation of the trend_score ScoringEngine already computed
-        // server-side from these same EMAs (scoring/scoring_engine.py).
-        if (data.length >= 2) {
-          const closes = data.map((d) => d.close);
-          const ema20Series = chart.addSeries(LineSeries, {
-            color: "rgba(250, 204, 21, 0.8)", // yellow-400
-            lineWidth: 1 as LineWidth,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            title: "EMA20",
-          });
-          ema20Series.setData(
-            computeEma(closes, 20).map((value, i) => ({ time: data[i].time as any, value }))
-          );
-
-          const ema50Series = chart.addSeries(LineSeries, {
-            color: "rgba(236, 72, 153, 0.8)", // pink-500
-            lineWidth: 1 as LineWidth,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            title: "EMA50",
-          });
-          ema50Series.setData(
-            computeEma(closes, 50).map((value, i) => ({ time: data[i].time as any, value }))
-          );
-        }
-
-        // 0. Open trade entry/stop/target lines -- local data, no fetch
-        // needed. Cleaned up automatically along with everything else on
-        // chart.remove() below when data/symbol/timeframe/openTrades change.
-        openTrades.forEach((trade) => {
-          const lines: [number | undefined, string, string][] = [
-            [trade.entry, "rgba(255,255,255,0.5)", "ENTRY"],
-            [trade.stop, "rgba(239, 68, 68, 0.8)", "STOP"],
-            [trade.tp1, "rgba(34, 197, 94, 0.8)", "TP1"],
-            [trade.tp2, "rgba(34, 197, 94, 0.5)", "TP2"],
-          ];
-          lines.forEach(([price, color, title]) => {
-            if (!price) return;
-            candleSeries.createPriceLine({
-              price,
-              color,
-              lineWidth: 2 as LineWidth,
-              lineStyle: 3, // Dotted -- distinguishes an open-trade level from the dashed S/R lines below
-              axisLabelVisible: true,
-              title,
-            });
-          });
+        // EMA20/EMA50 -- computed client-side from candle data (effect 2
+        // pushes the actual values in); gives visual confirmation of the
+        // trend_score ScoringEngine already computes server-side from these
+        // same EMAs (scoring/scoring_engine.py).
+        const ema20Series = chart.addSeries(LineSeries, {
+          color: "rgba(250, 204, 21, 0.8)", // yellow-400
+          lineWidth: 1 as LineWidth,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          title: "EMA20",
+        });
+        const ema50Series = chart.addSeries(LineSeries, {
+          color: "rgba(236, 72, 153, 0.8)", // pink-500
+          lineWidth: 1 as LineWidth,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          title: "EMA50",
         });
 
-        // 0b. Scanner opportunity entry/stop/target -- same real TPSLEngine
-        // levels a trade would get if this signal were actually executed
-        // (scanner/core.py's _enrich_opportunities()), not a real position
-        // yet. Thinner + a lower opacity than the open-trade lines above so
-        // "the scanner is flagging this" reads as distinct from "you're
-        // actually in this trade".
-        opportunities.forEach((opp) => {
-          const lines: [number | null | undefined, string, string][] = [
-            [opp.price, "rgba(255,255,255,0.3)", "OPP ENTRY"],
-            [opp.stop, "rgba(239, 68, 68, 0.4)", "OPP STOP"],
-            [opp.tp1, "rgba(34, 197, 94, 0.4)", "OPP TP1"],
-          ];
-          lines.forEach(([price, color, title]) => {
-            if (!price) return;
-            candleSeries.createPriceLine({
-              price,
-              color,
-              lineWidth: 1 as LineWidth,
-              lineStyle: 1, // Dashed -- distinguishes an unrealized opportunity from a real open-trade level
-              axisLabelVisible: true,
-              title,
-            });
+        // Volume Profile -- a horizontal volume-at-price histogram has no
+        // native lightweight-charts series type (HistogramSeries is
+        // volume-by-time along the bottom, not volume-by-price along the
+        // side), so it's drawn as a plain <canvas> overlay positioned over
+        // the chart, using the candle series' own priceToCoordinate() to
+        // stay aligned with the real price scale.
+        const volumeCanvas = document.createElement("canvas");
+        volumeCanvas.style.position = "absolute";
+        volumeCanvas.style.top = "0";
+        volumeCanvas.style.left = "0";
+        volumeCanvas.style.pointerEvents = "none";
+        container.style.position = "relative";
+        container.appendChild(volumeCanvas);
+
+        const drawVolumeProfile = () => {
+          const profile = latestVolumeProfileRef.current;
+          const ctx = volumeCanvas.getContext("2d");
+          if (!ctx) return;
+
+          const dpr = window.devicePixelRatio || 1;
+          const w = container.clientWidth;
+          const h = container.clientHeight;
+          volumeCanvas.width = w * dpr;
+          volumeCanvas.height = h * dpr;
+          volumeCanvas.style.width = `${w}px`;
+          volumeCanvas.style.height = `${h}px`;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+
+          if (!profile || profile.bins.length === 0) return;
+
+          const maxVolume = Math.max(...profile.bins.map((b: any) => b.volume), 1e-9);
+          // Was 22% -- reported as covering half the chart and drowning out
+          // the candles themselves. Halved the width and every opacity
+          // below (confirmed live 2026-08-21) so it reads as a subtle
+          // backdrop, not the dominant visual element.
+          const maxBarWidth = w * 0.12;
+
+          profile.bins.forEach((bin: any) => {
+            const yTop = candleSeries.priceToCoordinate(bin.price_high);
+            const yBottom = candleSeries.priceToCoordinate(bin.price_low);
+            if (yTop == null || yBottom == null) return;
+
+            const isPoc = profile.poc_price != null
+              && bin.price_low <= profile.poc_price && profile.poc_price <= bin.price_high;
+            const inValueArea = profile.value_area_low != null && profile.value_area_high != null
+              && bin.price_high >= profile.value_area_low && bin.price_low <= profile.value_area_high;
+
+            ctx.fillStyle = isPoc
+              ? "rgba(251, 191, 36, 0.30)" // amber -- Point of Control
+              : inValueArea
+                ? "rgba(99, 102, 241, 0.16)" // indigo -- Value Area (70% of volume)
+                : "rgba(148, 163, 184, 0.09)"; // slate -- outside the value area
+
+            const barWidth = Math.max(1, (bin.volume / maxVolume) * maxBarWidth);
+            const top = Math.min(yTop, yBottom);
+            const barHeight = Math.max(1, Math.abs(yBottom - yTop) - 1);
+            ctx.fillRect(0, top, barWidth, barHeight);
           });
-        });
+        };
 
         // Dynamically import fetch functions to draw overlays
         const {
@@ -199,9 +240,14 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           fetchLiquidityZones, fetchVolumeProfile,
         } = await import("../../api/market");
         const symbolStr = symbol || "BTC";
+        // Match the overlay lookback window to what's actually displayed --
+        // see fetchMarketChannel()'s docstring for why a mismatch here is a
+        // real, visible bug (a channel/divergence line anchored outside the
+        // visible candle range renders disconnected from every candle).
+        const overlayLimit = dataLengthRef.current > 0 ? dataLengthRef.current : undefined;
 
         // 1. Support/Resistance Levels
-        const p1 = fetchMarketLevels(symbolStr, timeframe)
+        const p1 = fetchMarketLevels(symbolStr, timeframe, overlayLimit)
           .then((levels) => {
             if (!levels || levels.length === 0) return;
             levels.forEach((lvl) => {
@@ -221,7 +267,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           .catch((err) => console.error("Error fetching S/R levels", err));
 
         // 2. RSI Divergence
-        const p2 = fetchMarketDivergence(symbolStr, timeframe)
+        const p2 = fetchMarketDivergence(symbolStr, timeframe, overlayLimit)
           .then((div) => {
             if (!div || !div.found || !div.p1 || !div.p2) return;
 
@@ -244,7 +290,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           .catch((err) => console.error("Error fetching RSI divergence", err));
 
         // 3. Trend Channel
-        const p3 = fetchMarketChannel(symbolStr, timeframe)
+        const p3 = fetchMarketChannel(symbolStr, timeframe, overlayLimit)
           .then((chan) => {
             if (!chan || !chan.found || !chan.upper || !chan.lower) return;
 
@@ -285,7 +331,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
         // Reuses the same createPriceLine() pattern as S/R above, but with
         // its own colors (amber/violet) so the two concepts stay visually
         // distinct even though both render as horizontal lines.
-        const p4 = fetchLiquidityZones(symbolStr, timeframe)
+        const p4 = fetchLiquidityZones(symbolStr, timeframe, overlayLimit)
           .then((zones) => {
             if (!zones || zones.length === 0) return;
             zones.forEach((zone) => {
@@ -304,67 +350,10 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           })
           .catch((err) => console.error("Error fetching liquidity zones", err));
 
-        // 5. Volume Profile -- a horizontal volume-at-price histogram has
-        // no native lightweight-charts series type (HistogramSeries is
-        // volume-by-time along the bottom, not volume-by-price along the
-        // side), so it's drawn as a plain <canvas> overlay positioned over
-        // the chart, using the candle series' own priceToCoordinate() to
-        // stay aligned with the real price scale.
-        let latestVolumeProfile: Awaited<ReturnType<typeof fetchVolumeProfile>> | null = null;
-        const volumeCanvas = document.createElement("canvas");
-        volumeCanvas.style.position = "absolute";
-        volumeCanvas.style.top = "0";
-        volumeCanvas.style.left = "0";
-        volumeCanvas.style.pointerEvents = "none";
-        container.style.position = "relative";
-        container.appendChild(volumeCanvas);
-
-        const drawVolumeProfile = () => {
-          const profile = latestVolumeProfile;
-          const ctx = volumeCanvas.getContext("2d");
-          if (!ctx) return;
-
-          const dpr = window.devicePixelRatio || 1;
-          const w = container.clientWidth;
-          const h = container.clientHeight;
-          volumeCanvas.width = w * dpr;
-          volumeCanvas.height = h * dpr;
-          volumeCanvas.style.width = `${w}px`;
-          volumeCanvas.style.height = `${h}px`;
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          ctx.clearRect(0, 0, w, h);
-
-          if (!profile || profile.bins.length === 0) return;
-
-          const maxVolume = Math.max(...profile.bins.map((b) => b.volume), 1e-9);
-          const maxBarWidth = w * 0.22; // occupy at most ~22% of chart width from the left edge
-
-          profile.bins.forEach((bin) => {
-            const yTop = candleSeries.priceToCoordinate(bin.price_high);
-            const yBottom = candleSeries.priceToCoordinate(bin.price_low);
-            if (yTop == null || yBottom == null) return;
-
-            const isPoc = profile.poc_price != null
-              && bin.price_low <= profile.poc_price && profile.poc_price <= bin.price_high;
-            const inValueArea = profile.value_area_low != null && profile.value_area_high != null
-              && bin.price_high >= profile.value_area_low && bin.price_low <= profile.value_area_high;
-
-            ctx.fillStyle = isPoc
-              ? "rgba(251, 191, 36, 0.55)" // amber -- Point of Control
-              : inValueArea
-                ? "rgba(99, 102, 241, 0.28)" // indigo -- Value Area (70% of volume)
-                : "rgba(148, 163, 184, 0.16)"; // slate -- outside the value area
-
-            const barWidth = Math.max(1, (bin.volume / maxVolume) * maxBarWidth);
-            const top = Math.min(yTop, yBottom);
-            const barHeight = Math.max(1, Math.abs(yBottom - yTop) - 1);
-            ctx.fillRect(0, top, barWidth, barHeight);
-          });
-        };
-
-        const p5 = fetchVolumeProfile(symbolStr, timeframe)
+        // 5. Volume Profile
+        const p5 = fetchVolumeProfile(symbolStr, timeframe, overlayLimit)
           .then((profile) => {
-            latestVolumeProfile = profile;
+            latestVolumeProfileRef.current = profile;
             drawVolumeProfile();
           })
           .catch((err) => console.error("Error fetching volume profile", err));
@@ -410,6 +399,16 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           resizeObserver.observe(container);
         }
 
+        if (cancelled) {
+          disposed = true;
+          resizeObserver?.disconnect();
+          chart.remove();
+          if (container.contains(volumeCanvas)) container.removeChild(volumeCanvas);
+          return;
+        }
+
+        setHandles({ chart, candleSeries, ema20Series, ema50Series, drawVolumeProfile });
+
         return () => {
           disposed = true;
           resizeObserver?.disconnect();
@@ -425,9 +424,116 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
 
     const cleanupPromise = renderChart();
     return () => {
+      cancelled = true;
       cleanupPromise.then((cleanup) => cleanup?.());
     };
-  }, [data, symbol, timeframe, openTrades, opportunities]);
+  }, [symbol, timeframe]);
+
+  // Effect 2: push fresh candle + EMA values onto the existing chart
+  // instance whenever `data` changes -- no fetch, no teardown, so this can
+  // run on every tick (a new WS candle, a poll refresh) without disturbing
+  // the overlays effect 1 already fetched and drew.
+  useEffect(() => {
+    if (!handles || data.length === 0) return;
+
+    handles.candleSeries.setData(data.map((d) => ({
+      time: d.time as any,
+      open: d.open,
+      high: d.high,
+      low: d.low,
+      close: d.close,
+      volume: d.volume,
+    })));
+
+    if (data.length >= 2) {
+      const closes = data.map((d) => d.close);
+      handles.ema20Series.setData(
+        computeEma(closes, 20).map((value, i) => ({ time: data[i].time as any, value }))
+      );
+      handles.ema50Series.setData(
+        computeEma(closes, 50).map((value, i) => ({ time: data[i].time as any, value }))
+      );
+    }
+
+    handles.drawVolumeProfile();
+
+    // Only fit the visible range on the first paint after a chart is
+    // (re)created -- doing this on every subsequent tick would keep
+    // yanking the user's zoom/pan back to "fit everything" as new candles
+    // stream in.
+    if (!hasFitContentRef.current) {
+      handles.chart.timeScale().fitContent();
+      hasFitContentRef.current = true;
+    }
+  }, [handles, data]);
+
+  // Effect 3: open-trade / scanner-opportunity price lines -- redrawn in
+  // place (old ones removed first) whenever these change, without touching
+  // the candles or any of the fetched overlays.
+  useEffect(() => {
+    if (!handles) return;
+    const series = handles.candleSeries;
+
+    openTrades.forEach((trade) => {
+      const lines: [number | undefined, string, string][] = [
+        [trade.entry, "rgba(255,255,255,0.5)", "ENTRY"],
+        [trade.stop, "rgba(239, 68, 68, 0.8)", "STOP"],
+        [trade.tp1, "rgba(34, 197, 94, 0.8)", "TP1"],
+        [trade.tp2, "rgba(34, 197, 94, 0.5)", "TP2"],
+      ];
+      lines.forEach(([price, color, title]) => {
+        if (!price) return;
+        tradeLinesRef.current.push(series.createPriceLine({
+          price,
+          color,
+          lineWidth: 2 as LineWidth,
+          lineStyle: 3, // Dotted -- distinguishes an open-trade level from the dashed S/R lines
+          axisLabelVisible: true,
+          title,
+        }));
+      });
+    });
+
+    // Same real TPSLEngine levels a trade would get if this signal were
+    // actually executed (scanner/core.py's _enrich_opportunities()), not a
+    // real position yet. Thinner + a lower opacity than the open-trade
+    // lines above so "the scanner is flagging this" reads as distinct from
+    // "you're actually in this trade".
+    opportunities.forEach((opp) => {
+      const lines: [number | null | undefined, string, string][] = [
+        [opp.price, "rgba(255,255,255,0.3)", "OPP ENTRY"],
+        [opp.stop, "rgba(239, 68, 68, 0.4)", "OPP STOP"],
+        [opp.tp1, "rgba(34, 197, 94, 0.4)", "OPP TP1"],
+      ];
+      lines.forEach(([price, color, title]) => {
+        if (!price) return;
+        tradeLinesRef.current.push(series.createPriceLine({
+          price,
+          color,
+          lineWidth: 1 as LineWidth,
+          lineStyle: 1, // Dashed -- distinguishes an unrealized opportunity from a real open-trade level
+          axisLabelVisible: true,
+          title,
+        }));
+      });
+    });
+
+    return () => {
+      // The chart (and every price line on it) may already be gone by the
+      // time this runs -- effect 1 tearing down for a symbol/timeframe
+      // change removes the whole series before this cleanup fires. Removing
+      // a line from an already-disposed series is a no-op we don't care
+      // about, not a real failure.
+      tradeLinesRef.current.forEach((line) => {
+        try {
+          series.removePriceLine(line);
+        } catch {
+          // series already disposed
+        }
+      });
+      tradeLinesRef.current = [];
+    };
+  }, [handles, openTrades, opportunities]);
 
   if (data.length === 0) {
     return (

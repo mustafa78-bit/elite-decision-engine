@@ -358,7 +358,9 @@ def calculate_liquidity_zones(df: pd.DataFrame, window: int = 5, pct_tol: float 
         misleading, not just uninteresting.
 
     Returns:
-        List of dicts, sorted by strength descending:
+        List of dicts, sorted by strength descending, capped at 5 (same as
+        calculate_levels() above -- more than that overlaps into unreadable
+        labels on a chart's price axis):
         [{"price": float, "type": "buy_side"|"sell_side", "strength": int,
           "touches": int}]
     """
@@ -415,7 +417,11 @@ def calculate_liquidity_zones(df: pd.DataFrame, window: int = 5, pct_tol: float 
             "touches": len(cluster),
         })
 
-    return sorted(zones, key=lambda z: z["strength"], reverse=True)
+    # Capped at 5, same as calculate_levels() above -- an uncapped list
+    # rendered as price-line labels on the chart's right axis produced 8-10
+    # overlapping, unreadable labels once several zones landed close
+    # together in price. Confirmed live 2026-08-21.
+    return sorted(zones, key=lambda z: z["strength"], reverse=True)[:5]
 
 
 def calculate_volume_profile(df: pd.DataFrame, num_bins: int = 24):
