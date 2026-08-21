@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, waitFor } from "../test-utils";
+import { render, waitFor, screen, fireEvent } from "../test-utils";
 import { ChartPanel } from "../../components/trading/chart-panel";
 import * as marketApi from "../../api/market";
 
@@ -280,5 +280,41 @@ describe("ChartPanel Overlays", () => {
     expect(mockCreatePriceLine).toHaveBeenCalledWith(
       expect.objectContaining({ price: 120, title: "OPP TP1" })
     );
+  });
+
+  it("expands to fullscreen on click and exits on a second click or Escape", async () => {
+    vi.mocked(marketApi.fetchMarketLevels).mockResolvedValue([]);
+    vi.mocked(marketApi.fetchMarketDivergence).mockResolvedValue({
+      found: false,
+      type: "none",
+      p1: null,
+      p2: null,
+    });
+    vi.mocked(marketApi.fetchMarketChannel).mockResolvedValue({
+      found: false,
+      direction: "none",
+      upper: null,
+      lower: null,
+    });
+
+    const { container } = render(<ChartPanel data={dummyCandles} timeframe="1h" />);
+
+    await waitFor(() => {
+      expect(marketApi.fetchMarketLevels).toHaveBeenCalled();
+    });
+
+    const toggle = screen.getByRole("button", { name: /tam ekran aç|open fullscreen/i });
+    const card = container.firstElementChild as HTMLElement;
+    expect(card.className).not.toContain("fixed");
+
+    fireEvent.click(toggle);
+    expect(card.className).toContain("fixed");
+    expect(card.className).toContain("inset-0");
+    screen.getByRole("button", { name: /tam ekrandan çık|exit fullscreen/i });
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => {
+      expect(card.className).not.toContain("fixed");
+    });
   });
 });

@@ -7,7 +7,9 @@
     "recent": "Recent"
   },
   "chartPanel": {
-    "empty": "No chart data available"
+    "empty": "No chart data available",
+    "expand": "Open fullscreen",
+    "collapse": "Exit fullscreen"
   },
   "orderPanel": {
     "title": "Order",

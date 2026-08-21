@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LineWidth } from "lightweight-charts";
+import { Maximize2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useTerminalStore } from "../../stores/terminal-store";
 import type { TradePayload } from "../../types/trade";
@@ -26,6 +27,16 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
   const { t } = useTranslation("tradingWorkspace");
   const containerRef = useRef<HTMLDivElement>(null);
   const { symbol } = useTerminalStore();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullscreen]);
 
   useEffect(() => {
     if (!containerRef.current || data.length === 0) return;
@@ -321,22 +332,35 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
         // chart.applyOptions() on an already-chart.remove()'d instance and
         // throw "Object is disposed". Set this before chart.remove() so the
         // callback becomes a no-op instead.
+        //
+        // ResizeObserver itself is guarded to exist first -- environments
+        // without it (older browsers, jsdom in tests) must not throw here:
+        // a throw at this point would skip the `return () => {...}` below
+        // entirely, so `chart.remove()` would never run on unmount and the
+        // chart's internal draw loop would keep firing indefinitely against
+        // an already-torn-down container -- confirmed as the root cause of
+        // a real CI failure (an uncaught "Value is null" from
+        // lightweight-charts' internals, well after the test that rendered
+        // it had already finished).
         let disposed = false;
-        const resizeObserver = new ResizeObserver((entries) => {
-          if (disposed) return;
-          const entry = entries[0];
-          if (!entry) return;
-          const { width, height } = entry.contentRect;
-          if (width > 0 && height > 0) {
-            chart.applyOptions({ width, height });
-            drawVolumeProfile();
-          }
-        });
-        resizeObserver.observe(container);
+        let resizeObserver: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== "undefined") {
+          resizeObserver = new ResizeObserver((entries) => {
+            if (disposed) return;
+            const entry = entries[0];
+            if (!entry) return;
+            const { width, height } = entry.contentRect;
+            if (width > 0 && height > 0) {
+              chart.applyOptions({ width, height });
+              drawVolumeProfile();
+            }
+          });
+          resizeObserver.observe(container);
+        }
 
         return () => {
           disposed = true;
-          resizeObserver.disconnect();
+          resizeObserver?.disconnect();
           chart.remove();
           if (container.contains(volumeCanvas)) {
             container.removeChild(volumeCanvas);
@@ -369,12 +393,21 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
   }
 
   return (
-    <Card className="h-full">
+    <Card className={isFullscreen ? "fixed inset-0 z-50 flex flex-col h-screen w-screen rounded-none" : "h-full"}>
       <CardHeader>
         <CardTitle>{symbol}</CardTitle>
+        <button
+          type="button"
+          onClick={() => setIsFullscreen((v) => !v)}
+          aria-label={t(isFullscreen ? "chartPanel.collapse" : "chartPanel.expand")}
+          title={t(isFullscreen ? "chartPanel.collapse" : "chartPanel.expand")}
+          className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          {isFullscreen ? <X size={14} /> : <Maximize2 size={14} />}
+        </button>
       </CardHeader>
-      <CardContent className="p-0">
-        <div ref={containerRef} className="w-full h-[400px]" />
+      <CardContent className={isFullscreen ? "p-0 flex-1 min-h-0" : "p-0"}>
+        <div ref={containerRef} className={isFullscreen ? "w-full h-full" : "w-full h-[400px]"} />
       </CardContent>
     </Card>
   );
