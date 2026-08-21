@@ -131,21 +131,51 @@ export default function CommandDeck() {
     const baseSymbol = activeTrade.symbol.replace(/USDT$/, "")
     setTerminalSymbol(baseSymbol)
     let mounted = true
-    apiFetch<{ candles: LiveCandle[] }>(`/market/live?symbol=${baseSymbol}&timeframe=1h&limit=100`)
-      .then((res) => {
-        if (mounted && res.candles) {
-          setActiveTradeCandles(res.candles.map((c) => ({
-            time: Math.floor(c.timestamp / 1000),
-            open: c.open,
-            high: c.high,
-            low: c.low,
-            close: c.close,
-            volume: c.volume,
-          })))
-        }
-      })
-      .catch(() => { if (mounted) setActiveTradeCandles([]) })
-    return () => { mounted = false }
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+
+    // /market/live can 200 with {"error": ...} instead of candles during a
+    // transient Hyperliquid rate-limit -- this effect only re-runs when the
+    // open-trade list itself changes, so without a retry, landing on that
+    // window once left the chart blank until the next trade opened/closed
+    // (confirmed live 2026-08-21: a post-restart 429 burst blanked the
+    // active-trade chart with no recovery). Retries with backoff instead of
+    // giving up on the first failure.
+    const RETRY_DELAYS_MS = [3000, 6000, 12000]
+
+    const load = (attempt: number) => {
+      apiFetch<{ candles: LiveCandle[] }>(`/market/live?symbol=${baseSymbol}&timeframe=1h&limit=100`)
+        .then((res) => {
+          if (!mounted) return
+          if (res.candles) {
+            setActiveTradeCandles(res.candles.map((c) => ({
+              time: Math.floor(c.timestamp / 1000),
+              open: c.open,
+              high: c.high,
+              low: c.low,
+              close: c.close,
+              volume: c.volume,
+            })))
+          } else if (attempt < RETRY_DELAYS_MS.length) {
+            retryTimer = setTimeout(() => load(attempt + 1), RETRY_DELAYS_MS[attempt])
+          } else {
+            setActiveTradeCandles([])
+          }
+        })
+        .catch(() => {
+          if (!mounted) return
+          if (attempt < RETRY_DELAYS_MS.length) {
+            retryTimer = setTimeout(() => load(attempt + 1), RETRY_DELAYS_MS[attempt])
+          } else {
+            setActiveTradeCandles([])
+          }
+        })
+    }
+    load(0)
+
+    return () => {
+      mounted = false
+      if (retryTimer) clearTimeout(retryTimer)
+    }
   }, [activeTrade, setTerminalSymbol])
 
   // Fetch signals & market data for surrounding dashboard panels
