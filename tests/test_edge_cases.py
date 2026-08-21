@@ -8,6 +8,7 @@ Tests behavior with:
 """
 
 from datetime import UTC
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
@@ -655,6 +656,40 @@ class TestUpdateSignalStatusEdgeCases:
 
 class TestHealthService:
 
+    @pytest.fixture(autouse=True)
+    def _reset_health_state(self, monkeypatch):
+        # Two related problems, confirmed live in CI 2026-08-21:
+        # 1. monitoring.health._INTERNAL_ERRORS/_LAST_KNOWN_STATUS are
+        #    module-level globals shared across the whole pytest process --
+        #    a failure recorded here leaked into
+        #    test_api_routes.py::test_errors_is_null_when_no_failures, which
+        #    runs later in the same process and assumes a clean slate. Same
+        #    reset convention as tests/test_health_alerts.py's
+        #    setup_method/teardown_method.
+        # 2. Several tests below (test_full_returns_all_components,
+        #    test_full_degrades_on_database_tables_error/execution_degraded/
+        #    metrics_error, test_collector_returns_latency) call
+        #    HealthService.full()/collector() without mocking the collector
+        #    -- that makes a REAL network call (MultiProvider -> Hyperliquid)
+        #    on every run, which is both slow and exactly the failure source
+        #    in (1). Stub it here so every test in this class is a real unit
+        #    test, matching tests/test_metrics_endpoint.py's established
+        #    convention -- a test that wants a specific collector() outcome
+        #    still overrides via patch.object(HealthService, "collector", ...)
+        #    same as several already do.
+        from monitoring.health import _INTERNAL_ERRORS, _LAST_KNOWN_STATUS
+        _INTERNAL_ERRORS.clear()
+        _LAST_KNOWN_STATUS.clear()
+
+        import market.provider as market_provider_module
+        mock_provider = MagicMock()
+        mock_provider.get_ohlcv.return_value = pd.DataFrame({"close": [100.0]})
+        monkeypatch.setattr(market_provider_module, "get_shared_multi_provider", lambda: mock_provider)
+
+        yield
+        _INTERNAL_ERRORS.clear()
+        _LAST_KNOWN_STATUS.clear()
+
     def test_uptime_positive(self):
         from monitoring.health import HealthService
         uptime = HealthService.uptime()
@@ -770,6 +805,7 @@ class TestHealthService:
         assert "latency_ms" in result
 
     def test_collector_returns_latency(self):
+        # Network call is stubbed by the class's _reset_health_state fixture.
         from monitoring.health import HealthService
         result = HealthService.collector()
         assert "latency_ms" in result
