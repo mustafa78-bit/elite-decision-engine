@@ -395,6 +395,34 @@ class TestCalculateLiquidityZones:
     def test_empty_df_returns_empty_list(self):
         assert calculate_liquidity_zones(pd.DataFrame()) == []
 
+    def test_capped_at_5_strongest_zones(self):
+        # Real reported bug 2026-08-21: an uncapped zone list rendered as
+        # 8-10 overlapping, unreadable price-axis labels once several
+        # zones landed close together. Build a df with well more than 5
+        # distinct, unswept, non-clustering pivot highs.
+        n = 200
+        highs = [10.0] * n
+        lows = [5.0] * n
+        # Spaced far enough apart in price (2.0 each) to never cluster
+        # (pct_tol=0.003 is well under that), and each isolated by dips on
+        # both sides so every one is a real, individually-unswept pivot.
+        peak_prices = [12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0]
+        peak_indices = [10, 30, 50, 70, 90, 110, 130, 150]
+        for price, idx in zip(peak_prices, peak_indices):
+            highs[idx] = price
+
+        df = pd.DataFrame({
+            "timestamp": range(1000, 1000 + n),
+            "open": [7.0] * n,
+            "high": highs,
+            "low": lows,
+            "close": [8.0] * n,
+            "volume": [100.0] * n,
+        })
+
+        zones = calculate_liquidity_zones(df, window=5)
+        assert len(zones) <= 5
+
 
 class TestCalculateVolumeProfile:
 

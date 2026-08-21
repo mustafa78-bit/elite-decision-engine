@@ -95,41 +95,54 @@ export async function fetchMarketLive(symbol = "BTC"): Promise<MarketLiveData> {
   return res;
 }
 
-export async function fetchMarketLevels(symbol: string, timeframe: string): Promise<MarketLevel[]> {
+export async function fetchMarketLevels(symbol: string, timeframe: string, limit?: number): Promise<MarketLevel[]> {
+  const limitParam = limit ? `&limit=${limit}` : "";
   const res = await apiFetch<MarketLevel[] & { error?: string }>(
-    `/market/levels?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+    `/market/levels?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}${limitParam}`
   );
   if ("error" in res) throw new Error(res.error);
   return res;
 }
 
-export async function fetchMarketDivergence(symbol: string, timeframe: string): Promise<MarketDivergence> {
+export async function fetchMarketDivergence(symbol: string, timeframe: string, limit?: number): Promise<MarketDivergence> {
+  const limitParam = limit ? `&limit=${limit}` : "";
   const res = await apiFetch<MarketDivergence & { error?: string }>(
-    `/market/divergence?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+    `/market/divergence?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}${limitParam}`
   );
   if (res.error) throw new Error(res.error);
   return res;
 }
 
-export async function fetchMarketChannel(symbol: string, timeframe: string): Promise<MarketChannel> {
+// A channel line's endpoints are anchored to specific candle
+// timestamps/indices -- if this is computed over more history than what's
+// actually displayed (the app's own default `data` fetch is 100-150
+// candles, but the backend route defaulted to 200), the line's start point
+// can fall outside the visible candle range entirely, rendering as a
+// segment floating disconnected from every candle. Confirmed live
+// 2026-08-21. Passing the same `limit` the caller is displaying keeps the
+// overlay's lookback window matched to what's actually on screen.
+export async function fetchMarketChannel(symbol: string, timeframe: string, limit?: number): Promise<MarketChannel> {
+  const limitParam = limit ? `&limit=${limit}` : "";
   const res = await apiFetch<MarketChannel & { error?: string }>(
-    `/market/channel?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+    `/market/channel?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}${limitParam}`
   );
   if (res.error) throw new Error(res.error);
   return res;
 }
 
-export async function fetchLiquidityZones(symbol: string, timeframe: string): Promise<LiquidityZone[]> {
+export async function fetchLiquidityZones(symbol: string, timeframe: string, limit?: number): Promise<LiquidityZone[]> {
+  const limitParam = limit ? `&limit=${limit}` : "";
   const res = await apiFetch<LiquidityZone[] & { error?: string }>(
-    `/market/liquidity-zones?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+    `/market/liquidity-zones?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}${limitParam}`
   );
   if ("error" in res) throw new Error(res.error);
   return res;
 }
 
-export async function fetchVolumeProfile(symbol: string, timeframe: string): Promise<VolumeProfile> {
+export async function fetchVolumeProfile(symbol: string, timeframe: string, limit?: number): Promise<VolumeProfile> {
+  const limitParam = limit ? `&limit=${limit}` : "";
   const res = await apiFetch<VolumeProfile & { error?: string }>(
-    `/market/volume-profile?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`
+    `/market/volume-profile?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}${limitParam}`
   );
   if (res.error) throw new Error(res.error);
   return res;
