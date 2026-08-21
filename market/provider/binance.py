@@ -14,7 +14,25 @@ from market.provider.hyperliquid import HyperliquidProvider
 
 logger = logging.getLogger(__name__)
 
-_STALE_THRESHOLD_SECONDS = 7200  # 2 hours
+# A flat 7200s (2h) threshold regardless of timeframe was actually calibrated
+# for 1h candles specifically (2x its own 3600s period) -- a 4h candle spends
+# over half its real, un-stale lifecycle (2h-4h into the current candle)
+# looking "stale" under that fixed number, discarding genuinely fresh data.
+# Same bug already found and fixed for market_data/collector.py (Hyperliquid)
+# in PR #336, 2026-08-18 -- confirmed live 2026-08-21 that BinanceProvider
+# still had it (never revisited when the Hyperliquid fix landed), producing
+# real, frequent "Stale market data for X 4h" false positives across many
+# symbols. Scale with the timeframe's own candle period instead (2x,
+# preserving the existing 1h behavior exactly).
+_CANDLE_SECONDS: dict[str, int] = {
+    "1m": 60, "5m": 300, "15m": 900, "30m": 1800,
+    "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800,
+}
+_DEFAULT_CANDLE_SECONDS = 3600
+
+
+def _stale_threshold_seconds(timeframe: str) -> int:
+    return _CANDLE_SECONDS.get(timeframe, _DEFAULT_CANDLE_SECONDS) * 2
 
 
 class BinanceProvider:
@@ -108,7 +126,7 @@ class BinanceProvider:
         if latest_ts > 1e12:
             latest_ts = latest_ts / 1000
         age_seconds = now_seconds - latest_ts
-        if age_seconds > _STALE_THRESHOLD_SECONDS:
+        if age_seconds > _stale_threshold_seconds(timeframe):
             logger.warning(
                 "Stale market data for %s %s: latest candle is %.1f hours old",
                 symbol, timeframe, age_seconds / 3600,

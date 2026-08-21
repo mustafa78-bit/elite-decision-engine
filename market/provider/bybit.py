@@ -26,11 +26,26 @@ from market.provider.hyperliquid import HyperliquidProvider
 
 logger = logging.getLogger(__name__)
 
-_STALE_THRESHOLD_SECONDS = 7200  # 2 hours -- see market_data/collector.py's
-# per-timeframe version of this same staleness check (row #113 of this
-# session's task board) for why a flat value is really only correct for 1h;
-# left flat here to match BinanceProvider's existing convention rather than
-# introducing yet another divergent staleness implementation in one PR.
+# A flat 7200s (2h) threshold regardless of timeframe was actually calibrated
+# for 1h candles specifically (2x its own 3600s period) -- a 4h candle spends
+# over half its real, un-stale lifecycle (2h-4h into the current candle)
+# looking "stale" under that fixed number, discarding genuinely fresh data.
+# Same bug already found and fixed for market_data/collector.py (Hyperliquid)
+# in PR #336, 2026-08-18, and left deliberately unfixed here at the time
+# ("match BinanceProvider's existing convention rather than introducing yet
+# another divergent staleness implementation in one PR" -- row #113 of this
+# session's task board). Confirmed live 2026-08-21 this was a real, frequent
+# false-positive source across many symbols (TRXUSDT among them) -- fixing
+# both BinanceProvider and this file together now instead of deferring again.
+_CANDLE_SECONDS: dict[str, int] = {
+    "1m": 60, "5m": 300, "15m": 900, "30m": 1800,
+    "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800,
+}
+_DEFAULT_CANDLE_SECONDS = 3600
+
+
+def _stale_threshold_seconds(timeframe: str) -> int:
+    return _CANDLE_SECONDS.get(timeframe, _DEFAULT_CANDLE_SECONDS) * 2
 
 # Bybit V5's kline "interval" values are plain minute-counts or a single
 # calendar-unit letter, not the "15m"/"1h"/"4h"/"1d" strings this app uses
@@ -153,7 +168,7 @@ class BybitProvider:
         if latest_ts > 1e12:
             latest_ts = latest_ts / 1000
         age_seconds = now_seconds - latest_ts
-        if age_seconds > _STALE_THRESHOLD_SECONDS:
+        if age_seconds > _stale_threshold_seconds(timeframe):
             logger.warning(
                 "Stale market data for %s %s: latest candle is %.1f hours old",
                 symbol, timeframe, age_seconds / 3600,

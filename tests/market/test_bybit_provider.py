@@ -136,6 +136,33 @@ class TestBybitProvider:
         assert df.empty
 
     @patch("time.sleep")
+    def test_get_ohlcv_4h_candle_within_its_own_period_is_not_stale(self, mock_sleep):
+        # Regression: a flat 2h threshold regardless of timeframe was
+        # actually calibrated for 1h candles -- a 4h candle genuinely can be
+        # (just under) 4h old without a new one existing yet, so 2h-4h old
+        # was being wrongly discarded as "stale" data. Confirmed live
+        # 2026-08-21 as a real, frequent false positive across many symbols
+        # (TRXUSDT among them). Same bug already fixed for Hyperliquid
+        # (market_data/collector.py, PR #336) -- this closes the gap here.
+        almost_4h_old_ms = int((time.time() - 10800) * 1000)  # 3h old
+        mock_response = MagicMock()
+        mock_response.json.return_value = _bybit_response([_kline_row(almost_4h_old_ms)])
+        self.provider._session.get.return_value = mock_response
+
+        df = self.provider.get_ohlcv("BTCUSDT", "4h", 100)
+        assert not df.empty
+
+    @patch("time.sleep")
+    def test_get_ohlcv_4h_candle_past_2x_its_own_period_is_stale(self, mock_sleep):
+        genuinely_stale_ms = int((time.time() - 9 * 3600) * 1000)  # 9h old
+        mock_response = MagicMock()
+        mock_response.json.return_value = _bybit_response([_kline_row(genuinely_stale_ms)])
+        self.provider._session.get.return_value = mock_response
+
+        df = self.provider.get_ohlcv("BTCUSDT", "4h", 100)
+        assert df.empty
+
+    @patch("time.sleep")
     def test_get_ohlcv_retries_and_succeeds(self, mock_sleep):
         now_ms = int(time.time() * 1000)
         mock_response = MagicMock()
