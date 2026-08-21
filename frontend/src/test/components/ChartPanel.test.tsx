@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, waitFor, screen, fireEvent } from "../test-utils";
-import { ChartPanel } from "../../components/trading/chart-panel";
+import { ChartPanel, computeEma } from "../../components/trading/chart-panel";
 import * as marketApi from "../../api/market";
 
 // Mock lightweight-charts
@@ -101,9 +101,9 @@ describe("ChartPanel Overlays", () => {
       })
     );
 
-    // Check that line series were added for divergence and boundaries
-    // 1 candle series + 1 divergence series + 2 channel series = 4 series in total
-    expect(mockChart.addSeries).toHaveBeenCalledTimes(4);
+    // Check that line series were added for EMAs, divergence and boundaries
+    // 1 candle + 2 EMA (20/50) + 1 divergence + 2 channel = 6 series in total
+    expect(mockChart.addSeries).toHaveBeenCalledTimes(6);
 
     // Assert divergence/channel gets the correct points
     expect(mockSetData).toHaveBeenCalledWith(
@@ -138,8 +138,9 @@ describe("ChartPanel Overlays", () => {
     // No S/R price lines drawn
     expect(mockCreatePriceLine).not.toHaveBeenCalled();
 
-    // Only the Candlestick series should be added (1 series total)
-    expect(mockChart.addSeries).toHaveBeenCalledTimes(1);
+    // Candlestick + EMA20 + EMA50 -- these draw unconditionally from the
+    // candle data itself, independent of the (empty here) overlay fetches
+    expect(mockChart.addSeries).toHaveBeenCalledTimes(3);
   });
 
   it("draws entry/stop/target lines for a passed-in open trade", async () => {
@@ -316,5 +317,56 @@ describe("ChartPanel Overlays", () => {
     await waitFor(() => {
       expect(card.className).not.toContain("fixed");
     });
+  });
+
+  it("draws EMA20/EMA50 series from the candle data alone, before any overlay fetch resolves", async () => {
+    vi.mocked(marketApi.fetchMarketLevels).mockResolvedValue([]);
+    vi.mocked(marketApi.fetchMarketDivergence).mockResolvedValue({
+      found: false, type: "none", p1: null, p2: null,
+    });
+    vi.mocked(marketApi.fetchMarketChannel).mockResolvedValue({
+      found: false, direction: "none", upper: null, lower: null,
+    });
+
+    render(<ChartPanel data={dummyCandles} timeframe="1h" />);
+
+    await waitFor(() => {
+      expect(mockChart.addSeries).toHaveBeenCalledWith(
+        "LineSeries", expect.objectContaining({ title: "EMA20" })
+      );
+    });
+    expect(mockChart.addSeries).toHaveBeenCalledWith(
+      "LineSeries", expect.objectContaining({ title: "EMA50" })
+    );
+    // 2 candles of data -> 2 EMA points per series
+    expect(mockSetData).toHaveBeenCalledWith([
+      { time: 1000, value: 105 },
+      { time: 2000, value: expect.any(Number) },
+    ]);
+  });
+});
+
+describe("computeEma", () => {
+  it("seeds with the first close, then applies exponential smoothing", () => {
+    const closes = [100, 110, 105, 120];
+    const result = computeEma(closes, 3);
+
+    expect(result).toHaveLength(4);
+    expect(result[0]).toBe(100);
+    // k = 2/(3+1) = 0.5 -> ema1 = 110*0.5 + 100*0.5 = 105
+    expect(result[1]).toBeCloseTo(105, 6);
+    // ema2 = 105*0.5 + 105*0.5 = 105
+    expect(result[2]).toBeCloseTo(105, 6);
+    // ema3 = 120*0.5 + 105*0.5 = 112.5
+    expect(result[3]).toBeCloseTo(112.5, 6);
+  });
+
+  it("returns an empty array for empty input", () => {
+    expect(computeEma([], 20)).toEqual([]);
+  });
+
+  it("tracks a constant series exactly", () => {
+    const result = computeEma([50, 50, 50, 50], 10);
+    expect(result).toEqual([50, 50, 50, 50]);
   });
 });

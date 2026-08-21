@@ -54,6 +54,7 @@ export default function ChartEmbed() {
     const stop = params.get("stop") ? Number(params.get("stop")) : undefined;
     const tp1 = params.get("tp1") ? Number(params.get("tp1")) : undefined;
     const tp2 = params.get("tp2") ? Number(params.get("tp2")) : undefined;
+    const limit = params.get("limit") || "150";
 
     setSymbol(symbol);
     setTimeframe(tf);
@@ -63,7 +64,7 @@ export default function ChartEmbed() {
         : []
     );
 
-    apiFetch<{ candles?: LiveCandle[]; error?: string }>(`/market/live?symbol=${symbol}&timeframe=${tf}&limit=150`)
+    apiFetch<{ candles?: LiveCandle[]; error?: string }>(`/market/live?symbol=${symbol}&timeframe=${tf}&limit=${limit}`)
       .then((res) => {
         if (res.candles && res.candles.length > 0) {
           setData(res.candles.map((c) => ({

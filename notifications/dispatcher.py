@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime
 from typing import Any
 
 from api.websocket.manager import WebSocketManager
@@ -49,6 +50,26 @@ def _telegram_alert_enabled(event: str) -> bool:
     return settings.notification_preferences.get(key, True)
 
 
+def _risk_reward_ratio(entry, stop, target) -> str | None:
+    if not entry or not stop or not target:
+        return None
+    risk = abs(entry - stop)
+    if risk == 0:
+        return None
+    reward = abs(target - entry)
+    return f"1:{reward / risk:.2f}"
+
+
+def _format_opened_at(payload: dict) -> str | None:
+    raw = payload.get("opened_at")
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw).strftime("%d.%m.%Y %H:%M UTC")
+    except (ValueError, TypeError):
+        return None
+
+
 def _build_trade_opened_caption(payload: dict) -> str:
     trade_id = payload.get("trade_id")
     symbol = payload.get("symbol", "UNKNOWN")
@@ -63,9 +84,14 @@ def _build_trade_opened_caption(payload: dict) -> str:
     if stop:
         levels_lines.append(f"Stop: {stop}")
     if tp1:
-        levels_lines.append(f"TP1: {tp1}")
+        rr1 = _risk_reward_ratio(entry, stop, tp1)
+        levels_lines.append(f"TP1: {tp1}" + (f" (R:R {rr1})" if rr1 else ""))
     if tp2:
-        levels_lines.append(f"TP2: {tp2}")
+        rr2 = _risk_reward_ratio(entry, stop, tp2)
+        levels_lines.append(f"TP2: {tp2}" + (f" (R:R {rr2})" if rr2 else ""))
+    opened_at = _format_opened_at(payload)
+    if opened_at:
+        levels_lines.append(f"Zaman: {opened_at}")
     levels_block = "\n".join(levels_lines)
 
     # "Neden LONG/SHORT" -- the same component scores ScoringEngine.score()
