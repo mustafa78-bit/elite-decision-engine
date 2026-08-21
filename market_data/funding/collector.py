@@ -41,6 +41,18 @@ class FundingCollector:
     # rest block, then read the now-fresh cache the first one just filled.
     _cache_lock = threading.Lock()
 
+    # fetch_funding_history() (per-symbol, unlike the bulk fetch_all() above)
+    # had NO cache at all until this fix -- confirmed live 2026-08-21 as a
+    # real, significant contributor to Hyperliquid 429 storms: WhaleService
+    # calls it once per scanned symbol with zero throttling, so a single
+    # 25-symbol scan fired 25 uncached, unthrottled requests back-to-back,
+    # independent of and in addition to whatever market/provider's shared
+    # rate limiter was doing for OHLCV. Same class-level, per-key cache
+    # pattern as fetch_all(), just keyed by (symbol, limit) since this data
+    # is genuinely per-symbol, not a shared bulk snapshot.
+    _history_cache: dict[tuple[str, int], tuple[float, FundingResult]] = {}
+    _history_cache_lock = threading.Lock()
+
     def __init__(self, timeout: int = 20):
         self.timeout = timeout
         self._session = requests.Session()
@@ -112,6 +124,20 @@ class FundingCollector:
         return result.rate_for(symbol)
 
     def fetch_funding_history(self, symbol: str, limit: int = 100) -> FundingResult:
+        cache_key = (symbol, limit)
+        cached = FundingCollector._history_cache.get(cache_key)
+        if cached is not None and time.time() - cached[0] < FundingCollector._CACHE_TTL_SECONDS:
+            return cached[1]
+
+        with FundingCollector._history_cache_lock:
+            cached = FundingCollector._history_cache.get(cache_key)
+            if cached is not None and time.time() - cached[0] < FundingCollector._CACHE_TTL_SECONDS:
+                return cached[1]
+            result = self._fetch_funding_history_uncached(symbol, limit)
+            FundingCollector._history_cache[cache_key] = (time.time(), result)
+            return result
+
+    def _fetch_funding_history_uncached(self, symbol: str, limit: int = 100) -> FundingResult:
         # Hyperliquid's fundingHistory takes "coin"/"startTime" as top-level
         # fields, not a nested "req" object, and has no direct "limit" --
         # the previous {"req": {"coin": ..., "limit": ...}} shape always
