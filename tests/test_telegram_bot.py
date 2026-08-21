@@ -275,3 +275,95 @@ class TestSendAlertRetriesOnFloodControl:
 
         assert manager.application.bot.send_message.call_count == 1
         mock_sleep.assert_not_awaited()
+
+
+class TestSendPhoto:
+    def _manager_with_mock_bot(self):
+        manager = TelegramBotManager(token="fake-token", chat_id="12345")
+        manager.application = MagicMock()
+        manager.application.bot.send_photo = AsyncMock()
+        return manager
+
+    @pytest.mark.asyncio
+    async def test_sends_photo_with_caption(self):
+        manager = self._manager_with_mock_bot()
+
+        await manager.send_photo(b"fake-png-bytes", "Caption text")
+
+        manager.application.bot.send_photo.assert_awaited_once_with(
+            chat_id="12345", photo=b"fake-png-bytes", caption="Caption text", parse_mode="HTML"
+        )
+
+    @pytest.mark.asyncio
+    async def test_truncates_captions_over_1024_chars(self):
+        manager = self._manager_with_mock_bot()
+        long_caption = "x" * 2000
+
+        await manager.send_photo(b"fake-png-bytes", long_caption)
+
+        sent_caption = manager.application.bot.send_photo.call_args.kwargs["caption"]
+        assert len(sent_caption) == 1024
+        assert sent_caption.endswith("...")
+
+    @pytest.mark.asyncio
+    async def test_retries_on_flood_control(self):
+        from telegram.error import RetryAfter
+
+        manager = self._manager_with_mock_bot()
+        manager.application.bot.send_photo.side_effect = [RetryAfter(retry_after=1), None]
+
+        with patch("asyncio.sleep", new=AsyncMock()):
+            await manager.send_photo(b"fake-png-bytes", "Caption")
+
+        assert manager.application.bot.send_photo.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_no_op_when_not_configured(self):
+        manager = TelegramBotManager(token="", chat_id="")
+        # No .application set -- must not raise
+        await manager.send_photo(b"fake-png-bytes", "Caption")
+
+
+class TestSendTradeOpenedAlert:
+    """SPRINT_JULES_MEGA_CHART_ANALYSIS_OVERLAYS.md-adjacent: TRADE_OPENED
+    alerts now carry a real screenshot of the app's own chart (via
+    services.telegram.chart_screenshot.capture_trade_chart_png), falling
+    back to a text-only alert when the screenshot can't be captured."""
+
+    def _manager_with_mock_bot(self):
+        manager = TelegramBotManager(token="fake-token", chat_id="12345")
+        manager.application = MagicMock()
+        manager.application.bot.send_photo = AsyncMock()
+        manager.application.bot.send_message = AsyncMock()
+        return manager
+
+    @pytest.mark.asyncio
+    async def test_sends_photo_when_screenshot_succeeds(self):
+        manager = self._manager_with_mock_bot()
+
+        with patch(
+            "services.telegram.chart_screenshot.capture_trade_chart_png",
+            new=AsyncMock(return_value=b"fake-png-bytes"),
+        ):
+            await manager.send_trade_opened_alert("Caption", {"symbol": "BTCUSDT"})
+
+        manager.application.bot.send_photo.assert_awaited_once()
+        manager.application.bot.send_message.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_text_alert_when_screenshot_fails(self):
+        manager = self._manager_with_mock_bot()
+
+        with patch(
+            "services.telegram.chart_screenshot.capture_trade_chart_png",
+            new=AsyncMock(return_value=None),
+        ):
+            await manager.send_trade_opened_alert("Caption", {"symbol": "BTCUSDT"})
+
+        manager.application.bot.send_photo.assert_not_awaited()
+        manager.application.bot.send_message.assert_awaited_once()
+
+    def test_threadsafe_no_op_when_not_configured(self):
+        manager = TelegramBotManager(token="", chat_id="")
+        # No .application/.loop set -- must not raise
+        manager.send_trade_opened_alert_threadsafe("Caption", {"symbol": "BTCUSDT"})

@@ -310,6 +310,85 @@ class TelegramBotManager:
         coro = self.send_alert(text)
         asyncio.run_coroutine_threadsafe(coro, self.loop)
 
+    async def send_photo(self, photo_bytes: bytes, caption: str = "") -> None:
+        """Coroutine to send a photo (with an optional HTML caption) to this instance's chat."""
+        if not self.application:
+            logger.debug("Telegram photo skipped: bot '%s' not setup", self.name)
+            return
+
+        if not self.token or not self.chat_id:
+            logger.debug("Telegram photo skipped: '%s' token or chat ID not configured", self.name)
+            return
+
+        # Telegram caps photo captions at 1024 chars (unlike the 4096 for
+        # plain messages) -- truncate rather than fail the whole send, since
+        # the photo itself is the primary payload here.
+        if len(caption) > 1024:
+            caption = caption[:1021] + "..."
+
+        for attempt in range(4):
+            try:
+                await self.application.bot.send_photo(
+                    chat_id=self.chat_id,
+                    photo=photo_bytes,
+                    caption=caption,
+                    parse_mode="HTML",
+                )
+                logger.info("Telegram proactive photo sent successfully via '%s'.", self.name)
+                return
+            except RetryAfter as e:
+                if attempt >= 3:
+                    logger.warning("Failed to send Telegram photo via '%s': flood control retries exhausted", self.name)
+                    return
+                wait_seconds = e.retry_after.total_seconds() if hasattr(e.retry_after, "total_seconds") else float(e.retry_after)
+                logger.warning(
+                    "Telegram flood control hit on '%s' (photo), retrying in %.1fs (attempt %d/4)",
+                    self.name, wait_seconds, attempt + 1,
+                )
+                await asyncio.sleep(wait_seconds)
+            except Exception as e:
+                logger.warning("Failed to send Telegram photo via '%s': %s", self.name, e)
+                return
+
+    def send_photo_threadsafe(self, photo_bytes: bytes, caption: str = "") -> None:
+        """Thread-safe method to trigger the send_photo coroutine on the captured main loop."""
+        if not self.application or not self.token or not self.chat_id:
+            logger.debug("Telegram photo skipped: '%s' bot or credentials not configured", self.name)
+            return
+
+        if not self.loop:
+            logger.warning("Telegram photo skipped: '%s' main event loop reference is missing", self.name)
+            return
+
+        coro = self.send_photo(photo_bytes, caption)
+        asyncio.run_coroutine_threadsafe(coro, self.loop)
+
+    async def send_trade_opened_alert(self, caption: str, chart_kwargs: dict) -> None:
+        """Screenshot the real chart for a just-opened trade, then send it
+        as a photo with `caption`; falls back to a text-only alert if the
+        screenshot fails for any reason (headless browser unavailable,
+        frontend not running, slow overlay fetch, etc)."""
+        from services.telegram.chart_screenshot import capture_trade_chart_png
+
+        photo_bytes = await capture_trade_chart_png(**chart_kwargs)
+        if photo_bytes:
+            await self.send_photo(photo_bytes, caption)
+        else:
+            await self.send_alert(caption)
+
+    def send_trade_opened_alert_threadsafe(self, caption: str, chart_kwargs: dict) -> None:
+        """Thread-safe method to trigger send_trade_opened_alert on the captured main loop."""
+        if not self.application or not self.token or not self.chat_id:
+            logger.debug("Telegram alert skipped: '%s' bot or credentials not configured", self.name)
+            return
+
+        if not self.loop:
+            logger.warning("Telegram alert skipped: '%s' main event loop reference is missing", self.name)
+            return
+
+        coro = self.send_trade_opened_alert(caption, chart_kwargs)
+        asyncio.run_coroutine_threadsafe(coro, self.loop)
+
     def setup(self) -> bool:
         if not self.token:
             logger.warning("Telegram bot '%s': token not set, will not be initialized.", self.name)

@@ -96,7 +96,7 @@ def test_dispatcher_no_op_without_websocket_manager():
 
 def test_dispatcher_proactive_telegram_opened():
     mock_bot = MagicMock()
-    mock_bot.send_alert_threadsafe = MagicMock()
+    mock_bot.send_trade_opened_alert_threadsafe = MagicMock()
 
     dispatcher = NotificationDispatcher(telegram_bot_manager=mock_bot)
 
@@ -105,17 +105,23 @@ def test_dispatcher_proactive_telegram_opened():
         "symbol": "BTCUSDT",
         "side": "LONG",
         "entry": 63250.50,
+        "stop": 62000.0,
+        "tp1": 64500.0,
         "status": "OPEN",
     }
     result = dispatcher.emit(TradeEvent.TRADE_OPENED, payload)
 
     assert result["event"] == "TRADE_OPENED"
-    mock_bot.send_alert_threadsafe.assert_called_once()
-    alert_text = mock_bot.send_alert_threadsafe.call_args[0][0]
-    assert "🟢 <b>TRADE OPENED</b>" in alert_text
-    assert "BTCUSDT LONG" in alert_text
-    assert "63250.5" in alert_text
-    assert "ID: 42" in alert_text
+    mock_bot.send_trade_opened_alert_threadsafe.assert_called_once()
+    call_args = mock_bot.send_trade_opened_alert_threadsafe.call_args[0]
+    caption, chart_kwargs = call_args[0], call_args[1]
+    assert "🟢 <b>İŞLEM AÇILDI</b>" in caption
+    assert "BTCUSDT LONG" in caption
+    assert "63250.5" in caption
+    assert "Stop: 62000.0" in caption
+    assert "TP1: 64500.0" in caption
+    assert "ID: 42" in caption
+    assert chart_kwargs["symbol"] == "BTCUSDT"
 
 
 def test_dispatcher_proactive_telegram_closed():
@@ -146,7 +152,7 @@ def test_dispatcher_proactive_telegram_closed():
 
 def test_dispatcher_telegram_failure_does_not_propagate():
     mock_bot = MagicMock()
-    mock_bot.send_alert_threadsafe.side_effect = Exception("Telegram API Down")
+    mock_bot.send_trade_opened_alert_threadsafe.side_effect = Exception("Telegram API Down")
 
     dispatcher = NotificationDispatcher(telegram_bot_manager=mock_bot)
 
@@ -163,7 +169,7 @@ def test_dispatcher_telegram_failure_does_not_propagate():
 @pytest.mark.asyncio
 async def test_dispatcher_telegram_to_thread_safety():
     mock_bot = MagicMock()
-    mock_bot.send_alert_threadsafe = MagicMock()
+    mock_bot.send_trade_opened_alert_threadsafe = MagicMock()
 
     dispatcher = NotificationDispatcher(telegram_bot_manager=mock_bot)
 
@@ -175,9 +181,9 @@ async def test_dispatcher_telegram_to_thread_safety():
 
     await asyncio.to_thread(background_work)
 
-    mock_bot.send_alert_threadsafe.assert_called_once()
-    alert_text = mock_bot.send_alert_threadsafe.call_args[0][0]
-    assert "SOLUSDT LONG" in alert_text
+    mock_bot.send_trade_opened_alert_threadsafe.assert_called_once()
+    caption = mock_bot.send_trade_opened_alert_threadsafe.call_args[0][0]
+    assert "SOLUSDT LONG" in caption
 
 
 def test_dispatcher_unconfigured_telegram_no_ops():
@@ -270,6 +276,7 @@ def test_dispatcher_telegram_skipped_when_preference_disabled(db_session, sessio
 
     mock_bot = MagicMock()
     mock_bot.send_alert_threadsafe = MagicMock()
+    mock_bot.send_trade_opened_alert_threadsafe = MagicMock()
     dispatcher = NotificationDispatcher(telegram_bot_manager=mock_bot)
 
     result = dispatcher.emit(
@@ -279,6 +286,7 @@ def test_dispatcher_telegram_skipped_when_preference_disabled(db_session, sessio
 
     assert result["event"] == "TRADE_OPENED"
     mock_bot.send_alert_threadsafe.assert_not_called()
+    mock_bot.send_trade_opened_alert_threadsafe.assert_not_called()
 
 
 def test_dispatcher_telegram_sent_when_preference_enabled(db_session, session_factory, monkeypatch):
@@ -288,7 +296,7 @@ def test_dispatcher_telegram_sent_when_preference_enabled(db_session, session_fa
     db_session.commit()
 
     mock_bot = MagicMock()
-    mock_bot.send_alert_threadsafe = MagicMock()
+    mock_bot.send_trade_opened_alert_threadsafe = MagicMock()
     dispatcher = NotificationDispatcher(telegram_bot_manager=mock_bot)
 
     dispatcher.emit(
@@ -296,7 +304,7 @@ def test_dispatcher_telegram_sent_when_preference_enabled(db_session, session_fa
         {"trade_id": 1, "symbol": "BTCUSDT", "side": "LONG", "entry": 60000},
     )
 
-    mock_bot.send_alert_threadsafe.assert_called_once()
+    mock_bot.send_trade_opened_alert_threadsafe.assert_called_once()
 
 
 def test_dispatcher_telegram_defaults_enabled_without_user_settings_row(db_session, session_factory, monkeypatch):
@@ -326,6 +334,7 @@ def test_dispatcher_disabled_telegram_preference_does_not_block_persistence_or_b
     ws_manager.broadcast_to_owner = AsyncMock()
     mock_bot = MagicMock()
     mock_bot.send_alert_threadsafe = MagicMock()
+    mock_bot.send_trade_opened_alert_threadsafe = MagicMock()
 
     dispatcher = NotificationDispatcher(websocket_manager=ws_manager, telegram_bot_manager=mock_bot)
 
@@ -336,6 +345,7 @@ def test_dispatcher_disabled_telegram_preference_does_not_block_persistence_or_b
 
     assert result["event"] == "TRADE_OPENED"
     mock_bot.send_alert_threadsafe.assert_not_called()
+    mock_bot.send_trade_opened_alert_threadsafe.assert_not_called()
 
     from database import Notification
 
