@@ -34,6 +34,7 @@ Design notes:
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 
 import database
 from config import FIXED_COIN_UNIVERSE, NEWS_MIN_IMPACT_SCORE
@@ -48,6 +49,17 @@ NEWS_JOB_INTERVAL_SECONDS = 1800  # 30 minutes
 _PRIMARY_USER_ID = 1  # matches notifications/dispatcher.py's single-tenant Telegram assumption
 
 _SENTIMENT_TR = {"positive": "POZİTİF", "negative": "NEGATİF"}
+
+
+def _impact_tier(score: int) -> tuple[str, str]:
+    """(emoji, Turkish label) for the alert's "Etki Gücü" line -- matches the
+    same 75/45 tier boundaries classify_and_score()'s prompt asks the LLM to
+    use, so the label and the number it's next to are always consistent."""
+    if score >= 75:
+        return "🔥", "YÜKSEK"
+    elif score >= 45:
+        return "⚡", "ORTA"
+    return "💤", "DÜŞÜK"
 
 
 def _bare_universe_symbols() -> list[str]:
@@ -109,6 +121,15 @@ def run_news_alert_cycle(news_service: NewsService | None = None) -> None:
     if not unique_crypto_headlines and not unique_macro_headlines:
         return
 
+    # For the alert's "Kaynak: X" line -- first entry wins if the same
+    # title somehow appears from two feeds, which is rare enough not to
+    # matter which one shows.
+    source_by_headline: dict[str, str] = {}
+    for entry in crypto_entries + macro_entries:
+        title = (entry.get("title") or "").strip()
+        if title and title not in source_by_headline:
+            source_by_headline[title] = entry.get("source_name") or "RSS"
+
     symbols = _bare_universe_symbols()
     matches_by_headline = {h: ns.match_headline_to_symbols(h, symbols) for h in unique_crypto_headlines}
     market_moving_candidates = [h for h, syms in matches_by_headline.items() if syms]
@@ -150,10 +171,20 @@ def run_news_alert_cycle(news_service: NewsService | None = None) -> None:
         headline_tr = ns.translate_to_turkish(headline)
         emoji = "🟢" if sentiment == "positive" else "🔴"
         sentiment_tr = _SENTIMENT_TR.get(sentiment, sentiment.upper())
+        impact_emoji, impact_tier = _impact_tier(scored["score"])
+        source_name = source_by_headline.get(headline, "RSS")
+        sent_at = datetime.now(UTC).strftime("%d.%m.%Y - %H:%M UTC")
+
+        reason_block = ""
+        if scored.get("reason"):
+            reason_block = f"\n\n💡 <b>Özet & Etki:</b>\n• {scored['reason']}"
+
         msg = (
-            f"{emoji} <b>{sentiment_tr} HABER (Etki: {scored['score']}/100)</b>\n"
-            f"{headline_tr}\n"
-            f"Semboller: {symbols_label}"
+            f"📰 <b>HABER UYARISI</b> | {symbols_label}\n"
+            f"{emoji} {sentiment_tr} | Etki Gücü: {impact_emoji} {impact_tier} ({scored['score']}/100)\n\n"
+            f"📌 {headline_tr}"
+            f"{reason_block}\n\n"
+            f"🔗 Kaynak: {source_name} | ⏰ {sent_at}"
         )
         news_bot.send_alert_threadsafe(msg)
         record_sent_alert("market_news", h_hash)

@@ -186,7 +186,7 @@ class TestNewsService:
         mock_provider = MagicMock()
         mock_provider._api_key = "test_key"
         mock_provider.generate.return_value = MagicMock(
-            content='[{"headline": "Bitcoin surges past $60k", "sentiment": "positive"}]'
+            content='[{"index": 0, "sentiment": "positive"}]'
         )
         mock_create_provider.return_value = mock_provider
 

@@ -95,6 +95,66 @@ class TestMarketMovingNews:
     @patch("services.news_job_service.is_alert_sent", return_value=False)
     @patch("services.news_job_service._preference_enabled", return_value=True)
     @patch("services.news_job_service.TelegramBotManager")
+    def test_alert_includes_source_impact_tier_and_reason(
+        self, mock_mgr_cls, mock_pref, mock_is_sent, mock_record,
+    ):
+        news_bot = MagicMock()
+        vc_bot = MagicMock()
+        mock_mgr_cls.get_instance.side_effect = lambda name: {"news": news_bot, "vc_funding": vc_bot}[name]
+
+        headline = "Bitcoin surges past $70k on ETF inflows"
+        ns = MagicMock()
+        ns.fetch_rss_feeds.return_value = [
+            {"title": headline, "published": "", "source_name": "CoinDesk"}
+        ]
+        ns.fetch_macro_rss_feeds.return_value = []
+        ns.is_macro_headline.return_value = False
+        ns.match_headline_to_symbols.side_effect = lambda h, symbols=None: ["BTC"] if h == headline else []
+        ns.detect_vc_funding.return_value = []
+        ns.classify_and_score.return_value = {
+            headline.strip().lower(): {
+                "sentiment": "positive", "score": 82,
+                "reason": "Large ETF inflows reduce available exchange supply",
+            }
+        }
+        ns.translate_to_turkish.side_effect = lambda h: h
+
+        run_news_alert_cycle(news_service=ns)
+
+        sent_text = news_bot.send_alert_threadsafe.call_args[0][0]
+        assert "Kaynak: CoinDesk" in sent_text
+        assert "🔥 YÜKSEK" in sent_text  # score 82 >= 75
+        assert "Large ETF inflows reduce available exchange supply" in sent_text
+        assert "82/100" in sent_text
+
+    @patch("services.news_job_service.record_sent_alert")
+    @patch("services.news_job_service.is_alert_sent", return_value=False)
+    @patch("services.news_job_service._preference_enabled", return_value=True)
+    @patch("services.news_job_service.TelegramBotManager")
+    def test_alert_omits_reason_block_when_fallback_scored(
+        self, mock_mgr_cls, mock_pref, mock_is_sent, mock_record,
+    ):
+        news_bot = MagicMock()
+        vc_bot = MagicMock()
+        mock_mgr_cls.get_instance.side_effect = lambda name: {"news": news_bot, "vc_funding": vc_bot}[name]
+
+        headline = "Bitcoin surges past $70k on ETF inflows"
+        ns = _fake_news_service(
+            [headline],
+            matches={headline: ["BTC"]},
+            scored={headline.strip().lower(): {"sentiment": "positive", "score": 78, "reason": None}},
+        )
+
+        run_news_alert_cycle(news_service=ns)
+
+        sent_text = news_bot.send_alert_threadsafe.call_args[0][0]
+        assert "Özet & Etki" not in sent_text
+        assert "Kaynak: RSS" in sent_text  # no source_name in the fixture -> falls back to "RSS"
+
+    @patch("services.news_job_service.record_sent_alert")
+    @patch("services.news_job_service.is_alert_sent", return_value=False)
+    @patch("services.news_job_service._preference_enabled", return_value=True)
+    @patch("services.news_job_service.TelegramBotManager")
     def test_neutral_sentiment_does_not_alert(self, mock_mgr_cls, mock_pref, mock_is_sent, mock_record):
         news_bot = MagicMock()
         mock_mgr_cls.get_instance.return_value = news_bot
