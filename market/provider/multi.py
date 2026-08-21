@@ -7,16 +7,25 @@ for the full background). Bybit added 2026-08-19 as a third provider after
 Hyperliquid kept showing real, recurring 429s even split two ways -- see
 market/provider/bybit.py's module docstring.
 
-Request coalescing (deduping identical concurrent (provider, symbol, timeframe)
-OHLCV requests within a short window) is deliberately NOT implemented here --
-left for a later step once real call-site migration shows the actual
-concurrency pattern; adding it now would be premature.
+get_ohlcv() now has a short-TTL result cache (see _OHLCV_CACHE_TTL_SECONDS)
+-- the "request coalescing... left for a later step" this docstring used to
+say. Confirmed live 2026-08-21 that real call sites duplicate identical
+(symbol, timeframe, limit) OHLCV fetches within a few seconds of each other
+far more than expected: a single ChartPanel render fetches a symbol's
+candles via /market/live, then separately re-triggers a server-side OHLCV
+fetch for the SAME symbol/timeframe for each of /market/levels,
+/market/divergence, /market/channel, /market/liquidity-zones, and
+/market/volume-profile -- 6 near-simultaneous fetches of what's actually
+one dataset, per chart. Lowering the per-provider request rate alone
+(done earlier the same day) couldn't fix that duplication, only how fast
+the (still duplicated) calls were allowed to fire.
 """
 
 from __future__ import annotations
 
 import logging
 import threading
+import time
 from typing import Any
 
 import pandas as pd
@@ -38,6 +47,15 @@ logger = logging.getLogger(__name__)
 # problem by adding load on top of what already triggered the rate limit.
 DEFAULT_REQUESTS_PER_SECOND = 3.0
 
+# Short enough that no timeframe's own staleness threshold is meaningfully
+# affected (market_data/collector.py treats even a 1m candle as fresh up to
+# 120s old), long enough to collapse the genuinely-redundant near-duplicate
+# fetches described above -- those are typically hundreds of ms to a few
+# seconds apart, not perfectly simultaneous, so a pure in-flight-dedup
+# (single-flight) approach alone would miss most of them; a short TTL
+# catches both cases with far less complexity.
+_OHLCV_CACHE_TTL_SECONDS = 10.0
+
 
 class MultiProvider:
     """Implements DataProvider by delegating each call to whichever real
@@ -58,6 +76,8 @@ class MultiProvider:
         self._hyperliquid_limiter = TokenBucketRateLimiter(requests_per_second)
         self._binance_limiter = TokenBucketRateLimiter(requests_per_second)
         self._bybit_limiter = TokenBucketRateLimiter(requests_per_second)
+        self._ohlcv_cache: dict[tuple[str, str, str, int], tuple[float, pd.DataFrame]] = {}
+        self._ohlcv_cache_lock = threading.Lock()
 
     def _resolve(self, symbol: str) -> tuple[DataProvider, TokenBucketRateLimiter]:
         """Symbols not in the fixed 25-symbol universe (temp-watch additions,
@@ -78,8 +98,21 @@ class MultiProvider:
         limit: int = 500,
     ) -> pd.DataFrame:
         provider, limiter = self._resolve(symbol)
+        cache_key = (type(provider).__name__, symbol, timeframe, limit)
+
+        now = time.monotonic()
+        with self._ohlcv_cache_lock:
+            cached = self._ohlcv_cache.get(cache_key)
+        if cached is not None and now - cached[0] < _OHLCV_CACHE_TTL_SECONDS:
+            # .copy() -- callers must not be able to mutate a DataFrame every
+            # other cache hit shares.
+            return cached[1].copy()
+
         limiter.acquire()
-        return provider.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
+        df = provider.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
+        with self._ohlcv_cache_lock:
+            self._ohlcv_cache[cache_key] = (now, df)
+        return df.copy()
 
     def get_ticker(self, symbol: str) -> dict[str, Any]:
         provider, limiter = self._resolve(symbol)

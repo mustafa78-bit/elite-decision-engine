@@ -96,7 +96,11 @@ class TestMultiProviderRouting:
         result = self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="4h", limit=50)
 
         self.mock_hl.get_ohlcv.assert_called_once_with(symbol="BTCUSDT", timeframe="4h", limit=50)
-        assert result is df
+        # A copy, not the same object -- see TestMultiProviderOhlcvCache below
+        # for why (every cache hit must get its own DataFrame, not one every
+        # caller shares and could mutate).
+        assert result is not df
+        pd.testing.assert_frame_equal(result, df)
 
     def test_get_funding_open_interest_orderbook_trades_all_route_correctly(self):
         # ETHUSDT is index 1 -> binance per the alternating assignment.
@@ -146,6 +150,82 @@ class TestMultiProviderRateLimiting:
         expected_min = 4 * (1.0 / 10.0)
         assert elapsed >= expected_min * 0.8
         assert mock_hl.get_ticker.call_count == 5
+
+
+class TestMultiProviderOhlcvCache:
+    """A single ChartPanel render fetches the same symbol/timeframe's OHLCV
+    via /market/live AND separately re-triggers a server-side OHLCV fetch
+    for each of /market/levels, /market/divergence, /market/channel,
+    /market/liquidity-zones, /market/volume-profile -- 6 near-simultaneous
+    fetches of what's actually one dataset. Confirmed live 2026-08-21 as a
+    real, meaningful contributor to Hyperliquid rate-limit pressure."""
+
+    def setup_method(self):
+        self.mock_hl = MagicMock()
+        self.mock_binance = MagicMock()
+        self.mock_bybit = MagicMock()
+        self.provider = MultiProvider(
+            hyperliquid_provider=self.mock_hl,
+            binance_provider=self.mock_binance,
+            bybit_provider=self.mock_bybit,
+            requests_per_second=1000.0,
+        )
+
+    def test_identical_calls_within_ttl_hit_the_cache(self):
+        df = pd.DataFrame({"close": [1.0, 2.0]})
+        self.mock_hl.get_ohlcv.return_value = df
+
+        self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=100)
+        self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=100)
+        self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=100)
+
+        self.mock_hl.get_ohlcv.assert_called_once_with(symbol="BTCUSDT", timeframe="1h", limit=100)
+
+    def test_different_symbol_timeframe_or_limit_bypasses_the_cache(self):
+        self.mock_hl.get_ohlcv.return_value = pd.DataFrame({"close": [1.0]})
+        self.mock_binance.get_ohlcv.return_value = pd.DataFrame({"close": [2.0]})
+
+        self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=100)
+        # ETHUSDT routes to a different provider entirely (binance) --
+        # exercises that the cache key is scoped correctly, not just that
+        # it varies by symbol.
+        self.provider.get_ohlcv(symbol="ETHUSDT", timeframe="1h", limit=100)
+        self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="4h", limit=100)  # different timeframe
+        self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=50)  # different limit
+
+        assert self.mock_hl.get_ohlcv.call_count == 3
+        assert self.mock_binance.get_ohlcv.call_count == 1
+
+    def test_cache_entry_expires_after_ttl(self, monkeypatch):
+        # Shrinks the TTL itself rather than faking time.monotonic() --
+        # multi.py's own TokenBucketRateLimiter also reads the real,
+        # global time.monotonic() for its token refill math, so freezing
+        # it here would desync the limiter's internal bookkeeping (it seeds
+        # _last_refill from the real clock at construction time, before
+        # this test's monkeypatch takes effect) and hang the test in a
+        # real, very long time.sleep() inside acquire().
+        import time as time_module
+
+        import market.provider.multi as multi_module
+        monkeypatch.setattr(multi_module, "_OHLCV_CACHE_TTL_SECONDS", 0.01)
+
+        self.mock_hl.get_ohlcv.return_value = pd.DataFrame({"close": [1.0]})
+
+        self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=100)
+        time_module.sleep(0.02)
+        self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=100)
+
+        assert self.mock_hl.get_ohlcv.call_count == 2
+
+    def test_returned_dataframes_are_independent_copies(self):
+        df = pd.DataFrame({"close": [1.0, 2.0]})
+        self.mock_hl.get_ohlcv.return_value = df
+
+        first = self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=100)
+        second = self.provider.get_ohlcv(symbol="BTCUSDT", timeframe="1h", limit=100)
+
+        first.loc[0, "close"] = 999.0
+        assert second.loc[0, "close"] == 1.0
 
 
 class TestSharedMultiProvider:
