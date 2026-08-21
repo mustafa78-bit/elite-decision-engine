@@ -120,12 +120,26 @@ class PortfolioEngine:
         else:
             profit_factor = 0.0
 
-        current_open_exposure = sum(t.entry for t in open_trades if t.entry is not None)
+        # entry is a per-unit price, not a notional dollar amount -- summing
+        # it directly (as this used to) reported a handful of dollars of
+        # "exposure" for a position actually worth tens of thousands, and a
+        # near-zero allocation for any cheap-per-unit symbol (TRX, POL)
+        # regardless of real position size. Same real-quantity source as
+        # get_real_pnl() above. Confirmed live 2026-08-21: displayed exposure
+        # was ~$229 total against a real ~$32,300.
+        def get_notional(t: Trade) -> float:
+            if t.entry is None:
+                return 0.0
+            pt = paper_trade_map.get(t.id)
+            quantity = pt.quantity if pt is not None and pt.quantity is not None else 1.0
+            return t.entry * quantity
+
+        current_open_exposure = sum(get_notional(t) for t in open_trades)
 
         allocation: dict[str, float] = {}
         for t in open_trades:
             sym = t.symbol or "?"
-            allocation[sym] = allocation.get(sym, 0) + (t.entry or 0)
+            allocation[sym] = allocation.get(sym, 0) + get_notional(t)
 
         unrealized_pnl = sum(get_real_pnl(t) or 0 for t in open_trades)
 
