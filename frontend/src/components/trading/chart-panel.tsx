@@ -16,6 +16,21 @@ interface Candle {
   volume?: number;
 }
 
+// Seeded with the first close rather than an initial SMA over `period`
+// candles -- simpler, and matches what most lightweight charting libraries
+// do by default; the difference washes out after the first ~2x period
+// candles anyway.
+export function computeEma(closes: number[], period: number): number[] {
+  const k = 2 / (period + 1);
+  const result: number[] = [];
+  let prev: number | null = null;
+  for (const close of closes) {
+    prev = prev === null ? close : close * k + prev * (1 - k);
+    result.push(prev);
+  }
+  return result;
+}
+
 interface ChartPanelProps {
   data?: Candle[];
   timeframe?: string;
@@ -100,6 +115,35 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
         })));
 
         chart.timeScale().fitContent();
+
+        // EMA20/EMA50 -- computed client-side from the same candle data
+        // already on hand (no extra fetch), so the chart gives visual
+        // confirmation of the trend_score ScoringEngine already computed
+        // server-side from these same EMAs (scoring/scoring_engine.py).
+        if (data.length >= 2) {
+          const closes = data.map((d) => d.close);
+          const ema20Series = chart.addSeries(LineSeries, {
+            color: "rgba(250, 204, 21, 0.8)", // yellow-400
+            lineWidth: 1 as LineWidth,
+            priceLineVisible: false,
+            lastValueVisible: false,
+            title: "EMA20",
+          });
+          ema20Series.setData(
+            computeEma(closes, 20).map((value, i) => ({ time: data[i].time as any, value }))
+          );
+
+          const ema50Series = chart.addSeries(LineSeries, {
+            color: "rgba(236, 72, 153, 0.8)", // pink-500
+            lineWidth: 1 as LineWidth,
+            priceLineVisible: false,
+            lastValueVisible: false,
+            title: "EMA50",
+          });
+          ema50Series.setData(
+            computeEma(closes, 50).map((value, i) => ({ time: data[i].time as any, value }))
+          );
+        }
 
         // 0. Open trade entry/stop/target lines -- local data, no fetch
         // needed. Cleaned up automatically along with everything else on

@@ -6,7 +6,7 @@ import pytest
 
 from api.websocket.manager import WebSocketManager
 from database import UserSettings
-from notifications.dispatcher import NotificationDispatcher, _persist_notification
+from notifications.dispatcher import NotificationDispatcher, _build_trade_opened_caption, _persist_notification
 from notifications.events import TradeEvent
 
 
@@ -122,6 +122,40 @@ def test_dispatcher_proactive_telegram_opened():
     assert "TP1: 64500.0" in caption
     assert "ID: 42" in caption
     assert chart_kwargs["symbol"] == "BTCUSDT"
+
+
+def test_trade_opened_caption_includes_risk_reward_ratio():
+    caption = _build_trade_opened_caption({
+        "trade_id": 1, "symbol": "BTCUSDT", "side": "LONG",
+        "entry": 65000.0, "stop": 63000.0, "tp1": 67000.0, "tp2": 68500.0,
+    })
+    # risk = 2000, reward1 = 2000 -> 1:1.00; reward2 = 3500 -> 1:1.75
+    assert "TP1: 67000.0 (R:R 1:1.00)" in caption
+    assert "TP2: 68500.0 (R:R 1:1.75)" in caption
+
+
+def test_trade_opened_caption_omits_risk_reward_when_stop_missing():
+    caption = _build_trade_opened_caption({
+        "trade_id": 1, "symbol": "BTCUSDT", "side": "LONG",
+        "entry": 65000.0, "tp1": 67000.0,
+    })
+    assert "TP1: 67000.0" in caption
+    assert "R:R" not in caption
+
+
+def test_trade_opened_caption_includes_formatted_timestamp():
+    caption = _build_trade_opened_caption({
+        "trade_id": 1, "symbol": "BTCUSDT", "side": "LONG", "entry": 65000.0,
+        "opened_at": "2026-08-21T06:38:12.345678+00:00",
+    })
+    assert "Zaman: 21.08.2026 06:38 UTC" in caption
+
+
+def test_trade_opened_caption_omits_timestamp_line_when_absent():
+    caption = _build_trade_opened_caption({
+        "trade_id": 1, "symbol": "BTCUSDT", "side": "LONG", "entry": 65000.0,
+    })
+    assert "Zaman:" not in caption
 
 
 def test_dispatcher_proactive_telegram_closed():

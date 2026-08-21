@@ -19,6 +19,9 @@ def test_build_embed_url_includes_a_real_signed_token():
     # tp2=None must be omitted, not serialized as the literal string "None"
     assert "tp2" not in url
     assert "token=" in url
+    # Fewer candles than the app's own default -- reads better zoomed in at
+    # Telegram's thumbnail size than the full in-app history squeezed thin.
+    assert "limit=60" in url
 
     # The token itself must decode as a real access token for the primary
     # (single-tenant) user -- this is what lets the embed page's own

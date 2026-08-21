@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from datetime import UTC, datetime
 
 from database import Trade, get_session
 from execution.tp_sl import TPSLEngine
@@ -116,6 +116,7 @@ class TradeEngine:
                         "tp2": trade.tp2,
                         "timeframe": getattr(signal, "timeframe", None),
                         "status": trade.status,
+                        "opened_at": datetime.now(UTC).isoformat(),
                         "intelligence": intelligence or {},
                     },
                 )

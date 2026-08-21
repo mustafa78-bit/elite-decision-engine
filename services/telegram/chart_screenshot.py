@@ -29,6 +29,13 @@ _READY_TIMEOUT_MS = 12_000
 _NAV_TIMEOUT_MS = 15_000
 
 
+# Fewer candles than the app's own default (200) so each one gets more
+# horizontal room in the fixed 1280px-wide crop -- a "zoomed in" view reads
+# far better at Telegram's thumbnail size than the same candles squeezed
+# thin across the full history the in-app chart shows.
+_EMBED_CANDLE_LIMIT = 60
+
+
 def _build_embed_url(
     symbol: str,
     timeframe: str,
@@ -39,7 +46,10 @@ def _build_embed_url(
     tp2: float | None,
 ) -> str:
     token = create_access_token({"sub": str(_PRIMARY_USER_ID), "username": "telegram-bot"})
-    params = {"symbol": symbol, "timeframe": timeframe, "side": side, "token": token}
+    params = {
+        "symbol": symbol, "timeframe": timeframe, "side": side, "token": token,
+        "limit": str(_EMBED_CANDLE_LIMIT),
+    }
     if entry:
         params["entry"] = str(entry)
     if stop:
@@ -80,7 +90,11 @@ async def capture_trade_chart_png(
         async with async_playwright() as p:
             browser = await p.chromium.launch()
             try:
-                page = await browser.new_page(viewport={"width": 1280, "height": 550})
+                # device_scale_factor=2 renders at 2x pixel density (like a
+                # retina screenshot) -- Telegram compresses images for its
+                # chat thumbnails, and the symbol name/axis labels/timeframe
+                # text were reported as too small/blurry to read at 1x.
+                page = await browser.new_page(viewport={"width": 1280, "height": 550}, device_scale_factor=2)
                 await page.goto(url, timeout=_NAV_TIMEOUT_MS, wait_until="domcontentloaded")
                 try:
                     await page.wait_for_function(
