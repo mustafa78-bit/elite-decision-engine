@@ -1,5 +1,7 @@
 """Tests for the Elite Scanner Core."""
 
+import threading
+import time
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -444,3 +446,83 @@ class TestOpportunityScanner:
         )
         top = scanner.top_opportunities(n=1)
         assert len(top) <= 1
+
+
+class TestOpportunityScannerCaching:
+    """scan() had no cache at all until this fix -- confirmed live
+    2026-08-21 as a severe, real problem: a single /scanner/category/
+    top-movers request took 36.8s, and 5 concurrent full 25-symbol scans
+    were observed firing within 172ms of each other, since every caller
+    (Scanner page category tabs, CommandDeck's opportunities panel, the
+    dashboard endpoint, the periodic background loop) did its own
+    uncoordinated full scan."""
+
+    @staticmethod
+    def _scanner_with_mock(symbols=("BTCUSDT",)):
+        mock_service = MagicMock()
+        asset = _make_asset(indicators={"ema20": 110, "ema50": 105, "ema200": 100, "rsi": 60},
+                            features={"trend": "BULLISH", "momentum": "STRONG",
+                                      "liquidity": "HIGH", "risk": "LOW",
+                                      "volatility_class": "NORMAL"})
+        mock_service.get_asset.return_value = asset
+        mock_mtf = MagicMock()
+        mock_mtf.score.return_value = 1.0
+        scanner = OpportunityScanner(market_service=mock_service, symbols=list(symbols), mtf_engine=mock_mtf)
+        return scanner, mock_service
+
+    def test_repeated_scan_calls_with_same_args_hit_cache(self):
+        scanner, mock_service = self._scanner_with_mock()
+        scanner.scan(timeframe="1h")
+        scanner.scan(timeframe="1h")
+        assert mock_service.get_asset.call_count == 1
+
+    def test_top_opportunities_and_get_dashboard_share_the_scan_cache(self):
+        # Both funnel through scan() -- a real page load that hits the
+        # dashboard endpoint right after the opportunities panel must not
+        # trigger a second full scan.
+        scanner, mock_service = self._scanner_with_mock()
+        scanner.top_opportunities(n=5, timeframe="1h")
+        scanner.get_dashboard(n=5, timeframe="1h")
+        assert mock_service.get_asset.call_count == 1
+
+    def test_different_timeframe_bypasses_the_cache(self):
+        scanner, mock_service = self._scanner_with_mock()
+        scanner.scan(timeframe="1h")
+        scanner.scan(timeframe="4h")
+        assert mock_service.get_asset.call_count == 2
+
+    def test_different_symbols_bypasses_the_cache(self):
+        scanner, mock_service = self._scanner_with_mock()
+        scanner.scan(symbols=["BTCUSDT"], timeframe="1h")
+        scanner.scan(symbols=["ETHUSDT"], timeframe="1h")
+        assert mock_service.get_asset.call_count == 2
+
+    def test_cache_expires_after_ttl(self):
+        scanner, mock_service = self._scanner_with_mock()
+        scanner.scan(timeframe="1h")
+        with patch("scanner.core.time.monotonic", return_value=time.monotonic() + 31.0):
+            scanner.scan(timeframe="1h")
+        assert mock_service.get_asset.call_count == 2
+
+    def test_concurrent_cache_miss_only_fires_one_real_scan(self):
+        scanner, mock_service = self._scanner_with_mock()
+        call_count = 0
+        call_lock = threading.Lock()
+        real_get_asset = mock_service.get_asset.return_value
+
+        def slow_get_asset(*args, **kwargs):
+            nonlocal call_count
+            with call_lock:
+                call_count += 1
+            time.sleep(0.05)
+            return real_get_asset
+
+        mock_service.get_asset.side_effect = slow_get_asset
+
+        threads = [threading.Thread(target=scanner.scan, kwargs={"timeframe": "1h"}) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert call_count == 1

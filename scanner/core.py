@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
@@ -46,6 +48,18 @@ _DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 # a hard filter: crowded doesn't mean wrong, just higher squeeze risk.
 _CROWDED_LONG_FUNDING_LEVELS = frozenset({"extreme", "high", "elevated"})
 _CROWDED_SHORT_FUNDING_LEVELS = frozenset({"extreme_negative", "high_negative", "elevated_negative"})
+
+# scan() had no cache at all -- every one of get_opportunities_by_category(),
+# top_opportunities(), and get_dashboard() called it fresh, and each of
+# THOSE is hit independently by the frontend (Scanner page's category tabs,
+# CommandDeck's opportunities panel, the dashboard endpoint) plus the
+# periodic background scan loop. Confirmed live 2026-08-21: a single
+# /scanner/category/top-movers request took 36.8s end to end, and 5
+# concurrent full 25-symbol scans were observed firing within 172ms of each
+# other -- every caller doing its own uncoordinated full scan. Same
+# class-level TTL-cache + thundering-herd-lock pattern already applied
+# today to MultiProvider.get_ohlcv() and FundingCollector's methods.
+_SCAN_CACHE_TTL_SECONDS = 30.0
 
 
 class OpportunityScanner:
@@ -113,6 +127,9 @@ class OpportunityScanner:
         self.tp_sl_engine = tp_sl_engine or TPSLEngine()
         self.mtf_engine = mtf_engine or MTFEngine()
 
+        self._scan_cache: dict[tuple[Any, ...], tuple[float, list[Opportunity]]] = {}
+        self._scan_cache_lock = threading.Lock()
+
     def scan(
         self,
         symbols: list[str] | None = None,
@@ -121,6 +138,27 @@ class OpportunityScanner:
     ) -> list[Opportunity]:
         """Scan symbols and return ranked opportunities."""
         target_symbols = symbols or self.symbols
+        cache_key = (tuple(target_symbols), timeframe, watchlist)
+
+        now = time.monotonic()
+        cached = self._scan_cache.get(cache_key)
+        if cached is not None and now - cached[0] < _SCAN_CACHE_TTL_SECONDS:
+            return cached[1]
+
+        with self._scan_cache_lock:
+            cached = self._scan_cache.get(cache_key)
+            if cached is not None and now - cached[0] < _SCAN_CACHE_TTL_SECONDS:
+                return cached[1]
+            opportunities = self._scan_uncached(target_symbols, timeframe, watchlist)
+            self._scan_cache[cache_key] = (now, opportunities)
+            return opportunities
+
+    def _scan_uncached(
+        self,
+        target_symbols: list[str],
+        timeframe: str,
+        watchlist: str | None,
+    ) -> list[Opportunity]:
         logger.info("Scanning %s symbols on %s", len(target_symbols), timeframe)
 
         # Per-symbol enrichment (news/whale/funding/OI, some LLM-backed via
