@@ -895,7 +895,23 @@ def test_health_endpoint_returns_uptime(api_client):
     assert "X-Request-ID" in resp.headers
 
 
-def test_health_details_returns_all_components(api_client):
+def test_health_details_returns_all_components(api_client, monkeypatch):
+    # /health/details -> HealthService.full() -> HealthService.collector()
+    # makes a real network call (MultiProvider -> Hyperliquid) when
+    # unmocked -- confirmed live 2026-08-21 as a real CI flake source (a
+    # transient real-network failure here left monitoring.health's shared
+    # _INTERNAL_ERRORS global poisoned for test_errors_is_null_when_no_
+    # failures below, which assumes a clean slate). Same stubbing
+    # convention as tests/test_metrics_endpoint.py.
+    from unittest.mock import MagicMock
+
+    import pandas as pd
+
+    import market.provider as market_provider_module
+    mock_provider = MagicMock()
+    mock_provider.get_ohlcv.return_value = pd.DataFrame({"close": [100.0]})
+    monkeypatch.setattr(market_provider_module, "get_shared_multi_provider", lambda: mock_provider)
+
     resp = api_client.get("/health/details")
     assert resp.status_code == 200
     data = resp.json()
