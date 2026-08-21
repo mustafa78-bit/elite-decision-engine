@@ -41,6 +41,23 @@ MACRO_KEYWORDS = [
     "unemployment rate", "gdp",
 ]
 
+# A headline can match MACRO_KEYWORDS purely on organization name (e.g. any
+# Fed press release, or a MarketWatch story that happens to mention "interest
+# rate" in passing) without actually being about a market-moving decision --
+# the Fed's own press-release feed mixes real FOMC/rate-decision news with
+# routine HR/legal/administrative releases (ex-employee lawsuits, personnel
+# changes, small-bank merger approvals) that have ~0% crypto market impact.
+# Confirmed live 2026-08-21: exactly this class of headline was reaching the
+# Telegram feed tagged "BTC (Genel Piyasa)". Checked second, after
+# MACRO_KEYWORDS already matched -- any hit here vetoes the headline.
+MACRO_NOISE_KEYWORDS = [
+    "lawsuit", "ex-employee", "former employee", "misconduct", "settlement",
+    "resigns", "retires", "appoints", "appointment", "promotion", "personnel",
+    "enforcement action", "internal review", "disciplinary", "harassment",
+    "discrimination", "wrongful termination", "bank application",
+    "merger", "acquisition of", "branch closure", "community bank",
+]
+
 # Keyword sets per symbol -- covers config.py's FIXED_COIN_UNIVERSE (25
 # coins) plus DOGE (kept for backward compatibility, not part of the fixed
 # universe but harmless to still recognize). Short/generic tickers that are
@@ -97,6 +114,43 @@ _FUNDING_KEYWORDS = [
     "leads round", "led a round", "seed round", "series a", "series b",
 ]
 
+# Brand/company names that must survive translate_to_turkish() unchanged --
+# see that method's docstring. "Strategy" is included deliberately even
+# though it's also an ordinary English word: it's the real, current name
+# crypto news headlines use for the company formerly known as
+# MicroStrategy, and literal-translating it to "Strateji" was a confirmed
+# live bug. The trade-off (a headline about "the Fed's strategy" would also
+# keep the English word "Strategy" untranslated) is accepted as minor and
+# rare next to the company-name case, which appears in real crypto
+# headlines constantly.
+_TRANSLATION_PROTECTED_TERMS = [
+    "MicroStrategy", "Strategy", "BlackRock", "Grayscale", "Bullish",
+    "Coinbase", "Binance", "Kraken", "Bitfinex", "Bitstamp", "Fidelity",
+    "VanEck", "Ark Invest", "Galaxy Digital", "Tether", "Circle",
+    "Chainlink", "Uniswap", "Aave", "MakerDAO", "Lido", "Nansen",
+    "Bloomberg", "CoinDesk", "Cointelegraph", "Reuters",
+]
+
+
+# Feed domain -> human-readable name, for the "Kaynak: X" line in the
+# Telegram alert. Falls back to the bare domain for anything not listed
+# here (e.g. a feed added later) rather than failing.
+_SOURCE_DISPLAY_NAMES: dict[str, str] = {
+    "cointelegraph.com": "Cointelegraph",
+    "coindesk.com": "CoinDesk",
+    "federalreserve.gov": "Federal Reserve",
+    "marketwatch.com": "MarketWatch",
+}
+
+
+def source_display_name(url: str) -> str:
+    from urllib.parse import urlparse
+    netloc = urlparse(url).netloc.replace("www.", "")
+    for domain, name in _SOURCE_DISPLAY_NAMES.items():
+        if domain in netloc:
+            return name
+    return netloc
+
 
 class NewsService:
     """Provide news sentiment analysis from real news sources."""
@@ -113,11 +167,35 @@ class NewsService:
     _sentiment_cache: dict[str, tuple[float, dict[str, str]]] = {}
     _sentiment_cache_lock = threading.Lock()
 
+    # Words/phrases that flip the polarity of a sentiment keyword appearing
+    # shortly after them ("won't drop", "unlikely to crash", "no longer
+    # bearish") -- the plain keyword-count heuristic below had no negation
+    # handling at all, which is exactly why headlines like "Nansen founder
+    # says BTC won't drop below $60K" (contains "drop", a neg_word, negated)
+    # were misclassified negative. Confirmed live 2026-08-21.
+    _NEGATION_TRIGGERS = (
+        "won't", "wont", "will not", "not ", "no longer", "unlikely to",
+        "isn't", "wasn't", "aren't", "never", "doesn't", "didn't", "without",
+        "denies", "denied", "refutes", "refuted", "fails to", "failed to",
+    )
+
+    def _is_negated(self, text: str, match_start: int) -> bool:
+        # Only look shortly before the match -- a negation trigger far
+        # earlier in a long headline is unlikely to still be governing this
+        # particular word.
+        window = text[max(0, match_start - 25):match_start]
+        return any(trig in window for trig in self._NEGATION_TRIGGERS)
+
     def _rule_based_sentiment(self, headline: str) -> str:
-        """Fallback simple sentiment classifier based on keyword heuristic."""
+        """Fallback simple sentiment classifier based on keyword heuristic,
+        with basic negation handling (see _is_negated above)."""
         text = headline.lower()
-        pos_words = ["surge", "bull", "gain", "up", "rise", "grow", "rally", "high", "positive", "accumulate", "boost", "support", "skyrocket", "profit", "win", "adopt", "launch", "breakout"]
-        neg_words = ["crash", "bear", "drop", "down", "fall", "decline", "sell", "low", "negative", "liquidate", "drain", "resistance", "plunge", "loss", "lose", "ban", "hack", "scam", "lawsuit", "fud"]
+        # "resistance"/"support" removed: they're TA jargon whose actual
+        # sentiment is context-dependent ("breaking resistance" is bullish,
+        # not bearish) -- confirmed live 2026-08-21 as a source of
+        # mislabeled headlines, not a reliable polarity signal either way.
+        pos_words = ["surge", "bull", "gain", "up", "rise", "grow", "rally", "high", "positive", "accumulate", "boost", "skyrocket", "profit", "win", "adopt", "launch", "breakout"]
+        neg_words = ["crash", "bear", "drop", "down", "fall", "decline", "sell", "low", "negative", "liquidate", "drain", "plunge", "loss", "lose", "ban", "hack", "scam", "lawsuit", "fud"]
 
         # Word-boundary match, allowing a short inflectional suffix (surge ->
         # surges/surging) -- plain substring containment false-positives on
@@ -126,18 +204,24 @@ class NewsService:
         # actually use. \w{0,3} covers -s/-es/-ed/-ing while the leading \b
         # still keeps "update"/"below" excluded (no boundary before "up"/"low"
         # there to begin with).
-        pos_count = sum(1 for w in pos_words if re.search(rf"\b{re.escape(w)}\w{{0,3}}\b", text))
-        neg_count = sum(1 for w in neg_words if re.search(rf"\b{re.escape(w)}\w{{0,3}}\b", text))
+        net = 0
+        for w in pos_words:
+            for m in re.finditer(rf"\b{re.escape(w)}\w{{0,3}}\b", text):
+                net += -1 if self._is_negated(text, m.start()) else 1
+        for w in neg_words:
+            for m in re.finditer(rf"\b{re.escape(w)}\w{{0,3}}\b", text):
+                net += 1 if self._is_negated(text, m.start()) else -1
 
-        if pos_count > neg_count:
+        if net > 0:
             return "positive"
-        elif neg_count > pos_count:
+        elif net < 0:
             return "negative"
         return "neutral"
 
     def _fetch_rss_items(self, url: str) -> list[dict[str, str]]:
         """Fetch RSS feed via requests and parse items using built-in xml.etree.ElementTree."""
         items_list = []
+        source_name = source_display_name(url)
         try:
             # RSS feeds sometimes block empty User-Agent, so we supply a browser-like agent
             headers = {"User-Agent": "Mozilla/5.0"}
@@ -154,7 +238,8 @@ class NewsService:
                     if title:
                         items_list.append({
                             "title": title,
-                            "published": pub_date
+                            "published": pub_date,
+                            "source_name": source_name,
                         })
         except Exception as e:
             logger.warning("Failed to fetch or parse RSS feed from %s: %s", url, e)
@@ -186,10 +271,15 @@ class NewsService:
 
     def is_macro_headline(self, headline: str) -> bool:
         """True if this headline looks like US Fed/macro-economic news
-        relevant to risk assets broadly, based on MACRO_KEYWORDS.
+        relevant to risk assets broadly, based on MACRO_KEYWORDS -- and NOT
+        administrative/HR/legal Fed noise (MACRO_NOISE_KEYWORDS), which
+        matches the same organization-name keywords without being a real
+        market-moving event.
         """
         title_lower = headline.lower()
-        return any(kw in title_lower for kw in MACRO_KEYWORDS)
+        if not any(kw in title_lower for kw in MACRO_KEYWORDS):
+            return False
+        return not any(kw in title_lower for kw in MACRO_NOISE_KEYWORDS)
 
     def match_headline_to_symbols(self, headline: str, symbols: list[str] | None = None) -> list[str]:
         """Return which of `symbols` (default: all of SYMBOL_KEYWORDS) this headline mentions.
@@ -244,24 +334,33 @@ class NewsService:
 
     def _classify_sentiment_uncached(self, headlines: list[str]) -> dict[str, str]:
         result: dict[str, str] = {}
-        sentiment_mapped: dict[str, str] = {}
+        # Keyed by index into `headlines`, not by headline text -- an LLM
+        # will often paraphrase/normalize a headline in its JSON output
+        # despite instructions not to, and matching back by lowercased text
+        # then silently dropped any headline it touched into the rule-based
+        # fallback as if the whole call had failed. Confirmed live
+        # 2026-08-21 as a real, frequent cause of the fallback firing (and
+        # therefore of the fallback's generic score/sentiment showing up far
+        # more than intended). An integer index round-trips through JSON
+        # exactly, with nothing to paraphrase.
+        sentiment_mapped: dict[int, str] = {}
         try:
             from services.ai.provider_factory import get_shared_provider
             provider = get_shared_provider()
             if provider and getattr(provider, "_api_key", None):
-                headlines_bullet_str = "\n".join(f"- {h}" for h in headlines)
-                prompt = f"""Analyze the sentiment of the following crypto news headlines.
-For each headline, provide a sentiment label: "positive", "neutral", or "negative".
+                headlines_numbered = "\n".join(f"{i}: {h}" for i, h in enumerate(headlines))
+                prompt = f"""Analyze the sentiment of the following crypto news headlines, given by index.
+For each headline, respond with its index number and a sentiment label: "positive", "neutral", or "negative".
 
 Headlines:
-{headlines_bullet_str}
+{headlines_numbered}
 
-Respond with a JSON list of objects, each containing exactly "headline" and "sentiment" keys.
+Respond with a JSON list of objects, each containing exactly "index" (the integer given above, unchanged) and "sentiment" keys.
 Example:
 [
-  {{"headline": "Bitcoin surges past $60k", "sentiment": "positive"}}, {{"headline": "Market is sideways", "sentiment": "neutral"}}
+  {{"index": 0, "sentiment": "positive"}}, {{"index": 1, "sentiment": "neutral"}}
 ]
-Do not include any other text, explainers, or Markdown block markers like ```json. Output ONLY the raw JSON list of objects.
+Include exactly one object per headline above, using its exact index number. Do not include any other text, explainers, or Markdown block markers like ```json. Output ONLY the raw JSON list of objects.
 """
                 res = provider.generate(prompt)
                 if res and res.content:
@@ -277,18 +376,18 @@ Do not include any other text, explainers, or Markdown block markers like ```jso
                     parsed_list = json.loads(content_clean)
                     if isinstance(parsed_list, list):
                         for item in parsed_list:
-                            h_title = item.get("headline")
+                            idx = item.get("index")
                             sent = str(item.get("sentiment", "neutral")).lower()
                             if sent not in ("positive", "neutral", "negative"):
                                 sent = "neutral"
-                            if h_title:
-                                sentiment_mapped[h_title.strip().lower()] = sent
+                            if isinstance(idx, int) and 0 <= idx < len(headlines):
+                                sentiment_mapped[idx] = sent
         except Exception as e:
             logger.info("NVIDIA sentiment provider failed or unavailable, using rule-based fallback: %s", e)
 
-        for h in headlines:
+        for i, h in enumerate(headlines):
             key = h.strip().lower()
-            result[key] = sentiment_mapped.get(key) or self._rule_based_sentiment(h)
+            result[key] = sentiment_mapped.get(i) or self._rule_based_sentiment(h)
         return result
 
     def classify_and_score(self, headlines: list[str]) -> dict[str, dict[str, Any]]:
@@ -303,37 +402,56 @@ Do not include any other text, explainers, or Markdown block markers like ```jso
 
         Returns a dict keyed by the headline's lowercased, stripped text
         (same convention as classify_sentiment()), each value
-        {"sentiment": "positive"|"neutral"|"negative", "score": int 0-100}.
+        {"sentiment": "positive"|"neutral"|"negative", "score": int 0-100,
+        "reason": str | None} -- reason is a short one-line explanation of
+        the market impact (used by the Telegram alert's "Özet & Etki" line),
+        None when the rule-based fallback fired (it has no reasoning
+        capability, so it's honest to leave this empty rather than fabricate
+        one).
         """
         result: dict[str, dict[str, Any]] = {}
         if not headlines:
             return result
 
-        mapped: dict[str, dict[str, Any]] = {}
+        # Keyed by index, not headline text -- see the identical comment in
+        # _classify_sentiment_uncached() above; this is the path that
+        # actually drives the Telegram news alert, so a text-match miss here
+        # is exactly what was producing the "nearly everything gets 50"
+        # symptom (every miss falls through to the flat fallback score).
+        mapped: dict[int, dict[str, Any]] = {}
         try:
             from services.ai.provider_factory import get_shared_provider
             provider = get_shared_provider()
             if provider and getattr(provider, "_api_key", None):
-                headlines_bullet_str = "\n".join(f"- {h}" for h in headlines)
-                prompt = f"""Analyze the sentiment and market impact of the following crypto news headlines.
+                headlines_numbered = "\n".join(f"{i}: {h}" for i, h in enumerate(headlines))
+                prompt = f"""Analyze the sentiment and market impact of the following crypto news headlines, given by index.
 For each headline, provide:
+- "index": the integer given below, unchanged
 - "sentiment": "positive", "neutral", or "negative"
 - "score": an integer from 0 to 100 for how market-moving/impactful the
   headline is. 0 means routine news with no real price impact; 100 means a
   major market-moving event (e.g. a central bank rate decision, a major
   exchange hack, a landmark regulatory ruling). Most ordinary headlines
-  should score well below 50.
+  should score well below 50. As a rough guide: Fed rate decisions, >$100M
+  ETF flows, exchange hacks, and major regulatory rulings score 75-100;
+  corporate treasury purchases (e.g. a company buying Bitcoin) and clear
+  technical breakouts score 45-74; analyst opinions, price predictions, and
+  routine exchange listings score 0-44.
+- "reason": ONE short sentence (max ~15 words) explaining WHY this headline
+  matters for the market, not a restatement of the headline itself -- e.g.
+  "Increases institutional demand and reduces exchange supply" rather than
+  "A company bought Bitcoin".
 
 Headlines:
-{headlines_bullet_str}
+{headlines_numbered}
 
-Respond with a JSON list of objects, each containing exactly "headline", "sentiment", and "score" keys.
+Respond with a JSON list of objects, each containing exactly "index", "sentiment", "score", and "reason" keys.
 Example:
 [
-  {{"headline": "Bitcoin surges past $60k", "sentiment": "positive", "score": 55}},
-  {{"headline": "Market is sideways", "sentiment": "neutral", "score": 5}}
+  {{"index": 0, "sentiment": "positive", "score": 55, "reason": "Large corporate purchase reduces available exchange supply"}},
+  {{"index": 1, "sentiment": "neutral", "score": 5, "reason": "Routine market commentary with no new information"}}
 ]
-Do not include any other text, explainers, or Markdown block markers like
+Include exactly one object per headline above, using its exact index number. Do not include any other text, explainers, or Markdown block markers like
 ```json. Output ONLY the raw JSON list of objects.
 """
                 res = provider.generate(prompt)
@@ -350,7 +468,7 @@ Do not include any other text, explainers, or Markdown block markers like
                     parsed_list = json.loads(content_clean)
                     if isinstance(parsed_list, list):
                         for item in parsed_list:
-                            h_title = item.get("headline")
+                            idx = item.get("index")
                             sent = str(item.get("sentiment", "neutral")).lower()
                             if sent not in ("positive", "neutral", "negative"):
                                 sent = "neutral"
@@ -359,20 +477,23 @@ Do not include any other text, explainers, or Markdown block markers like
                             except (TypeError, ValueError):
                                 score = 50
                             score = max(0, min(100, score))
-                            if h_title:
-                                mapped[h_title.strip().lower()] = {"sentiment": sent, "score": score}
+                            reason = item.get("reason")
+                            reason = reason.strip() if isinstance(reason, str) and reason.strip() else None
+                            if isinstance(idx, int) and 0 <= idx < len(headlines):
+                                mapped[idx] = {"sentiment": sent, "score": score, "reason": reason}
         except Exception as e:
             logger.info("NVIDIA scoring provider failed or unavailable, using rule-based fallback: %s", e)
 
-        for h in headlines:
+        for i, h in enumerate(headlines):
             key = h.strip().lower()
-            if key in mapped:
-                result[key] = mapped[key]
+            if i in mapped:
+                result[key] = mapped[i]
             else:
                 # Honest fallback: a real sentiment label from the existing
                 # rule-based classifier, but an "unknown impact" default
-                # score rather than a fabricated confidence number.
-                result[key] = {"sentiment": self._rule_based_sentiment(h), "score": 50}
+                # score rather than a fabricated confidence number, and no
+                # reason (the rule-based classifier can't explain itself).
+                result[key] = {"sentiment": self._rule_based_sentiment(h), "score": 50, "reason": None}
         return result
 
     def translate_to_turkish(self, text: str) -> str:
@@ -383,6 +504,15 @@ Do not include any other text, explainers, or Markdown block markers like
         and keeping it off NVIDIA means it keeps working even when NVIDIA is
         rate-limited/down).
 
+        Protected brand/proper-noun terms (_TRANSLATION_PROTECTED_TERMS) are
+        swapped for placeholder tokens before translating and restored
+        after -- Google Translate has no way to know "Strategy" (the
+        company Michael Saylor's MicroStrategy rebranded to) is a proper
+        noun rather than the common English word, and was literally
+        translating it to "Strateji". Confirmed live 2026-08-21 that a
+        short alphanumeric placeholder like "Q3Q" survives GoogleTranslator
+        unchanged where the real word would not.
+
         Falls back to the original English text on any failure -- never
         fabricates a translation.
         """
@@ -390,8 +520,20 @@ Do not include any other text, explainers, or Markdown block markers like
             return text
         try:
             from deep_translator import GoogleTranslator
-            translated = GoogleTranslator(source="en", target="tr").translate(text)
+
+            working_text = text
+            protected_map: dict[str, str] = {}
+            for i, term in enumerate(_TRANSLATION_PROTECTED_TERMS):
+                pattern = rf"\b{re.escape(term)}\b"
+                if re.search(pattern, working_text, re.IGNORECASE):
+                    placeholder = f"Q{i}Q"
+                    working_text = re.sub(pattern, placeholder, working_text, flags=re.IGNORECASE)
+                    protected_map[placeholder] = term
+
+            translated = GoogleTranslator(source="en", target="tr").translate(working_text)
             if translated and translated.strip():
+                for placeholder, term in protected_map.items():
+                    translated = translated.replace(placeholder, term)
                 return translated
         except Exception as e:
             logger.info("Translation failed, falling back to original English text: %s", e)

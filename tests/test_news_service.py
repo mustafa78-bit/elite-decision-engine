@@ -65,6 +65,31 @@ class TestRuleBasedSentiment:
         assert service._rule_based_sentiment("Bitcoin surges as bulls rally") == "positive"
         assert service._rule_based_sentiment("Market crash triggers panic sell-off") == "negative"
 
+    def test_negated_negative_word_reads_as_positive(self):
+        # Real reported bug 2026-08-21: "won't drop" contains "drop" (a
+        # neg_word) with no negation handling at all, so this was
+        # classified negative despite being a bullish headline.
+        service = NewsService()
+        assert service._rule_based_sentiment(
+            "Nansen founder says BTC won't drop below $60K"
+        ) == "positive"
+
+    def test_negated_positive_word_reads_as_negative(self):
+        service = NewsService()
+        assert service._rule_based_sentiment(
+            "Analyst warns Bitcoin is unlikely to rally this quarter"
+        ) == "negative"
+
+    def test_double_negative_still_reads_correctly_per_nearest_negation(self):
+        # A negation far earlier in a long headline shouldn't flip a
+        # keyword it isn't actually governing -- window is intentionally
+        # short (~25 chars).
+        service = NewsService()
+        result = service._rule_based_sentiment(
+            "Analyst who was not always right about markets says Bitcoin will surge"
+        )
+        assert result == "positive"
+
 
 class TestClassifyAndScore:
     def test_empty_headlines_returns_empty_dict(self):
@@ -73,29 +98,50 @@ class TestClassifyAndScore:
 
     @patch("services.ai.provider_factory.create_provider")
     def test_successful_llm_response_parsed_into_sentiment_and_score(self, mock_create_provider):
+        # Matched back by "index", not headline text -- see the module
+        # docstring on why (an LLM paraphrasing the headline in its response
+        # used to silently drop it into the rule-based fallback).
         mock_provider = MagicMock()
         mock_provider._api_key = "test_key"
         mock_provider.generate.return_value = MagicMock(
             content=(
-                '[{"headline": "Bitcoin surges past $60k", "sentiment": "positive", "score": 55}, '
-                '{"headline": "Market is sideways", "sentiment": "neutral", "score": 5}]'
+                '[{"index": 0, "sentiment": "positive", "score": 55, "reason": "Big rally"}, '
+                '{"index": 1, "sentiment": "neutral", "score": 5, "reason": "Nothing new"}]'
             )
         )
         mock_create_provider.return_value = mock_provider
 
         result = NewsService().classify_and_score(["Bitcoin surges past $60k", "Market is sideways"])
 
-        assert result["bitcoin surges past $60k"] == {"sentiment": "positive", "score": 55}
-        assert result["market is sideways"] == {"sentiment": "neutral", "score": 5}
+        assert result["bitcoin surges past $60k"] == {"sentiment": "positive", "score": 55, "reason": "Big rally"}
+        assert result["market is sideways"] == {"sentiment": "neutral", "score": 5, "reason": "Nothing new"}
         # exactly one batched call for both headlines, not one per headline
         mock_provider.generate.assert_called_once()
+
+    @patch("services.ai.provider_factory.create_provider")
+    def test_llm_response_matched_by_index_even_when_headline_text_is_paraphrased(self, mock_create_provider):
+        mock_provider = MagicMock()
+        mock_provider._api_key = "test_key"
+        # The LLM slightly reworded the headline in its own output -- this
+        # must still match via "index", not fall through to the rule-based
+        # fallback the way lowercased-text matching used to.
+        mock_provider.generate.return_value = MagicMock(
+            content='[{"index": 0, "sentiment": "positive", "score": 70, "reason": "Strong signal"}]'
+        )
+        mock_create_provider.return_value = mock_provider
+
+        result = NewsService().classify_and_score(["BTC won't drop below $60K, says Nansen founder"])
+
+        assert result["btc won't drop below $60k, says nansen founder"] == {
+            "sentiment": "positive", "score": 70, "reason": "Strong signal",
+        }
 
     @patch("services.ai.provider_factory.create_provider")
     def test_score_clamped_to_0_100_range(self, mock_create_provider):
         mock_provider = MagicMock()
         mock_provider._api_key = "test_key"
         mock_provider.generate.return_value = MagicMock(
-            content='[{"headline": "Big news", "sentiment": "positive", "score": 999}]'
+            content='[{"index": 0, "sentiment": "positive", "score": 999, "reason": "x"}]'
         )
         mock_create_provider.return_value = mock_provider
 
@@ -111,13 +157,13 @@ class TestClassifyAndScore:
 
         result = NewsService().classify_and_score(["Bitcoin surges as bulls rally"])
 
-        assert result["bitcoin surges as bulls rally"] == {"sentiment": "positive", "score": 50}
+        assert result["bitcoin surges as bulls rally"] == {"sentiment": "positive", "score": 50, "reason": None}
 
     def test_no_provider_falls_back_to_rule_based_with_neutral_score(self):
         with _NO_LLM:
             result = NewsService().classify_and_score(["Market crash triggers panic sell-off"])
 
-        assert result["market crash triggers panic sell-off"] == {"sentiment": "negative", "score": 50}
+        assert result["market crash triggers panic sell-off"] == {"sentiment": "negative", "score": 50, "reason": None}
 
 
 class TestTranslateToTurkish:
@@ -139,6 +185,28 @@ class TestTranslateToTurkish:
         assert result == original
 
     @patch("deep_translator.GoogleTranslator.translate")
+    def test_protected_brand_name_survives_translation(self, mock_translate):
+        # Real reported bug 2026-08-21: "MicroStrategy" was showing up
+        # translated in Turkish alerts (confusing, and risks breaking
+        # downstream symbol matching against MSTR/BTC).
+        mock_translate.side_effect = lambda *a: a[-1].replace("sold", "sattı")
+        result = NewsService().translate_to_turkish("MicroStrategy sold 1690 BTC today")
+        assert "MicroStrategy" in result
+        assert "Strateji" not in result
+        called_with = mock_translate.call_args[0][-1]
+        assert "MicroStrategy" not in called_with  # confirms a placeholder was actually used
+
+    @patch("deep_translator.GoogleTranslator.translate")
+    def test_protected_term_strategy_survives_translation(self, mock_translate):
+        # "Strategy" (the company's current, rebranded name) is also an
+        # ordinary English word -- the real observed failure was Google
+        # Translate literal-translating it to "Strateji".
+        mock_translate.side_effect = lambda *a: a[-1].replace("sold", "sattı")
+        result = NewsService().translate_to_turkish("Strategy sold 1690 Bitcoin")
+        assert "Strategy" in result
+        assert "Strateji" not in result
+
+    @patch("deep_translator.GoogleTranslator.translate")
     def test_empty_translation_result_falls_back_to_original_text(self, mock_translate):
         mock_translate.return_value = ""
         original = "Bitcoin surges past $60k"
@@ -157,3 +225,27 @@ class TestIsMacroHeadline:
         service = NewsService()
         assert service.is_macro_headline("Bitcoin surges past $60k") is False
         assert service.is_macro_headline("Local sports team wins championship") is False
+
+    def test_fed_administrative_noise_does_not_match(self):
+        # Real reported bug 2026-08-21: headlines that mention "Federal
+        # Reserve"/"Fed" purely as the organization involved in routine
+        # HR/legal news (not an actual rate decision) were reaching the
+        # Telegram feed tagged "BTC (Genel Piyasa)" with ~0% market impact.
+        service = NewsService()
+        assert service.is_macro_headline(
+            "Federal Reserve settles lawsuit with former employee"
+        ) is False
+        assert service.is_macro_headline(
+            "Regional Fed bank approves merger with community bank"
+        ) is False
+        assert service.is_macro_headline(
+            "Fed official resigns amid personnel review"
+        ) is False
+
+    def test_real_rate_decision_still_matches_even_with_powell_mentioned(self):
+        # Sanity check the noise filter isn't so broad it also excludes
+        # genuine rate-decision news just because it names an official.
+        service = NewsService()
+        assert service.is_macro_headline(
+            "Powell announces Fed will hold interest rates steady"
+        ) is True
