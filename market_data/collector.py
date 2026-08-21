@@ -77,6 +77,37 @@ class HyperliquidCollector:
                     time.sleep(self.BACKOFF_FACTOR ** attempt)
                     continue
                 raise
+            except requests.HTTPError as e:
+                status = e.response.status_code if e.response is not None else None
+                if status == 429:
+                    # A 429 means Hyperliquid is explicitly telling us to
+                    # back off -- blindly retrying with exponential backoff
+                    # (the generic branch below) just adds more load on top
+                    # of what's already causing the 429, and is actively
+                    # counterproductive under the exact conditions it fires
+                    # in: many concurrent callers (scanner across 25 symbols,
+                    # multiple chart overlay fetches, etc.) all independently
+                    # backing off on their own uncoordinated schedule, then
+                    # retrying back into another burst together. Confirmed
+                    # live 2026-08-21: 236 429s in a short window with the
+                    # old blind-retry behavior. Fail fast instead and let the
+                    # shared rate limiter (market/provider/multi.py) throttle
+                    # the *next* logical call -- this collector has no
+                    # visibility into that limiter itself, so it can't wait
+                    # intelligently, only stop making the problem worse.
+                    logger.warning(
+                        "Hyperliquid rate limit (429) for %s %s, not retrying",
+                        symbol, timeframe,
+                    )
+                    raise
+                logger.warning(
+                    "Request failed on attempt %s/%s for %s %s: %s",
+                    attempt, self.MAX_RETRIES, symbol, timeframe, e,
+                )
+                if attempt < self.MAX_RETRIES:
+                    time.sleep(self.BACKOFF_FACTOR ** attempt)
+                    continue
+                raise
             except (requests.RequestException, ValueError) as e:
                 logger.warning(
                     "Request failed on attempt %s/%s for %s %s: %s",

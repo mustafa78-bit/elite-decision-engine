@@ -30,12 +30,13 @@ from market.provider.rate_limiter import TokenBucketRateLimiter
 
 logger = logging.getLogger(__name__)
 
-# Conservative starting point -- there's no documented Hyperliquid rate limit
-# to size this against precisely. A handful of requests/second per provider
-# leaves headroom for several subsystems polling concurrently without being
-# so low it visibly stalls a single request. Tune later based on real 429
-# observations once Step 3 wires real callers through this path.
-DEFAULT_REQUESTS_PER_SECOND = 5.0
+# Lowered from 5.0 -- real 429 observations 2026-08-21 (236 in a short
+# window) showed 5/sec was still too aggressive for Hyperliquid's actual
+# tolerance once several subsystems (scanner, chart overlays, screenshot
+# capture) poll concurrently. Paired with market_data/collector.py no longer
+# blindly retrying on 429 (see that module) -- retries were compounding the
+# problem by adding load on top of what already triggered the rate limit.
+DEFAULT_REQUESTS_PER_SECOND = 3.0
 
 
 class MultiProvider:
