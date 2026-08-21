@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from api.websocket.manager import WebSocketManager
 from database import Notification, UserSettings, get_session
@@ -47,6 +47,83 @@ def _telegram_alert_enabled(event: str) -> bool:
     if settings is None or not settings.notification_preferences:
         return True
     return settings.notification_preferences.get(key, True)
+
+
+def _build_trade_opened_caption(payload: dict) -> str:
+    trade_id = payload.get("trade_id")
+    symbol = payload.get("symbol", "UNKNOWN")
+    side = str(payload.get("side", "UNKNOWN")).upper()
+    entry = payload.get("entry")
+    stop = payload.get("stop")
+    tp1 = payload.get("tp1")
+    tp2 = payload.get("tp2")
+    intel = payload.get("intelligence") or {}
+
+    levels_lines = [f"Giriş: {entry}"]
+    if stop:
+        levels_lines.append(f"Stop: {stop}")
+    if tp1:
+        levels_lines.append(f"TP1: {tp1}")
+    if tp2:
+        levels_lines.append(f"TP2: {tp2}")
+    levels_block = "\n".join(levels_lines)
+
+    # "Neden LONG/SHORT" -- the same component scores ScoringEngine.score()
+    # and ConfidenceEngine.calculate() used to approve this trade
+    # (execution/execution_loop.py's _create_trade() threads them through as
+    # `intelligence`), surfaced so the alert answers "why this side" instead
+    # of just announcing the fact of the trade.
+    reason_line = None
+    score_keys = ("trend_score", "volume_score", "btc_score", "mtf_score", "risk_score")
+    if any(k in intel for k in score_keys):
+        parts = []
+        labels = {
+            "trend_score": "Trend", "volume_score": "Hacim", "btc_score": "BTC Sağlığı",
+            "mtf_score": "MTF", "risk_score": "Risk",
+        }
+        for key in score_keys:
+            if key in intel:
+                parts.append(f"{labels[key]} {intel[key]}/1.0")
+        reason_line = " · ".join(parts)
+
+    summary_bits = []
+    if "final_score" in intel:
+        summary_bits.append(f"Final Skor: {intel['final_score']}")
+    if "confidence" in intel:
+        summary_bits.append(f"Güven: %{intel['confidence']}")
+    if "decision" in intel:
+        summary_bits.append(f"({intel['decision']})")
+    summary_line = " | ".join(summary_bits) if summary_bits else None
+
+    reason_block = ""
+    if reason_line or summary_line:
+        reason_block = f"\n\n<b>Neden {side}:</b>"
+        if reason_line:
+            reason_block += f"\n{reason_line}"
+        if summary_line:
+            reason_block += f"\n{summary_line}"
+
+    return (
+        f"🟢 <b>İŞLEM AÇILDI</b>\n"
+        f"<b>{symbol} {side}</b> @ {entry}\n\n"
+        f"{levels_block}"
+        f"{reason_block}\n\n"
+        f"ID: {trade_id}"
+    )
+
+
+def _trade_opened_chart_kwargs(payload: dict) -> dict:
+    # Passed through to services.telegram.chart_screenshot.capture_trade_chart_png()
+    # (imported lazily there -- this module has no direct Playwright dependency).
+    return {
+        "symbol": payload.get("symbol") or "",
+        "timeframe": payload.get("timeframe") or "1h",
+        "side": str(payload.get("side", "")),
+        "entry": payload.get("entry"),
+        "stop": payload.get("stop"),
+        "tp1": payload.get("tp1"),
+        "tp2": payload.get("tp2"),
+    }
 
 
 def _persist_notification(event: str, payload: dict) -> None:
@@ -130,11 +207,14 @@ class NotificationDispatcher:
             try:
                 msg = ""
                 if event == TradeEvent.TRADE_OPENED:
-                    trade_id = payload.get("trade_id")
-                    symbol = payload.get("symbol", "UNKNOWN")
-                    side = payload.get("side", "UNKNOWN")
-                    entry = payload.get("entry")
-                    msg = f"🟢 <b>TRADE OPENED</b>\n<b>{symbol} {side}</b> @ {entry}\nID: {trade_id}"
+                    # Own send path (not the shared send_alert_threadsafe(msg)
+                    # below) -- this one also carries a chart screenshot, sent
+                    # as a photo+caption instead of a plain text message.
+                    caption = _build_trade_opened_caption(payload)
+                    self.telegram_bot_manager.send_trade_opened_alert_threadsafe(
+                        caption, _trade_opened_chart_kwargs(payload)
+                    )
+                    return {"event": event, "payload": payload}
                 elif event == TradeEvent.TRADE_CLOSED:
                     trade_id = payload.get("trade_id")
                     symbol = payload.get("symbol", "UNKNOWN")

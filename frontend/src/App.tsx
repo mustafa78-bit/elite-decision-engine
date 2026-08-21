@@ -32,6 +32,7 @@ const Execution = lazy(() => import("./pages/Execution"));
 const Intelligence = lazy(() => import("./pages/Intelligence"));
 const Journal = lazy(() => import("./pages/Journal"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ChartEmbed = lazy(() => import("./pages/ChartEmbed"));
 const Market = lazy(() => import("./pages/Market"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const NotificationsPage = lazy(() => import("./pages/Notifications"));
@@ -236,6 +237,7 @@ export function AppRoutes() {
       <Routes>
         <Route path="/" element={<Navigate to="/command-deck" replace />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/embed/chart" element={<ChartEmbed />} />
 
         <Route
           element={

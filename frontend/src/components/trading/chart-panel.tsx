@@ -21,9 +21,15 @@ interface ChartPanelProps {
   timeframe?: string;
   openTrades?: TradePayload[];
   opportunities?: ScannerOpportunity[];
+  // Fires once after every overlay fetch (S/R, divergence, channel,
+  // liquidity zones, volume profile) has settled and the chart has drawn
+  // whatever it got -- used by the embed page (services/telegram's
+  // screenshot capture) as a deterministic "safe to screenshot now" signal
+  // instead of a fixed timeout.
+  onReady?: () => void;
 }
 
-export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], opportunities = [] }: ChartPanelProps) {
+export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], opportunities = [], onReady }: ChartPanelProps) {
   const { t } = useTranslation("tradingWorkspace");
   const containerRef = useRef<HTMLDivElement>(null);
   const { symbol } = useTerminalStore();
@@ -151,7 +157,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
         const symbolStr = symbol || "BTC";
 
         // 1. Support/Resistance Levels
-        fetchMarketLevels(symbolStr, timeframe)
+        const p1 = fetchMarketLevels(symbolStr, timeframe)
           .then((levels) => {
             if (!levels || levels.length === 0) return;
             levels.forEach((lvl) => {
@@ -171,7 +177,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           .catch((err) => console.error("Error fetching S/R levels", err));
 
         // 2. RSI Divergence
-        fetchMarketDivergence(symbolStr, timeframe)
+        const p2 = fetchMarketDivergence(symbolStr, timeframe)
           .then((div) => {
             if (!div || !div.found || !div.p1 || !div.p2) return;
 
@@ -194,7 +200,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           .catch((err) => console.error("Error fetching RSI divergence", err));
 
         // 3. Trend Channel
-        fetchMarketChannel(symbolStr, timeframe)
+        const p3 = fetchMarketChannel(symbolStr, timeframe)
           .then((chan) => {
             if (!chan || !chan.found || !chan.upper || !chan.lower) return;
 
@@ -235,7 +241,7 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
         // Reuses the same createPriceLine() pattern as S/R above, but with
         // its own colors (amber/violet) so the two concepts stay visually
         // distinct even though both render as horizontal lines.
-        fetchLiquidityZones(symbolStr, timeframe)
+        const p4 = fetchLiquidityZones(symbolStr, timeframe)
           .then((zones) => {
             if (!zones || zones.length === 0) return;
             zones.forEach((zone) => {
@@ -312,12 +318,14 @@ export function ChartPanel({ data = [], timeframe = "1h", openTrades = [], oppor
           });
         };
 
-        fetchVolumeProfile(symbolStr, timeframe)
+        const p5 = fetchVolumeProfile(symbolStr, timeframe)
           .then((profile) => {
             latestVolumeProfile = profile;
             drawVolumeProfile();
           })
           .catch((err) => console.error("Error fetching volume profile", err));
+
+        Promise.allSettled([p1, p2, p3, p4, p5]).then(() => onReady?.());
 
         // ResizeObserver (not a window "resize" listener) -- the chart's own
         // container can change size for reasons that never fire a window

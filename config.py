@@ -116,6 +116,13 @@ TELEGRAM_NEWS_CHAT_ID: str = os.getenv("TELEGRAM_NEWS_CHAT_ID", "")
 TELEGRAM_VC_TOKEN: str = os.getenv("TELEGRAM_VC_TOKEN", "")
 TELEGRAM_VC_CHAT_ID: str = os.getenv("TELEGRAM_VC_CHAT_ID", "")
 
+# Origin the TRADE_OPENED alert's chart screenshot is captured from
+# (services/telegram/chart_screenshot.py headless-browses
+# {this}/embed/chart?... and crops the rendered chart). Same machine as the
+# backend in this deployment; override if the frontend is ever served
+# elsewhere.
+TELEGRAM_CHART_EMBED_BASE_URL: str = os.getenv("TELEGRAM_CHART_EMBED_BASE_URL", "http://localhost:5173")
+
 # Minimum classify_and_score() impact score (0-100) a market-moving headline
 # needs to actually trigger a Telegram push -- the score was computed and
 # shown in every alert's text but never gated whether one was sent at all,
