@@ -131,16 +131,19 @@ export default function CommandDeck() {
     const baseSymbol = activeTrade.symbol.replace(/USDT$/, "")
     setTerminalSymbol(baseSymbol)
     let mounted = true
-    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    let nextTimer: ReturnType<typeof setTimeout> | undefined
 
     // /market/live can 200 with {"error": ...} instead of candles during a
-    // transient Hyperliquid rate-limit -- this effect only re-runs when the
-    // open-trade list itself changes, so without a retry, landing on that
-    // window once left the chart blank until the next trade opened/closed
-    // (confirmed live 2026-08-21: a post-restart 429 burst blanked the
-    // active-trade chart with no recovery). Retries with backoff instead of
-    // giving up on the first failure.
-    const RETRY_DELAYS_MS = [3000, 6000, 12000]
+    // transient Hyperliquid rate-limit. A bounded retry (a few attempts then
+    // give up) isn't enough on its own -- confirmed live 2026-08-21 that a
+    // burst can outlast a handful of quick retries, leaving the chart
+    // permanently blank for the rest of the trade's lifetime since nothing
+    // else re-triggers this effect. Polls indefinitely instead: fast
+    // retries while there's no data yet to show, settling into a steady
+    // refresh once data is flowing (which also keeps a long-open trade's
+    // chart current, not frozen at whatever loaded first).
+    const FAST_RETRY_MS = [3000, 6000, 12000]
+    const STEADY_POLL_MS = 15000
 
     const load = (attempt: number) => {
       apiFetch<{ candles: LiveCandle[] }>(`/market/live?symbol=${baseSymbol}&timeframe=1h&limit=100`)
@@ -155,26 +158,23 @@ export default function CommandDeck() {
               close: c.close,
               volume: c.volume,
             })))
-          } else if (attempt < RETRY_DELAYS_MS.length) {
-            retryTimer = setTimeout(() => load(attempt + 1), RETRY_DELAYS_MS[attempt])
+            nextTimer = setTimeout(() => load(attempt), STEADY_POLL_MS)
           } else {
-            setActiveTradeCandles([])
+            const delay = attempt < FAST_RETRY_MS.length ? FAST_RETRY_MS[attempt] : STEADY_POLL_MS
+            nextTimer = setTimeout(() => load(attempt + 1), delay)
           }
         })
         .catch(() => {
           if (!mounted) return
-          if (attempt < RETRY_DELAYS_MS.length) {
-            retryTimer = setTimeout(() => load(attempt + 1), RETRY_DELAYS_MS[attempt])
-          } else {
-            setActiveTradeCandles([])
-          }
+          const delay = attempt < FAST_RETRY_MS.length ? FAST_RETRY_MS[attempt] : STEADY_POLL_MS
+          nextTimer = setTimeout(() => load(attempt + 1), delay)
         })
     }
     load(0)
 
     return () => {
       mounted = false
-      if (retryTimer) clearTimeout(retryTimer)
+      if (nextTimer) clearTimeout(nextTimer)
     }
   }, [activeTrade, setTerminalSymbol])
 
