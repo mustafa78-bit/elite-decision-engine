@@ -27,8 +27,10 @@ def _reset_funding_collector_cache():
     # to a later test that mocks collector._session.post and expects that
     # mock to actually be hit.
     FundingCollector._cache = None
+    FundingCollector._history_cache = {}
     yield
     FundingCollector._cache = None
+    FundingCollector._history_cache = {}
 
 
 class TestFundingRate:
@@ -435,3 +437,87 @@ class TestFundingCollectorCaching:
             result = collector.fetch_all()
         assert mock_post.call_count == 1
         assert len(result.rates) == 1
+
+
+class TestFundingHistoryCaching:
+    """fetch_funding_history() had no cache at all until this fix -- confirmed
+    live 2026-08-21 as a real contributor to Hyperliquid 429 storms:
+    WhaleService calls it once per scanned symbol with zero throttling, so a
+    single 25-symbol scan fired 25 uncached, unthrottled requests
+    back-to-back."""
+
+    @staticmethod
+    def _mock_history_response():
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = [
+            {"coin": "BTC", "fundingRate": "0.0000030", "time": 1_000_000_000},
+        ]
+        return mock_response
+
+    def test_repeated_calls_for_same_symbol_and_limit_hit_network_once(self):
+        collector = FundingCollector()
+        with patch.object(collector._session, "post", return_value=self._mock_history_response()) as mock_post:
+            first = collector.fetch_funding_history("BTC", limit=5)
+            second = collector.fetch_funding_history("BTC", limit=5)
+
+        assert mock_post.call_count == 1
+        assert first == second
+
+    def test_different_symbol_or_limit_bypasses_the_cache(self):
+        collector = FundingCollector()
+        with patch.object(collector._session, "post", return_value=self._mock_history_response()) as mock_post:
+            collector.fetch_funding_history("BTC", limit=5)
+            collector.fetch_funding_history("ETH", limit=5)  # different symbol
+            collector.fetch_funding_history("BTC", limit=10)  # different limit
+
+        assert mock_post.call_count == 3
+
+    def test_cache_is_shared_across_separate_instances(self):
+        # Class-level, not per-instance -- WhaleService, api/routes/funding.py
+        # etc. each construct their own FundingCollector() but must still
+        # share one real fetch per (symbol, limit).
+        response = self._mock_history_response()
+        first_collector = FundingCollector()
+        second_collector = FundingCollector()
+
+        with patch.object(first_collector._session, "post", return_value=response) as mock_post_one:
+            first_collector.fetch_funding_history("BTC", limit=5)
+        with patch.object(second_collector._session, "post", return_value=response) as mock_post_two:
+            second_collector.fetch_funding_history("BTC", limit=5)
+
+        assert mock_post_one.call_count == 1
+        assert mock_post_two.call_count == 0
+
+    def test_history_cache_expires_after_ttl(self):
+        collector = FundingCollector()
+        with patch.object(collector._session, "post", return_value=self._mock_history_response()) as mock_post:
+            collector.fetch_funding_history("BTC", limit=5)
+            with patch(
+                "market_data.funding.collector.time.time",
+                return_value=time.time() + FundingCollector._CACHE_TTL_SECONDS + 1,
+            ):
+                collector.fetch_funding_history("BTC", limit=5)
+
+        assert mock_post.call_count == 2
+
+    def test_concurrent_cache_miss_for_same_symbol_only_fires_one_network_call(self):
+        collector = FundingCollector()
+        call_count = 0
+        call_lock = threading.Lock()
+
+        def slow_post(*args, **kwargs):
+            nonlocal call_count
+            with call_lock:
+                call_count += 1
+            time.sleep(0.05)
+            return self._mock_history_response()
+
+        with patch.object(collector._session, "post", side_effect=slow_post):
+            threads = [threading.Thread(target=collector.fetch_funding_history, args=("BTC",), kwargs={"limit": 5}) for _ in range(10)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+        assert call_count == 1
