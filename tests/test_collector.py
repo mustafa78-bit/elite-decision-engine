@@ -1,6 +1,9 @@
 import time
 from unittest.mock import MagicMock, patch
 
+import pytest
+import requests
+
 from market_data.collector import HyperliquidCollector, _stale_threshold_seconds
 
 
@@ -56,3 +59,56 @@ class TestHyperliquidCollectorStaleness:
         with patch.object(collector._session, "post", return_value=mock_response):
             df = collector.get_ohlcv(symbol="BTC", timeframe="1h")
         assert df.empty
+
+
+def _http_error(status_code: int) -> requests.HTTPError:
+    resp = MagicMock()
+    resp.status_code = status_code
+    return requests.HTTPError(response=resp)
+
+
+class TestHyperliquidCollectorRetryBehavior:
+    """A 429 must not be blindly retried -- confirmed live 2026-08-21: doing
+    so compounds the very rate-limit pressure that triggered it (236 429s
+    in a short window with the old behavior, many subsystems retrying
+    independently into repeated bursts)."""
+
+    def test_429_fails_fast_without_retrying(self):
+        collector = HyperliquidCollector()
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = _http_error(429)
+
+        with patch.object(collector._session, "post", return_value=mock_response) as mock_post, \
+             patch("market_data.collector.time.sleep") as mock_sleep:
+            with pytest.raises(requests.HTTPError):
+                collector.get_ohlcv(symbol="BTC", timeframe="1h")
+
+        mock_post.assert_called_once()
+        mock_sleep.assert_not_called()
+
+    def test_non_429_http_error_still_retries(self):
+        # The blind-retry behavior is still correct/desired for transient
+        # errors that aren't a rate-limit signal (e.g. a real 500).
+        collector = HyperliquidCollector()
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = _http_error(500)
+
+        with patch.object(collector._session, "post", return_value=mock_response) as mock_post, \
+             patch("market_data.collector.time.sleep") as mock_sleep:
+            with pytest.raises(requests.HTTPError):
+                collector.get_ohlcv(symbol="BTC", timeframe="1h")
+
+        assert mock_post.call_count == HyperliquidCollector.MAX_RETRIES
+        assert mock_sleep.call_count == HyperliquidCollector.MAX_RETRIES - 1
+
+    def test_connection_error_still_retries(self):
+        collector = HyperliquidCollector()
+
+        with patch.object(
+            collector._session, "post", side_effect=requests.ConnectionError("network down")
+        ) as mock_post, patch("market_data.collector.time.sleep") as mock_sleep:
+            with pytest.raises(requests.ConnectionError):
+                collector.get_ohlcv(symbol="BTC", timeframe="1h")
+
+        assert mock_post.call_count == HyperliquidCollector.MAX_RETRIES
+        assert mock_sleep.call_count == HyperliquidCollector.MAX_RETRIES - 1
