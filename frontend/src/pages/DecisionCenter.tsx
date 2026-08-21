@@ -408,7 +408,10 @@ export default function DecisionCenter() {
         side: signal.side,
         decision: signal.decision,
         eliteScore: computeEliteScore(signal, intelligence),
-        confidence: Math.round(signal.confidence * 100),
+        // signal.confidence is already a 0-100 percentage (core/confidence_engine.py
+        // clamps to [0, 100]) -- multiplying by 100 again produced values like
+        // 9881% instead of 99%. Confirmed live 2026-08-21.
+        confidence: Math.round(signal.confidence),
         reason: signal.status,
         risk: signal.risk_score,
         timestamp: signal.created_at ?? new Date().toISOString(),
