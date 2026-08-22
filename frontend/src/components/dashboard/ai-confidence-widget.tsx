@@ -4,15 +4,17 @@ import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 
 interface AIConfidenceWidgetProps {
+  /** 0-100, straight from the backend's real ExplainEngine confidence. */
   confidence?: number;
   decision?: string;
-  score?: number;
+  /** One-sentence reasoning from ExplainEngine, shown in place of a second number. */
+  summary?: string;
 }
 
 export function AIConfidenceWidget({
   confidence = 0,
   decision = "WAIT",
-  score = 0,
+  summary = "",
 }: AIConfidenceWidgetProps) {
   const { t } = useTranslation("heroDashboard");
   const decisionLabels: Record<string, string> = {
@@ -22,7 +24,7 @@ export function AIConfidenceWidget({
     STRONG_SELL: t("aiConfidenceWidget.decision.strongSell"),
     WAIT: t("aiConfidenceWidget.decision.wait"),
   };
-  const pct = Math.min(Math.max((confidence || score) * 10, 0), 100);
+  const pct = Math.min(Math.max(confidence, 0), 100);
   const color =
     pct >= 70
       ? "var(--accent-green)"
@@ -79,9 +81,11 @@ export function AIConfidenceWidget({
             >
               {decisionLabels[decision] || decision}
             </Badge>
-            <div className="text-[11px] font-mono text-[var(--text-muted)]">
-              {t("aiConfidenceWidget.score", { score: score.toFixed(1) })}
-            </div>
+            {summary && (
+              <div className="text-[11px] text-[var(--text-muted)] max-w-[180px] leading-snug">
+                {summary}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
