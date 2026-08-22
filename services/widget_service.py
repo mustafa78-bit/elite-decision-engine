@@ -7,7 +7,7 @@ from typing import Any, Optional
 from sqlalchemy import or_, text
 
 from config import ACCOUNT_EQUITY
-from database import FINAL_STATUSES, Notification, PaperTrade, Signal, Trade, get_session
+from database import FINAL_STATUSES, Notification, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     KPIDashboardWidgetDTO,
@@ -15,6 +15,7 @@ from dto.widgets import (
     NotificationDashboardWidgetDTO,
     PortfolioDashboardWidgetDTO,
 )
+from services.pnl import compute_max_drawdown, get_trades_with_dollar_pnl
 
 logger = logging.getLogger(__name__)
 
@@ -55,46 +56,25 @@ class WidgetService:
     def _portfolio_widget(self, user_id: int | None = None, **kwargs) -> dict[str, Any]:
         session = self.session_factory()
         try:
-            query = session.query(Trade, PaperTrade).outerjoin(
-                PaperTrade, PaperTrade.position_id == Trade.id
-            )
-            if user_id is not None:
-                query = query.filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
-            results = query.all()
-            dollar_pnls = []
-            for t, pt in results:
-                qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 1.0
-                dollar_pnls.append((t, (t.pnl or 0.0) * qty))
+            filters = [or_(Trade.user_id == user_id, Trade.user_id.is_(None))] if user_id is not None else []
+            dollar_pnls = get_trades_with_dollar_pnl(session, *filters)
 
             closed = [(t, pnl) for t, pnl in dollar_pnls if t.status in FINAL_STATUSES]
             open_t = [t for t, _ in dollar_pnls if t.status == "OPEN"]
             wins = [pnl for _, pnl in closed if pnl > 0]
             total_pnl = sum(pnl for _, pnl in closed)
             wr = (len(wins) / len(closed) * 100) if closed else 0
+            sorted_closed = sorted(closed, key=lambda pair: pair[0].closed_at or pair[0].created_at)
             return PortfolioDashboardWidgetDTO(
                 total_pnl=round(total_pnl, 2),
                 total_trades=len(closed),
                 open_trades=len(open_t),
                 win_rate=round(wr, 1),
                 equity=round(ACCOUNT_EQUITY + total_pnl, 2),
-                max_drawdown=round(self._max_drawdown(closed), 2),
+                max_drawdown=round(compute_max_drawdown([pnl for _, pnl in sorted_closed]), 2),
             ).to_dict()
         finally:
             session.close()
-
-    def _max_drawdown(self, closed: list[tuple[Trade, float]]) -> float:
-        sorted_closed = sorted(closed, key=lambda pair: pair[0].closed_at or pair[0].created_at)
-        peak = 0.0
-        max_dd = 0.0
-        running = 0.0
-        for _, pnl in sorted_closed:
-            running += pnl
-            if running > peak:
-                peak = running
-            dd = peak - running
-            if dd > max_dd:
-                max_dd = dd
-        return max_dd
 
     def _monitoring_widget(self, **kwargs) -> dict[str, Any]:
         from monitoring.health import HealthService

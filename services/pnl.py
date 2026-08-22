@@ -55,3 +55,24 @@ def get_trades_with_exposure(session: Session, *filters, limit: int | None = Non
         query = query.limit(limit)
     results = query.all()
     return [(t, trade_notional_exposure(t, pt)) for t, pt in results]
+
+
+def compute_max_drawdown(chronological_pnls: list[float]) -> float:
+    """Peak-to-trough dollar drawdown over a chronologically-sorted dollar PnL sequence.
+
+    Callers own the sort order (which timestamp field defines "chronological"
+    has diverged between call sites historically) -- this only does the
+    peak-tracking, so migrating a call site to this helper never silently
+    changes its ordering.
+    """
+    peak = 0.0
+    max_dd = 0.0
+    running = 0.0
+    for pnl in chronological_pnls:
+        running += pnl
+        if running > peak:
+            peak = running
+        dd = peak - running
+        if dd > max_dd:
+            max_dd = dd
+    return max_dd
