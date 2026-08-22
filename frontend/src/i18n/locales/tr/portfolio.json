@@ -50,5 +50,15 @@
       "status": "Durum",
       "pnl": "K/Z"
     }
+  },
+  "distributionTable": {
+    "title": "Sembole Göre K/Z",
+    "noData": "Henüz kapalı işlem yok",
+    "columns": {
+      "symbol": "Sembol",
+      "trades": "İşlem",
+      "winRate": "Kazanma Oranı",
+      "pnl": "K/Z"
+    }
   }
 }

@@ -50,5 +50,15 @@
       "status": "Status",
       "pnl": "PnL"
     }
+  },
+  "distributionTable": {
+    "title": "PnL by Symbol",
+    "noData": "No closed trades yet",
+    "columns": {
+      "symbol": "Symbol",
+      "trades": "Trades",
+      "winRate": "Win Rate",
+      "pnl": "PnL"
+    }
   }
 }

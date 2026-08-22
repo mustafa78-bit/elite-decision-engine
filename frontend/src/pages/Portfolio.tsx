@@ -5,13 +5,14 @@ import { useTranslation } from "react-i18next";
 import type { LayoutContext } from "../components/layout/Layout";
 import type { PortfolioStats } from "../api/portfolio";
 import { fetchPortfolio } from "../api/portfolio";
-import type { PortfolioSummaryDTO, PortfolioRiskDTO } from "../types/api/portfolio";
-import { fetchPortfolioSummary, fetchPortfolioRisk } from "../api/portfolio_detail";
+import type { PortfolioSummaryDTO, PortfolioRiskDTO, PortfolioDistributionDTO } from "../types/api/portfolio";
+import { fetchPortfolioSummary, fetchPortfolioRisk, fetchPortfolioDistribution } from "../api/portfolio_detail";
 import { ApiError } from "../api/client";
 import BalanceCard from "../components/portfolio/BalanceCard";
 import ExposureChart from "../components/portfolio/ExposureChart";
 import AllocationCard from "../components/portfolio/AllocationCard";
 import PositionTable from "../components/portfolio/PositionTable";
+import SymbolDistributionTable from "../components/portfolio/SymbolDistributionTable";
 import MetricCard from "../components/MetricCard";
 
 export default function Portfolio() {
@@ -20,6 +21,7 @@ export default function Portfolio() {
   const [port, setPort] = useState<PortfolioStats | null>(null);
   const [summary, setSummary] = useState<PortfolioSummaryDTO | null>(null);
   const [risk, setRisk] = useState<PortfolioRiskDTO | null>(null);
+  const [distribution, setDistribution] = useState<PortfolioDistributionDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +42,7 @@ export default function Portfolio() {
     // failure here must not block the page's primary stats above.
     fetchPortfolioSummary().then(setSummary).catch(() => setSummary(null));
     fetchPortfolioRisk().then(setRisk).catch(() => setRisk(null));
+    fetchPortfolioDistribution().then(setDistribution).catch(() => setDistribution(null));
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -162,6 +165,10 @@ export default function Portfolio() {
       )}
 
       <PositionTable positions={positions} />
+
+      {distribution && distribution.by_symbol.length > 0 && (
+        <SymbolDistributionTable bySymbol={distribution.by_symbol} />
+      )}
     </div>
   );
 }
