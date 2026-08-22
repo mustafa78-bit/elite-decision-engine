@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from api.dependencies import require_user_id
 from database import FINAL_STATUSES, PaperTrade, Trade, get_session
 from execution.paper_executor import PaperExecutor as PaperExec
+from services.pnl import trade_dollar_pnl
 
 router = APIRouter()
 
@@ -51,13 +52,13 @@ def get_paper_trading(request: Request):
     for t, pt in results:
         status_str = str(t.status)
 
-        # Calculate real dollar pnl
-        if t.pnl is None:
-            real_pnl = None
-        elif pt is not None:
-            real_pnl = (pt.quantity or 0.0) * t.pnl
-        else:
-            real_pnl = t.pnl
+        # Calculate real dollar pnl. Excludes trades with no matching
+        # PaperTrade (real quantity unknown) rather than treating the raw
+        # per-unit pnl as a dollar amount -- mirrors risk_manager.py's/
+        # paper_executor.py's established "exclude, don't guess" handling
+        # of the identical condition. real_pnl stays None either way (no
+        # data yet vs. quantity unknown are both "N/A" to the caller).
+        real_pnl = None if t.pnl is None else trade_dollar_pnl(t, pt)
 
         if status_str == "OPEN":
             open_list.append({

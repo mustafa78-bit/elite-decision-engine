@@ -162,11 +162,17 @@ def test_get_paper_trading_empty(api_client):
 
 
 def test_get_paper_trading_with_trades(api_client, db_session):
+    from database import PaperTrade
     _make_trade(db_session, signal_id=1, status="OPEN")
-    _make_trade(
+    closed_trade = _make_trade(
         db_session, signal_id=2, status="TP_HIT", pnl=500.0,
         exit_price=51000.0, close_reason="TP_HIT",
     )
+    db_session.add(PaperTrade(
+        position_id=closed_trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, status="CLOSED", pnl=500.0,
+    ))
+    db_session.flush()
     resp = api_client.get("/paper-trading")
     assert resp.status_code == 200
     body = resp.json()
@@ -194,7 +200,8 @@ def test_get_paper_trading_scoped_to_owning_user(api_client, db_session):
 def test_get_paper_trading_mixed_quantities(api_client, db_session):
     from database import PaperTrade
 
-    # 1. Open trade with no matching PaperTrade (falls back to Trade.pnl)
+    # 1. Open trade with no matching PaperTrade -- real quantity unknown,
+    # pnl must be excluded (None), not a guessed quantity=1.0 fallback.
     _make_trade(db_session, id=10, signal_id=1, status="OPEN", pnl=10.0)
 
     # 2. Closed trade: entry $3,000, exit $3,050 (pnl $50 per unit), quantity 0.2
@@ -231,8 +238,8 @@ def test_get_paper_trading_mixed_quantities(api_client, db_session):
         status="CLOSED",
     ))
 
-    # 4. Closed trade with no matching PaperTrade (falls back to Trade.pnl, quantity=1.0)
-    # Real dollar PnL = -$5.0
+    # 4. Closed trade with no matching PaperTrade -- real quantity unknown,
+    # pnl must be excluded (None), not a guessed quantity=1.0 fallback.
     _make_trade(
         db_session, id=13, signal_id=4, status="CLOSED", pnl=-5.0,
         entry=150.0, exit_price=145.0,
@@ -246,7 +253,7 @@ def test_get_paper_trading_mixed_quantities(api_client, db_session):
 
     assert len(body["open"]) == 1
     assert body["open"][0]["id"] == 10
-    assert body["open"][0]["pnl"] == 10.0  # falls back to Trade.pnl
+    assert body["open"][0]["pnl"] is None  # no matching PaperTrade -- excluded, not guessed
 
     assert len(body["closed"]) == 3
     closed_by_id = {item["id"]: item for item in body["closed"]}
@@ -255,11 +262,11 @@ def test_get_paper_trading_mixed_quantities(api_client, db_session):
     assert closed_by_id[11]["pnl"] == 10.0
     # Trade 12: real dollar pnl = -10.0 * 5.0 = -50.0
     assert closed_by_id[12]["pnl"] == -50.0
-    # Trade 13: fallback (no PaperTrade) -> raw pnl -5.0
-    assert closed_by_id[13]["pnl"] == -5.0
+    # Trade 13: no matching PaperTrade -- excluded, not guessed
+    assert closed_by_id[13]["pnl"] is None
 
-    # Total: 10.0 + (-50.0) + (-5.0) = -45.0
-    assert body["performance"]["total_pnl"] == -45.0
+    # Total: only trades with a known real dollar pnl count: 10.0 + (-50.0) = -40.0
+    assert body["performance"]["total_pnl"] == -40.0
 
 
 # ─── Execution Status ──────────────────────────────────────────────────────
@@ -589,7 +596,13 @@ def test_get_signals_null_owner_visible_to_everyone(api_client, db_session):
 
 
 def test_get_risk_with_trades(api_client, db_session):
-    _make_trade(db_session, signal_id=1, status="OPEN", entry=50000.0, pnl=0.0)
+    from database import PaperTrade
+    open_trade = _make_trade(db_session, signal_id=1, status="OPEN", entry=50000.0, pnl=0.0)
+    db_session.add(PaperTrade(
+        position_id=open_trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, status="OPEN",
+    ))
+    db_session.flush()
     _make_trade(db_session, signal_id=2, status="TP_HIT", entry=51000.0, pnl=500.0)
     headers = {"Authorization": f"Bearer {_token_for_user(_make_user(db_session))}"}
     resp = api_client.get("/risk", headers=headers)
@@ -608,10 +621,16 @@ def test_get_risk_daily_loss_with_naive_closed_at(api_client, db_session):
     # 2026-08-20: /risk 500'd on every request that had a closed, losing
     # trade because it compared this naive value against an
     # aware datetime.now(UTC) today_start.
-    _make_trade(
+    from database import PaperTrade
+    closed_trade = _make_trade(
         db_session, signal_id=1, status="TP_HIT", entry=50000.0, pnl=-500.0,
         closed_at=datetime.now(),
     )
+    db_session.add(PaperTrade(
+        position_id=closed_trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, status="CLOSED", pnl=-500.0,
+    ))
+    db_session.flush()
     headers = {"Authorization": f"Bearer {_token_for_user(_make_user(db_session))}"}
     resp = api_client.get("/risk", headers=headers)
     assert resp.status_code == 200
@@ -730,10 +749,20 @@ def test_get_regime(api_client):
 
 
 def test_get_intelligence_with_trades(api_client, db_session):
+    from database import PaperTrade
     _make_signal(db_session, status="OPEN")
     _make_signal(db_session, status="EXECUTED")
-    _make_trade(db_session, signal_id=1, status="OPEN")
-    _make_trade(db_session, signal_id=2, status="TP_HIT", pnl=500.0)
+    open_trade = _make_trade(db_session, signal_id=1, status="OPEN")
+    db_session.add(PaperTrade(
+        position_id=open_trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, status="OPEN",
+    ))
+    closed_trade = _make_trade(db_session, signal_id=2, status="TP_HIT", pnl=500.0)
+    db_session.add(PaperTrade(
+        position_id=closed_trade.id, symbol="BTCUSDT", side="LONG",
+        entry=50000.0, quantity=1.0, status="CLOSED", pnl=500.0,
+    ))
+    db_session.flush()
     resp = api_client.get("/intelligence")
     assert resp.status_code == 200
     body = resp.json()
@@ -1013,7 +1042,9 @@ def test_get_risk_mixed_quantities(api_client, db_session):
     )
     db_session.add(pt1)
 
-    # 2. Open trade with NO matching PaperTrade record (fallback qty = 1.0, exposure = 3000.0 * 1.0 = 3000.0)
+    # 2. Open trade with NO matching PaperTrade record -- real quantity
+    # unknown, must be excluded from exposure entirely (not a guessed
+    # quantity=1.0 fallback).
     t2 = Trade(
         symbol="ETHUSDT", side="LONG", entry=3000.0, stop=2900.0,
         tp1=3200.0, tp2=3300.0, rr=2.0, status="OPEN", pnl=0.0
@@ -1025,11 +1056,11 @@ def test_get_risk_mixed_quantities(api_client, db_session):
     resp = api_client.get("/risk", headers=headers)
     assert resp.status_code == 200
     body = resp.json()
-    assert body["open_trades"] == 2
-    # Portfolio exposure should be 100000.0 + 3000.0 = 103000.0
-    assert body["portfolio_exposure"] == 103000.0
+    # t2 (no matching PaperTrade) is excluded entirely -- only t1 counts.
+    assert body["open_trades"] == 1
+    assert body["portfolio_exposure"] == 100000.0
     assert body["symbol_exposure"]["BTCUSDT"] == 100000.0
-    assert body["symbol_exposure"]["ETHUSDT"] == 3000.0
+    assert "ETHUSDT" not in body["symbol_exposure"]
 
 
 def test_get_intelligence_mixed_quantities(api_client, db_session):
@@ -1052,7 +1083,9 @@ def test_get_intelligence_mixed_quantities(api_client, db_session):
     )
     db_session.add(pt1)
 
-    # 2. Closed trade with NO matching PaperTrade record (fallback qty = 1.0, real dollar pnl = -50.0 * 1.0 = -50.0)
+    # 2. Closed trade with NO matching PaperTrade record -- real quantity
+    # unknown, must be excluded from dollar pnl entirely (not a guessed
+    # quantity=1.0 fallback).
     t2 = Trade(
         symbol="ETHUSDT", side="LONG", entry=3000.0, stop=2900.0,
         tp1=3200.0, tp2=3300.0, rr=2.0, status="SL_HIT", pnl=-50.0
@@ -1063,5 +1096,5 @@ def test_get_intelligence_mixed_quantities(api_client, db_session):
     resp = api_client.get("/intelligence")
     assert resp.status_code == 200
     body = resp.json()
-    # Total PnL should be 300.0 - 50.0 = 250.0
-    assert body["trades"]["total_pnl"] == 250.0
+    # t2 (no matching PaperTrade) is excluded entirely -- only t1's 300.0 counts.
+    assert body["trades"]["total_pnl"] == 300.0

@@ -111,14 +111,18 @@ def test_closed_trade_with_no_pnl_data_is_excluded_from_pnl_but_still_counted(se
     assert stats.total_pnl == 20.0  # only the winner's 10.0 * quantity 2.0, the None-pnl trade excluded
 
 
-def test_falls_back_to_raw_entry_when_no_paper_trade_match(session_factory, db_session):
-    # No matching PaperTrade row exists for this Trade -- same
-    # quantity=1.0 fallback convention already used by get_real_pnl() for
-    # this exact situation, not a crash or a silently-zeroed exposure.
+def test_excludes_exposure_when_no_paper_trade_match(session_factory, db_session):
+    # No matching PaperTrade row exists for this Trade -- real quantity is
+    # unknown, so this must be excluded from exposure/allocation entirely
+    # (contributes 0, not a guessed quantity=1.0 * entry). Corrected
+    # 2026-08-22: mirrors risk_manager.py's/paper_executor.py's established
+    # "exclude, don't guess" handling of the identical missing-PaperTrade
+    # condition -- an earlier version of this test asserted the opposite
+    # (a quantity=1.0 guess), which was itself the bug.
     _make_trade(db_session, symbol="SOLUSDT", entry=100.0)
 
     engine = PortfolioEngine(session_factory=session_factory, initial_equity=10000.0)
     stats = engine.stats()
 
-    assert stats.current_open_exposure == 100.0
-    assert stats.allocation["SOLUSDT"] == 100.0
+    assert stats.current_open_exposure == 0.0
+    assert stats.allocation["SOLUSDT"] == 0.0

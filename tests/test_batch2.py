@@ -92,14 +92,23 @@ class TestPortfolioService:
 
     def test_portfolio_with_trades(self, db_session):
         from config import ACCOUNT_EQUITY
+        from database import PaperTrade
         from services.portfolio_service import PortfolioService
         now = datetime.now(UTC)
-        db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
-                             tp1=52000, rr=2.0, status="TP_HIT", pnl=2000.0,
-                             created_at=now - timedelta(days=2), closed_at=now - timedelta(days=2)))
-        db_session.add(Trade(symbol="ETHUSDT", side="SHORT", entry=3000, stop=3100,
-                             tp1=2800, rr=2.0, status="SL_HIT", pnl=-500.0,
-                             created_at=now - timedelta(days=1), closed_at=now - timedelta(days=1)))
+        t1 = Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
+                   tp1=52000, rr=2.0, status="TP_HIT", pnl=2000.0,
+                   created_at=now - timedelta(days=2), closed_at=now - timedelta(days=2))
+        db_session.add(t1)
+        db_session.flush()
+        db_session.add(PaperTrade(position_id=t1.id, symbol="BTCUSDT", side="LONG",
+                                   entry=50000, quantity=1.0, status="CLOSED", pnl=2000.0))
+        t2 = Trade(symbol="ETHUSDT", side="SHORT", entry=3000, stop=3100,
+                   tp1=2800, rr=2.0, status="SL_HIT", pnl=-500.0,
+                   created_at=now - timedelta(days=1), closed_at=now - timedelta(days=1))
+        db_session.add(t2)
+        db_session.flush()
+        db_session.add(PaperTrade(position_id=t2.id, symbol="ETHUSDT", side="SHORT",
+                                   entry=3000, quantity=1.0, status="CLOSED", pnl=-500.0))
         db_session.flush()
         svc = PortfolioService(session_factory=lambda: db_session)
         s = svc.summary()
@@ -140,10 +149,15 @@ class TestPortfolioService:
         assert r["current_exposure"] == 0.0
 
     def test_portfolio_risk_exposure_and_average_risk_distance(self, db_session):
+        from database import PaperTrade
         from services.portfolio_service import PortfolioService
         # Add open trade to check exposure based on entry price
-        db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49000.0,
-                             status="OPEN", pnl=10.0)) # pnl should not be used for exposure
+        t1 = Trade(symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49000.0,
+                   status="OPEN", pnl=10.0) # pnl should not be used for exposure
+        db_session.add(t1)
+        db_session.flush()
+        db_session.add(PaperTrade(position_id=t1.id, symbol="BTCUSDT", side="LONG",
+                                   entry=50000.0, quantity=1.0, status="OPEN"))
         # Add closed trades to check risk_per_trade distance calculation
         now = datetime.now(UTC)
         db_session.add(Trade(symbol="ETHUSDT", side="SHORT", entry=3000.0, stop=3100.0,

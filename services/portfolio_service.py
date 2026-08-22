@@ -76,8 +76,13 @@ class PortfolioService:
     def _compute_summary(self, trades: list[TradePair]) -> dict[str, Any]:
         closed = [(t, pt) for t, pt in trades if t.status in FINAL_STATUSES]
         open_trades = [(t, pt) for t, pt in trades if t.status == "OPEN"]
-        closed_pnls = [trade_dollar_pnl(t, pt) for t, pt in closed]
-        open_pnls = [trade_dollar_pnl(t, pt) for t, pt in open_trades]
+        # Excludes trades with no matching PaperTrade (real quantity
+        # unknown) from dollar-denominated math -- mirrors
+        # risk_manager.py's/paper_executor.py's established "exclude,
+        # don't guess" handling of the identical condition. total_trades/
+        # open_trades below still count every trade regardless.
+        closed_pnls = [trade_dollar_pnl(t, pt) for t, pt in closed if pt is not None]
+        open_pnls = [trade_dollar_pnl(t, pt) for t, pt in open_trades if pt is not None]
         wins = [p for p in closed_pnls if p > 0]
         losses = [p for p in closed_pnls if p < 0]
         total_pnl = sum(closed_pnls)
@@ -85,7 +90,8 @@ class PortfolioService:
         gp = sum(wins)
         gl = abs(sum(losses))
         pf = gp / gl if gl > 0 else (999.99 if gp > 0 else 0)
-        wr = (len(wins) / len(closed) * 100) if closed else 0
+        total_wl = len(wins) + len(losses)
+        wr = (len(wins) / total_wl * 100) if total_wl else 0
         sharpe = self._sharpe(closed_pnls)
         max_dd = self._max_drawdown(trades)
         current_dd = self._current_drawdown(trades)
@@ -117,7 +123,7 @@ class PortfolioService:
             by_symbol.setdefault(t.symbol or "?", []).append((t, pt))
         symbol_data = []
         for sym, pairs in sorted(by_symbol.items()):
-            pnls = [trade_dollar_pnl(t, pt) for t, pt in pairs]
+            pnls = [trade_dollar_pnl(t, pt) for t, pt in pairs if pt is not None]
             wins = [p for p in pnls if p > 0]
             symbol_data.append({
                 "symbol": sym, "trades": len(pairs), "wins": len(wins),
@@ -147,8 +153,11 @@ class PortfolioService:
     def _compute_risk(self, trades: list[TradePair]) -> dict[str, Any]:
         open_trades = [(t, pt) for t, pt in trades if t.status == "OPEN"]
         closed = [(t, pt) for t, pt in trades if t.status in FINAL_STATUSES]
-        total_exposure = sum(trade_notional_exposure(t, pt) for t, pt in open_trades)
-        pnls = [trade_dollar_pnl(t, pt) for t, pt in closed]
+        # Excludes trades with no matching PaperTrade (real quantity
+        # unknown) -- mirrors risk_manager.py's established "exclude,
+        # don't guess" handling of the identical condition.
+        total_exposure = sum(trade_notional_exposure(t, pt) for t, pt in open_trades if pt is not None)
+        pnls = [trade_dollar_pnl(t, pt) for t, pt in closed if pt is not None]
         var95 = self._value_at_risk(pnls, 0.95)
         downside = self._expected_downside(pnls)
         gp = sum(p for p in pnls if p > 0)
@@ -156,6 +165,8 @@ class PortfolioService:
         rf = gp / md if md > 0 else 0
         by_sym: dict[str, float] = {}
         for t, pt in open_trades:
+            if pt is None:
+                continue
             sym = t.symbol or "?"
             by_sym[sym] = by_sym.get(sym, 0) + trade_notional_exposure(t, pt)
         total = sum(by_sym.values()) or 1
@@ -185,7 +196,7 @@ class PortfolioService:
         max_dd = 0.0
         running = 0.0
         for t, pt in sorted_trades:
-            running += trade_dollar_pnl(t, pt)
+            running += trade_dollar_pnl(t, pt) or 0.0
             if running > peak:
                 peak = running
             dd = peak - running
@@ -199,7 +210,7 @@ class PortfolioService:
         peak = 0.0
         running = 0.0
         for t, pt in sorted_trades:
-            running += trade_dollar_pnl(t, pt)
+            running += trade_dollar_pnl(t, pt) or 0.0
             if running > peak:
                 peak = running
         return peak - running
@@ -209,7 +220,7 @@ class PortfolioService:
         curve = []
         running = 0.0
         for t, pt in sorted_trades:
-            running += trade_dollar_pnl(t, pt)
+            running += trade_dollar_pnl(t, pt) or 0.0
             ts = t.closed_at or t.created_at
             curve.append({
                 "timestamp": ts.isoformat() if ts else None,
@@ -223,7 +234,7 @@ class PortfolioService:
             ts = t.closed_at or t.created_at
             if ts:
                 key = ts.strftime("%Y-%m")
-                monthly[key] = monthly.get(key, 0) + trade_dollar_pnl(t, pt)
+                monthly[key] = monthly.get(key, 0) + (trade_dollar_pnl(t, pt) or 0.0)
         return [{"month": k, "pnl": round(v, 2)} for k, v in sorted(monthly.items())]
 
     def _daily_pnl(self, trades: list[TradePair]) -> list[dict[str, Any]]:
@@ -232,7 +243,7 @@ class PortfolioService:
             ts = t.closed_at or t.created_at
             if ts:
                 key = ts.strftime("%Y-%m-%d")
-                daily[key] = daily.get(key, 0) + trade_dollar_pnl(t, pt)
+                daily[key] = daily.get(key, 0) + (trade_dollar_pnl(t, pt) or 0.0)
         return [{"date": k, "pnl": round(v, 2)} for k, v in sorted(daily.items())]
 
     def _drawdown_curve(self, trades: list[TradePair]) -> list[dict[str, Any]]:
@@ -241,7 +252,7 @@ class PortfolioService:
         peak = 0.0
         running = 0.0
         for t, pt in sorted_trades:
-            running += trade_dollar_pnl(t, pt)
+            running += trade_dollar_pnl(t, pt) or 0.0
             if running > peak:
                 peak = running
             dd = peak - running
