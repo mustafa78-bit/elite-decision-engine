@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any, Optional
@@ -282,6 +283,10 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(_periodic_broadcast())
     task.add_done_callback(_on_task_done("Periodic broadcast"))
     _background_tasks.add(task)
+
+    heartbeat_task = asyncio.create_task(_event_loop_heartbeat())
+    heartbeat_task.add_done_callback(_on_task_done("Event loop heartbeat"))
+    _background_tasks.add(heartbeat_task)
 
     health_task = asyncio.create_task(_health_monitor_loop(shared_dispatcher))
     health_task.add_done_callback(_on_task_done("Health monitor loop"))
@@ -697,6 +702,45 @@ async def _scan_and_generate_signals() -> None:
             raise
         except Exception:
             logger.exception("Scan-and-signal task iteration failed")
+
+
+async def _event_loop_heartbeat() -> None:
+    """Pure-asyncio heartbeat -- zero blocking calls, zero to_thread, zero
+    I/O -- logged every 15s so a future freeze investigation has a direct
+    answer instead of more guessing.
+
+    Confirmed live 2026-08-21/22: the watchdog (scripts/watchdog.py) caught
+    the backend going completely unresponsive to GET /health 41 times
+    overnight, each time for roughly 30-60s with zero log activity of any
+    kind in between -- including execution_loop's own 10s heartbeat, which
+    itself already runs its blocking work inside asyncio.to_thread(). That
+    ambiguity (event loop truly frozen vs. one to_thread call just running
+    long, delaying when its own log line prints) couldn't be resolved from
+    existing logs alone. This loop has no dependency on any business logic
+    or thread pool -- if IT ever goes quiet or logs a large gap between
+    consecutive drift readings, the event loop itself is genuinely blocked
+    (points to a stray synchronous call somewhere not wrapped in
+    to_thread/run_in_threadpool). If it keeps ticking normally while
+    everything else goes silent, the freeze is isolated to whatever's
+    running inside a to_thread call or the sync-route thread pool, not the
+    loop itself -- a materially different, less severe class of bug.
+    """
+    interval = 15
+    last = time.monotonic()
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            now = time.monotonic()
+            drift = now - last - interval
+            last = now
+            if drift > 2.0:
+                logger.warning("Event loop heartbeat: %.1fs late (expected %ds)", drift, interval)
+            else:
+                logger.debug("Event loop heartbeat ok (drift %.2fs)", drift)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Event loop heartbeat iteration failed")
 
 
 async def _periodic_broadcast() -> None:
