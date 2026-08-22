@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import type { LayoutContext } from "../components/layout/Layout";
 import type { PortfolioStats } from "../api/portfolio";
 import { fetchPortfolio } from "../api/portfolio";
+import type { PortfolioSummaryDTO, PortfolioRiskDTO } from "../types/api/portfolio";
+import { fetchPortfolioSummary, fetchPortfolioRisk } from "../api/portfolio_detail";
 import { ApiError } from "../api/client";
 import BalanceCard from "../components/portfolio/BalanceCard";
 import ExposureChart from "../components/portfolio/ExposureChart";
@@ -16,6 +18,8 @@ export default function Portfolio() {
   const { t } = useTranslation(["portfolio", "common"]);
   const { openTrades } = useOutletContext<LayoutContext>();
   const [port, setPort] = useState<PortfolioStats | null>(null);
+  const [summary, setSummary] = useState<PortfolioSummaryDTO | null>(null);
+  const [risk, setRisk] = useState<PortfolioRiskDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +34,12 @@ export default function Portfolio() {
     } finally {
       setLoading(false);
     }
+    // Sharpe/VaR/recovery-factor are already computed server-side
+    // (services/portfolio_service.py) but were fetched-and-discarded by
+    // useSubsystems.ts's health bar (only .status was read). Non-critical:
+    // failure here must not block the page's primary stats above.
+    fetchPortfolioSummary().then(setSummary).catch(() => setSummary(null));
+    fetchPortfolioRisk().then(setRisk).catch(() => setRisk(null));
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -101,6 +111,55 @@ export default function Portfolio() {
         <ExposureChart allocation={port.allocation} />
         <AllocationCard allocation={port.allocation} />
       </div>
+
+      {(summary || risk) && (
+        <div className="space-y-2">
+          <h2 className="text-xs uppercase tracking-widest text-[var(--text-secondary)]">
+            {t("riskPanel.title")}
+          </h2>
+          {summary && summary.total_trades < 2 ? (
+            <div className="text-[var(--text-secondary)] text-xs p-4 border border-dashed border-[var(--border-subtle)] rounded text-center">
+              {t("riskPanel.noData")}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {summary && (
+                <MetricCard
+                  label={t("riskPanel.sharpeRatio")}
+                  value={summary.sharpe_ratio.toFixed(2)}
+                  positive={summary.sharpe_ratio > 0}
+                  negative={summary.sharpe_ratio < 0}
+                />
+              )}
+              {risk && (
+                <MetricCard label={t("riskPanel.var95")} value={`$${risk.var_95.toFixed(2)}`} negative={risk.var_95 < 0} />
+              )}
+              {risk && (
+                <MetricCard
+                  label={t("riskPanel.expectedDownside")}
+                  value={`$${risk.expected_downside.toFixed(2)}`}
+                  negative={risk.expected_downside < 0}
+                />
+              )}
+              {risk && (
+                <MetricCard label={t("riskPanel.recoveryFactor")} value={risk.recovery_factor.toFixed(2)} />
+              )}
+              {summary && (
+                <MetricCard label={t("riskPanel.currentDrawdown")} value={`$${summary.current_drawdown.toFixed(2)}`} negative={summary.current_drawdown > 0} />
+              )}
+              {summary && (
+                <MetricCard label={t("riskPanel.bestTrade")} value={`$${summary.best_trade_pnl.toFixed(2)}`} positive={summary.best_trade_pnl > 0} />
+              )}
+              {summary && (
+                <MetricCard label={t("riskPanel.worstTrade")} value={`$${summary.worst_trade_pnl.toFixed(2)}`} negative={summary.worst_trade_pnl < 0} />
+              )}
+              {summary && summary.avg_trade_duration && (
+                <MetricCard label={t("riskPanel.avgDuration")} value={summary.avg_trade_duration} />
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <PositionTable positions={positions} />
     </div>
