@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import or_
 
 from api.dependencies import require_user_id
-from database import FINAL_STATUSES, OPEN, Signal, Trade, get_session
+from database import OPEN, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     ExplanationDashboardWidgetDTO,
@@ -17,11 +17,9 @@ from dto.widgets import (
     KPIDashboardWidgetDTO,
     MonitoringDashboardWidgetDTO,
     NotificationDashboardWidgetDTO,
-    PortfolioDashboardWidgetDTO,
     TimelineDashboardWidgetDTO,
 )
 from services.kpi_service import KPIService
-from services.pnl import compute_max_drawdown, get_trades_with_dollar_pnl
 
 logger = logging.getLogger(__name__)
 
@@ -154,50 +152,6 @@ def dashboard_timeline(signal_id: int, request: Request):
         return widget.to_dict()
     except Exception as e:
         logger.error("Dashboard timeline failed: %s", e)
-        return JSONResponse(status_code=500, content={"error": str(e)})
-    finally:
-        session.close()
-
-
-@router.get("/dashboard/portfolio")
-def dashboard_portfolio(request: Request):
-    user_id = require_user_id(request)
-    session = get_session()
-    try:
-        results = get_trades_with_dollar_pnl(
-            session, or_(Trade.user_id == user_id, Trade.user_id.is_(None)),
-        )
-        parsed_trades = [{"trade": t, "pnl_val": pnl_val} for t, pnl_val in results]
-
-        closed = [item for item in parsed_trades if item["trade"].status in FINAL_STATUSES]
-        open_trades = [item for item in parsed_trades if item["trade"].status == "OPEN"]
-        total_pnl = sum(item["pnl_val"] for item in closed)
-        wins = [item for item in closed if item["pnl_val"] > 0]
-
-        def _sort_key(item):
-            dt = item["trade"].created_at
-            if dt is None:
-                return datetime.min.replace(tzinfo=UTC)
-            if dt.tzinfo is None:
-                return dt.replace(tzinfo=UTC)
-            return dt
-
-        sorted_closed = sorted(closed, key=_sort_key)
-        max_dd = compute_max_drawdown([item["pnl_val"] for item in sorted_closed])
-
-        from config import ACCOUNT_EQUITY
-
-        widget = PortfolioDashboardWidgetDTO(
-            total_pnl=round(total_pnl, 2),
-            total_trades=len(closed),
-            open_trades=len(open_trades),
-            win_rate=round((len(wins) / len(closed) * 100), 1) if closed else 0,
-            equity=round(ACCOUNT_EQUITY + total_pnl, 2),
-            max_drawdown=round(max_dd, 2),
-        )
-        return widget.to_dict()
-    except Exception as e:
-        logger.error("Dashboard portfolio failed: %s", e)
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
         session.close()
