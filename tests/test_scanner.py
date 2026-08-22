@@ -358,7 +358,7 @@ class TestOpportunityScanner:
         # fresh deployment, since the real uvicorn entrypoint never calls
         # database.create_tables()) previously crashed scanner construction
         # entirely -- several call sites default-construct OpportunityScanner()
-        # unguarded (api/routes/scanner.py, TerminalService, DecisionAggregator).
+        # unguarded (api/routes/scanner.py among them).
         from config import FIXED_COIN_UNIVERSE
 
         mock_temp_watch = MagicMock()
