@@ -75,7 +75,7 @@ class PerformanceEngine:
         results = query.all()
         closed_pairs = [
             (t, pt) for t, pt in results
-            if t.status in _TRADE_TERMINAL and t.pnl is not None
+            if t.status in _TRADE_TERMINAL and t.pnl is not None and pt is not None
         ]
 
         if not closed_pairs:

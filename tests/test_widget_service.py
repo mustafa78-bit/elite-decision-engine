@@ -69,7 +69,13 @@ def test_portfolio_widget_mixed_quantity_btc_eth(db_session):
     assert widget["win_rate"] == 100.0
 
 
-def test_portfolio_widget_no_matching_paper_trade_falls_back_to_quantity_one(db_session):
+def test_portfolio_widget_no_matching_paper_trade_is_excluded(db_session):
+    # Real quantity is unknown without a matching PaperTrade -- must be
+    # excluded entirely, not treated as if quantity=1.0. Corrected
+    # 2026-08-22: mirrors risk_manager.py's/paper_executor.py's
+    # established "exclude, don't guess" handling of the identical
+    # condition -- an earlier version of this test asserted the opposite
+    # (a quantity=1.0 guess), which was itself the bug.
     trade = Trade(
         id=22,
         symbol="SOLUSDT",
@@ -86,5 +92,5 @@ def test_portfolio_widget_no_matching_paper_trade_falls_back_to_quantity_one(db_
     svc = WidgetService(session_factory=lambda: db_session)
     widget = svc._portfolio_widget()
 
-    assert widget["total_pnl"] == 5.0
-    assert widget["total_trades"] == 1
+    assert widget["total_pnl"] == 0.0
+    assert widget["total_trades"] == 0

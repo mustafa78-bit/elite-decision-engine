@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
-from database import Trade
+from database import PaperTrade, Trade
 from dto.analytics import (
     KPIDTO,
     AnalyticsDTO,
@@ -21,6 +21,16 @@ from dto.analytics import (
 )
 from services.analytics_service import AnalyticsService
 from services.kpi_service import KPIService
+
+
+def _paper_trade_for(trade: Trade, quantity: float = 1.0) -> PaperTrade:
+    """A matching PaperTrade (quantity=1.0 by default) so trade.pnl reads as
+    a real dollar amount -- AnalyticsService excludes trades with no
+    matching PaperTrade rather than guessing a quantity (see services/pnl.py)."""
+    return PaperTrade(
+        position_id=trade.id, symbol=trade.symbol, side=trade.side,
+        entry=trade.entry, quantity=quantity, status=trade.status, pnl=trade.pnl,
+    )
 
 
 class TestAnalyticsDTOs:
@@ -130,9 +140,14 @@ class TestAnalyticsService:
                  created_at=now - timedelta(hours=1)),
         ]
 
+        trades = []
         for td in trades_data:
             t = Trade(**td)
             db_session.add(t)
+            trades.append(t)
+        db_session.flush()
+        for t in trades:
+            db_session.add(_paper_trade_for(t))
         db_session.flush()
 
         service = AnalyticsService(session_factory=lambda: db_session)
@@ -155,8 +170,14 @@ class TestAnalyticsService:
             dict(symbol="ETHUSDT", side="LONG", entry=3000, stop=2900,
                  tp1=3200, rr=2.0, status="TP_HIT", pnl=400.0, created_at=now),
         ]
+        trades = []
         for td in trades_data:
-            db_session.add(Trade(**td))
+            t = Trade(**td)
+            db_session.add(t)
+            trades.append(t)
+        db_session.flush()
+        for t in trades:
+            db_session.add(_paper_trade_for(t))
         db_session.flush()
 
         service = AnalyticsService(session_factory=lambda: db_session)
@@ -172,12 +193,20 @@ class TestAnalyticsService:
 
     def test_strategy_analytics_by_side(self, db_session):
         now = datetime.now(UTC)
+        trades = []
         for i in range(5):
-            db_session.add(Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
-                                  tp1=52000, rr=2.0, status="TP_HIT", pnl=1000.0, created_at=now))
+            t = Trade(symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
+                       tp1=52000, rr=2.0, status="TP_HIT", pnl=1000.0, created_at=now)
+            db_session.add(t)
+            trades.append(t)
         for i in range(3):
-            db_session.add(Trade(symbol="BTCUSDT", side="SHORT", entry=50000, stop=51000,
-                                  tp1=48000, rr=2.0, status="TP_HIT", pnl=800.0, created_at=now))
+            t = Trade(symbol="BTCUSDT", side="SHORT", entry=50000, stop=51000,
+                       tp1=48000, rr=2.0, status="TP_HIT", pnl=800.0, created_at=now)
+            db_session.add(t)
+            trades.append(t)
+        db_session.flush()
+        for t in trades:
+            db_session.add(_paper_trade_for(t))
         db_session.flush()
 
         service = AnalyticsService(session_factory=lambda: db_session)
@@ -268,7 +297,9 @@ class TestAnalyticsService:
         )
         db_session.add(pt2)
 
-        # 3. Closed trade with NO matching PaperTrade record (fallback qty = 1.0, real dollar pnl = 50.0 * 1.0 = 50.0)
+        # 3. Closed trade with NO matching PaperTrade record -- real quantity
+        # unknown, must be excluded entirely (not a guessed quantity=1.0
+        # fallback).
         t3 = Trade(
             symbol="ETHUSDT", side="LONG", entry=3000, stop=2900,
             tp1=3200, rr=2.0, status="TP_HIT", pnl=50.0,
@@ -280,8 +311,8 @@ class TestAnalyticsService:
         service = AnalyticsService(session_factory=lambda: db_session)
         analytics = service.full_analytics()
 
-        # Total PnL across closed trades should be 250.0 - 100.0 + 50.0 = 200.0
+        # t3 (no matching PaperTrade) is excluded entirely -- only t1/t2 count.
         assert analytics.win_loss is not None
-        assert analytics.win_loss.gross_profit == 300.0  # 250.0 (t1) + 50.0 (t3)
+        assert analytics.win_loss.gross_profit == 250.0  # t1 only
         assert analytics.win_loss.gross_loss == 100.0  # abs(-100.0) (t2)
-        assert analytics.win_loss.profit_factor == 3.0  # 300 / 100
+        assert analytics.win_loss.profit_factor == 2.5  # 250 / 100

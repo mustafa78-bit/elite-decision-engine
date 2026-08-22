@@ -535,9 +535,11 @@ def test_root_portfolio_engine_unrealized_and_equity(db_session, session_factory
     db_session.flush()
 
     # Open trade with positive unrealized pnl
-    _make_trade(db_session, id=101, signal_id=101, symbol="BTCUSDT", status="OPEN", pnl=150.0)
+    t1 = _make_trade(db_session, id=101, signal_id=101, symbol="BTCUSDT", status="OPEN", pnl=150.0)
     # Open trade with negative unrealized pnl
-    _make_trade(db_session, id=102, signal_id=102, symbol="ETHUSDT", status="OPEN", pnl=-50.0)
+    t2 = _make_trade(db_session, id=102, signal_id=102, symbol="ETHUSDT", status="OPEN", pnl=-50.0)
+    _make_paper_trade(db_session, position_id=t1.id, symbol="BTCUSDT", quantity=1.0, status="OPEN")
+    _make_paper_trade(db_session, position_id=t2.id, symbol="ETHUSDT", quantity=1.0, status="OPEN")
 
     engine = RootPortfolioEngine(
         session_factory=session_factory,
@@ -564,7 +566,7 @@ def test_root_portfolio_engine_daily_pnl_timezone_aware(db_session, session_fact
 
     # Closed trade with timezone-aware closed_at
     aware_now = datetime.now(UTC)
-    _make_trade(
+    closed_trade = _make_trade(
         db_session,
         id=103,
         signal_id=103,
@@ -573,6 +575,7 @@ def test_root_portfolio_engine_daily_pnl_timezone_aware(db_session, session_fact
         pnl=250.0,
         closed_at=aware_now,
     )
+    _make_paper_trade(db_session, position_id=closed_trade.id, symbol="BTCUSDT", quantity=1.0, status="CLOSED", pnl=250.0)
 
     engine = RootPortfolioEngine(
         session_factory=session_factory,
@@ -642,7 +645,8 @@ def test_root_portfolio_engine_mixed_quantity_real_dollars(db_session, session_f
         status="CLOSED",
     )
 
-    # SOL Trade (still OPEN, no matching PaperTrade -- exercises the qty=1.0 fallback)
+    # SOL Trade (still OPEN, no matching PaperTrade -- must be excluded from
+    # unrealized_pnl, not treated as if quantity=1.0)
     _make_trade(
         db_session,
         signal_id=12,
@@ -674,9 +678,12 @@ def test_root_portfolio_engine_mixed_quantity_real_dollars(db_session, session_f
     expected_dd = round(((10005.0 - 9805.0) / 10005.0) * 100, 2)
     assert stats.max_drawdown == expected_dd
 
-    # Unrealized PnL: the OPEN SOL trade has no matching PaperTrade, so it
-    # falls back to the raw per-unit value (quantity=1.0) -- 5.0.
-    assert stats.unrealized_pnl == 5.0
+    # Unrealized PnL: the OPEN SOL trade has no matching PaperTrade (real
+    # quantity unknown), so it's excluded entirely -- not a guessed
+    # quantity=1.0 fallback. Corrected 2026-08-22: mirrors
+    # risk_manager.py's/paper_executor.py's established "exclude, don't
+    # guess" handling of the identical condition.
+    assert stats.unrealized_pnl == 0.0
 
-    # equity = initial_equity + total_pnl + unrealized_pnl = 10000 - 195 + 5 = 9810
-    assert stats.equity == 9810.0
+    # equity = initial_equity + total_pnl + unrealized_pnl = 10000 - 195 + 0 = 9805
+    assert stats.equity == 9805.0

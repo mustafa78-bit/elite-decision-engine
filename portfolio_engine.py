@@ -134,7 +134,7 @@ class PortfolioEngine:
         def get_notional(t: Trade) -> float:
             if t.entry is None:
                 return 0.0
-            return trade_notional_exposure(t, paper_trade_map.get(t.id))
+            return trade_notional_exposure(t, paper_trade_map.get(t.id)) or 0.0
 
         current_open_exposure = sum(get_notional(t) for t in open_trades)
 

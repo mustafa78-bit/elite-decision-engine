@@ -130,8 +130,15 @@ def test_performance_engine_unit_mismatch(db_session, session_factory):
     assert stats.average_r_multiple == 0.0
 
 
-def test_performance_engine_no_paper_trade_fallback(db_session, session_factory):
-    # Test that when no matching PaperTrade exists, we fallback to raw trade.pnl (equivalent to qty=1.0)
+def test_performance_engine_excludes_trade_with_no_paper_trade_match(db_session, session_factory):
+    # A closed trade with no matching PaperTrade has an unknown real
+    # quantity -- must be excluded from dollar-denominated stats entirely,
+    # not treated as if quantity=1.0 (the raw per-unit pnl is not a dollar
+    # amount). Corrected 2026-08-22: mirrors risk_manager.py's/
+    # paper_executor.py's established "exclude, don't guess" handling of
+    # the identical missing-PaperTrade condition -- an earlier version of
+    # this test asserted the opposite (a quantity=1.0 guess), which was
+    # itself the bug.
     _make_trade(
         db_session,
         symbol="BTCUSDT",
@@ -146,8 +153,9 @@ def test_performance_engine_no_paper_trade_fallback(db_session, session_factory)
     engine = PerformanceEngine(session_factory=session_factory, initial_equity=10000.0)
     stats = engine.stats()
 
-    # With only 1 trade having raw pnl=500.0 and no PaperTrade, it should use fallback pnl=500.0
-    assert stats.best_trade == 500.0
-    assert stats.worst_trade == 500.0
-    assert stats.expectancy == 500.0
-    assert stats.profit_factor == 999.99  # no loss fallback
+    # With the only trade excluded (unknown real dollar pnl), stats fall
+    # back to their all-zero default (no dollar-denominated data at all).
+    assert stats.best_trade == 0.0
+    assert stats.worst_trade == 0.0
+    assert stats.expectancy == 0.0
+    assert stats.profit_factor == 0.0

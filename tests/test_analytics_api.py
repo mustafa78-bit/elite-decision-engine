@@ -4,7 +4,7 @@ from datetime import UTC
 
 import pytest
 
-from database import Signal, Trade
+from database import PaperTrade, Signal, Trade
 
 
 class TestAnalyticsAPI:
@@ -21,11 +21,17 @@ class TestAnalyticsAPI:
         from datetime import datetime, timezone
         now = datetime.now(UTC)
         for pnl in [1000, 2000, -500]:
-            db_session.add(Trade(
+            t = Trade(
                 symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
                 tp1=52000, rr=2.0,
                 status="TP_HIT" if pnl > 0 else "SL_HIT",
                 pnl=pnl, created_at=now,
+            )
+            db_session.add(t)
+            db_session.flush()
+            db_session.add(PaperTrade(
+                position_id=t.id, symbol="BTCUSDT", side="LONG",
+                entry=50000, quantity=1.0, status=t.status, pnl=pnl,
             ))
         db_session.flush()
 
@@ -64,10 +70,16 @@ class TestAnalyticsAPI:
 
     def test_analytics_symbols(self, api_client, db_session):
         from datetime import datetime, timezone
-        db_session.add(Trade(
+        t = Trade(
             symbol="BTCUSDT", side="LONG", entry=50000, stop=49000,
             tp1=52000, rr=2.0, status="TP_HIT", pnl=1000,
             created_at=datetime.now(UTC),
+        )
+        db_session.add(t)
+        db_session.flush()
+        db_session.add(PaperTrade(
+            position_id=t.id, symbol="BTCUSDT", side="LONG",
+            entry=50000, quantity=1.0, status="TP_HIT", pnl=1000,
         ))
         db_session.flush()
         resp = api_client.get("/analytics/symbols")

@@ -74,14 +74,14 @@ class PerformanceEngine:
 
         closed = [row[0] for row in results]
 
+        # Excludes trades with no matching PaperTrade (real quantity unknown)
+        # rather than treating the raw per-unit pnl as a dollar amount --
+        # mirrors risk_manager.py's/paper_executor.py's established
+        # "exclude, don't guess" handling of the identical condition.
         pnls = []
         for trade, paper_trade in results:
-            if trade.pnl is not None:
-                if paper_trade is not None:
-                    qty = paper_trade.quantity if paper_trade.quantity is not None else 0.0
-                    pnls.append(qty * trade.pnl)
-                else:
-                    pnls.append(trade.pnl)
+            if trade.pnl is not None and paper_trade is not None and paper_trade.quantity is not None:
+                pnls.append(paper_trade.quantity * trade.pnl)
 
         if not pnls:
             return PerformanceStats()
