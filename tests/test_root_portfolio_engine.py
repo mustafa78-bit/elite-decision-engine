@@ -90,6 +90,27 @@ def test_allocation_sums_multiple_symbols_by_real_notional(session_factory, db_s
     assert stats.current_open_exposure == 9000.0
 
 
+def test_closed_trade_with_no_pnl_data_is_excluded_from_pnl_but_still_counted(session_factory, db_session):
+    # Regression for the services/pnl.py migration: trade_dollar_pnl()
+    # coerces a None Trade.pnl to 0.0, but this engine's own get_real_pnl()
+    # wrapper must keep excluding it entirely (not silently treat "no data
+    # yet" as "a real, decided zero") -- otherwise a trade with unknown PnL
+    # would start counting as break-even in win/loss classification and
+    # total_pnl's sum instead of being left out, while still correctly
+    # contributing to closed_trades' raw count.
+    winner = _make_trade(db_session, symbol="BTCUSDT", status="CLOSED", pnl=10.0)
+    _make_paper_trade(db_session, position_id=winner.id, symbol="BTCUSDT", quantity=2.0, status="CLOSED")
+    _make_trade(db_session, symbol="ETHUSDT", status="CLOSED", pnl=None)
+
+    engine = PortfolioEngine(session_factory=session_factory, initial_equity=10000.0)
+    stats = engine.stats()
+
+    assert stats.closed_trades == 2
+    assert stats.winning_trades == 1
+    assert stats.losing_trades == 0
+    assert stats.total_pnl == 20.0  # only the winner's 10.0 * quantity 2.0, the None-pnl trade excluded
+
+
 def test_falls_back_to_raw_entry_when_no_paper_trade_match(session_factory, db_session):
     # No matching PaperTrade row exists for this Trade -- same
     # quantity=1.0 fallback convention already used by get_real_pnl() for
