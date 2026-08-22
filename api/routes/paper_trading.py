@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -9,7 +9,6 @@ from sqlalchemy import or_
 from api.dependencies import require_user_id
 from database import FINAL_STATUSES, PaperTrade, Trade, get_session
 from execution.paper_executor import PaperExecutor as PaperExec
-from portfolio_engine import PortfolioEngine
 
 router = APIRouter()
 
@@ -25,17 +24,6 @@ class PaperTradeSummary:
     exit_price: float | None
     close_reason: str | None
     created_at: str | None
-
-
-@dataclass
-class PaperPerformance:
-    total_trades: int = 0
-    open_trades: int = 0
-    closed_trades: int = 0
-    winning_trades: int = 0
-    losing_trades: int = 0
-    win_rate: float = 0.0
-    total_pnl: float = 0.0
 
 
 @router.get("/paper-trading")
