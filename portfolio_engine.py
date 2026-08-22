@@ -16,6 +16,7 @@ from sqlalchemy import or_
 
 from config import ACCOUNT_EQUITY
 from database import FINAL_STATUSES, PaperTrade, Trade, get_session
+from services.pnl import trade_dollar_pnl, trade_notional_exposure
 
 logger = logging.getLogger(__name__)
 _INFINITE_PF = 999.99
@@ -69,17 +70,20 @@ class PortfolioEngine:
         all_trades = [r[0] for r in results]
 
         # Trade.pnl is a raw per-unit price delta, not a dollar amount -- scale
-        # by the matching PaperTrade's real quantity where one exists, falling
-        # back to the raw value (quantity=1.0) when no match exists.
+        # by the matching PaperTrade's real quantity via the shared
+        # services/pnl.py helper (same conversion FundingCollector-adjacent
+        # callers use), falling back to the raw value (quantity=1.0) when no
+        # match exists. The None check stays local: unlike
+        # trade_dollar_pnl() (which coerces a None Trade.pnl to 0.0), this
+        # engine needs to distinguish "no data yet" from "real zero" so
+        # win/loss counts and total_pnl's sum can exclude undecided trades
+        # entirely rather than silently counting them as break-even.
         paper_trade_map = {r[0].id: r[1] for r in results if r[1] is not None}
 
         def get_real_pnl(t: Trade) -> float | None:
             if t.pnl is None:
                 return None
-            pt = paper_trade_map.get(t.id)
-            if pt is not None:
-                return (pt.quantity or 0.0) * t.pnl
-            return t.pnl
+            return trade_dollar_pnl(t, paper_trade_map.get(t.id))
 
         open_trades = [t for t in all_trades if t.status == "OPEN"]
         closed_trades = [t for t in all_trades if t.status in FINAL_STATUSES]
@@ -130,9 +134,7 @@ class PortfolioEngine:
         def get_notional(t: Trade) -> float:
             if t.entry is None:
                 return 0.0
-            pt = paper_trade_map.get(t.id)
-            quantity = pt.quantity if pt is not None and pt.quantity is not None else 1.0
-            return t.entry * quantity
+            return trade_notional_exposure(t, paper_trade_map.get(t.id))
 
         current_open_exposure = sum(get_notional(t) for t in open_trades)
 
