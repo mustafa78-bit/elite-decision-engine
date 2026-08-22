@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import or_
 
 from api.dependencies import require_user_id
-from database import FINAL_STATUSES, OPEN, PaperTrade, Signal, Trade, get_session
+from database import FINAL_STATUSES, OPEN, Signal, Trade, get_session
 from dto.widgets import (
     DashboardWidgetDTO,
     ExplanationDashboardWidgetDTO,
@@ -21,6 +21,7 @@ from dto.widgets import (
     TimelineDashboardWidgetDTO,
 )
 from services.kpi_service import KPIService
+from services.pnl import compute_max_drawdown, get_trades_with_dollar_pnl
 
 logger = logging.getLogger(__name__)
 
@@ -163,17 +164,10 @@ def dashboard_portfolio(request: Request):
     user_id = require_user_id(request)
     session = get_session()
     try:
-        results = (
-            session.query(Trade, PaperTrade)
-            .outerjoin(PaperTrade, PaperTrade.position_id == Trade.id)
-            .filter(or_(Trade.user_id == user_id, Trade.user_id.is_(None)))
-            .all()
+        results = get_trades_with_dollar_pnl(
+            session, or_(Trade.user_id == user_id, Trade.user_id.is_(None)),
         )
-        parsed_trades = []
-        for t, pt in results:
-            qty = float(pt.quantity) if (pt is not None and pt.quantity is not None) else 1.0
-            pnl_val = (t.pnl or 0.0) * qty
-            parsed_trades.append({"trade": t, "pnl_val": pnl_val})
+        parsed_trades = [{"trade": t, "pnl_val": pnl_val} for t, pnl_val in results]
 
         closed = [item for item in parsed_trades if item["trade"].status in FINAL_STATUSES]
         open_trades = [item for item in parsed_trades if item["trade"].status == "OPEN"]
@@ -189,16 +183,7 @@ def dashboard_portfolio(request: Request):
             return dt
 
         sorted_closed = sorted(closed, key=_sort_key)
-        peak = 0.0
-        max_dd = 0.0
-        cumulative = 0.0
-        for item in sorted_closed:
-            cumulative += item["pnl_val"]
-            if cumulative > peak:
-                peak = cumulative
-            dd = peak - cumulative
-            if dd > max_dd:
-                max_dd = dd
+        max_dd = compute_max_drawdown([item["pnl_val"] for item in sorted_closed])
 
         from config import ACCOUNT_EQUITY
 
