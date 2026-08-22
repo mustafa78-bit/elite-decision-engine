@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timezone
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -225,3 +226,45 @@ class TestDashboardAPI:
         # Since scores are >= 0.5, they all contribute to the ExplainEngine average computation and decision
         assert body["decision"] in ("BUY", "STRONG_BUY", "SELL", "STRONG_SELL", "HOLD")
         assert body["confidence"] > 0.0
+
+    def test_dashboard_hero_fetches_live_price_for_open_positions(self, api_client, db_session, monkeypatch):
+        # Regression: PortfolioEngine().snapshot() was called with no
+        # current_prices, so unrealized_pnl silently stayed 0.0 for every
+        # open position regardless of real market movement (delta = price -
+        # entry always fell back to entry - entry = 0). Confirmed fixed
+        # 2026-08-22 by fetching a real ticker per open symbol before
+        # building the snapshot, and threading the result through as
+        # PortfolioEngine.snapshot(current_prices=...).
+        trade = Trade(symbol="BTCUSDT", side="LONG", entry=50000.0, stop=49000.0, tp1=52000.0, status="OPEN")
+        db_session.add(trade)
+        db_session.flush()
+        db_session.add(PaperTrade(
+            position_id=trade.id, order_id=1, symbol="BTCUSDT", side="LONG",
+            entry=50000.0, quantity=0.5, pnl=0.0, status="OPEN",
+        ))
+        db_session.commit()
+
+        mock_provider = MagicMock()
+        # BTCUSDT in, BTCUSDT back out -- the ticker call must receive the
+        # full "XUSDT" symbol unstripped (MultiProvider's routing table is
+        # keyed by that form; each underlying provider strips "USDT" itself).
+        mock_provider.get_ticker.return_value = {"symbol": "BTCUSDT", "price": 52000.0}
+        monkeypatch.setattr(
+            "market.provider.get_shared_multi_provider", lambda: mock_provider,
+        )
+
+        from portfolio.engine import PortfolioEngine
+        real_snapshot = PortfolioEngine.snapshot
+        captured: dict = {}
+
+        def spy_snapshot(self, current_prices=None, user_id=None):
+            captured["current_prices"] = current_prices
+            return real_snapshot(self, current_prices=current_prices, user_id=user_id)
+
+        monkeypatch.setattr(PortfolioEngine, "snapshot", spy_snapshot)
+
+        resp = api_client.get("/dashboard/hero")
+        assert resp.status_code == 200
+
+        mock_provider.get_ticker.assert_called_once_with("BTCUSDT")
+        assert captured["current_prices"] == {"BTCUSDT": 52000.0}

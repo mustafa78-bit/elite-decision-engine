@@ -281,12 +281,46 @@ def dashboard_notifications(request: Request):
         session.close()
 
 
+def _live_prices_for_open_symbols(symbols: list[str]) -> dict[str, float]:
+    """Best-effort current price per open-position symbol, for
+    PortfolioEngine.snapshot()'s unrealized-PnL calc. Never raises --
+    PortfolioEngine.snapshot() already falls back to each position's entry
+    price for any symbol missing from this dict (delta=0, same as before
+    this existed), so a fetch failure here degrades gracefully rather than
+    breaking the whole hero banner.
+    """
+    prices: dict[str, float] = {}
+    if not symbols:
+        return prices
+    try:
+        from market.provider import get_shared_multi_provider
+        collector = get_shared_multi_provider()
+        for symbol in symbols:
+            try:
+                # Pass the full "XUSDT"-style symbol -- each underlying
+                # provider (market/provider/hyperliquid.py etc.) strips the
+                # "USDT" suffix itself internally; stripping it here too
+                # would break MultiProvider._resolve()'s routing table
+                # lookup (SYMBOL_PROVIDER_ASSIGNMENT is keyed by the full
+                # "XUSDT" form).
+                ticker = collector.get_ticker(symbol)
+                price = ticker.get("price")
+                if price:
+                    prices[symbol] = float(price)
+            except Exception:
+                logger.warning("Failed to fetch live price for %s (hero banner unrealized PnL)", symbol, exc_info=True)
+    except Exception:
+        logger.warning("Failed to load market provider for hero banner live pricing", exc_info=True)
+    return prices
+
+
 @router.get("/dashboard/hero")
 def dashboard_hero(request: Request):
     user_id = require_user_id(request)
     session = get_session()
     signal: Signal | None = None
     trade: Trade | None = None
+    open_symbols: list[str] = []
     try:
         signal_scope = or_(Signal.user_id == user_id, Signal.user_id.is_(None))
         trade_scope = or_(Trade.user_id == user_id, Trade.user_id.is_(None))
@@ -297,13 +331,18 @@ def dashboard_hero(request: Request):
             .order_by(Trade.created_at.desc())
             .first()
         )
+        open_symbols = [
+            row[0] for row in
+            session.query(Trade.symbol).filter(trade_scope, Trade.status == OPEN).distinct().all()
+        ]
     finally:
         session.close()
 
     try:
         from performance.engine import PerformanceEngine
         from portfolio.engine import PortfolioEngine
-        snapshot = PortfolioEngine().snapshot(user_id=user_id)
+        current_prices = _live_prices_for_open_symbols(open_symbols)
+        snapshot = PortfolioEngine().snapshot(current_prices=current_prices, user_id=user_id)
         perf = PerformanceEngine().report(snapshot, user_id=user_id)
 
         market_regime = "UNKNOWN"
