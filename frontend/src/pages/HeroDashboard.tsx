@@ -22,6 +22,8 @@ import { TimelineWidget } from "../components/dashboard/timeline-widget";
 import { QuickActionsWidget } from "../components/dashboard/quick-actions-widget";
 import { Skeleton } from "../components/ui/skeleton";
 import { apiFetch } from "../api/client";
+import { fetchHeroBanner } from "../api/widgets";
+import type { HeroBannerDTO } from "../types/api/widget";
 import { useUIStore } from "../stores/ui-store";
 
 interface IntelligenceData {
@@ -29,16 +31,6 @@ interface IntelligenceData {
   signals?: { total?: number; open?: number; approved?: number; rejected?: number };
   risk?: { open_trades?: number; max_open_trades?: number };
   trades?: { open?: number; closed?: number; total_pnl?: number };
-}
-
-interface MarketData {
-  price?: number;
-  regime?: string;
-  volatility?: number;
-  btc_health_score?: number;
-  rsi?: number;
-  ema20?: number;
-  ema50?: number;
 }
 
 interface ExecStatus {
@@ -61,9 +53,9 @@ export default function HeroDashboard() {
   const { setCommandPaletteOpen } = useUIStore();
   const [mounted, setMounted] = useState(false);
   const [intel, setIntel] = useState<IntelligenceData | null>(null);
-  const [mkt, setMkt] = useState<MarketData | null>(null);
   const [execStatus, setExecStatus] = useState<ExecStatus | null>(null);
   const [perf, setPerf] = useState<PerfData | null>(null);
+  const [hero, setHero] = useState<HeroBannerDTO | null>(null);
   const [loadError, setLoadError] = useState(false);
 
   const load = () => {
@@ -71,15 +63,15 @@ export default function HeroDashboard() {
     setLoadError(false);
     Promise.all([
       apiFetch<IntelligenceData>("/intelligence").catch(() => null),
-      apiFetch<MarketData>("/market").catch(() => null),
       apiFetch<ExecStatus>("/execution/status").catch(() => null),
       apiFetch<PerfData>("/performance").catch(() => null),
-    ]).then(([i, m, e, p]) => {
+      fetchHeroBanner().catch(() => null),
+    ]).then(([i, e, p, h]) => {
       setIntel(i);
-      setMkt(m);
       setExecStatus(e);
       setPerf(p);
-      if (!i && !m && !e && !p) setLoadError(true);
+      setHero(h);
+      if (!i && !e && !p) setLoadError(true);
     });
   };
 
@@ -109,9 +101,16 @@ export default function HeroDashboard() {
     );
   }
 
-  const aiConfidence = intel?.market?.rsi ? Math.round((intel.market.rsi / 100) * 100) : 0;
-  const aiDecision = intel?.market?.regime === "TREND" || (intel?.market?.rsi ?? 50) > 60 ? "BUY" : intel?.market?.regime === "DOWNTREND" || (intel?.market?.rsi ?? 50) < 40 ? "SELL" : "WAIT";
-  const aiScore = mkt?.btc_health_score != null ? mkt.btc_health_score * 10 : 5;
+  // Real ExplainEngine output (backend GET /dashboard/hero) -- decision is
+  // already a side-aware BUY/SELL/HOLD label (explain/engine.py maps
+  // side="LONG"->BUY, side="SHORT"->SELL). Previously this was a
+  // client-side heuristic reading RSI/regime directly and calling the
+  // result "AI confidence" -- it never touched any of the app's real
+  // scoring engines. AIConfidenceWidget's neutral label is "WAIT", not
+  // ExplainEngine's "HOLD" -- map that one case, pass everything else
+  // through unchanged.
+  const aiDecision = hero?.decision === "HOLD" ? "WAIT" : hero?.decision ?? "WAIT";
+  const aiConfidence = hero?.confidence ?? 0;
 
   const dailyPnl = intel?.trades?.total_pnl ?? 0;
   const dailyPct = 0;
@@ -214,7 +213,7 @@ export default function HeroDashboard() {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             <MarketRegimeWidget />
-            <AIConfidenceWidget confidence={aiConfidence} decision={aiDecision} score={aiScore} />
+            <AIConfidenceWidget confidence={aiConfidence} decision={aiDecision} summary={hero?.summary ?? ""} />
             <DailyPnLWidget dailyPnl={dailyPnl} dailyPct={dailyPct} totalPnl={totalPnl} />
           </motion.div>
 
