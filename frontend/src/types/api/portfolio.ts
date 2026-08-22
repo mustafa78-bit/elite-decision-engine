@@ -12,7 +12,7 @@ export interface PortfolioSummaryDTO {
   sharpe_ratio: number;
   max_drawdown: number;
   current_drawdown: number;
-  avg_trade_duration: number;
+  avg_trade_duration: string | null;
   best_trade_pnl: number;
   worst_trade_pnl: number;
 }

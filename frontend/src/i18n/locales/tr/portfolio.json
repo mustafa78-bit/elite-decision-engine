@@ -15,6 +15,18 @@
       "dailyPnl": "Günlük K/Z"
     }
   },
+  "riskPanel": {
+    "title": "Risk ve Performans",
+    "sharpeRatio": "Sharpe Oranı",
+    "var95": "VaR (%95)",
+    "expectedDownside": "Beklenen Kayıp",
+    "recoveryFactor": "Toparlanma Faktörü",
+    "currentDrawdown": "Güncel Düşüş",
+    "bestTrade": "En İyi İşlem",
+    "worstTrade": "En Kötü İşlem",
+    "avgDuration": "Ort. İşlem Süresi",
+    "noData": "Henüz yeterli kapalı işlem yok"
+  },
   "balanceCard": {
     "title": "Bakiye",
     "realizedPnl": "Gerçekleşen K/Z",

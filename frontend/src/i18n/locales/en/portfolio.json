@@ -15,6 +15,18 @@
       "dailyPnl": "Daily PnL"
     }
   },
+  "riskPanel": {
+    "title": "Risk & Performance",
+    "sharpeRatio": "Sharpe Ratio",
+    "var95": "VaR (95%)",
+    "expectedDownside": "Expected Downside",
+    "recoveryFactor": "Recovery Factor",
+    "currentDrawdown": "Current Drawdown",
+    "bestTrade": "Best Trade",
+    "worstTrade": "Worst Trade",
+    "avgDuration": "Avg Trade Duration",
+    "noData": "Not enough closed trades yet"
+  },
   "balanceCard": {
     "title": "Balance",
     "realizedPnl": "Realized PnL",
