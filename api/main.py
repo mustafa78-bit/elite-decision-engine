@@ -585,7 +585,18 @@ def get_mip() -> MarketDataService:
 
 async def _broadcast_market() -> None:
     try:
-        asset = get_mip().get_asset("BTC")
+        # get_asset() is synchronous and, on a cache miss, runs the full
+        # news/whale/funding/OI/fear-greed intelligence enrichment fan-out
+        # (real blocking requests.get() calls chained together) --
+        # scanner/core.py's own comment already documents this taking
+        # 26-56s under real NVIDIA load. Called unwrapped from this async
+        # function every 30s (via _periodic_broadcast), it froze the
+        # entire event loop for that whole duration on every cache-expiry
+        # cycle -- confirmed live 2026-08-21/22 as the real cause of 41
+        # overnight backend freezes the process watchdog had to recover
+        # from (GET /health, and every other request, going completely
+        # unresponsive with zero log output for 30-60s at a time).
+        asset = await asyncio.to_thread(get_mip().get_asset, "BTC")
         if asset.is_empty:
             return
 
@@ -644,13 +655,21 @@ async def _broadcast_market() -> None:
         logger.exception("Market broadcast failed")
 
 
+def _fetch_all_trades_sync() -> list:
+    session = get_session()
+    try:
+        return session.query(Trade).all()
+    finally:
+        session.close()
+
+
 async def _broadcast_risk() -> None:
     try:
-        session = get_session()
-        try:
-            all_trades = session.query(Trade).all()
-        finally:
-            session.close()
+        # Same reasoning as _broadcast_market() above: a synchronous DB
+        # call was previously made directly on the event loop from this
+        # async function, every 30s -- normally fast, but not safe to
+        # assume under a slow/locked DB.
+        all_trades = await asyncio.to_thread(_fetch_all_trades_sync)
 
         risk_engine = RiskEngine()
         risk_score = risk_engine.score({"atr": 0}, {"score": 0})
